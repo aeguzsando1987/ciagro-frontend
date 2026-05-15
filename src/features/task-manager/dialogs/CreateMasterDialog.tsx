@@ -50,7 +50,8 @@ interface CreateMasterDialogProps {
 
 export function CreateMasterDialog({ open, onOpenChange, datacentral }: CreateMasterDialogProps) {
   const queryClient = useQueryClient()
-  const { data: producers = [], isLoading: loadingProducers } = useAgroUnits()
+  // Productores/asociaciones del workspace activo (scope aplicado por el backend).
+  const { data: producers = [], isLoading: loadingProducers } = useAgroUnits(datacentral)
 
   const {
     register,

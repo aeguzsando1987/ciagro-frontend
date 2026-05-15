@@ -1,22 +1,28 @@
-chore: estado pre-reimplementación del Task Manager (punto de rollback)
+feat(task-manager): Bloque 1 — Programa Maestro alineado al caso de uso
 
-Sesión 5, 2026-05-15. Commit inicial del repositorio frontend.
+Sesión 5, 2026-05-15. Reimplementación del Task Manager — Bloque 1.
 
-Captura el estado completo de CIAgro_alpha_front antes de reiniciar el
-desarrollo del Task Manager (Fase 2).
+Caso de uso §1 y §2 (taskmanager_usecase.md).
 
-La implementación de Sprints 2.A–2.C divergió del caso de uso
-.context/taskmanager_usecase.md:
-- CreateHijoDialog con selector de Productor indebido (se hereda del Maestro)
-- Ciclo del Subprograma como input de texto libre
-- Sin manejo de crop/crop_variety segun el caso de uso
-- Sin campos de fechas reales en los formularios de edición
-- Sin strict_mode/radius_tolerance/assigned_to en sesiones
-- Navegador de modales con heurístico frágil
-- Bug 400 silencioso al crear Subprograma (form enviaba fechas vacías)
+useAgroUnits:
+- Acepta `datacentral` y lo pasa a /organizations/ — el scope por
+  workspace lo aplica el backend (AgroUnitListView, regla crítica #7)
+- Filtra el resultado a Productor + Asociación agrícola (caso de uso
+  §1.2.3); antes solo traía Productor
 
-Este commit es el punto de rollback para la reimplementación híbrida: se
-recicla la capa de datos (hooks, types) y la vista Gantt; se reescribe la
-capa de UI (diálogos de creación, modales de detalle, navegador).
+CreateMasterDialog:
+- El dropdown de productor usa useAgroUnits(datacentral): muestra solo
+  los productores del workspace activo
+- El resto del diálogo ya cumplía el caso de uso §1, no se reescribió
 
-Ver logs/development.md Sesión 5 y el plan de la sesión.
+MaestroModal:
+- Formulario de edición: agrega las fechas reales real_start_date /
+  real_finish_date (caso de uso §2.4.1)
+- Conversión de fecha vacía a null en submit — evita el 400 de DRF por
+  formato de fecha vacía
+- Refine zod: la fecha real de inicio no puede ser posterior a la de fin
+- Las fechas reales se muestran también en modo vista
+
+Verificación: npm run typecheck (0 errores), npm run test (51/51 verde),
+demo manual en navegador aprobada (crear Maestro, editar fecha real y
+status en workspace "AgroNorte — Operaciones").

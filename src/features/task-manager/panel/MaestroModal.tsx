@@ -37,15 +37,27 @@ const editSchema = z
     code: z.string().min(1, 'Requerido'),
     est_start_date: z.string().min(1, 'Requerido'),
     est_finish_date: z.string().min(1, 'Requerido'),
+    real_start_date: z.string().optional(),
+    real_finish_date: z.string().optional(),
     notes: z.string().optional(),
   })
   .refine((v) => v.est_start_date <= v.est_finish_date, {
     message: 'La fecha inicio no puede ser posterior a la de fin',
     path: ['est_finish_date'],
   })
+  .refine(
+    (v) => !v.real_start_date || !v.real_finish_date || v.real_start_date <= v.real_finish_date,
+    {
+      message: 'La fecha real de inicio no puede ser posterior a la de fin',
+      path: ['real_finish_date'],
+    }
+  )
 
 type EditValues = z.infer<typeof editSchema>
-const EDIT_FIELDS = ['title', 'code', 'est_start_date', 'est_finish_date', 'notes'] as const
+const EDIT_FIELDS = [
+  'title', 'code', 'est_start_date', 'est_finish_date',
+  'real_start_date', 'real_finish_date', 'notes',
+] as const
 
 interface MaestroModalProps {
   master: MasterProgram
@@ -63,7 +75,7 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
 
   // Árbol lazy: si ya estaba en cache (Maestro expandido en Gantt) → hit inmediato.
   const { data: tree } = useQuery(masterTreeQueryOptions(master.id, true))
-  const { data: producers = [] } = useAgroUnits()
+  const { data: producers = [] } = useAgroUnits(datacentral)
 
   const producerName =
     producers.find((p) => p.id === master.agro_unit)?.commercial_name ?? master.agro_unit
@@ -83,6 +95,8 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
       code: master.code,
       est_start_date: master.est_start_date ?? '',
       est_finish_date: master.est_finish_date ?? '',
+      real_start_date: master.real_start_date ?? '',
+      real_finish_date: master.real_finish_date ?? '',
       notes: master.notes ?? '',
     },
   })
@@ -93,8 +107,16 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
   }
 
   async function onSubmitEdit(values: EditValues) {
+    // Las fechas reales son opcionales: un <input type="date"> vacío produce "",
+    // que DRF rechaza por formato. Se envía null para que el backend las deje
+    // sin valor (campos null=True en MasterProgram).
+    const payload = {
+      ...values,
+      real_start_date: values.real_start_date || null,
+      real_finish_date: values.real_finish_date || null,
+    }
     try {
-      await updateMutation.mutateAsync(values)
+      await updateMutation.mutateAsync(payload)
       setMode('view')
     } catch {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -156,6 +178,21 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
                   <Input id="em-end" type="date" {...register('est_finish_date')} />
                   {errors.est_finish_date && (
                     <p className="text-xs text-destructive">{errors.est_finish_date.message}</p>
+                  )}
+                </div>
+              </div>
+              {/* Fechas reales de ejecución (caso de uso §2.4.1) — opcionales:
+                  se llenan cuando el Programa efectivamente inicia/termina. */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="em-real-start">Inicio real</Label>
+                  <Input id="em-real-start" type="date" {...register('real_start_date')} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="em-real-end">Fin real</Label>
+                  <Input id="em-real-end" type="date" {...register('real_finish_date')} />
+                  {errors.real_finish_date && (
+                    <p className="text-xs text-destructive">{errors.real_finish_date.message}</p>
                   )}
                 </div>
               </div>
@@ -236,6 +273,14 @@ function ViewMode({
         <div>
           <dt className="text-xs text-muted-foreground">Fin estimado</dt>
           <dd>{master.est_finish_date ?? '—'}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Inicio real</dt>
+          <dd>{master.real_start_date ?? '—'}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Fin real</dt>
+          <dd>{master.real_finish_date ?? '—'}</dd>
         </div>
         {master.notes && (
           <div className="col-span-2">
