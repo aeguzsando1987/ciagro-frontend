@@ -1,0 +1,22 @@
+chore: estado pre-reimplementación del Task Manager (punto de rollback)
+
+Sesión 5, 2026-05-15. Commit inicial del repositorio frontend.
+
+Captura el estado completo de CIAgro_alpha_front antes de reiniciar el
+desarrollo del Task Manager (Fase 2).
+
+La implementación de Sprints 2.A–2.C divergió del caso de uso
+.context/taskmanager_usecase.md:
+- CreateHijoDialog con selector de Productor indebido (se hereda del Maestro)
+- Ciclo del Subprograma como input de texto libre
+- Sin manejo de crop/crop_variety segun el caso de uso
+- Sin campos de fechas reales en los formularios de edición
+- Sin strict_mode/radius_tolerance/assigned_to en sesiones
+- Navegador de modales con heurístico frágil
+- Bug 400 silencioso al crear Subprograma (form enviaba fechas vacías)
+
+Este commit es el punto de rollback para la reimplementación híbrida: se
+recicla la capa de datos (hooks, types) y la vista Gantt; se reescribe la
+capa de UI (diálogos de creación, modales de detalle, navegador).
+
+Ver logs/development.md Sesión 5 y el plan de la sesión.
