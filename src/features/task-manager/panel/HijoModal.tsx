@@ -445,7 +445,7 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
         <CreateSessionDialog
           open={createSesionOpen}
           onOpenChange={setCreateSesionOpen}
-          programa={{ id: hijo.id, master_program: master.id, title: hijo.title }}
+          programa={{ id: hijo.id, master_program: master.id, title: hijo.title, plot: hijo.plot ?? null }}
           master={master}
           datacentralId={datacentralId}
         />

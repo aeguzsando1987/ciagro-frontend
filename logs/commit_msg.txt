@@ -1,34 +1,38 @@
-feat(task-manager): Bloque 2 — Subprograma (CreateHijoDialog + HijoModal)
+feat(task-manager): Bloque 3 — Sesiones Aspersión y Fitosanitario
 
-Sesión 6, 2026-05-16. Reimplementación del Task Manager — Bloque 2.
+Sesión 6, 2026-05-16. Reimplementación del Task Manager — Bloque 3.
 
-Caso de uso §3 y §4 (taskmanager_usecase.md).
+Caso de uso §5–§8 (taskmanager_usecase.md).
 
-cycle.ts (nuevo):
-- buildCycle / parseCycle / isSeason2AfterSeason1 espejando validate_cycle
-  del backend; el ciclo nunca se envía como texto libre
+backend/datalayers/models.py:
+- PhytoMonitoringHeader.session_date @property → estimated_start_date
+- PhytoMonitoringHeader.import_status @property → "done"
+  Fixes PhytoSessionSummarySerializer en /tree/ (AttributeError en runtime)
 
-useHijoDetail (nuevo):
-- GET /tasks/{id}/ — trae actual_start_date, actual_finish_date y crop
-  que ProgramaTree no incluye; necesario para el formulario de edición
+Hooks nuevos:
+- useAspersionSessionDetail / usePhytoSessionDetail — GET detail
+- useUpdateAspersionSession / useUpdatePhytoSession — PATCH con
+  invalidación de detail + tree
+- AspersionSessionDetail augmentada con status + assigned_to
+  (gap GAP-SCHEMA-001: campos omitidos del schema OpenAPI)
 
-CreateHijoDialog (reescrito):
-- Sin selector de Productor; heredado del Maestro (§3.4), read-only
-- Ciclo con 3 selects (temporada1/temporada2/año) espejando validate_cycle
-- Cascada Rancho → Parcela sobre master.agro_unit (no selector de Productor)
-- Solo crop_id en payload; etiqueta name+variety concatenada (§3.5.6)
-- Campos opcionales omitidos del payload (corrige 400 por "" en DRF)
+CreateSessionDialog (reescritura):
+- Phyto: strict_mode (checkbox) + radius_tolerance (number)
+- Advertencia cuando Hijo sin parcela (Phyto fallaría en backend)
+- plot en prop programa (desde HijoModal)
+- SelectItem value="__none__" como sentinel (Radix UI rechaza value="")
 
-HijoModal (reescrito):
-- localStatus: feedback inmediato de cambio de status sin cerrar modal
-- Edición: actual_start/finish_date sin fricción; título/ciclo/fechas
-  estimadas/cultivo detrás de toggle con advertencia de inconsistencia
-- Botón Editar deshabilitado mientras useHijoDetail carga
-- Mapa de parcela en columna derecha (max-w-4xl, w-80, h-80)
+SesionModal (reescritura):
+- Fetch de detalle reactivo (no solo lectura del tree cache)
+- View mode: DL completo + PlotMiniMap en columna derecha
+- Ciclos de vida distintos por tipo: Aspersión incluye "loaded"; Phyto no
+- Phyto cancelled: prompt inline de notas antes de confirmar (§serializer)
+- Edit mode: fechas reales siempre visibles + metadatos detrás de toggle
+- CSV import: placeholder diferido a Bloque 5
 
-PlotMiniMap:
-- fitBounds nativo de MapLibre con padding: 60 reemplaza zoom manual
-- Polígono centrado con contexto de terreno visible alrededor
+HijoModalWrapper (nuevo componente en route):
+- Reemplaza IIFE con queryClient.getQueryData() (lectura puntual, no reactiva)
+- useQuery crea suscripción al tree cache: lista de sesiones actualiza
+  inmediatamente al crear sesión, sin cerrar el modal
 
-Tests: mock de useHijoDetail a nivel módulo para aislar visibilidad de
-botón por rol del comportamiento de red. 51/51 verdes, 0 errores typecheck.
+76/76 tests verdes, 0 errores typecheck.

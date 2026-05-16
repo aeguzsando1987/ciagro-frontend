@@ -618,3 +618,67 @@ Demo manual en navegador con backend real: crear Subprograma (ciclo con selects,
 Productor, con y sin parcela), editar fechas reales, cambiar status con feedback
 inmediato, mapa de parcela visible en columna derecha.
 
+---
+
+## Sesión 6 (continuación) — 2026-05-16
+
+### Bloque 3 — Sesiones Aspersión y Fitosanitario (caso de uso §5–§8)
+
+**Contexto:** Bloque 3 completa el CRUD de sesiones. Dos tipos con modelos, endpoints
+y ciclos de vida distintos que comparten la misma UI de entrada (CreateSessionDialog)
+y el mismo modal de detalle/edición (SesionModal).
+
+**Análisis backend previo a codificar (§4.0):**
+- `AspersionSessionHeader` CREATE: `POST /api/v1/monitoring/aspersion/headers/`
+  — `ListCreateAPIView`, permiso `IsTechnician` (level ≥ 2). Campo requerido: `aspersion_date`.
+  `plot` se hereda automáticamente de `program.plot_id` en `model.save()`, nunca se envía.
+- `PhytoMonitoringHeader` CREATE: `POST /api/v1/monitoring/phyto/headers/create/`
+  — permiso `IsAuthenticated`. Campo requerido: `estimated_start_date` + (`field_task_id` o `plot_id`).
+  Si `field_task_id` no tiene parcela → error 400 en `plot_id`.
+- Ciclos de vida distintos: Aspersión incluye estado `loaded`; Phyto no.
+- Phyto `status=cancelled` requiere `additional_notes` (validado en serializer).
+- Gap detectado: `PhytoSessionSummarySerializer` referenciaba `session_date` e `import_status`
+  que no existen en el modelo → error en `/tree/` si hay sesiones Phyto.
+  Fix: dos `@property` en `PhytoMonitoringHeader`.
+
+**Cambios principales:**
+
+`datalayers/models.py` (backend, autorizado):
+- `session_date` → `self.estimated_start_date`
+- `import_status` → `"done"` (Phyto no tiene flujo CSV)
+
+Hooks nuevos (`hooks/`):
+- `useAspersionSessionDetail` / `usePhytoSessionDetail` — GET detail con `queryOptions`.
+- `useUpdateAspersionSession` / `useUpdatePhytoSession` — PATCH con invalidación de
+  detail + tree.
+- `AspersionSessionDetail` augmentada localmente con `status` y `assigned_to`
+  (campos omitidos del schema OpenAPI, gap GAP-SCHEMA-001).
+
+`CreateSessionDialog` (reescritura):
+- `strict_mode` (checkbox) y `radius_tolerance` (number) en formulario Phyto.
+- Advertencia amarilla cuando el Hijo no tiene parcela (Phyto fallaría en backend).
+- `plot` expuesto en prop `programa` (heredado de HijoModal).
+- `SelectItem value="__none__"` como sentinel para cumplir restricción de Radix UI
+  (no acepta `value=""`). `onValueChange` convierte `"__none__"` a `undefined`.
+
+`SesionModal` (reescritura):
+- Fetch de detalle propio (no solo cache del tree).
+- View mode: DL de todos los campos + PlotMiniMap en columna derecha.
+- Cambio de status inline con botones por tipo: Aspersión y Phyto tienen diferentes
+  transiciones (Phyto sin `loaded`). Para `cancelled` en Phyto: prompt inline de notas
+  antes de confirmar (backend lo exige).
+- Edit mode: fechas reales siempre visibles; metadatos detrás de toggle con advertencia.
+- `datacentralId` como prop (para dropdown de responsables en edición).
+- CSV import: placeholder visible pero deshabilitado, diferido a Bloque 5.
+
+`w.$dc.task-manager.tsx` (route):
+- Extrae el IIFE de `HijoModal` a `HijoModalWrapper` que usa `useMasterTree` (suscripción
+  reactiva). El patrón anterior usaba `queryClient.getQueryData()` — lectura puntual que
+  no re-renderizaba al actualizar el cache. Con `useQuery` la lista de sesiones en
+  `HijoModal` actualiza inmediatamente al crear una sesión, sin cerrar el modal.
+- `datacentralId` pasado a `SesionModal`.
+
+**Verificación:** `npm run typecheck` → 0 errores. `npx vitest run` → 76/76 tests.
+Demo manual: crear sesión Aspersión → aparece en lista sin cerrar modal. Cambio de status
+inmediato. Modal de sesión muestra todos los campos + mapa. Edit mode con fechas en campo.
+

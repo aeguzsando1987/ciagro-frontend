@@ -44,13 +44,15 @@ const phytoSchema = z.object({
   estimated_start_date: z.string().min(1, 'Requerido'),
   estimated_end_date: z.string().optional(),
   assigned_to_id: z.string().uuid().optional(),
+  strict_mode: z.boolean().default(true),
+  radius_tolerance: z.coerce.number().int().min(1, 'Mínimo 1 m').default(5),
 })
 
 type AspersionValues = z.infer<typeof aspersionSchema>
 type PhytoValues = z.infer<typeof phytoSchema>
 
 const ASPERSION_FIELDS = ['program_id', 'aspersion_date', 'evaluation_id', 'est_start_date', 'est_finish_date'] as const
-const PHYTO_FIELDS = ['field_task_id', 'estimated_start_date', 'estimated_end_date'] as const
+const PHYTO_FIELDS = ['field_task_id', 'estimated_start_date', 'estimated_end_date', 'strict_mode', 'radius_tolerance'] as const
 
 /* ─── Component ────────────────────────────────────────────────────── */
 
@@ -58,7 +60,7 @@ interface CreateSessionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   /** Programa Hijo al que pertenece la sesión */
-  programa: { id: string; master_program: string | null | undefined; title: string | null | undefined }
+  programa: { id: string; master_program: string | null | undefined; title: string | null | undefined; plot: string | null }
   /** Maestro padre (para invalidar tree query) */
   master: MasterProgram
   /** DataCentral activo — para listar usuarios responsables */
@@ -112,6 +114,7 @@ export function CreateSessionDialog({ open, onOpenChange, programa, master, data
           <PhytoForm
             programaId={programa.id}
             masterId={master.id}
+            hasParcela={!!programa.plot}
             datacentralId={datacentralId}
             queryClient={queryClient}
             onClose={() => onOpenChange(false)}
@@ -236,12 +239,12 @@ function AspersionForm({
           name="assigned_to_id"
           control={control}
           render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value ?? ''}>
+            <Select onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)} value={field.value || '__none__'}>
               <SelectTrigger>
                 <SelectValue placeholder="Sin asignar (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Sin asignar</SelectItem>
+                <SelectItem value="__none__">Sin asignar</SelectItem>
                 {dcUsers.map((u) => (
                   <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
                 ))}
@@ -274,12 +277,14 @@ function AspersionForm({
 function PhytoForm({
   programaId,
   masterId,
+  hasParcela,
   datacentralId,
   queryClient,
   onClose,
 }: {
   programaId: string
   masterId: string
+  hasParcela: boolean
   datacentralId: string
   queryClient: ReturnType<typeof useQueryClient>
   onClose: () => void
@@ -294,14 +299,22 @@ function PhytoForm({
     reset,
   } = useForm<PhytoValues>({
     resolver: zodResolver(phytoSchema),
-    defaultValues: { field_task_id: programaId },
+    defaultValues: { field_task_id: programaId, strict_mode: true, radius_tolerance: 5 },
   })
 
   const mutation = useMutation({
     mutationFn: async (values: PhytoValues) => {
+      const body = {
+        field_task_id: values.field_task_id,
+        estimated_start_date: values.estimated_start_date,
+        strict_mode: values.strict_mode,
+        radius_tolerance: values.radius_tolerance,
+        ...(values.estimated_end_date ? { estimated_end_date: values.estimated_end_date } : {}),
+        ...(values.assigned_to_id ? { assigned_to_id: values.assigned_to_id } : {}),
+      }
       const { data, error } = await apiClient.POST(
         '/api/v1/monitoring/phyto/headers/create/',
-        { body: values as never }
+        { body: body as never }
       )
       if (error) {
         if (typeof error === 'object' && error !== null) {
@@ -322,6 +335,12 @@ function PhytoForm({
 
   return (
     <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-4">
+      {!hasParcela && (
+        <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+          Este subprograma no tiene parcela asignada. El backend intentará heredar la parcela del subprograma al crear la sesión; si no existe, devolverá un error. Asigna una parcela al subprograma antes de crear sesiones fitosanitarias.
+        </div>
+      )}
+
       <div className="space-y-1">
         <Label htmlFor="ph-start">Fecha estimada de inicio *</Label>
         <Input id="ph-start" type="date" {...register('estimated_start_date')} />
@@ -335,18 +354,43 @@ function PhytoForm({
         <Input id="ph-end" type="date" {...register('estimated_end_date')} />
       </div>
 
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label htmlFor="ph-radius">Radio de tolerancia (m)</Label>
+          <Input
+            id="ph-radius"
+            type="number"
+            min={1}
+            {...register('radius_tolerance')}
+          />
+          {errors.radius_tolerance && (
+            <p className="text-xs text-destructive">{errors.radius_tolerance.message}</p>
+          )}
+        </div>
+        <div className="flex items-end pb-1">
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              {...register('strict_mode')}
+            />
+            Modo estricto
+          </label>
+        </div>
+      </div>
+
       <div className="space-y-1">
         <Label>Responsable</Label>
         <Controller
           name="assigned_to_id"
           control={control}
           render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value ?? ''}>
+            <Select onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)} value={field.value || '__none__'}>
               <SelectTrigger>
                 <SelectValue placeholder="Sin asignar (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Sin asignar</SelectItem>
+                <SelectItem value="__none__">Sin asignar</SelectItem>
                 {dcUsers.map((u) => (
                   <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
                 ))}

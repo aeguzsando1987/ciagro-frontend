@@ -7,6 +7,7 @@ import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { queryClient } from '@/lib/queryClient'
 import { masterProgramsQueryOptions } from '@/features/task-manager/hooks/useMasterPrograms'
 import { useMasterPrograms } from '@/features/task-manager/hooks/useMasterPrograms'
+import { useMasterTree } from '@/features/task-manager/hooks/useMasterTree'
 import { GanttHierarchy } from '@/features/task-manager/gantt/GanttHierarchy'
 import { FilterBar } from '@/features/task-manager/gantt/FilterBar'
 import { CreateMasterDialog } from '@/features/task-manager/dialogs/CreateMasterDialog'
@@ -181,36 +182,70 @@ function TaskManagerPage() {
           }
         />
       )}
-      {topFrame?.type === 'hijo' && masterForModal && (() => {
-        const tree = queryClient.getQueryData<{ programas: Array<{ id: string } & Record<string, unknown>> }>(
-          ['master-tree', topFrame.masterId]
-        )
-        const hijo = tree?.programas.find((p) => p.id === topFrame.hijoId)
-        if (!hijo) return null
-        return (
-          <HijoModal
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            hijo={hijo as any}
-            master={masterForModal}
-            datacentralId={dc}
-            onClose={clearModal}
-            onBack={popModal}
-            onNavigateSesion={({ sesionId, sesionType }) =>
-              pushModal({ type: 'sesion', sesionId, sesionType, hijoId: topFrame.hijoId, masterId: topFrame.masterId })
-            }
-          />
-        )
-      })()}
+      {topFrame?.type === 'hijo' && masterForModal && (
+        <HijoModalWrapper
+          hijoId={topFrame.hijoId}
+          masterId={topFrame.masterId}
+          master={masterForModal}
+          datacentralId={dc}
+          onClose={clearModal}
+          onBack={popModal}
+          onNavigateSesion={({ sesionId, sesionType }) =>
+            pushModal({ type: 'sesion', sesionId, sesionType, hijoId: topFrame.hijoId, masterId: topFrame.masterId })
+          }
+        />
+      )}
       {topFrame?.type === 'sesion' && (
         <SesionModal
           sesionId={topFrame.sesionId}
           sesionType={topFrame.sesionType}
           hijoId={topFrame.hijoId}
           masterId={topFrame.masterId}
+          datacentralId={dc}
           onClose={clearModal}
           onBack={popModal}
         />
       )}
     </div>
+  )
+}
+
+/* ─── HijoModalWrapper ─────────────────────────────────────────────
+ * Componente separado para que useQuery cree una suscripción reactiva
+ * al tree cache. getQueryData() en el render del padre es una lectura
+ * puntual — no re-renderiza cuando React Query actualiza el cache tras
+ * invalidar (ej. al crear una sesión). Con useQuery el componente
+ * recibe el hijo actualizado automáticamente cuando llega el refetch.
+ * ─────────────────────────────────────────────────────────────────── */
+function HijoModalWrapper({
+  hijoId,
+  masterId,
+  master,
+  datacentralId,
+  onClose,
+  onBack,
+  onNavigateSesion,
+}: {
+  hijoId: string
+  masterId: string
+  master: MasterProgram
+  datacentralId: string
+  onClose: () => void
+  onBack: () => void
+  onNavigateSesion: (ref: { sesionId: string; sesionType: 'aspersion' | 'phyto' }) => void
+}) {
+  const { data: tree } = useMasterTree(masterId, true)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const hijo = tree?.programas.find((p) => p.id === hijoId) as any
+  if (!hijo) return null
+  return (
+    <HijoModal
+      hijo={hijo}
+      master={master}
+      datacentralId={datacentralId}
+      onClose={onClose}
+      onBack={onBack}
+      onNavigateSesion={onNavigateSesion}
+    />
   )
 }
