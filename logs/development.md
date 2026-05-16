@@ -682,3 +682,25 @@ Hooks nuevos (`hooks/`):
 Demo manual: crear sesión Aspersión → aparece en lista sin cerrar modal. Cambio de status
 inmediato. Modal de sesión muestra todos los campos + mapa. Edit mode con fechas en campo.
 
+### Bloque 4 — Navegador de modales reforzado
+
+**Problema raíz:** `handleTaskClick` en la ruta necesitaba inferir el tipo de sesión
+(aspersión vs. phyto) cuando el usuario hacía clic en el Gantt. Lo hacía buscando en el
+tree cache con `queryClient.getQueryData()` y un for-loop. Esto era frágil: si el tree
+no estaba en cache en ese momento, el sesionType se defaulteaba a `'aspersion'`
+silenciosamente.
+
+**Solución:** `mapMastersToTasks` ya conoce el tipo al construir las tasks (tiene loops
+separados por tipo). Se agregan dos mapas al retorno: `hijoIdByTask` y `sesionTypeByTask`.
+`GanttHierarchy.onTaskClick` los pasa como `extra` al callback, eliminando cualquier
+necesidad de consultar el cache en la ruta.
+
+**`HijoModalWrapper`:** se agrega distinción entre `isLoading` (muestra texto de carga)
+y `hijo === undefined` cuando el tree ya cargó pero no encontró el id (renderiza `null`).
+
+**Test nuevo:** `popula hijoIdByTask y sesionTypeByTask para aspersion y phyto` en
+`GanttHierarchy.test.ts`. Verifica que los dos tipos están asignados al hijo correcto y
+que Master/Hijo no aparecen en esos mapas.
+
+**Verificación:** `npm run typecheck` → 0 errores. `npx vitest run` → 77/77 tests.
+

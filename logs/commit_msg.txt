@@ -1,22 +1,15 @@
-feat(task-manager): Bloque 4 — Navegador de modales reforzado
+feat(task-manager): Bloque 5 — Tests, logs y cierre de la reimplementación
 
-Sesión 6, 2026-05-16. Reimplementación del Task Manager — Bloque 4.
+Sesión 6, 2026-05-16. Reimplementación del Task Manager — Bloque 5 (cierre).
 
-Caso de uso §4.0, paso 4 (integración y navegador).
+GanttHierarchy.test.ts:
+- Nuevo test: "popula hijoIdByTask y sesionTypeByTask para aspersion y phyto".
+  Verifica que ambos mapas (añadidos en Bloque 4) se populan correctamente
+  para los dos tipos de sesión y que Master/Hijo no aparecen en ellos.
 
-GanttHierarchy / mapMastersToTasks:
-- Agrega hijoIdByTask y sesionTypeByTask al retorno de mapMastersToTasks.
-  Ambos mapas se populan en los loops de sesiones (aspersion / phyto)
-  en el momento de construir el Gantt, donde el tipo ya es conocido.
-- onTaskClick ahora recibe extra: { hijoId, sesionType } | null, eliminando
-  el heurístico de búsqueda en el tree cache que operaba desde la ruta.
+Logs actualizados:
+- development.md: entrada narrativa de Bloque 4 (navegador de modales).
+- dev_log.csv: fila de cierre de Bloque 4 (77 tests, 0 errores).
+- roadmap.md: estado de Fase 2 marcado como completado.
 
-routes/w.$dc.task-manager.tsx:
-- handleTaskClick recibe el cuarto parámetro extra y lo usa directamente.
-  El bloque else que hacía getQueryData + for-loop sobre programas queda
-  eliminado; la ruta ya no necesita conocer la estructura interna del árbol.
-- HijoModalWrapper distingue isLoading vs hijo-no-encontrado: muestra
-  "Cargando subprograma…" mientras el fetch está en vuelo en lugar de
-  renderizar null silenciosamente.
-
-76/76 tests verdes, 0 errores typecheck.
+77/77 tests verdes, 0 errores typecheck.

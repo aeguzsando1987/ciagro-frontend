@@ -70,7 +70,7 @@ endpoints + 6 gaps abiertos (1 alta, 2 media, 3 baja).
 ---
 
 ## FASE FRONTEND 2 · TASK MANAGER (GANTT)
-**Estado:** `[🔄] REINICIADA 2026-05-15 — la implementación 2.A–2.C divergió del caso de uso; reimplementación híbrida en curso`
+**Estado:** `[✅] REIMPLEMENTACIÓN COMPLETADA 2026-05-16 — Sesión 6, Bloques 0–5. Flujos 1–8 del caso de uso implementados. 77/77 tests. 0 errores typecheck.`
 **Cubre:** Flujo 2 del product-doc (Pasos 2.1 → 2.11) + caso de uso `.context/taskmanager_usecase.md`.
 **Sprints estimados:** 4 dev-weeks.
 

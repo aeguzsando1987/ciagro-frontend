@@ -179,6 +179,39 @@ describe('mapMastersToTasks', () => {
     expect(taskMeta['h:hijo-fuera']?.statusDisplay).toBe('Fuera de rango')
   })
 
+  it('popula hijoIdByTask y sesionTypeByTask para aspersion y phyto', () => {
+    const masters = [makeMaster()]
+    const tree = makeTree({}, [
+      {
+        id: 'hijo-1',
+        title: 'Hijo',
+        voucher_code: null,
+        cycle: null,
+        plot: null,
+        status: 'pending',
+        status_display: 'Pendiente',
+        est_start_date: '2026-06-15T00:00:00Z',
+        est_finish_date: '2026-07-15T00:00:00Z',
+        aspersion_sessions: [
+          { id: 'sa-1', type: 'aspersion', aspersion_date: '2026-07-01', import_status: 'pending' },
+        ],
+        phyto_monitoring_headers: [
+          { id: 'sp-1', type: 'phyto', session_date: '2026-07-05', import_status: 'pending', status: 'pending' },
+        ],
+      },
+    ])
+
+    const { hijoIdByTask, sesionTypeByTask } = mapMastersToTasks(masters, [tree], new Set(['master-1']))
+
+    expect(hijoIdByTask['s:sa-1']).toBe('hijo-1')
+    expect(sesionTypeByTask['s:sa-1']).toBe('aspersion')
+    expect(hijoIdByTask['s:sp-1']).toBe('hijo-1')
+    expect(sesionTypeByTask['s:sp-1']).toBe('phyto')
+    // Master y Hijo no deben estar en estos mapas
+    expect(hijoIdByTask['m:master-1']).toBeUndefined()
+    expect(hijoIdByTask['h:hijo-1']).toBeUndefined()
+  })
+
   it('no agrega Hijos si el Maestro NO esta expandido aunque el tree exista en cache', () => {
     const masters = [makeMaster()]
     const tree = makeTree({}, [
