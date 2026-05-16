@@ -567,3 +567,54 @@ del contrato de sesión. Plan completo en el archivo de plan de la sesión.
 reales entre las 4 entidades de la jerarquía) y `GAP-MODELO-002` (crop/crop_variety
 como dos FK separadas). Ver `gap_log.csv`.
 
+---
+
+## Sesión 6 — 2026-05-16
+
+### Bloque 2 — Programa Hijo / Subprograma (caso de uso §3, §4)
+
+**Archivos reescritos o creados:**
+
+- `src/features/task-manager/cycle.ts` — utilidad que espeja `validate_cycle` del
+  backend: constantes `SEASONS` / `CYCLE_YEARS`, `buildCycle`, `parseCycle`,
+  `isSeason2AfterSeason1`. Ciclo nunca se envía como texto libre.
+- `src/features/task-manager/hooks/useHijoDetail.ts` — query del detalle completo del
+  Subprograma (`GET /tasks/{id}/`), que incluye `actual_start_date`, `actual_finish_date`
+  y `crop` que el `ProgramaTree` del árbol no tiene.
+- `src/features/task-manager/dialogs/CreateHijoDialog.tsx` — reescrito sin selector de
+  Productor (muestra read-only del Maestro §3.4). Ciclo con 3 selects (temporada1,
+  temporada2 con centinela `__none__`, año). Cascada Rancho → Parcela sobre
+  `master.agro_unit`. Solo `crop_id` en el payload (§3.5.6). Campos opcionales vacíos
+  omitidos del payload (corrige bug 400 por `""` en DateTimeField de DRF).
+- `src/features/task-manager/panel/HijoModal.tsx` — reescrito con:
+  - Estado local `localStatus` para feedback inmediato al cambiar status sin
+    cerrar/reabrir el modal (el prop `hijo` del árbol quedaba stale hasta reload).
+  - Modo edición: fechas reales (`actual_start_date` / `actual_finish_date`) siempre
+    editables; datos de planificación (título, ciclo, fechas estimadas, cultivo) detrás
+    de toggle con advertencia amarilla de inconsistencia (§4 NOTA).
+  - Botón "Editar" deshabilitado mientras `useHijoDetail` carga (no existe dato real).
+  - Mapa de parcela en columna derecha (`w-80`), con `fitBounds` + padding para mostrar
+    contexto alrededor del polígono. Diálogo ampliado a `max-w-4xl`.
+- `src/features/task-manager/hooks/useCrops.ts` — agregada `cropLabel` que concatena
+  `name` + `variety` (§3.5.6).
+
+**Decisiones técnicas:**
+
+- **`localStatus` en HijoModal**: el `StatusChanger` usa el status del prop `hijo`
+  (ProgramaTree) que solo se actualiza cuando la ruta re-fetcha el árbol. Sin estado
+  local, el badge y las opciones del changer quedaban stale hasta cerrar y volver a
+  abrir. Se mantiene sincronizado con el árbol cache (`setQueryData`) y revierte
+  optimistamente ante error de PATCH.
+- **Mock de `useHijoDetail` en tests**: la request al backend real escapaba a MSW en
+  jsdom al ser el cuarto test de la suite (handlers ya reseteados del test anterior).
+  Se mockeó el hook a nivel de módulo — correcto porque el test verifica visibilidad de
+  botón por rol, no comportamiento de red.
+- **`fitBounds` en PlotMiniMap**: reemplaza el cálculo manual de zoom por el motor
+  nativo de MapLibre, que ajusta zoom y centrado garantizando que el polígono siempre
+  entre en el viewport con el padding configurado.
+
+**Verificación:** `npm run typecheck` → 0 errores. `npx vitest run` → 51/51 tests.
+Demo manual en navegador con backend real: crear Subprograma (ciclo con selects, sin
+Productor, con y sin parcela), editar fechas reales, cambiar status con feedback
+inmediato, mapa de parcela visible en columna derecha.
+

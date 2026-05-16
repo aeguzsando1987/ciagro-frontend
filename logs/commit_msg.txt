@@ -1,28 +1,34 @@
-feat(task-manager): Bloque 1 — Programa Maestro alineado al caso de uso
+feat(task-manager): Bloque 2 — Subprograma (CreateHijoDialog + HijoModal)
 
-Sesión 5, 2026-05-15. Reimplementación del Task Manager — Bloque 1.
+Sesión 6, 2026-05-16. Reimplementación del Task Manager — Bloque 2.
 
-Caso de uso §1 y §2 (taskmanager_usecase.md).
+Caso de uso §3 y §4 (taskmanager_usecase.md).
 
-useAgroUnits:
-- Acepta `datacentral` y lo pasa a /organizations/ — el scope por
-  workspace lo aplica el backend (AgroUnitListView, regla crítica #7)
-- Filtra el resultado a Productor + Asociación agrícola (caso de uso
-  §1.2.3); antes solo traía Productor
+cycle.ts (nuevo):
+- buildCycle / parseCycle / isSeason2AfterSeason1 espejando validate_cycle
+  del backend; el ciclo nunca se envía como texto libre
 
-CreateMasterDialog:
-- El dropdown de productor usa useAgroUnits(datacentral): muestra solo
-  los productores del workspace activo
-- El resto del diálogo ya cumplía el caso de uso §1, no se reescribió
+useHijoDetail (nuevo):
+- GET /tasks/{id}/ — trae actual_start_date, actual_finish_date y crop
+  que ProgramaTree no incluye; necesario para el formulario de edición
 
-MaestroModal:
-- Formulario de edición: agrega las fechas reales real_start_date /
-  real_finish_date (caso de uso §2.4.1)
-- Conversión de fecha vacía a null en submit — evita el 400 de DRF por
-  formato de fecha vacía
-- Refine zod: la fecha real de inicio no puede ser posterior a la de fin
-- Las fechas reales se muestran también en modo vista
+CreateHijoDialog (reescrito):
+- Sin selector de Productor; heredado del Maestro (§3.4), read-only
+- Ciclo con 3 selects (temporada1/temporada2/año) espejando validate_cycle
+- Cascada Rancho → Parcela sobre master.agro_unit (no selector de Productor)
+- Solo crop_id en payload; etiqueta name+variety concatenada (§3.5.6)
+- Campos opcionales omitidos del payload (corrige 400 por "" en DRF)
 
-Verificación: npm run typecheck (0 errores), npm run test (51/51 verde),
-demo manual en navegador aprobada (crear Maestro, editar fecha real y
-status en workspace "AgroNorte — Operaciones").
+HijoModal (reescrito):
+- localStatus: feedback inmediato de cambio de status sin cerrar modal
+- Edición: actual_start/finish_date sin fricción; título/ciclo/fechas
+  estimadas/cultivo detrás de toggle con advertencia de inconsistencia
+- Botón Editar deshabilitado mientras useHijoDetail carga
+- Mapa de parcela en columna derecha (max-w-4xl, w-80, h-80)
+
+PlotMiniMap:
+- fitBounds nativo de MapLibre con padding: 60 reemplaza zoom manual
+- Polígono centrado con contexto de terreno visible alrededor
+
+Tests: mock de useHijoDetail a nivel módulo para aislar visibilidad de
+botón por rol del comportamiento de red. 51/51 verdes, 0 errores typecheck.

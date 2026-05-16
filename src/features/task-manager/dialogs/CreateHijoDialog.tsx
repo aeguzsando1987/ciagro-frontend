@@ -1,8 +1,8 @@
+import { useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -22,58 +22,68 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { apiClient } from '@/lib/api/client'
 import { applyDrfErrors } from '../hooks/useDrfErrorMap'
-import { useAgroUnits } from '../hooks/useAgroUnits'
 import { useRanches } from '../hooks/useRanches'
 import { usePlots } from '../hooks/usePlots'
-import { useCrops } from '../hooks/useCrops'
+import { useCrops, cropLabel } from '../hooks/useCrops'
+import { SEASONS, CYCLE_YEARS, buildCycle, isSeason2AfterSeason1 } from '../cycle'
 import type { MasterProgram } from '../types'
+
+/** Valor centinela para "sin temporada 2" — Radix Select no admite value="". */
+const NO_SEASON2 = '__none__'
 
 const schema = z
   .object({
-    title: z.string().optional(),
-    cycle: z.string().optional(),
+    voucher_code: z.string().optional(),
+    title: z.string().min(1, 'Requerido'),
+    season1: z.string().min(1, 'Selecciona la temporada'),
+    season2: z.string().optional(),
+    year: z.string().min(1, 'Selecciona el año'),
     plot: z.string().uuid('UUID inválido').optional(),
     crop_id: z.number().optional(),
     est_start_date: z.string().min(1, 'Requerido'),
     est_finish_date: z.string().min(1, 'Requerido'),
-    master_program: z.string().uuid(),
   })
   .refine((v) => v.est_start_date <= v.est_finish_date, {
     message: 'La fecha de inicio no puede ser posterior a la de fin',
     path: ['est_finish_date'],
   })
+  .refine((v) => isSeason2AfterSeason1(v.season1, v.season2), {
+    message: 'La temporada 2 debe ser posterior a la temporada 1',
+    path: ['season2'],
+  })
 
 type FormValues = z.infer<typeof schema>
 
 const KNOWN_FIELDS = [
-  'title',
-  'cycle',
-  'plot',
-  'crop_id',
-  'est_start_date',
-  'est_finish_date',
-  'master_program',
+  'voucher_code', 'title', 'plot', 'crop_id',
+  'est_start_date', 'est_finish_date',
 ] as const
 
 interface CreateHijoDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   master: MasterProgram
+  /** Nombre del productor del Maestro — se hereda y se muestra de solo-lectura. */
+  producerName: string
 }
 
-export function CreateHijoDialog({ open, onOpenChange, master }: CreateHijoDialogProps) {
+/**
+ * Diálogo de creación de Subprograma (caso de uso §3).
+ *
+ * El productor NO se selecciona: se hereda del Programa Maestro (§3.4, §4 NOTA)
+ * y se muestra de solo-lectura. La cascada es Rancho → Parcela, con los ranchos
+ * del productor del Maestro. El ciclo se captura con 3 controles (§3.5.4) y el
+ * cultivo se elige concatenado (§3.5.6). El status inicial lo asigna el backend.
+ */
+export function CreateHijoDialog({ open, onOpenChange, master, producerName }: CreateHijoDialogProps) {
   const queryClient = useQueryClient()
-
-  const [selectedProducer, setSelectedProducer] = useState<string | undefined>()
   const [selectedRanch, setSelectedRanch] = useState<string | undefined>()
 
-  const { data: producers = [], isLoading: loadingProducers } = useAgroUnits()
-  const { data: ranches = [], isLoading: loadingRanches } = useRanches(selectedProducer)
+  // Ranchos del productor del Maestro (master.agro_unit). El scope lo aplica
+  // el backend; no hay selector de productor.
+  const { data: ranches = [], isLoading: loadingRanches } = useRanches(master.agro_unit)
   const { data: plots = [], isLoading: loadingPlots } = usePlots(selectedRanch)
   const { data: crops = [], isLoading: loadingCrops } = useCrops()
-
-  const masterStart = master.est_start_date ?? null
-  const masterEnd = master.est_finish_date ?? null
 
   const {
     register,
@@ -82,27 +92,24 @@ export function CreateHijoDialog({ open, onOpenChange, master }: CreateHijoDialo
     setError,
     formState: { errors, isSubmitting },
     reset,
-    watch,
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { master_program: master.id },
-  })
-
-  const startVal = watch('est_start_date')
-  const endVal = watch('est_finish_date')
-
-  /** Detecta si el hijo cae fuera del rango del maestro (espeja lógica backend). */
-  function isOutsideRange(): boolean {
-    if (!masterStart || !masterEnd || !startVal || !endVal) return false
-    return startVal < masterStart || endVal > masterEnd
-  }
+  } = useForm<FormValues>({ resolver: zodResolver(schema) })
 
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const { plot, crop_id, ...rest } = values
-      const body: Record<string, unknown> = { ...rest }
-      if (plot) body.plot = plot
-      if (crop_id !== undefined) body.crop_id = crop_id
+      const cycle = buildCycle(values.season1, values.season2, values.year)
+      // Solo se envían los campos con valor: un string vacío en una fecha o un
+      // UUID provoca un 400 de DRF por formato (bug corregido del flujo previo).
+      const body: Record<string, unknown> = {
+        master_program: master.id,
+        title: values.title,
+        est_start_date: values.est_start_date,
+        est_finish_date: values.est_finish_date,
+      }
+      if (values.voucher_code) body.voucher_code = values.voucher_code
+      if (cycle) body.cycle = cycle
+      if (values.plot) body.plot = values.plot
+      if (values.crop_id !== undefined) body.crop_id = values.crop_id
+
       const { data, error } = await apiClient.POST('/api/v1/field_ops/tasks/create/', {
         body: body as never,
       })
@@ -119,7 +126,6 @@ export function CreateHijoDialog({ open, onOpenChange, master }: CreateHijoDialo
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['master-tree', master.id] })
       reset()
-      setSelectedProducer(undefined)
       setSelectedRanch(undefined)
       onOpenChange(false)
     },
@@ -127,7 +133,6 @@ export function CreateHijoDialog({ open, onOpenChange, master }: CreateHijoDialo
 
   function handleClose() {
     reset()
-    setSelectedProducer(undefined)
     setSelectedRanch(undefined)
     onOpenChange(false)
   }
@@ -136,117 +141,151 @@ export function CreateHijoDialog({ open, onOpenChange, master }: CreateHijoDialo
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>
-            Nuevo Subprograma
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
-              → {master.title}
-            </span>
-          </DialogTitle>
+          <DialogTitle>Nuevo Subprograma</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-4">
-          {/* título opcional */}
-          <div className="space-y-1">
-            <Label htmlFor="ch-title">Título</Label>
-            <Input id="ch-title" {...register('title')} placeholder="Ej: Lote Norte — Mango Manila" />
+          {/* Contexto heredado del Maestro (solo lectura) */}
+          <dl className="grid gap-1 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+            <div>
+              <dt className="text-xs text-muted-foreground">Programa Maestro</dt>
+              <dd className="font-medium">{master.title}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Productor (heredado)</dt>
+              <dd>{producerName}</dd>
+            </div>
+          </dl>
+
+          {/* voucher + título */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="ch-voucher">Voucher / Código</Label>
+              <Input id="ch-voucher" {...register('voucher_code')} placeholder="Opcional" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="ch-title">Título *</Label>
+              <Input id="ch-title" {...register('title')} placeholder="Ej: Lote Norte" />
+              {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
+            </div>
           </div>
 
-          {/* ciclo */}
+          {/* ciclo: temporada1 + temporada2 (opcional) + año */}
           <div className="space-y-1">
-            <Label htmlFor="ch-cycle">Ciclo</Label>
-            <Input id="ch-cycle" {...register('cycle')} placeholder="Ej: Primavera-2026" />
+            <Label>Ciclo de cosecha *</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <Controller
+                name="season1"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                    <SelectTrigger><SelectValue placeholder="Temporada 1" /></SelectTrigger>
+                    <SelectContent>
+                      {SEASONS.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <Controller
+                name="season2"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    onValueChange={(v) => field.onChange(v === NO_SEASON2 ? '' : v)}
+                    value={field.value || NO_SEASON2}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Temporada 2" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_SEASON2}>— Sin temporada 2 —</SelectItem>
+                      {SEASONS.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <Controller
+                name="year"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                    <SelectTrigger><SelectValue placeholder="Año" /></SelectTrigger>
+                    <SelectContent>
+                      {CYCLE_YEARS.map((y) => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+            {errors.season1 && <p className="text-xs text-destructive">{errors.season1.message}</p>}
+            {errors.season2 && <p className="text-xs text-destructive">{errors.season2.message}</p>}
+            {errors.year && <p className="text-xs text-destructive">{errors.year.message}</p>}
           </div>
 
-          {/* cascada productor → rancho → parcela */}
-          <div className="space-y-1">
-            <Label>Productor *</Label>
-            <Select
-              disabled={loadingProducers}
-              onValueChange={(v) => {
-                setSelectedProducer(v)
-                setSelectedRanch(undefined)
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={loadingProducers ? 'Cargando...' : 'Selecciona productor'} />
-              </SelectTrigger>
-              <SelectContent>
-                {producers.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.commercial_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* cascada rancho → parcela */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Rancho</Label>
+              <Select
+                disabled={loadingRanches}
+                value={selectedRanch ?? ''}
+                onValueChange={(v) => setSelectedRanch(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingRanches ? 'Cargando...' : 'Selecciona rancho'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {ranches.map((r) => (
+                    <SelectItem key={r.id} value={r.id ?? ''}>
+                      {r.properties?.name ?? r.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Parcela</Label>
+              <Controller
+                name="plot"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    disabled={!selectedRanch || loadingPlots}
+                    onValueChange={field.onChange}
+                    value={field.value ?? ''}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          !selectedRanch
+                            ? 'Primero el rancho'
+                            : loadingPlots
+                              ? 'Cargando...'
+                              : 'Selecciona parcela'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {plots.map((p) => (
+                        <SelectItem key={p.id} value={p.id ?? ''}>
+                          {p.properties?.code ?? p.id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.plot && <p className="text-xs text-destructive">{errors.plot.message}</p>}
+            </div>
           </div>
 
+          {/* cultivo (concatenado name + variety) */}
           <div className="space-y-1">
-            <Label>Rancho *</Label>
-            <Select
-              disabled={!selectedProducer || loadingRanches}
-              onValueChange={(v) => {
-                setSelectedRanch(v)
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    !selectedProducer
-                      ? 'Primero selecciona un productor'
-                      : loadingRanches
-                        ? 'Cargando...'
-                        : 'Selecciona rancho'
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {ranches.map((r) => (
-                  <SelectItem key={r.id} value={r.id ?? ''}>
-                    {r.properties?.name ?? r.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <Label>Parcela *</Label>
-            <Controller
-              name="plot"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  disabled={!selectedRanch || loadingPlots}
-                  onValueChange={field.onChange}
-                  value={field.value ?? ''}
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        !selectedRanch
-                          ? 'Primero selecciona un rancho'
-                          : loadingPlots
-                            ? 'Cargando...'
-                            : 'Selecciona parcela'
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {plots.map((p) => (
-                      <SelectItem key={p.id} value={p.id ?? ''}>
-                        {p.properties?.code ?? p.id}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.plot && <p className="text-xs text-destructive">{errors.plot.message}</p>}
-          </div>
-
-          {/* cultivo */}
-          <div className="space-y-1">
-            <Label>Cultivo *</Label>
+            <Label>Cultivo</Label>
             <Controller
               name="crop_id"
               control={control}
@@ -257,22 +296,21 @@ export function CreateHijoDialog({ open, onOpenChange, master }: CreateHijoDialo
                   value={field.value != null ? String(field.value) : ''}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={loadingCrops ? 'Cargando...' : 'Selecciona cultivo'} />
+                    <SelectValue placeholder={loadingCrops ? 'Cargando...' : 'Selecciona cultivo (opcional)'} />
                   </SelectTrigger>
                   <SelectContent>
                     {crops.map((c) => (
                       <SelectItem key={c.id} value={String(c.id)}>
-                        {c.name}
+                        {cropLabel(c)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.crop_id && <p className="text-xs text-destructive">{errors.crop_id.message}</p>}
           </div>
 
-          {/* fechas con advertencia fuera de rango */}
+          {/* fechas estimadas */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="ch-start">Fecha inicio *</Label>
@@ -289,13 +327,6 @@ export function CreateHijoDialog({ open, onOpenChange, master }: CreateHijoDialo
               )}
             </div>
           </div>
-
-          {isOutsideRange() && (
-            <p className="rounded bg-yellow-50 px-3 py-2 text-xs text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300">
-              ⚠ Las fechas están fuera del rango del Programa ({masterStart} — {masterEnd}).
-              El backend puede rechazar esta solicitud.
-            </p>
-          )}
 
           {errors.root && (
             <p className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">

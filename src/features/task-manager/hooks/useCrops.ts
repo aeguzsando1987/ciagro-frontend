@@ -4,6 +4,15 @@ import type { components } from '@/types/api'
 
 export type CropCatalog = components['schemas']['CropCatalog']
 
+/**
+ * Etiqueta de cultivo para los dropdowns: concatena `name` + `variety`.
+ * Caso de uso §3.5.6: el cultivo se trata como una sola entidad — no se
+ * expone `crop_variety` como campo aparte, se muestra concatenado.
+ */
+export function cropLabel(crop: CropCatalog): string {
+  return crop.variety ? `${crop.name} — ${crop.variety}` : crop.name
+}
+
 export function cropsQueryOptions() {
   return queryOptions({
     queryKey: ['crops'] as const,

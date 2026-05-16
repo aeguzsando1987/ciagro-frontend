@@ -2,6 +2,35 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('./PlotMiniMap', () => ({ PlotMiniMap: () => null }))
+
+// useHijoDetail hace fetch real que escapa a MSW en jsdom; al mockearlo
+// aquí evitamos dependencia de red y detail siempre está disponible.
+vi.mock('@/features/task-manager/hooks/useHijoDetail', () => ({
+  useHijoDetail: () => ({
+    data: {
+      id: 'hijo-1',
+      voucher_code: null,
+      title: 'Subprograma Norte',
+      cycle: 'Primavera-2026',
+      status: 'pending',
+      status_display: 'Pendiente',
+      crop: null,
+      crop_variety: null,
+      individual: null,
+      agro_unit: 'prod-1',
+      plot: null,
+      master_program: 'master-1',
+      est_start_date: '2026-06-01T00:00:00Z',
+      est_finish_date: '2026-07-15T00:00:00Z',
+      actual_start_date: null,
+      actual_finish_date: null,
+      location_url: null,
+      attachments_url: [],
+    },
+    isLoading: false,
+  }),
+  hijoDetailQueryOptions: (id: string) => ({ queryKey: ['hijo-detail', id] }),
+}))
 import { QueryClientProvider } from '@tanstack/react-query'
 import { http, HttpResponse } from 'msw'
 import { server } from '@/test/msw-server'
@@ -70,13 +99,37 @@ afterEach(() => {
 // clearUser() para que el efecto secundario no contamine la prueba.
 beforeEach(() => {
   vi.spyOn(useAuthStore.getState(), 'clearUser').mockImplementation(() => {})
-  // useAgroUnits y useCrops se montan siempre (no son lazy); necesitan handler.
+  // useCrops y useHijoDetail se montan siempre; necesitan handler.
   server.use(
     http.get(`${BASE}/api/v1/organizations/`, () =>
       HttpResponse.json({ count: 0, results: [] })
     ),
     http.get(`${BASE}/api/v1/agro-catalogs/crops/`, () =>
       HttpResponse.json({ count: 0, results: [] })
+    ),
+    // Detalle del Subprograma (GET /tasks/{id}/) — useHijoDetail lo consume
+    // para el formulario de edición (fechas reales + cultivo).
+    http.get(`${BASE}/api/v1/field_ops/tasks/:id/`, () =>
+      HttpResponse.json({
+        id: 'hijo-1',
+        voucher_code: null,
+        title: 'Subprograma Norte',
+        cycle: 'Primavera-2026',
+        status: 'pending',
+        status_display: 'Pendiente',
+        crop: null,
+        crop_variety: null,
+        individual: null,
+        agro_unit: 'prod-1',
+        plot: null,
+        master_program: 'master-1',
+        est_start_date: '2026-06-01',
+        est_finish_date: '2026-07-15',
+        actual_start_date: null,
+        actual_finish_date: null,
+        location_url: null,
+        attachments_url: [],
+      })
     )
   )
 })
@@ -122,7 +175,7 @@ describe('HijoModal', () => {
   it('Gerente (level 4) ve botón "Editar" y "+ Nueva Sesión"', async () => {
     renderModal(4)
     await waitFor(() => screen.getByRole('dialog'))
-    expect(screen.getByRole('button', { name: /Editar/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Editar$/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Nueva Sesión/i })).toBeInTheDocument()
   })
 

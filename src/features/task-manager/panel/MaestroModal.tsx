@@ -223,6 +223,7 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
           open={createHijoOpen}
           onOpenChange={setCreateHijoOpen}
           master={master}
+          producerName={producerName}
         />
       )}
     </>

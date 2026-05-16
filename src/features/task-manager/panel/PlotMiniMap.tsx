@@ -26,14 +26,6 @@ function bboxFromCoords(coords: number[][]): [number, number, number, number] {
   return [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)]
 }
 
-function zoomFromBbox(minLng: number, minLat: number, maxLng: number, maxLat: number): number {
-  const latDelta = maxLat - minLat
-  const lngDelta = maxLng - minLng
-  const maxDelta = Math.max(latDelta, lngDelta)
-  if (maxDelta <= 0) return 15
-  return Math.min(15, Math.floor(Math.log2(360 / maxDelta)) - 1)
-}
-
 export function PlotMiniMap({ plotId }: PlotMiniMapProps) {
   const { data: plot, isLoading } = usePlotGeometry(plotId)
 
@@ -63,13 +55,6 @@ export function PlotMiniMap({ plotId }: PlotMiniMapProps) {
     )
   }
 
-  const [minLng, minLat, maxLng, maxLat] = bboxFromCoords(coords)
-  const initialViewState = {
-    longitude: (minLng + maxLng) / 2,
-    latitude: (minLat + maxLat) / 2,
-    zoom: zoomFromBbox(minLng, minLat, maxLng, maxLat),
-  }
-
   const geojson = {
     type: 'Feature' as const,
     geometry: plot!.geometry as GeoJSON.Geometry,
@@ -77,9 +62,9 @@ export function PlotMiniMap({ plotId }: PlotMiniMapProps) {
   }
 
   return (
-    <div className="h-36 w-full overflow-hidden rounded-md border">
+    <div className="h-80 w-full overflow-hidden rounded-md border">
       <Map
-        initialViewState={initialViewState}
+        initialViewState={{ bounds: bboxFromCoords(coords), fitBoundsOptions: { padding: 60 } }}
         mapStyle={ESRI_STYLE}
         interactive={false}
         attributionControl={false}
