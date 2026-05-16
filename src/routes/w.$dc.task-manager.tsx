@@ -95,36 +95,18 @@ function TaskManagerPage() {
     setModalStack([])
   }
 
-  function handleTaskClick(id: string, level: 'master' | 'hijo' | 'sesion', masterId: string) {
+  function handleTaskClick(
+    id: string,
+    level: 'master' | 'hijo' | 'sesion',
+    masterId: string,
+    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' } | null,
+  ) {
     if (level === 'master') {
       pushModal({ type: 'master', masterId: id })
     } else if (level === 'hijo') {
       pushModal({ type: 'hijo', hijoId: id, masterId })
-    } else {
-      // Para sesiones desde el Gantt necesitamos inferir el tipo.
-      // El tree cache tiene la sesión; buscamos en aspersion_sessions primero.
-      const tree = queryClient.getQueryData<{ programas: Array<{
-        id: string
-        aspersion_sessions: Array<{ id: string }>
-        phyto_monitoring_headers: Array<{ id: string }>
-      }> }>(['master-tree', masterId])
-      let sesionType: 'aspersion' | 'phyto' = 'aspersion'
-      let hijoId = ''
-      if (tree) {
-        for (const hijo of tree.programas) {
-          if (hijo.aspersion_sessions.some((s) => s.id === id)) {
-            sesionType = 'aspersion'
-            hijoId = hijo.id
-            break
-          }
-          if (hijo.phyto_monitoring_headers.some((s) => s.id === id)) {
-            sesionType = 'phyto'
-            hijoId = hijo.id
-            break
-          }
-        }
-      }
-      pushModal({ type: 'sesion', sesionId: id, sesionType, hijoId, masterId })
+    } else if (extra?.hijoId) {
+      pushModal({ type: 'sesion', sesionId: id, sesionType: extra.sesionType, hijoId: extra.hijoId, masterId })
     }
   }
 
@@ -234,9 +216,10 @@ function HijoModalWrapper({
   onBack: () => void
   onNavigateSesion: (ref: { sesionId: string; sesionType: 'aspersion' | 'phyto' }) => void
 }) {
-  const { data: tree } = useMasterTree(masterId, true)
+  const { data: tree, isLoading } = useMasterTree(masterId, true)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hijo = tree?.programas.find((p) => p.id === hijoId) as any
+  if (isLoading) return <p className="p-8 text-muted-foreground">Cargando subprograma…</p>
   if (!hijo) return null
   return (
     <HijoModal

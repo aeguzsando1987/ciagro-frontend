@@ -19,8 +19,14 @@ const OUT_OF_RANGE_RED = { bg: '#ef4444', progress: '#b91c1c' }
 interface GanttHierarchyProps {
   /** Lista de Maestros (paso 2.1). Cada uno puede expandirse para cargar su arbol. */
   masters: MasterProgram[]
-  /** Click en cualquier bloque del Gantt (paso 2.6, Sprint 2.C abrira DetailPanel). */
-  onTaskClick?: (taskId: string, level: 'master' | 'hijo' | 'sesion', masterId: string) => void
+  /** Click en cualquier bloque del Gantt. Para sesiones se incluye hijoId y sesionType
+   *  resueltos en mapMastersToTasks — sin heurístico de cache. */
+  onTaskClick?: (
+    taskId: string,
+    level: 'master' | 'hijo' | 'sesion',
+    masterId: string,
+    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' } | null
+  ) => void
 }
 
 /**
@@ -55,7 +61,7 @@ export function GanttHierarchy({ masters, onTaskClick }: GanttHierarchyProps) {
   })
   const trees = treeQueries.map((q) => q.data)
 
-  const { tasks, taskMeta, masterIdByTask } = useMemo(
+  const { tasks, taskMeta, masterIdByTask, hijoIdByTask, sesionTypeByTask } = useMemo(
     () => mapMastersToTasks(masters, trees, expandedMasters),
     [masters, trees, expandedMasters]
   )
@@ -65,7 +71,6 @@ export function GanttHierarchy({ masters, onTaskClick }: GanttHierarchyProps) {
       tasks={tasks}
       taskMeta={taskMeta}
       onExpanderClick={(task) => {
-        // Solo los Maestros tienen expand (los Hijos no, sus sesiones se muestran si el Maestro esta expandido).
         if (task.id.startsWith('m:')) toggleExpand(task.id.slice(2))
       }}
       onTaskClick={(task) => {
@@ -75,7 +80,11 @@ export function GanttHierarchy({ masters, onTaskClick }: GanttHierarchyProps) {
             ? 'sesion'
             : 'master'
         const rawId = task.id.slice(2)
-        onTaskClick?.(rawId, level, masterIdByTask[task.id] ?? rawId)
+        const masterId = masterIdByTask[task.id] ?? rawId
+        const extra = level === 'sesion'
+          ? { hijoId: hijoIdByTask[task.id] ?? '', sesionType: sesionTypeByTask[task.id] ?? 'aspersion' as const }
+          : null
+        onTaskClick?.(rawId, level, masterId, extra)
       }}
     />
   )
@@ -104,10 +113,18 @@ export function mapMastersToTasks(
   masters: MasterProgram[],
   trees: (MasterProgramTree | undefined)[],
   expanded: Set<string>
-): { tasks: Task[]; taskMeta: Record<string, TaskMeta>; masterIdByTask: Record<string, string> } {
+): {
+  tasks: Task[]
+  taskMeta: Record<string, TaskMeta>
+  masterIdByTask: Record<string, string>
+  hijoIdByTask: Record<string, string>
+  sesionTypeByTask: Record<string, 'aspersion' | 'phyto'>
+} {
   const tasks: Task[] = []
   const taskMeta: Record<string, TaskMeta> = {}
   const masterIdByTask: Record<string, string> = {}
+  const hijoIdByTask: Record<string, string> = {}
+  const sesionTypeByTask: Record<string, 'aspersion' | 'phyto'> = {}
 
   masters.forEach((master, idx) => {
     const masterRange = resolveRange(master.est_start_date, master.est_finish_date)
@@ -178,6 +195,8 @@ export function mapMastersToTasks(
           statusDisplay: sOut ? 'Fuera de rango' : (IMPORT_STATUS_DISPLAY[s.import_status] ?? s.import_status),
         }
         masterIdByTask[sTaskId] = master.id
+        hijoIdByTask[sTaskId] = hijo.id
+        sesionTypeByTask[sTaskId] = 'aspersion'
       })
 
       hijo.phyto_monitoring_headers.forEach((s) => {
@@ -200,9 +219,11 @@ export function mapMastersToTasks(
           statusDisplay: sOut ? 'Fuera de rango' : (IMPORT_STATUS_DISPLAY[s.import_status] ?? s.import_status),
         }
         masterIdByTask[sTaskId] = master.id
+        hijoIdByTask[sTaskId] = hijo.id
+        sesionTypeByTask[sTaskId] = 'phyto'
       })
     })
   })
 
-  return { tasks, taskMeta, masterIdByTask }
+  return { tasks, taskMeta, masterIdByTask, hijoIdByTask, sesionTypeByTask }
 }
