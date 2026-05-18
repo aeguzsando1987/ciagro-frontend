@@ -1,15 +1,7 @@
-feat(task-manager): Bloque 5 — Tests, logs y cierre de la reimplementación
+feat(branding): logo Tierra Inteligente en login, workspaces y header
 
-Sesión 6, 2026-05-16. Reimplementación del Task Manager — Bloque 5 (cierre).
-
-GanttHierarchy.test.ts:
-- Nuevo test: "popula hijoIdByTask y sesionTypeByTask para aspersion y phyto".
-  Verifica que ambos mapas (añadidos en Bloque 4) se populan correctamente
-  para los dos tipos de sesión y que Master/Hijo no aparecen en ellos.
-
-Logs actualizados:
-- development.md: entrada narrativa de Bloque 4 (navegador de modales).
-- dev_log.csv: fila de cierre de Bloque 4 (77 tests, 0 errores).
-- roadmap.md: estado de Fase 2 marcado como completado.
-
-77/77 tests verdes, 0 errores typecheck.
+- Login: logo sobre el card, título simplificado a "CIAgro".
+- Pantalla /workspaces: logo arriba-izquierda + "CIAgro (ver. Alpha 1.0)"
+  y botón "Cerrar sesión" arriba-derecha.
+- AppHeader: logo antes del texto "CIAgro".
+- SVG servido desde public/ (copiado de media/).

@@ -24,9 +24,16 @@ export function LoginForm({ onSubmit, isPending = false, error }: LoginFormProps
     })
 
     return (
-        <Card className="w-full max-w-sm">
+        <div className="flex w-full max-w-sm flex-col items-center gap-6">
+            <img
+                src="/tierra_inteligente.svg"
+                alt="Tierra Inteligente"
+                className="w-72"
+                draggable={false}
+            />
+        <Card className="w-full">
             <CardHeader>
-                <CardTitle className="text-2xl">Tierra Inteligente - CIAgro</CardTitle>
+                <CardTitle className="text-2xl">CIAgro</CardTitle>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
@@ -69,5 +76,6 @@ export function LoginForm({ onSubmit, isPending = false, error }: LoginFormProps
                 </Form>
             </CardContent>
         </Card>
+        </div>
     )
 }
