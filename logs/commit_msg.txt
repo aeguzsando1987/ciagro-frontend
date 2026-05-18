@@ -1,7 +1,29 @@
-feat(branding): logo Tierra Inteligente en login, workspaces y header
+feat(admin): Fase 0 — andamiaje del panel de administración /admin
 
-- Login: logo sobre el card, título simplificado a "CIAgro".
-- Pantalla /workspaces: logo arriba-izquierda + "CIAgro (ver. Alpha 1.0)"
-  y botón "Cerrar sesión" arriba-derecha.
-- AppHeader: logo antes del texto "CIAgro".
-- SVG servido desde public/ (copiado de media/).
+Módulo de Administración del Sistema — sesión 7, 2026-05-18.
+Caso de uso admin_control_usecases.md §1–§7.
+
+Ruta y navegación:
+- Ruta global /admin, hermana de /workspaces (fuera de /w/$dc/ porque
+  crear organizaciones o usuarios no pertenece a un workspace concreto).
+- 5 rutas hijas deep-linkables (Opción A confirmada): /admin/usuarios,
+  /organizaciones, /agrounidades, /catalogos, /activos.
+- Ruta índice con bienvenida (no redirige: el destino dependería del rol).
+
+AdminLayout / AdminSidebar:
+- Header y sidebar propios — no reutiliza AppHeader, que depende del param $dc.
+- Guard de rol en el componente (Supervisor+), no en beforeLoad: el usuario
+  se carga async en el layout _authenticated y en beforeLoad aún sería null.
+- AdminSidebar muestra cada sección según su minRole; el backend aplica el
+  scope real de datos (regla crítica #7).
+
+Secciones placeholder (Users/Organizations/AgroUnits/Catalogs/Assets),
+una por Fase posterior.
+
+Puntos de entrada (gateados a Supervisor+):
+- Item "Administracion" activado en AppSidebar (/admin no recibe param $dc).
+- Item nuevo en el dropdown de AppHeader.
+- Botón "Administración" en la pantalla /workspaces.
+
+Gateo verificado: gerente01 (nivel 4) ve 2 secciones; superadmin-seed
+(nivel 5) ve las 5. typecheck 0 errores.

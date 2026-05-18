@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { Building2, ChevronDown, LogOut } from 'lucide-react'
+import { Building2, ChevronDown, LogOut, ShieldCheck } from 'lucide-react'
+import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -47,6 +48,12 @@ export function AppHeader() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
+          {(user?.role_level ?? 0) >= ROLE_LEVELS.SUPERVISOR && (
+            <DropdownMenuItem onSelect={() => void navigate({ to: '/admin' })}>
+              <ShieldCheck className="mr-2 h-4 w-4" />
+              Administración
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onSelect={() => void navigate({ to: '/workspaces' })}>
             Cambiar workspace
           </DropdownMenuItem>
