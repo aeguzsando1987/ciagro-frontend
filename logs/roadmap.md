@@ -1,7 +1,7 @@
 # ROADMAP — CIAgro Alpha Frontend
 
-> **Estado actual:** Fase 0 (Selección de stack y scaffolding) — 17/17 pasos completados.
-> **Última actualización:** 2026-05-12
+> **Estado actual:** Admin Fase 2 (Agrounidades, Sectores y Contactos) — completada.
+> **Última actualización:** 2026-05-19
 > **Backend:** roadmap propio en `../../CIAgro_alpha_backend/logs/roadmap.md`
 > **Producto:** `../../.context/templates/product-doc.md`
 > **Convención:** los sprints son estimaciones de **dev-week** (1 dev senior full-time).
@@ -167,9 +167,13 @@ endpoints + 6 gaps abiertos (1 alta, 2 media, 3 baja).
 
 ### Fase Frontend 8 · Administración (Módulo 7)
 **Sprints:** 2 dev-weeks. **Backend:** ✅. **UX:** 🔄 por pulir invitación/activación.
-- Gestión de Users (level 4+).
-- UserAssignments (asignar usuarios a DataCentrals).
-- Activación de usuarios pending (`/users/pending/`, `/users/<uuid>/activate/`).
+**Sub-fases completadas:**
+- [✅] **Admin Fase 1** (Sesión 8, 2026-05-18): Gestión de Users, UserAssignments, activación de usuarios pending.
+- [✅] **Admin Fase 2** (Sesión 9, 2026-05-19): AgroUnidades, AgroSectores, Contactos y ContactAssignments.
+  - `AgroUnitsSection` con 2 tabs (Unidades / Sectores), `AgroUnitPanel` (view+edit+contactos).
+  - `CreateSectorDialog`, `CreateAgroUnitDialog`, `CreateContactDialog`.
+  - Hooks: `useAgroSectors`, `useAgroUnits`, `useContacts`. 85/85 tests Vitest.
+**Pendiente:** invitación de nuevos usuarios, activación por email (UX por pulir).
 
 ### Fase Frontend 9 · Onboarding wizard (primer SuperAdmin)
 **Sprints:** 1.5 dev-weeks. **Backend:** ✅ (`/onboarding/`). **UX:** 🔄 por pulir.
@@ -188,13 +192,15 @@ endpoints + 6 gaps abiertos (1 alta, 2 media, 3 baja).
 ```
 ✅ Fase 0      → Stack + scaffolding (Sesión 1, 2026-05-12)
 ✅ Fase 1      → Auth + workspace selector (Sesión 2, 2026-05-13)
+✅ Fase 8.1    → Admin: Usuarios (Sesión 8, 2026-05-18)
+✅ Fase 8.2    → Admin: Agrounidades + Sectores + Contactos (Sesión 9, 2026-05-19)
 🔒 Fase 2      → Task Manager Gantt (4 dev-weeks, depende de Fase 1)
 🔒 Fase 3      → Visor de sesiones (1.5 dw)         ┐ pueden correr en paralelo
 🔒 Fase 4      → Visor de mapas (2 dw)              │ a Fase 2 cierre o entre sí,
 🔒 Fase 5      → Vista Técnico (1 dw)               │ según prioridad de producto
 🔒 Fase 6      → Central de datos (2.5 dw)          │
 🔒 Fase 7      → Catálogos (2 dw)                   │
-🔒 Fase 8      → Administración (2 dw)              │
+🔒 Fase 8.3    → Admin: Organizaciones / DataCentrals (2 dw) │
 🔒 Fase 9      → Onboarding wizard (1.5 dw)         │
 🔒 Fase 10     → Dashboard + métricas (1.5 dw)      ┘
 ```

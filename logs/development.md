@@ -704,3 +704,95 @@ que Master/Hijo no aparecen en esos mapas.
 
 **Verificación:** `npm run typecheck` → 0 errores. `npx vitest run` → 77/77 tests.
 
+
+---
+
+## ADMIN — FASE 2 · AGROUNIDADES, SECTORES Y CONTACTOS
+**Estado:** `[✅] Completada — Sesión 9 — 2026-05-19`
+
+> Expone la gestión de la estructura organizacional del workspace: AgroUnidades (unidades
+> productivas), AgroSectores (agrupación por giro agroindustrial) y Contactos (directorio
+> vinculado a cada unidad). Complementa la Fase 1 de Admin (Usuarios) que ya estaba
+> completa y testeada.
+
+### Tipos
+
+Exportados desde `src/features/admin/types/index.ts`:
+`AgroSector`, `AgroUnit`, `Contact`, `ContactAssignmentList` (todos derivados del schema
+generado con openapi-typescript — `components['schemas']['...']`).
+
+### Hooks
+
+**`useAgroSectors.ts`** — `queryKey: ['admin', 'agro-sectors']`, `staleTime: 60_000`.
+Expone `useAgroSectors()` y `useCreateAgroSector()`.
+
+**`useAgroUnits.ts`** — `queryKey: ['admin', 'agro-units']`, `staleTime: 30_000`.
+Expone `useAgroUnits()`, `useAgroUnitDetail(id)`, `useCreateAgroUnit()`,
+`useUpdateAgroUnit()`. El payload de update usa el tipo `PatchedAgroUnit` del schema.
+
+**`useContacts.ts`** — Expone `useContacts()`, `useContactAssignments(agroUnitId)`,
+`useCreateContact()`, `useCreateContactAssignment()`, `useDeleteContactAssignment()`.
+El id de asignación es entero (no UUID) — `mutationFn: async (assignmentId: number)`.
+
+### Diálogos
+
+**`CreateSectorDialog`** — Campos: `sector_name` (req), `scian_code`, `activity_name`
+(req), `description` (textarea nativo — no existe componente Textarea en shadcn/ui local).
+
+**`CreateAgroUnitDialog`** — 14 campos en grilla. Destaca: `CountryCombobox` con default
+México via `useEffect` + `useStates(iso2: string | null)` para estados en cascada.
+País se guarda como `id` numérico (string); el ISO-2 se busca en la lista de países para
+pasarle a `useStates`. Patrón: `countries.find((c) => String(c.id) === selectedCountry)?.iso_2 ?? null`.
+
+**`CreateContactDialog`** — Props: `open`, `onOpenChange`, `agroUnitId?`.
+Crea contacto y si `agroUnitId` está presente llama `createAssignment.mutateAsync`
+automáticamente después.
+
+### Panel
+
+**`AgroUnitPanel`** — Modal de 2 tabs:
+- **Detalle**: vista de lectura + modo edición inline (RHF + zod + `applyDrfErrors`).
+- **Contactos**: lista de `ContactAssignment` con botón eliminar + botón "Agregar contacto"
+  que abre `CreateContactDialog`.
+
+Gates de permisos:
+```typescript
+const canEdit = (user?.role_level ?? 0) >= ROLE_LEVELS.SUPER_ADMIN
+const canManageContacts = (user?.role_level ?? 0) >= ROLE_LEVELS.SUPERVISOR
+```
+
+### Sección principal
+
+**`AgroUnitsSection`** — 2 tabs: **Unidades** | **Sectores**.
+- Tab Unidades: tabla `commercial_name / code / unit_type / sector / status`. Click → `AgroUnitPanel`.
+  Botón "Nueva Unidad" visible solo si `roleLevel >= ROLE_LEVELS.SUPER_ADMIN`.
+- Tab Sectores: tabla `sector_name / scian_code / activity_name`.
+  Botón "Nuevo Sector" visible si `roleLevel >= ROLE_LEVELS.SUPERVISOR`.
+
+### Tests
+
+**`AgroUnitsSection.test.tsx`** — 5 tests con `vi.mock` para hooks (MSW descartado en
+esta capa por conflictos de URL con trailing-slash):
+- Renderiza tabs Unidades y Sectores.
+- Supervisor (level 5) ve botón "Nueva Unidad".
+- Estado vacío muestra mensaje.
+- Click en "Nueva Unidad" abre `CreateAgroUnitDialog`.
+- Tabla renderiza unidad cuando hay datos.
+
+### Decisiones de diseño
+
+- **AgroUnit como catálogo global**: `AgroUnit` es un catálogo global — no está
+  automáticamente asignada a ningún DataCentral al crearla. Sólo `IsSuperAdmin` puede
+  crear/editar/eliminar unidades. `IsSupervisor` puede gestionar sectores y contactos
+  (menor impacto estructural). Gerente no puede crear unidades porque flotarían en el
+  catálogo invisible a su workspace hasta que un SuperAdmin las asigne via
+  `DataCentralAssignment`.
+
+- **`applyDrfErrors` retorna `void`**: no se evalúa el retorno; siempre se llama
+  `toast.error()` incondicionalmente después.
+
+- **No hay Textarea en shadcn local**: se usa `<textarea>` nativo con clases Tailwind.
+
+**Verificación:** `npx tsc --noEmit` → 0 errores. `npx vitest run` → 85/85 tests.
+Demo manual: SuperAdmin crea sector → crea unidad → abre panel → edita → agrega contacto.
+Supervisor ve tablas y puede agregar contactos; no ve botón "Nueva Unidad".

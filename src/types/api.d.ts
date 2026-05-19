@@ -2154,6 +2154,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/contacts/assignments/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar asignaciones de contacto (filtro ?agro_unit=) */
+        get: operations["v1_organizations_contacts_assignments_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/contacts/assignments/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Eliminar asignacion de contacto */
+        delete: operations["v1_organizations_contacts_assignments_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/contacts/create/": {
         parameters: {
             query?: never;
@@ -2338,6 +2372,26 @@ export interface paths {
         patch: operations["v1_users_activate_partial_update"];
         trace?: never;
     };
+    "/api/v1/users/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Editar un usuario (admin)
+         * @description Edita los campos de `User` (email, status, user_role) y el perfil `Individual` de cualquier usuario. Solo PATCH (parcial). No edita la contraseña — para eso existe ChangePasswordView. Requiere SuperAdmin.
+         */
+        patch: operations["v1_users_update_partial_update"];
+        trace?: never;
+    };
     "/api/v1/users/assignments/": {
         parameters: {
             query?: never;
@@ -2392,6 +2446,26 @@ export interface paths {
          * @description Asigna un usuario a un workspace (DataCentral). Requiere SuperAdmin.
          */
         post: operations["v1_users_assignments_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/by-datacentral/{dc_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar usuarios de un datacentral
+         * @description Retorna los usuarios activos asignados al datacentral indicado. El solicitante debe pertenecer al mismo datacentral (seguridad multi-tenant). Accesible por role_level >= 2 (Técnico+).
+         */
+        get: operations["v1_users_by_datacentral_list"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2474,6 +2548,26 @@ export interface paths {
         get: operations["v1_users_work_roles_list"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/work-roles/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear rol laboral (WorkRole)
+         * @description Da de alta un rol laboral (ej. 'Ingeniero agrónomo'). Requiere SuperAdmin.
+         */
+        post: operations["v1_users_work_roles_create_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2624,6 +2718,24 @@ export interface components {
              * Format: date
              */
             aspersion_date: string;
+            /**
+             * Estado de la sesión
+             * @description Ciclo de vida: pending → in_progress → loaded → completed | cancelled.
+             *
+             *     * `pending` - Pendiente
+             *     * `in_progress` - En progreso
+             *     * `loaded` - Cargado
+             *     * `completed` - Completado
+             *     * `cancelled` - Cancelado
+             */
+            status?: components["schemas"]["Status5a4Enum"];
+            readonly assigned_to: {
+                /** Format: uuid */
+                id?: string;
+                username?: string;
+            } | null;
+            /** Format: uuid */
+            assigned_to_id?: string | null;
             /**
              * Fecha estimada de inicio de la aspersion
              * Format: date
@@ -2972,6 +3084,18 @@ export interface components {
             /** Format: date-time */
             readonly created_at: string;
         };
+        ContactAssignmentList: {
+            readonly id: number;
+            /** Format: uuid */
+            contact: string;
+            readonly contact_name: string;
+            readonly contact_email: string;
+            readonly contact_phone: string;
+            /** Format: uuid */
+            agro_unit: string;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
         Country: {
             readonly id: number;
             name: string;
@@ -3224,6 +3348,9 @@ export interface components {
             postal_code?: string | null;
             /** Format: uri */
             photo_url?: string | null;
+            state?: number | null;
+            country?: number | null;
+            work_role?: number | null;
         };
         LogoutRequest: {
             /** @description Refresh token a invalidar */
@@ -3571,6 +3698,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Attachment"][];
         };
+        PaginatedContactAssignmentListList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ContactAssignmentList"][];
+        };
         PaginatedContactList: {
             /** @example 123 */
             count: number;
@@ -3886,6 +4028,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["UserDetail"][];
         };
+        PaginatedUserMinimalList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["UserMinimal"][];
+        };
         PaginatedUserRoleList: {
             /** @example 123 */
             count: number;
@@ -3922,6 +4079,32 @@ export interface components {
          */
         PatchedActivateUser: {
             user_role_id?: number;
+        };
+        /**
+         * @description Edición de un usuario por un admin (no es self-update; eso vive en UserMeView).
+         *     Todos los campos son opcionales: el endpoint solo acepta PATCH parcial.
+         *     Separa los campos de User de los de Individual y guarda ambos en una transacción.
+         *     NO edita la contraseña — para eso existe ChangePasswordView.
+         */
+        PatchedAdminUserUpdate: {
+            /** Format: email */
+            email?: string;
+            status?: components["schemas"]["StatusC9fEnum"];
+            user_role?: number | null;
+            first_name?: string;
+            last_name?: string;
+            phone?: string;
+            /** Format: email */
+            personal_email?: string;
+            address_line_1?: string;
+            address_line_2?: string;
+            city?: string;
+            postal_code?: string;
+            /** Format: uri */
+            photo_url?: string;
+            state?: number | null;
+            country?: number | null;
+            work_role?: number | null;
         };
         PatchedAgroSector: {
             readonly id?: number;
@@ -4042,6 +4225,24 @@ export interface components {
              */
             aspersion_date?: string;
             /**
+             * Estado de la sesión
+             * @description Ciclo de vida: pending → in_progress → loaded → completed | cancelled.
+             *
+             *     * `pending` - Pendiente
+             *     * `in_progress` - En progreso
+             *     * `loaded` - Cargado
+             *     * `completed` - Completado
+             *     * `cancelled` - Cancelado
+             */
+            status?: components["schemas"]["Status5a4Enum"];
+            readonly assigned_to?: {
+                /** Format: uuid */
+                id?: string;
+                username?: string;
+            } | null;
+            /** Format: uuid */
+            assigned_to_id?: string | null;
+            /**
              * Fecha estimada de inicio de la aspersion
              * Format: date
              */
@@ -4153,6 +4354,9 @@ export interface components {
             postal_code?: string | null;
             /** Format: uri */
             photo_url?: string | null;
+            state?: number | null;
+            country?: number | null;
+            work_role?: number | null;
         };
         PatchedMasterProgram: {
             /** Format: uuid */
@@ -4426,14 +4630,15 @@ export interface components {
             estimated_end_date?: string | null;
             /**
              * Estado de la sesión
-             * @description Ciclo de vida de la sesión: pending → in_progress → completed | cancelled. La app móvil actualiza este campo para gestionar el flujo de trabajo del técnico.
+             * @description Ciclo de vida de la sesión: pending → in_progress → loaded → completed | cancelled. La app móvil actualiza este campo para gestionar el flujo de trabajo del técnico.
              *
              *     * `pending` - Pendiente
              *     * `in_progress` - En progreso
+             *     * `loaded` - Cargado
              *     * `completed` - Completado
              *     * `cancelled` - Cancelado
              */
-            status?: components["schemas"]["PhytoMonitoringHeaderStatusEnum"];
+            status?: components["schemas"]["Status5a4Enum"];
             /**
              * Inicio de sesión en campo
              * Format: date-time
@@ -4892,14 +5097,15 @@ export interface components {
             estimated_end_date?: string | null;
             /**
              * Estado de la sesión
-             * @description Ciclo de vida de la sesión: pending → in_progress → completed | cancelled. La app móvil actualiza este campo para gestionar el flujo de trabajo del técnico.
+             * @description Ciclo de vida de la sesión: pending → in_progress → loaded → completed | cancelled. La app móvil actualiza este campo para gestionar el flujo de trabajo del técnico.
              *
              *     * `pending` - Pendiente
              *     * `in_progress` - En progreso
+             *     * `loaded` - Cargado
              *     * `completed` - Completado
              *     * `cancelled` - Cancelado
              */
-            status?: components["schemas"]["PhytoMonitoringHeaderStatusEnum"];
+            status?: components["schemas"]["Status5a4Enum"];
             /**
              * Inicio de sesión en campo
              * Format: date-time
@@ -4931,14 +5137,6 @@ export interface components {
             /** Format: date-time */
             readonly created_at: string;
         };
-        /**
-         * @description * `pending` - Pendiente
-         *     * `in_progress` - En progreso
-         *     * `completed` - Completado
-         *     * `cancelled` - Cancelado
-         * @enum {string}
-         */
-        PhytoMonitoringHeaderStatusEnum: "pending" | "in_progress" | "completed" | "cancelled";
         PhytoSessionSummary: {
             /** Format: uuid */
             id: string;
@@ -5317,6 +5515,13 @@ export interface components {
          * @enum {string}
          */
         Status5a4Enum: "pending" | "in_progress" | "loaded" | "completed" | "cancelled";
+        /**
+         * @description * `active` - Activo
+         *     * `disabled` - Desactivado
+         *     * `pending_activation` - Pendiente de activación
+         * @enum {string}
+         */
+        StatusC9fEnum: "active" | "disabled" | "pending_activation";
         TaskReportIssue: {
             /** Format: uuid */
             readonly id: string;
@@ -5409,7 +5614,7 @@ export interface components {
             readonly username: string;
             /** Format: email */
             readonly email: string;
-            readonly status: components["schemas"]["UserDetailStatusEnum"];
+            readonly status: components["schemas"]["StatusC9fEnum"];
             readonly user_role: components["schemas"]["UserRole"];
             readonly requires_password_change: boolean;
             /**
@@ -5418,15 +5623,25 @@ export interface components {
              */
             readonly is_active: boolean;
             readonly individual: components["schemas"]["Individual"];
-            readonly datacentrals: string;
+            readonly datacentrals: {
+                /** Format: uuid */
+                id?: string;
+                name?: string;
+                slug?: string;
+                is_owner?: boolean;
+            }[];
         };
-        /**
-         * @description * `active` - Activo
-         *     * `disabled` - Desactivado
-         *     * `pending_activation` - Pendiente de activación
-         * @enum {string}
-         */
-        UserDetailStatusEnum: "active" | "disabled" | "pending_activation";
+        /** @description Perfil mínimo de usuario — usado por UsersInDatacentralView. */
+        UserMinimal: {
+            /** Format: uuid */
+            readonly id: string;
+            /**
+             * Nombre de usuario
+             * @description Obligatorio. Longitud máxima 150 caracteres alfanuméricos. Letras, dígitos y @/./+/-/_ únicamente.
+             */
+            readonly username: string;
+            readonly full_name: string;
+        };
         UserRole: {
             readonly id: number;
             role_name: string;
@@ -6814,6 +7029,8 @@ export interface operations {
             query?: {
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
             };
             header?: never;
             path?: never;
@@ -8539,6 +8756,48 @@ export interface operations {
             };
         };
     };
+    v1_organizations_contacts_assignments_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedContactAssignmentListList"];
+                };
+            };
+        };
+    };
+    v1_organizations_contacts_assignments_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     v1_organizations_contacts_create_create: {
         parameters: {
             query?: never;
@@ -8769,6 +9028,33 @@ export interface operations {
             };
         };
     };
+    v1_users_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAdminUserUpdate"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAdminUserUpdate"];
+                "multipart/form-data": components["schemas"]["PatchedAdminUserUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDetail"];
+                };
+            };
+        };
+    };
     v1_users_assignments_list: {
         parameters: {
             query?: {
@@ -8832,6 +9118,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserAssignment"];
+                };
+            };
+        };
+    };
+    v1_users_by_datacentral_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                dc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUserMinimalList"];
                 };
             };
         };
@@ -8967,6 +9277,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedWorkRoleList"];
+                };
+            };
+        };
+    };
+    v1_users_work_roles_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkRole"];
+                "application/x-www-form-urlencoded": components["schemas"]["WorkRole"];
+                "multipart/form-data": components["schemas"]["WorkRole"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkRole"];
                 };
             };
         };

@@ -1,29 +1,36 @@
-feat(admin): Fase 0 — andamiaje del panel de administración /admin
+feat(admin): Fase 2 — AgroUnidades, Sectores y Contactos
 
-Módulo de Administración del Sistema — sesión 7, 2026-05-18.
-Caso de uso admin_control_usecases.md §1–§7.
+Módulo de Administración — sesión 9, 2026-05-19.
+Caso de uso admin_control_usecases.md §4–§6.
 
-Ruta y navegación:
-- Ruta global /admin, hermana de /workspaces (fuera de /w/$dc/ porque
-  crear organizaciones o usuarios no pertenece a un workspace concreto).
-- 5 rutas hijas deep-linkables (Opción A confirmada): /admin/usuarios,
-  /organizaciones, /agrounidades, /catalogos, /activos.
-- Ruta índice con bienvenida (no redirige: el destino dependería del rol).
+Tipos y hooks:
+- Tipos AgroSector, AgroUnit, Contact, ContactAssignmentList derivados
+  del schema openapi-typescript.
+- useAgroSectors / useAgroUnits / useContacts con TanStack Query v5.
+  AgroUnit usa PatchedAgroUnit para el payload de PATCH.
+  ContactAssignment delete recibe id entero (no UUID).
 
-AdminLayout / AdminSidebar:
-- Header y sidebar propios — no reutiliza AppHeader, que depende del param $dc.
-- Guard de rol en el componente (Supervisor+), no en beforeLoad: el usuario
-  se carga async en el layout _authenticated y en beforeLoad aún sería null.
-- AdminSidebar muestra cada sección según su minRole; el backend aplica el
-  scope real de datos (regla crítica #7).
+Diálogos:
+- CreateSectorDialog: sector_name, scian_code, activity_name, description
+  (textarea nativo — shadcn no incluye Textarea en este setup).
+- CreateAgroUnitDialog: 14 campos; CountryCombobox con default México;
+  useStates(iso2) para estados en cascada.
+- CreateContactDialog: crea contacto y si recibe agroUnitId asigna
+  automáticamente con createAssignment.
 
-Secciones placeholder (Users/Organizations/AgroUnits/Catalogs/Assets),
-una por Fase posterior.
+Panel AgroUnitPanel:
+- Tab Detalle: modo vista + edición inline (RHF + zod + applyDrfErrors).
+- Tab Contactos: lista ContactAssignment + eliminar + Agregar contacto.
+- Gates: canEdit → SUPER_ADMIN; canManageContacts → SUPERVISOR.
 
-Puntos de entrada (gateados a Supervisor+):
-- Item "Administracion" activado en AppSidebar (/admin no recibe param $dc).
-- Item nuevo en el dropdown de AppHeader.
-- Botón "Administración" en la pantalla /workspaces.
+AgroUnitsSection:
+- Tab Unidades: tabla + click → panel. Botón "Nueva Unidad" → SUPER_ADMIN.
+- Tab Sectores: tabla. Botón "Nuevo Sector" → SUPERVISOR.
 
-Gateo verificado: gerente01 (nivel 4) ve 2 secciones; superadmin-seed
-(nivel 5) ve las 5. typecheck 0 errores.
+Decisión de diseño: AgroUnit es catálogo global — crear sin
+DataCentralAssignment la deja invisible al creador (ScopeFilterMixin).
+Solo SuperAdmin crea/edita/elimina unidades.
+
+Tests: 5 casos en AgroUnitsSection.test.tsx con vi.mock (MSW
+descartado en capa de sección por conflictos de trailing-slash).
+npx tsc --noEmit → 0 errores. npx vitest run → 85/85.
