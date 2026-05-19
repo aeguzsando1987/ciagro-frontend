@@ -2,12 +2,9 @@ import { queryOptions, useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/client'
 import type { components } from '@/types/api'
 
-// The OpenAPI schema omits `status` and `assigned_to` from AspersionSessionHeader
-// (schema generation gap). Augment locally until api.d.ts is regenerated.
-export type AspersionSessionDetail = components['schemas']['AspersionSessionHeader'] & {
-  status?: string
-  assigned_to?: { id: string; username: string } | null
-}
+// GAP-SCHEMA-001 cerrado: `status` y `assigned_to` ahora están en el schema generado.
+// El tipo usa directamente el schema sin augmentaciones manuales.
+export type AspersionSessionDetail = components['schemas']['AspersionSessionHeader']
 
 export function aspersionSessionDetailQueryOptions(id: string | null) {
   return queryOptions({
