@@ -1,36 +1,70 @@
-feat(admin): Fase 2 — AgroUnidades, Sectores y Contactos
+feat(admin): Fases 3.B, 4.B/C — Organizaciones, Catálogos y fix perfil
 
-Módulo de Administración — sesión 9, 2026-05-19.
-Caso de uso admin_control_usecases.md §4–§6.
+Módulo de Administración — sesiones 10–12, 2026-05-19/20.
+Cubre admin_control_usecases.md §5–§6 (frontend completo) + bug fix usuarios.
 
-Tipos y hooks:
-- Tipos AgroSector, AgroUnit, Contact, ContactAssignmentList derivados
-  del schema openapi-typescript.
-- useAgroSectors / useAgroUnits / useContacts con TanStack Query v5.
-  AgroUnit usa PatchedAgroUnit para el payload de PATCH.
-  ContactAssignment delete recibe id entero (no UUID).
+──────────────────────────────────────────────────────
+Fase 3.B — Organizaciones (DataCentrals/CIAs/Asignaciones)
+──────────────────────────────────────────────────────
+Nuevos hooks (src/features/admin/hooks/):
+- useDataCentrals.ts: 6 hooks para DCM+DC CRUD (list/detail/create/update).
+- useUserAssignments.ts: list + create + delete.
+- useDataCentralAssignments.ts: list + create + delete.
 
-Diálogos:
-- CreateSectorDialog: sector_name, scian_code, activity_name, description
-  (textarea nativo — shadcn no incluye Textarea en este setup).
-- CreateAgroUnitDialog: 14 campos; CountryCombobox con default México;
-  useStates(iso2) para estados en cascada.
-- CreateContactDialog: crea contacto y si recibe agroUnitId asigna
-  automáticamente con createAssignment.
+Nuevo componente:
+- AssignCombobox.tsx: combobox con búsqueda + multi-select, sin nuevas deps.
 
-Panel AgroUnitPanel:
-- Tab Detalle: modo vista + edición inline (RHF + zod + applyDrfErrors).
-- Tab Contactos: lista ContactAssignment + eliminar + Agregar contacto.
-- Gates: canEdit → SUPER_ADMIN; canManageContacts → SUPERVISOR.
+Nuevos dialogs:
+- CreateDataCentralMainDialog.tsx (name/desc/country/status/owner via AssignCombobox).
+- CreateDataCentralDialog.tsx (name/desc).
 
-AgroUnitsSection:
-- Tab Unidades: tabla + click → panel. Botón "Nueva Unidad" → SUPER_ADMIN.
-- Tab Sectores: tabla. Botón "Nuevo Sector" → SUPERVISOR.
+Nuevos panels:
+- DataCentralMainPanel.tsx: tabs Detalle+CIAs Hijas, propaga onOpenDC.
+- DataCentralPanel.tsx: tabs Detalle+Usuarios+Agrounidades, multi-select AgroUnits.
 
-Decisión de diseño: AgroUnit es catálogo global — crear sin
-DataCentralAssignment la deja invisible al creador (ScopeFilterMixin).
-Solo SuperAdmin crea/edita/elimina unidades.
+OrganizationsSection.tsx actualizado: reemplaza placeholder, maneja handleDCClose
+para retorno al panel padre desde DataCentralPanel.
+OrganizationsSection.test.tsx: 6 tests nuevos.
 
-Tests: 5 casos en AgroUnitsSection.test.tsx con vi.mock (MSW
-descartado en capa de sección por conflictos de trailing-slash).
-npx tsc --noEmit → 0 errores. npx vitest run → 85/85.
+BUG FIX aplicado: refetchOnMount:'always' en details para evitar caché stale;
+filtrado optimista local en DataCentralPanel tras add/remove.
+
+──────────────────────────────────────────────────────
+Fase 4.B/C — Catálogos Agrícolas (Cultivos + Fitosanitarios)
+──────────────────────────────────────────────────────
+api.d.ts: regenerado con PhytosanitaryPhotoCreate y nuevos paths de fotos.
+types/index.ts: CropCatalog, PhytosanitaryCatalog, PhytosanitaryPhoto,
+PhytosanitaryStage, PhytosanitaryType añadidos.
+
+Nuevos hooks:
+- useCrops.ts: list/detail/create/update con multipart condicional (FormData
+  cuando hay File; bodySerializer:(b)=>b para que browser gestione boundary).
+- usePhytosanitary.ts: list/detail (refetchOnMount:'always')/create/update +
+  useCreatePhytoPhoto (FormData) + useDeletePhytoPhoto.
+
+Nuevos dialogs:
+- CreateCropDialog.tsx: RHF+zod, file input nativo para foto.
+- CreatePhytosanitaryDialog.tsx: sub-form de etapas con useState; flujo for..of
+  secuencial POST foto por etapa; toast agregado; AssignCombobox para default_crop.
+
+Nuevos panels:
+- CropPanel.tsx: 1 tab view/edit, gate SUPERVISOR.
+- PhytosanitaryPanel.tsx: 2 tabs Detalle + "Detalle de etapas" (add/delete inline).
+
+CatalogsSection.tsx: reemplaza placeholder — tabs Cultivos/Fitosanitarios,
+tablas, canCreate = roleLevel >= SUPERVISOR.
+CatalogsSection.test.tsx: 8 tests nuevos.
+
+──────────────────────────────────────────────────────
+Bug fix: Editar perfil y cambio de contraseña
+──────────────────────────────────────────────────────
+ProfileModal.tsx (nuevo — src/features/workspace/):
+- Tab "Datos": PATCH /api/v1/users/me/ → actualiza email en useAuthStore.
+- Tab "Seguridad": POST /api/v1/auth/change-password/ sin redirigir.
+
+AppHeader.tsx: ítem "Editar perfil" (UserCog) para todos los roles.
+
+UserModal.tsx: sección "Contraseña" visible solo para SuperAdmin (level 5);
+POST /api/v1/users/{id}/set-password/ via fetch directo.
+
+tsc --noEmit → 0 errores. vitest run → 99/99.

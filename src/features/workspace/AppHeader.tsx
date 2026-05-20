@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { Building2, ChevronDown, LogOut, ShieldCheck } from 'lucide-react'
+import { Building2, ChevronDown, LogOut, ShieldCheck, UserCog } from 'lucide-react'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,6 +13,7 @@ import {
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { useLogout } from '@/features/auth/useLogout'
 import { useWorkspaceStore } from './useWorkspaceStore'
+import { ProfileModal } from './ProfileModal'
 
 export function AppHeader() {
   const { dc } = useParams({ from: '/_authenticated/w/$dc' })
@@ -19,6 +21,7 @@ export function AppHeader() {
   const selectedDc = useWorkspaceStore((s) => s.selectedDc)
   const { mutate: logout, isPending: isLoggingOut } = useLogout()
   const navigate = useNavigate()
+  const [showProfile, setShowProfile] = useState(false)
 
   // DC name: prefer workspace store (set al navegar desde selector),
   // fallback a user.datacentrals (disponible para rol < 4),
@@ -54,6 +57,10 @@ export function AppHeader() {
               Administración
             </DropdownMenuItem>
           )}
+          <DropdownMenuItem onSelect={() => setShowProfile(true)}>
+            <UserCog className="mr-2 h-4 w-4" />
+            Editar perfil
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void navigate({ to: '/workspaces' })}>
             Cambiar workspace
           </DropdownMenuItem>
@@ -68,6 +75,8 @@ export function AppHeader() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
     </header>
   )
 }

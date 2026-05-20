@@ -239,6 +239,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agro-catalogs/phytosanitary/photos/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Eliminar foto de etapa de desarrollo fitosanitario */
+        delete: operations["v1_agro_catalogs_phytosanitary_photos_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/phytosanitary/photos/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Crear foto de etapa de desarrollo fitosanitario */
+        post: operations["v1_agro_catalogs_phytosanitary_photos_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/change-password/": {
         parameters: {
             query?: never;
@@ -2256,6 +2290,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/data-centrals-main/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Actualizar CIAgro Padre */
+        put: operations["v1_organizations_data_centrals_main_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Actualizar CIAgro Padre */
+        patch: operations["v1_organizations_data_centrals_main_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/organizations/data-centrals-main/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Crear CIAgro Padre */
+        post: operations["v1_organizations_data_centrals_main_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/datacentrals/": {
         parameters: {
             query?: never;
@@ -2273,6 +2342,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/datacentrals-assignments/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar asignaciones DataCentral ↔ AgroUnit */
+        get: operations["v1_organizations_datacentrals_assignments_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/datacentrals-assignments/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Eliminar asignación DataCentral ↔ AgroUnit */
+        delete: operations["v1_organizations_datacentrals_assignments_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/datacentrals-assignments/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Asignar AgroUnit a DataCentral */
+        post: operations["v1_organizations_datacentrals_assignments_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/datacentrals/{id}/": {
         parameters: {
             query?: never;
@@ -2284,6 +2404,41 @@ export interface paths {
         get: operations["v1_organizations_datacentrals_retrieve"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/datacentrals/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Actualizar data central */
+        put: operations["v1_organizations_datacentrals_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Actualizar data central */
+        patch: operations["v1_organizations_datacentrals_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/organizations/datacentrals/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Crear data central */
+        post: operations["v1_organizations_datacentrals_create_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3108,10 +3263,10 @@ export interface components {
             name: string;
             /** @description Código corto único (ej: MNG-MNL). Opcional. */
             code?: string | null;
-            /** @description Variedad específica del cultivo (ej: Manila, Ataulfo). Opcional. */
             variety?: string | null;
             description?: string | null;
-            readonly photo: string;
+            /** Format: uri */
+            photo?: string | null;
             additional_params?: unknown;
             attachments_url?: unknown;
         };
@@ -3128,26 +3283,77 @@ export interface components {
             /** Format: date-time */
             readonly created_at: string;
         };
+        DataCentralAssignment: {
+            readonly id: number;
+            /** Format: uuid */
+            agro_unit_id: string;
+            readonly agro_unit_name: string;
+            readonly agro_unit_code: string;
+            /** Format: uuid */
+            datacentral_id: string;
+            readonly datacentral_name: string;
+            /** Format: date-time */
+            readonly assigned_at: string;
+        };
+        DataCentralDetail: {
+            /** Format: uuid */
+            readonly id: string;
+            name: string;
+            /** @description Auto-generado */
+            readonly slug: string;
+            description?: string;
+            readonly data_central_main: components["schemas"]["DataCentralMainDetail"];
+            /** @description Solo una por CIAgro Padre. Creada en el onboarding. */
+            readonly is_primary: boolean;
+            readonly user_assignments_count: string;
+            readonly agro_unit_assignments_count: string;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
         DataCentralMain: {
             /** Format: uuid */
             readonly id: string;
             name: string;
             /** @description Auto-generado. Para futuro subdominio slug.ciagro.com */
             readonly slug: string;
-            readonly status: components["schemas"]["DataCentralMainStatusEnum"];
+            readonly status: components["schemas"]["Status8acEnum"];
             /** Format: uuid */
             readonly owner: string;
             readonly is_owner: string;
             /** Format: date-time */
             readonly created_at: string;
         };
-        /**
-         * @description * `active` - Activo
-         *     * `inactive` - Inactivo
-         *     * `trial` - Prueba
-         * @enum {string}
-         */
-        DataCentralMainStatusEnum: "active" | "inactive" | "trial";
+        DataCentralMainDetail: {
+            /** Format: uuid */
+            readonly id: string;
+            name: string;
+            /** @description Auto-generado. Para futuro subdominio slug.ciagro.com */
+            readonly slug: string;
+            description?: string | null;
+            country?: number | null;
+            status?: components["schemas"]["Status8acEnum"];
+            /** Format: uuid */
+            readonly owner: string;
+            readonly is_owner: string;
+            readonly owner_username: string;
+            readonly datacentrals_count: string;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        DataCentralMainWrite: {
+            name: string;
+            description?: string | null;
+            country?: number | null;
+            status?: components["schemas"]["Status8acEnum"];
+            /** Format: uuid */
+            owner_id: string;
+        };
+        DataCentralWrite: {
+            name: string;
+            description?: string;
+            /** Format: uuid */
+            data_central_main_id: string;
+        };
         /**
          * @description Catálogo genérico de esquemas de evaluación.
          *     validate_scheme() delega al evaluador del registry para validar que los
@@ -3758,7 +3964,7 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["CropCatalog"][];
         };
-        PaginatedDataCentralList: {
+        PaginatedDataCentralAssignmentList: {
             /** @example 123 */
             count: number;
             /**
@@ -3771,9 +3977,9 @@ export interface components {
              * @example http://api.example.org/accounts/?page=2
              */
             previous?: string | null;
-            results: components["schemas"]["DataCentral"][];
+            results: components["schemas"]["DataCentralAssignment"][];
         };
-        PaginatedDataCentralMainList: {
+        PaginatedDataCentralDetailList: {
             /** @example 123 */
             count: number;
             /**
@@ -3786,7 +3992,22 @@ export interface components {
              * @example http://api.example.org/accounts/?page=2
              */
             previous?: string | null;
-            results: components["schemas"]["DataCentralMain"][];
+            results: components["schemas"]["DataCentralDetail"][];
+        };
+        PaginatedDataCentralMainDetailList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["DataCentralMainDetail"][];
         };
         PaginatedEvaluationCatalogList: {
             /** @example 123 */
@@ -4306,12 +4527,26 @@ export interface components {
             name?: string;
             /** @description Código corto único (ej: MNG-MNL). Opcional. */
             code?: string | null;
-            /** @description Variedad específica del cultivo (ej: Manila, Ataulfo). Opcional. */
             variety?: string | null;
             description?: string | null;
-            readonly photo?: string;
+            /** Format: uri */
+            photo?: string | null;
             additional_params?: unknown;
             attachments_url?: unknown;
+        };
+        PatchedDataCentralMainWrite: {
+            name?: string;
+            description?: string | null;
+            country?: number | null;
+            status?: components["schemas"]["Status8acEnum"];
+            /** Format: uuid */
+            owner_id?: string;
+        };
+        PatchedDataCentralWrite: {
+            name?: string;
+            description?: string;
+            /** Format: uuid */
+            data_central_main_id?: string;
         };
         /**
          * @description Catálogo genérico de esquemas de evaluación.
@@ -5250,7 +5485,7 @@ export interface components {
         PhytosanitaryPhoto: {
             readonly id: number;
             /** Etapa */
-            stage: components["schemas"]["PhytosanitaryPhotoStageEnum"];
+            stage: components["schemas"]["Stage74bEnum"];
             readonly stage_display: string;
             readonly photo: string;
             /**
@@ -5259,19 +5494,22 @@ export interface components {
              */
             caption?: string | null;
         };
-        /**
-         * @description * `huevesillo` - Huevesillo
-         *     * `larva` - Larva / Joven
-         *     * `pupa` - Pupa
-         *     * `adulto` - Adulto
-         *     * `adulto_alas` - Adulto con alas
-         *     * `inicio` - Inicio
-         *     * `desarrollo` - Desarrollo
-         *     * `avanzado` - Avanzado / Crítico
-         *     * `terminal` - Terminal / Podrido
-         * @enum {string}
-         */
-        PhytosanitaryPhotoStageEnum: "huevesillo" | "larva" | "pupa" | "adulto" | "adulto_alas" | "inicio" | "desarrollo" | "avanzado" | "terminal";
+        PhytosanitaryPhotoCreate: {
+            readonly id: number;
+            phytosanitary_id: number;
+            /** Etapa */
+            stage: components["schemas"]["Stage74bEnum"];
+            /**
+             * Foto
+             * Format: uri
+             */
+            photo: string;
+            /**
+             * Descripción
+             * @description Texto opcional que describe la imagen.
+             */
+            caption?: string | null;
+        };
         Plot: {
             type?: components["schemas"]["GisFeatureEnum"];
             /** Format: uuid */
@@ -5500,6 +5738,19 @@ export interface components {
          * @enum {string}
          */
         SeverityAlertEnum: "low" | "medium" | "high";
+        /**
+         * @description * `huevesillo` - Huevesillo
+         *     * `larva` - Larva / Joven
+         *     * `pupa` - Pupa
+         *     * `adulto` - Adulto
+         *     * `adulto_alas` - Adulto con alas
+         *     * `inicio` - Inicio
+         *     * `desarrollo` - Desarrollo
+         *     * `avanzado` - Avanzado / Crítico
+         *     * `terminal` - Terminal / Podrido
+         * @enum {string}
+         */
+        Stage74bEnum: "huevesillo" | "larva" | "pupa" | "adulto" | "adulto_alas" | "inicio" | "desarrollo" | "avanzado" | "terminal";
         StateDetail: {
             readonly id: number;
             name: string;
@@ -5515,6 +5766,13 @@ export interface components {
          * @enum {string}
          */
         Status5a4Enum: "pending" | "in_progress" | "loaded" | "completed" | "cancelled";
+        /**
+         * @description * `active` - Activo
+         *     * `inactive` - Inactivo
+         *     * `trial` - Prueba
+         * @enum {string}
+         */
+        Status8acEnum: "active" | "inactive" | "trial";
         /**
          * @description * `active` - Activo
          *     * `disabled` - Desactivado
@@ -6076,6 +6334,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PhytosanitaryCatalog"];
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_phytosanitary_photos_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_agro_catalogs_phytosanitary_photos_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["PhytosanitaryPhotoCreate"];
+                "application/x-www-form-urlencoded": components["schemas"]["PhytosanitaryPhotoCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhytosanitaryPhotoCreate"];
                 };
             };
         };
@@ -8865,7 +9167,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedDataCentralMainList"];
+                    "application/json": components["schemas"]["PaginatedDataCentralMainDetailList"];
                 };
             };
         };
@@ -8886,7 +9188,86 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DataCentralMain"];
+                    "application/json": components["schemas"]["DataCentralMainDetail"];
+                };
+            };
+        };
+    };
+    v1_organizations_data_centrals_main_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataCentralMainWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["DataCentralMainWrite"];
+                "multipart/form-data": components["schemas"]["DataCentralMainWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralMainWrite"];
+                };
+            };
+        };
+    };
+    v1_organizations_data_centrals_main_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDataCentralMainWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDataCentralMainWrite"];
+                "multipart/form-data": components["schemas"]["PatchedDataCentralMainWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralMainWrite"];
+                };
+            };
+        };
+    };
+    v1_organizations_data_centrals_main_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataCentralMainWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["DataCentralMainWrite"];
+                "multipart/form-data": components["schemas"]["DataCentralMainWrite"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralMainWrite"];
                 };
             };
         };
@@ -8908,7 +9289,74 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedDataCentralList"];
+                    "application/json": components["schemas"]["PaginatedDataCentralDetailList"];
+                };
+            };
+        };
+    };
+    v1_organizations_datacentrals_assignments_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedDataCentralAssignmentList"];
+                };
+            };
+        };
+    };
+    v1_organizations_datacentrals_assignments_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_organizations_datacentrals_assignments_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataCentralAssignment"];
+                "application/x-www-form-urlencoded": components["schemas"]["DataCentralAssignment"];
+                "multipart/form-data": components["schemas"]["DataCentralAssignment"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralAssignment"];
                 };
             };
         };
@@ -8929,7 +9377,86 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DataCentral"];
+                    "application/json": components["schemas"]["DataCentralDetail"];
+                };
+            };
+        };
+    };
+    v1_organizations_datacentrals_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataCentralWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["DataCentralWrite"];
+                "multipart/form-data": components["schemas"]["DataCentralWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralWrite"];
+                };
+            };
+        };
+    };
+    v1_organizations_datacentrals_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDataCentralWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDataCentralWrite"];
+                "multipart/form-data": components["schemas"]["PatchedDataCentralWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralWrite"];
+                };
+            };
+        };
+    };
+    v1_organizations_datacentrals_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataCentralWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["DataCentralWrite"];
+                "multipart/form-data": components["schemas"]["DataCentralWrite"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralWrite"];
                 };
             };
         };

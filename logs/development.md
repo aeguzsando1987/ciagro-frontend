@@ -795,4 +795,249 @@ esta capa por conflictos de URL con trailing-slash):
 
 **Verificación:** `npx tsc --noEmit` → 0 errores. `npx vitest run` → 85/85 tests.
 Demo manual: SuperAdmin crea sector → crea unidad → abre panel → edita → agrega contacto.
+
+---
+
+## ADMIN — FASE 3 · FRONTEND — ORGANIZACIONES Y CIAs
+**Estado:** `[✅] Completada — Sesión 10 — 2026-05-19`
+
+> Gestión completa de DataCentralMains (org raíz) y DataCentrals (CIA hija):
+> CRUD, detalle, asignación de usuarios y agrounidades, selector con búsqueda y multi-selección.
+
+### Tipos
+
+`src/features/admin/types/index.ts`:
+- `DataCentralMainDetail` — org raíz con owner, status, country, datacentrals_count.
+- `DataCentralDetail` — CIA hija con conteos de usuarios y AgroUnits asignados.
+- `DataCentralAssignment` — asignación AgroUnit ↔ DataCentral.
+- `UserAssignment` — asignación usuario ↔ DataCentral.
+
+### Hooks
+
+**`useDataCentrals.ts`** — `DCM_QUERY_KEY=['admin','datacentralmains']`, `DC_QUERY_KEY=['admin','datacentrals']`.
+`useDataCentralMains()`, `useDataCentrals(dcmId?)`, `useCreateDataCentralMain()`,
+`useUpdateDataCentralMain()`, `useCreateDataCentral()`, `useUpdateDataCentral()`.
+
+**`useUserAssignments.ts`** — `UA_QUERY_KEY=['admin','user-assignments']`.
+`useUserAssignments(datacentralId)`, `useCreateUserAssignment()`, `useDeleteUserAssignment()`.
+Path API: `/api/v1/users/assignments/` (prefijo `users/`, no doble "users-assignments").
+
+**`useDataCentralAssignments.ts`** — `DCA_QUERY_KEY=['admin','dc-assignments']`.
+`useDataCentralAssignments(datacentralId)`, `useCreateDataCentralAssignment()`,
+`useDeleteDataCentralAssignment()`.
+
+**Patrón `onSuccess` async:** todos los `onSuccess` de mutaciones de asignación usan
+`async () => { await queryClient.invalidateQueries(...) }` para garantizar que el refetch
+completa antes de que `mutateAsync` resuelva en el componente. Evita items "fantasma" en
+el selector tras una asignación exitosa.
+
+### Componente
+
+**`AssignCombobox`** (`components/AssignCombobox.tsx`) — combobox con búsqueda client-side,
+modo single y multi-select con checkboxes. Sin dependencias nuevas: misma técnica que
+`CountryCombobox` (Tailwind + `Input` + `useRef`/`useEffect` para cierre exterior).
+En modo multi: botón "Asignar (N)" en footer del dropdown; loop secuencial en el componente
+llamante para respetar el orden de invalidación de cache.
+
+### Diálogos
+
+**`CreateDataCentralMainDialog`** — name, description, country (CountryCombobox),
+status (active/inactive/trial), owner_id (Select usuarios nivel ≥ 4).
+
+**`CreateDataCentralDialog`** — name, description. Recibe `dataCentralMainId` como prop.
+
+### Paneles
+
+**`DataCentralMainPanel`** — 2 tabs:
+- **Detalle**: view + edit (RHF + zod + `applyDrfErrors`).
+- **CIAs Hijas**: tabla; click en fila propaga `onOpenDC(dc)` hacia OrganizationsSection.
+  Botón "+ Nueva CIA" abre `CreateDataCentralDialog`.
+
+**`DataCentralPanel`** — 3 tabs:
+- **Detalle**: view + edit (name, description). `is_primary` no editable, slug read-only.
+  Breadcrumb "← [Org]" en header para indicar jerarquía.
+- **Usuarios**: lista `UserAssignment` + `AssignCombobox` (search single) + Trash.
+- **Agrounidades**: lista `DataCentralAssignment` + `AssignCombobox` multi-select + Trash.
+  Asignaciones secuenciales para garantizar coherencia de cache.
+
+### Sección principal
+
+**`OrganizationsSection`** — estado `selectedDCM`, `selectedDC`. Tabla de DataCentralMains
+(nombre, owner, status, CIAs, creada). `handleDCClose` re-abre el panel de la org padre
+al cerrar `DataCentralPanel`, evitando que el usuario pierda el contexto.
+
+### Tests
+
+**`OrganizationsSection.test.tsx`** — 6 tests: header, botón superadmin, empty state,
+tabla con datos, click fila → dialog, botón crear → dialog.
+
+### Decisiones de diseño
+
+- **`onOpenDC` propagation**: el panel no navega solo; propaga hacia OrganizationsSection
+  (dueño de `selectedDCM`/`selectedDC`). Un único punto de verdad para diálogos abiertos.
+- **`as never` para query params**: campos de filtro no tipados en el schema generado
+  requieren cast. Patrón establecido en Fase 2 y mantenido.
+- **Path UserAssignment**: `/api/v1/users/assignments/` (singular), no doble "users".
+- **`AssignCombobox` vs shadcn Command**: se optó por combobox propio siguiendo el patrón
+  de `CountryCombobox` para no añadir dependencias (`cmdk`, `@radix-ui/popover`).
+
+**Verificación:** `npx tsc --noEmit` → 0 errores. `npx vitest run` → 91/91 tests.
 Supervisor ve tablas y puede agregar contactos; no ve botón "Nueva Unidad".
+
+---
+
+## ADMIN — FASE 3 · BUG FIX SERIALIZERS — Sesión 10 (2026-05-19)
+
+> Bug detectado en pruebas manuales: los selectores de "asignar usuario" y "asignar
+> agrounidad" en `DataCentralPanel` mostraban TODAS las opciones, sin excluir las ya
+> asignadas. El filtro frontend `assignedIds.has(u.id)` era correcto, pero `user_id` y
+> `agro_unit_id` nunca llegaban en la respuesta GET.
+
+### Causa raíz
+
+Los serializers del backend (`UserAssignmentSerializer`, `DataCentralAssignmentSerializer`)
+declaraban los campos PK con `write_only=True`. `drf-spectacular` igualmente los incluye en
+el schema OpenAPI generado (con `Format: uuid`, sin `readonly`), por lo que TypeScript no
+detectaba el problema: el tipo `UserAssignment.user_id` decía `string`, pero en runtime
+nunca llegaba.
+
+Resultado: `userAssignments.map(a => a.user_id)` → `[undefined, undefined, ...]`. El Set
+quedaba con un solo elemento `undefined`, y `set.has(u.id)` retornaba `false` para todo UUID
+real → ningún usuario era excluido del selector.
+
+### Fix aplicado
+
+Backend (ver bloque correspondiente en `CIAgro_alpha_backend/logs/development.md`):
+- Eliminado `write_only=True` de `user_id` y `datacentral_id` en `UserAssignmentSerializer`.
+- Eliminado `write_only=True` de `agro_unit_id` y `datacentral_id` en `DataCentralAssignmentSerializer`.
+- Regenerado `schema.yml` con `spectacular --validate`.
+- Regenerado `src/types/api.d.ts` con `openapi-typescript`.
+
+Frontend:
+- `useUserAssignments`/`useDataCentralAssignments`: añadido `refetchOnMount: 'always'` para
+  garantizar refetch en cada montaje (cubre el caso "cerrar/reabrir modal").
+- `DataCentralPanel`: agregado filtrado optimista local (`localAssignedUserIds`,
+  `localAssignedUnitIds`) para feedback inmediato al asignar dentro de la misma sesión.
+
+### Lección
+
+Cuando un filtro de exclusión basado en IDs "no funciona", verificar siempre que los IDs
+realmente lleguen en la respuesta. `write_only=True` en DRF los omite del GET silenciosamente
+y el schema generado puede no reflejarlo, engañando al sistema de tipos.
+
+**Verificación:** `npx tsc --noEmit` → 0 errores. `npx vitest run` → 91/91 tests.
+Prueba manual confirmada por el usuario: ya no aparecen ghosts en los selectores tras
+asignar+cerrar+reabrir modal.
+
+---
+
+## ADMIN — FASE 4 (2026-05-20)
+
+### Objetivo
+
+Implementar en el frontend la sección "Catálogos agrícolas" del panel `/admin`:
+gestión de `CropCatalog` y `PhytosanitaryCatalog` + `PhytosanitaryPhoto` (caso de uso §6).
+
+### Cambios realizados
+
+**4.B.0 — Bridge**
+- `api.d.ts` regenerado desde `schema.yml` actualizado con los nuevos endpoints de fotos.
+- Nuevos schemas: `PhytosanitaryPhotoCreate`, paths `/phytosanitary/photos/create/` y
+  `/phytosanitary/photos/{id}/delete/`.
+
+**4.C.1 — Tipos** (`src/features/admin/types/index.ts`)
+- Re-exportados: `CropCatalog`, `PhytosanitaryCatalog`, `PhytosanitaryPhoto`,
+  `PhytosanitaryPhotoCreate`, `PhytosanitaryType`, `PhytosanitaryStage`.
+
+**4.C.2 — `useCrops.ts`**
+- `useCrops`, `useCropDetail` (`refetchOnMount: 'always'`), `useCreateCrop` (multipart
+  condicional: si hay `File` construye `FormData` + `bodySerializer: (b) => b`, si no JSON),
+  `useUpdateCrop`.
+
+**4.C.3 — `usePhytosanitary.ts`**
+- `usePhytosanitaryCatalogs`, `usePhytosanitaryDetail` (`refetchOnMount: 'always'`),
+  `useCreatePhytosanitary`, `useUpdatePhytosanitary`.
+- `useCreatePhytoPhoto`: construye `FormData` + `bodySerializer`, invalida detail del padre.
+- `useDeletePhytoPhoto`: invalida detail del padre.
+
+**4.C.4 — `CreateCropDialog`**
+- RHF + zod. Campos: name, code, variety, description, photo (FileList).
+- `<textarea>` nativo estilizado (sin dependencia `@/components/ui/textarea` que no existe).
+
+**4.C.5 — `CreatePhytosanitaryDialog`**
+- Sub-form acordeón de etapas gestionado con `useState` (no RHF nested).
+- Flujo `for…of` secuencial: POST phyto → POST foto por cada etapa → toast agregado.
+- `AssignCombobox` para selector de `default_crop_id`.
+
+**4.C.6 — `CropPanel`**
+- 1 tab view/edit. Gate "Editar" por `roleLevel >= SUPERVISOR`.
+
+**4.C.7 — `PhytosanitaryPanel`**
+- 2 tabs: Detalle (view/edit) + Fotos por etapa (add/delete inline con `usePhytosanitaryDetail`).
+
+**4.C.8 — `CatalogsSection`**
+- Reemplaza placeholder. Tabs Cultivos/Fitosanitarios, tablas, botones gateados por
+  `canCreate = roleLevel >= SUPERVISOR`.
+
+**4.C.9 — `CatalogsSection.test.tsx`**
+- 8 tests: render tabs, gates supervisor (×2), empty states (×2), tabla con datos,
+  click fila cultivo abre panel, click fila phyto abre panel.
+
+### Patrón multipart introducido
+
+Primera vez en el proyecto que `apiClient` (openapi-fetch) envía `FormData`.
+Solución: `bodySerializer: (b) => b` para que openapi-fetch no serialice a JSON y el
+browser gestione el `Content-Type: multipart/form-data; boundary=...` automáticamente.
+
+### Trampas aplicadas
+
+- Sin `write_only=True` en `phytosanitary_id` (lección Fase 3).
+- `refetchOnMount: 'always'` en detail de fitosanitario para que `stage_photos` esté fresco.
+- `<textarea>` nativo en lugar de importar componente inexistente.
+
+### Verificación
+
+- `tsc --noEmit` → 0 errores.
+- `vitest run` → **99/99** tests.
+
+---
+
+## Sesión 12 — Bug fix: Editar perfil y cambio de contraseña (2026-05-20)
+
+### Contexto
+
+Bug: ningún usuario podía cambiar su contraseña ni actualizar su correo desde el frontend. Se implementaron dos flujos.
+
+### Cambios realizados
+
+**`ProfileModal.tsx`** (nuevo — `src/features/workspace/`):
+- Dialog con 2 tabs accesible para todos los roles.
+- **Tab "Datos"**: campo de correo, `PATCH /api/v1/users/me/` → actualiza `useAuthStore`
+  con el nuevo email en caso de éxito. Toast y cierre de modal.
+- **Tab "Seguridad"**: campos `old_password`, `new_password`, `confirm_password`.
+  Llama `POST /api/v1/auth/change-password/` vía `fetch` directo (igual que
+  `useChangePassword` pero sin redirigir a `/workspaces` — solo toast de éxito).
+
+**`AppHeader.tsx`** (`src/features/workspace/`):
+- Nuevo ítem "Editar perfil" (ícono `UserCog`) en el dropdown del encabezado.
+- `useState(false)` controla la visibilidad de `ProfileModal`.
+- Posicionado antes de "Cambiar workspace", visible para todos los roles.
+
+**`UserModal.tsx`** (`src/features/admin/panel/`):
+- Sección "Contraseña" añadida al modo edición.
+- Solo visible cuando `role_level >= ROLE_LEVELS.SUPER_ADMIN` (nivel 5).
+- Formulario independiente del formulario principal: campos `new_password` +
+  `confirm_password` + botón "Cambiar contraseña".
+- Llama `POST /api/v1/users/{id}/set-password/` via `fetch` directo con JWT header
+  (endpoint nuevo, no incluido en `api.d.ts`).
+- En éxito: toast informativo. No cierra el modal principal.
+
+### Patrón aplicado
+
+`useAuthStore.setUser(...)` para actualizar el email en memoria sin recargar la página
+al hacer PATCH `/users/me/`.
+
+### Verificación
+
+- `tsc --noEmit` → **0 errores**.
+- `vitest run` → **99/99 tests** (sin tests nuevos para este fix).

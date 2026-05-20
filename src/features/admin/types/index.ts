@@ -36,3 +36,25 @@ export type AgroUnit = components['schemas']['AgroUnit']
 export type Contact = components['schemas']['Contact']
 /** Asignación ligera de contacto a unidad (lista). */
 export type ContactAssignmentList = components['schemas']['ContactAssignmentList']
+
+/** Organización raíz (CIAgro Padre) — con owner, status, country, datacentrals_count. */
+export type DataCentralMainDetail = components['schemas']['DataCentralMainDetail']
+/** Workspace (CIA Hija) con conteos de usuarios y AgroUnits asignadas. */
+export type DataCentralDetail = components['schemas']['DataCentralDetail']
+/** Asignación AgroUnit ↔ DataCentral. */
+export type DataCentralAssignment = components['schemas']['DataCentralAssignment']
+/** Asignación usuario ↔ DataCentral. */
+export type UserAssignment = components['schemas']['UserAssignment']
+
+/** Cultivo o variedad del catálogo global. */
+export type CropCatalog = components['schemas']['CropCatalog']
+/** Problema fitosanitario (plaga o enfermedad) con cultivo y etapas anidadas. */
+export type PhytosanitaryCatalog = components['schemas']['PhytosanitaryCatalog']
+/** Foto de una etapa de desarrollo de un fitosanitario. */
+export type PhytosanitaryPhoto = components['schemas']['PhytosanitaryPhoto']
+/** Payload de respuesta al crear una foto (incluye phytosanitary_id). */
+export type PhytosanitaryPhotoCreate = components['schemas']['PhytosanitaryPhotoCreate']
+/** Enum de tipo de fitosanitario. */
+export type PhytosanitaryType = components['schemas']['PhytosanitaryCatalogTypeEnum']
+/** Enum de etapa de desarrollo. */
+export type PhytosanitaryStage = components['schemas']['Stage74bEnum']

@@ -22,7 +22,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { apiClient } from '@/lib/api/client'
+import { tokens } from '@/lib/auth/tokens'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
+import { ROLE_LEVELS } from '@/lib/auth/roles'
+import { useAuthStore } from '@/features/auth/useAuthStore'
+import { PasswordInput } from '@/features/auth/PasswordInput'
 import { Field } from '../components/Field'
 import { USERS_QUERY_KEY } from '../hooks/useUsers'
 import { useUserRoles, useWorkRoles } from '../hooks/useUserCatalogs'
@@ -57,6 +61,18 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
+const setPasswordSchema = z
+  .object({
+    new_password: z.string().min(8, 'Mínimo 8 caracteres'),
+    confirm_password: z.string().min(1, 'Requerido'),
+  })
+  .refine((d) => d.new_password === d.confirm_password, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirm_password'],
+  })
+
+type SetPasswordValues = z.infer<typeof setPasswordSchema>
+
 const KNOWN_FIELDS = [
   'email', 'status', 'user_role', 'first_name', 'last_name', 'phone',
   'personal_email', 'photo_url', 'address_line_1', 'address_line_2', 'city',
@@ -71,6 +87,8 @@ interface UserModalProps {
 export function UserModal({ user, onClose }: UserModalProps) {
   const queryClient = useQueryClient()
   const [mode, setMode] = useState<'view' | 'edit'>('view')
+  const currentUser = useAuthStore((s) => s.user)
+  const canSetPassword = (currentUser?.role_level ?? 0) >= ROLE_LEVELS.SUPER_ADMIN
 
   const { data: roles = [] } = useUserRoles()
   const { data: workRoles = [] } = useWorkRoles()
@@ -103,6 +121,41 @@ export function UserModal({ user, onClose }: UserModalProps) {
       country: ind?.country != null ? String(ind.country) : undefined,
       state: ind?.state != null ? String(ind.state) : undefined,
       work_role: ind?.work_role != null ? String(ind.work_role) : undefined,
+    },
+  })
+
+  const {
+    register: registerPwd,
+    handleSubmit: handleSubmitPwd,
+    formState: { errors: pwdErrors, isSubmitting: isPwdSubmitting },
+    reset: resetPwd,
+  } = useForm<SetPasswordValues>({
+    resolver: zodResolver(setPasswordSchema),
+    defaultValues: { new_password: '', confirm_password: '' },
+  })
+
+  const setPasswordMutation = useMutation({
+    mutationFn: async (values: SetPasswordValues) => {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL as string
+      const res = await fetch(`${baseUrl}/users/${user.id}/set-password/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${tokens.getAccess() ?? ''}`,
+        },
+        body: JSON.stringify({
+          new_password: values.new_password,
+          confirm_password: values.confirm_password,
+        }),
+      })
+      if (!res.ok) throw await res.json().catch(() => ({}))
+    },
+    onSuccess: () => {
+      toast.success('Contraseña actualizada. El usuario deberá cambiarla en su próximo login.')
+      resetPwd()
+    },
+    onError: () => {
+      toast.error('No se pudo actualizar la contraseña.')
     },
   })
 
@@ -164,6 +217,7 @@ export function UserModal({ user, onClose }: UserModalProps) {
         {mode === 'view' ? (
           <ViewBody user={user} onEdit={() => setMode('edit')} onClose={onClose} />
         ) : (
+          <>
           <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-5">
             <section className="space-y-3">
               <h3 className="text-sm font-semibold text-muted-foreground">Cuenta</h3>
@@ -320,6 +374,29 @@ export function UserModal({ user, onClose }: UserModalProps) {
               </Button>
             </DialogFooter>
           </form>
+
+          {canSetPassword && (
+            <form
+              onSubmit={handleSubmitPwd((v) => setPasswordMutation.mutate(v))}
+              className="space-y-3 border-t pt-4"
+            >
+              <h3 className="text-sm font-semibold text-muted-foreground">Contraseña</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Nueva contraseña *" error={pwdErrors.new_password?.message}>
+                  <PasswordInput autoComplete="new-password" {...registerPwd('new_password')} />
+                </Field>
+                <Field label="Confirmar contraseña *" error={pwdErrors.confirm_password?.message}>
+                  <PasswordInput autoComplete="new-password" {...registerPwd('confirm_password')} />
+                </Field>
+              </div>
+              <div className="flex justify-end">
+                <Button type="submit" variant="secondary" size="sm" disabled={isPwdSubmitting}>
+                  {isPwdSubmitting ? 'Cambiando...' : 'Cambiar contraseña'}
+                </Button>
+              </div>
+            </form>
+          )}
+          </>
         )}
       </DialogContent>
     </Dialog>
