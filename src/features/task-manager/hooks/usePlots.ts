@@ -22,3 +22,18 @@ export function plotsQueryOptions(ranchId: string | undefined) {
 export function usePlots(ranchId: string | undefined) {
   return useQuery(plotsQueryOptions(ranchId))
 }
+
+export function usePlotsByProducer(producerId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['plots-by-producer', producerId] as const,
+    queryFn: async (): Promise<Plot[]> => {
+      const { data, error } = await apiClient.GET('/api/v1/geo_assets/plots/', {
+        params: { query: { producer: producerId } as never },
+      })
+      if (error) throw new Error('No se pudieron cargar las parcelas')
+      return data?.results?.features ?? []
+    },
+    enabled: !!producerId,
+    staleTime: 60_000,
+  })
+}

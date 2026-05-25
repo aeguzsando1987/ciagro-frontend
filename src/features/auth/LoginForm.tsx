@@ -31,7 +31,7 @@ export function LoginForm({ onSubmit, isPending = false, error }: LoginFormProps
                 className="w-72"
                 draggable={false}
             />
-        <Card className="w-full">
+        <Card className="w-full bg-white/80 backdrop-blur-sm">
             <CardHeader>
                 <CardTitle className="text-2xl">CIAgro</CardTitle>
             </CardHeader>

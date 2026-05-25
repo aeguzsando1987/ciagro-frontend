@@ -78,6 +78,9 @@ function TaskManagerPage() {
 
   const user = useAuthStore((s) => s.user)
   const isManager = (user?.role_level ?? 0) >= ROLE_LEVELS.MANAGER
+  const isSuperAdmin = (user?.role_level ?? 0) >= ROLE_LEVELS.SUPER_ADMIN
+  const isOwnerOfThisDc = user?.datacentrals.some((d) => d.id === dc && d.is_owner) ?? false
+  const canCreateMaster = isSuperAdmin || isOwnerOfThisDc
 
   const { data: masters, isLoading, error } = useMasterPrograms({
     datacentral: dc,
@@ -126,7 +129,7 @@ function TaskManagerPage() {
             Cronograma de Programas, Subprogramas y Sesiones.
           </p>
         </div>
-        {isManager && (
+        {canCreateMaster && (
           <Button size="sm" onClick={() => setCreateMasterOpen(true)}>
             + Nuevo Programa
           </Button>

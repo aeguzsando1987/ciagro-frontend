@@ -11,11 +11,11 @@ export const workspaceDcRoute = createRoute({
 
 function WorkspaceLayout() {
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex h-dvh flex-col">
       <AppHeader />
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar />
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 pb-9">
           <Outlet />
         </main>
       </div>

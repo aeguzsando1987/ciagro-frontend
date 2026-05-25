@@ -17,7 +17,7 @@ interface AdminSection {
  * el backend aplica el scope real de datos (regla crítica #7).
  */
 export const ADMIN_SECTIONS: AdminSection[] = [
-  { label: 'Organizaciones', icon: Building2, minRole: ROLE_LEVELS.SUPER_ADMIN, to: '/admin/organizaciones' },
+  { label: 'Organizaciones', icon: Building2, minRole: ROLE_LEVELS.MANAGER, to: '/admin/organizaciones' },
   { label: 'Usuarios', icon: Users, minRole: ROLE_LEVELS.SUPER_ADMIN, to: '/admin/usuarios' },
   { label: 'Agrounidades', icon: Sprout, minRole: ROLE_LEVELS.SUPERVISOR, to: '/admin/agrounidades' },
   { label: 'Catálogos', icon: BookOpen, minRole: ROLE_LEVELS.SUPERVISOR, to: '/admin/catalogos' },

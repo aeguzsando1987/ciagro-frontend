@@ -25,7 +25,7 @@ function DashboardPage() {
         Bienvenido, {user?.username ?? ''}
       </h1>
       <p className="text-muted-foreground">
-        Workspace activo: <span className="font-medium text-foreground">{dcName}</span>
+        CIA activa: <span className="font-medium text-foreground">{dcName}</span>
       </p>
     </div>
   )

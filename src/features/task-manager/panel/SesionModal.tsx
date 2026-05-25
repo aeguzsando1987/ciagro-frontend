@@ -29,6 +29,8 @@ import { useEvaluations } from '../hooks/useEvaluations'
 import { useDatacentralUsers } from '../hooks/useDatacentralUsers'
 import type { MasterProgramTree } from '@/features/task-manager/types'
 import { PlotMiniMap } from './PlotMiniMap'
+import { AspersionImportDialog } from '../components/AspersionImportDialog'
+import { AspersionImportSummary } from '../components/AspersionImportSummary'
 
 /* ─── Constants ───────────────────────────────────────────────────── */
 
@@ -412,6 +414,7 @@ function AspersionView({
   onStatusChange,
   onEdit,
 }: AspersionViewProps) {
+  const [importOpen, setImportOpen] = useState(false)
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
@@ -477,10 +480,20 @@ function AspersionView({
             <p className="mb-2 text-xs text-muted-foreground">
               Carga un archivo CSV con los puntos de aspersión de esta sesión.
             </p>
-            <Button size="sm" disabled title="Disponible próximamente">
-              Importar datos (próximamente)
+            <Button size="sm" onClick={() => setImportOpen(true)}>
+              {detail.import_status === 'done' ? 'Reimportar datos' : 'Importar datos'}
             </Button>
           </div>
+
+          {detail.import_status === 'done' && <AspersionImportSummary headerId={detail.id} />}
+
+          <AspersionImportDialog
+            headerId={detail.id}
+            importStatus={detail.import_status}
+            importErrors={detail.import_errors}
+            open={importOpen}
+            onOpenChange={setImportOpen}
+          />
         </div>
 
         <div className="w-72 shrink-0">

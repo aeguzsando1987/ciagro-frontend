@@ -2527,6 +2527,26 @@ export interface paths {
         patch: operations["v1_users_activate_partial_update"];
         trace?: never;
     };
+    "/api/v1/users/{id}/set-password/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Establecer contraseña (admin)
+         * @description Permite a un SuperAdmin establecer una nueva contraseña para cualquier usuario sin requerir la contraseña actual. Requiere SuperAdmin.
+         */
+        post: operations["v1_users_set_password_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/{id}/update/": {
         parameters: {
             query?: never;
@@ -2741,6 +2761,10 @@ export interface components {
          * @enum {string}
          */
         ActivityTypeEnum: "ASPERSION" | "PHYTOSANITARY" | "MONITORING" | "OTHER";
+        AdminSetPasswordRequest: {
+            new_password: string;
+            confirm_password: string;
+        };
         AgroSector: {
             readonly id: number;
             sector_name: string;
@@ -9551,6 +9575,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserDetail"];
+                };
+            };
+        };
+    };
+    v1_users_set_password_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminSetPasswordRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["AdminSetPasswordRequest"];
+                "multipart/form-data": components["schemas"]["AdminSetPasswordRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

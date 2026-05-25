@@ -18,6 +18,9 @@ export function aspersionSessionDetailQueryOptions(id: string | null) {
       return data!
     },
     staleTime: 30_000,
+    // Mientras el worker Celery procesa el archivo, refrescar para reflejar el avance
+    // sin que el usuario recargue. 'pending' es idle ("Sin importar"), no se sondea.
+    refetchInterval: (query) => (query.state.data?.import_status === 'processing' ? 2500 : false),
   })
 }
 

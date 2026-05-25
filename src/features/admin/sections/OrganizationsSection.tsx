@@ -17,9 +17,14 @@ const STATUS_LABELS: Record<string, string> = {
 export function OrganizationsSection() {
   const user = useAuthStore((s) => s.user)
   const roleLevel = user?.role_level ?? ROLE_LEVELS.GUEST
-  const canCreate = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
+  const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
+  const canCreate = isSuperAdmin
 
-  const { data: orgs = [], isLoading, error } = useDataCentralMains()
+  const { data: rawOrgs = [], isLoading, error } = useDataCentralMains()
+  // Non-SuperAdmin: solo ver y gestionar las organizaciones de las que es dueño.
+  const orgs = isSuperAdmin
+    ? rawOrgs
+    : rawOrgs.filter((org) => org.owner_username === user?.username)
 
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedDCM, setSelectedDCM] = useState<DataCentralMainDetail | null>(null)

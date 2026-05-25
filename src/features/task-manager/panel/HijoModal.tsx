@@ -25,6 +25,7 @@ import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { useUpdateHijo } from '@/features/task-manager/hooks/useUpdateHijo'
 import { useHijoDetail } from '@/features/task-manager/hooks/useHijoDetail'
 import { useCrops, cropLabel } from '@/features/task-manager/hooks/useCrops'
+import { usePlotsByProducer } from '@/features/task-manager/hooks/usePlots'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
 import {
   SEASONS,
@@ -34,6 +35,9 @@ import {
   isSeason2AfterSeason1,
 } from '@/features/task-manager/cycle'
 import { PlotMiniMap } from './PlotMiniMap'
+import { usePlotGeometry } from '@/features/task-manager/hooks/usePlotGeometry'
+import { PlotPanel } from '@/features/admin/panel/PlotPanel'
+import type { PlotFlat } from '@/features/admin/types'
 import { StatusChanger } from './StatusChanger'
 import { CreateSessionDialog } from '@/features/task-manager/dialogs/CreateSessionDialog'
 import type { ProgramaTree, MasterProgram, ProgramaStatus } from '@/features/task-manager/types'
@@ -79,6 +83,7 @@ const editSchema = z
     crop_id: z.number().optional(),
     est_start_date: z.string().optional(),
     est_finish_date: z.string().optional(),
+    plot_id: z.string().uuid().optional(),
   })
   .refine(
     (v) =>
@@ -110,6 +115,7 @@ const EDIT_FIELDS = [
   'title', 'voucher_code', 'crop_id',
   'est_start_date', 'est_finish_date',
   'actual_start_date', 'actual_finish_date',
+  'plot_id',
 ] as const
 
 type SessionRef =
@@ -149,12 +155,15 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
 
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const isManager = roleLevel >= ROLE_LEVELS.MANAGER
-  const canCreateSession = roleLevel >= ROLE_LEVELS.TECHNICIAN
+  const programIsOpen = localStatus !== 'completed' && localStatus !== 'cancelled'
+    && master.status !== 'completed' && master.status !== 'cancelled'
+  const canCreateSession = roleLevel >= ROLE_LEVELS.TECHNICIAN && programIsOpen
 
   // El árbol solo trae campos básicos + sesiones; el detalle agrega las fechas
   // reales y el cultivo, que el formulario de edición necesita.
   const { data: detail } = useHijoDetail(hijo.id)
   const { data: crops = [] } = useCrops()
+  const { data: producerPlots = [] } = usePlotsByProducer(master.agro_unit)
   const updateMutation = useUpdateHijo({ hijoId: hijo.id, masterId: master.id })
 
   const {
@@ -180,6 +189,7 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
       crop_id: detail.crop?.id ?? undefined,
       est_start_date: detail.est_start_date?.slice(0, 10) ?? '',
       est_finish_date: detail.est_finish_date?.slice(0, 10) ?? '',
+      plot_id: detail.plot ?? undefined,
     })
     setAdvancedOpen(false)
     setMode('edit')
@@ -207,6 +217,7 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
       if (values.est_start_date) patch.est_start_date = values.est_start_date
       if (values.est_finish_date) patch.est_finish_date = values.est_finish_date
       if (values.crop_id !== undefined) patch.crop_id = values.crop_id
+      if (values.plot_id) patch.plot = values.plot_id
     }
     try {
       await updateMutation.mutateAsync(patch)
@@ -407,6 +418,50 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
                     />
                   </div>
 
+                  {/* parcela */}
+                  <div className="space-y-1">
+                    <Label>Parcela</Label>
+                    {allSessions.length > 0 ? (
+                      <div className="rounded border border-muted bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                        <p className="font-medium text-foreground">
+                          {producerPlots.find((p) => p.id === hijo.plot)?.properties?.code ?? hijo.plot ?? '—'}
+                        </p>
+                        <p className="mt-0.5">
+                          No se puede cambiar la parcela porque este subprograma ya tiene{' '}
+                          {allSessions.length === 1
+                            ? '1 sesión registrada'
+                            : `${allSessions.length} sesiones registradas`}
+                          . Elimina las sesiones primero.
+                        </p>
+                      </div>
+                    ) : (
+                      <Controller
+                        name="plot_id"
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value ?? ''}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona parcela" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {producerPlots.map((p) => (
+                                <SelectItem key={p.id} value={p.id!}>
+                                  {p.properties?.code ?? p.id}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    )}
+                    {errors.plot_id && (
+                      <p className="text-xs text-destructive">{errors.plot_id.message}</p>
+                    )}
+                  </div>
+
                   {/* fechas estimadas */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
@@ -580,12 +635,68 @@ function ViewMode({
         </section>
       </div>
 
-      {/* Columna derecha: mapa de la parcela */}
+      {/* Columna derecha: datos + mapa de la parcela */}
       {hijo.plot && (
-        <div className="w-80 shrink-0">
-          <p className="mb-1 text-xs text-muted-foreground">Parcela</p>
-          <PlotMiniMap plotId={hijo.plot} />
-        </div>
+        <PlotInfoPanel plotId={hijo.plot} />
+      )}
+    </div>
+  )
+}
+
+function PlotInfoPanel({ plotId }: { plotId: string }) {
+  const { data: plot } = usePlotGeometry(plotId)
+  const [plotDetailOpen, setPlotDetailOpen] = useState(false)
+  const p = plot?.properties
+
+  const plotFlat: PlotFlat | null = plot
+    ? { ...(plot.properties ?? {}), id: plot.id ?? plotId, geom: plot.geometry ?? null }
+    : null
+
+  return (
+    <div className="w-72 shrink-0 space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">Parcela</p>
+      {p && (
+        <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+          <div className="col-span-2">
+            <dt className="text-muted-foreground">Código</dt>
+            <dd className="font-medium">
+              {plotFlat ? (
+                <button
+                  type="button"
+                  title="Click para ver detalle de parcela"
+                  className="text-primary underline underline-offset-2 hover:opacity-70"
+                  onClick={() => setPlotDetailOpen(true)}
+                >
+                  {p.code ?? '—'}
+                </button>
+              ) : (
+                p.code ?? '—'
+              )}
+            </dd>
+          </div>
+          {p.total_area && (
+            <div>
+              <dt className="text-muted-foreground">Superficie</dt>
+              <dd>{Number(p.total_area).toLocaleString('es-MX', { maximumFractionDigits: 2 })} ha</dd>
+            </div>
+          )}
+          {p.tech_spraying !== undefined && (
+            <div>
+              <dt className="text-muted-foreground">Aspersión tec.</dt>
+              <dd>{p.tech_spraying ? 'Sí' : 'No'}</dd>
+            </div>
+          )}
+          {p.comments && (
+            <div className="col-span-2">
+              <dt className="text-muted-foreground">Comentarios</dt>
+              <dd className="text-muted-foreground">{p.comments}</dd>
+            </div>
+          )}
+        </dl>
+      )}
+      <PlotMiniMap plotId={plotId} />
+      {plotFlat && plotDetailOpen && (
+        <PlotPanel plot={plotFlat} onClose={() => setPlotDetailOpen(false)} />
       )}
     </div>
   )

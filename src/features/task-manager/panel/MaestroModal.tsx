@@ -309,7 +309,7 @@ function ViewMode({
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Subprogramas</h3>
-          {isManager && (
+          {isManager && master.status !== 'completed' && master.status !== 'cancelled' && (
             <Button size="sm" variant="outline" onClick={onCreateHijo}>
               + Nuevo Subprograma
             </Button>

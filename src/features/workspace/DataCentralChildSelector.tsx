@@ -15,7 +15,7 @@ interface Props {
  * Selector de CIAgro Hija. Muestra cards con nombre y badge "Dueno" si is_owner.
  * Al hacer clic navega a /w/<id>/dashboard (Paso 1.6 product-doc).
  */
-export function DataCentralChildSelector({ datacentrals, title = 'Selecciona un workspace' }: Props) {
+export function DataCentralChildSelector({ datacentrals, title = 'Selecciona una CIA' }: Props) {
   const navigate = useNavigate()
   const setSelectedDc = useWorkspaceStore((s) => s.setSelectedDc)
 

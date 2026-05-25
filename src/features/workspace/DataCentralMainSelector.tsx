@@ -23,7 +23,7 @@ export function DataCentralMainSelector() {
 
   if (selectedMain) {
     if (loadingChildren) {
-      return <p className="text-muted-foreground">Cargando workspaces...</p>
+      return <p className="text-muted-foreground">Cargando CIAs...</p>
     }
     return (
       <div className="space-y-4">
@@ -35,7 +35,7 @@ export function DataCentralMainSelector() {
         </button>
         <DataCentralChildSelector
           datacentrals={children}
-          title={`Workspaces de ${selectedMain.name}`}
+          title={`CIAs de ${selectedMain.name}`}
         />
       </div>
     )

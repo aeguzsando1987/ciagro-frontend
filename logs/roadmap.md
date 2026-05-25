@@ -1,7 +1,7 @@
 # ROADMAP — CIAgro Alpha Frontend
 
-> **Estado actual:** Admin Fase 2 (Agrounidades, Sectores y Contactos) — completada.
-> **Última actualización:** 2026-05-19
+> **Estado actual:** Sesión 14 — Task Manager Aspersión (importación CSV + mejoras de subprograma) y bug fixes de scope/layout — completada. Siguiente: Fase Visor de capas de aspersión (ver `.context/geodata_analysis_usecases.md`).
+> **Última actualización:** 2026-05-25
 > **Backend:** roadmap propio en `../../CIAgro_alpha_backend/logs/roadmap.md`
 > **Producto:** `../../.context/templates/product-doc.md`
 > **Convención:** los sprints son estimaciones de **dev-week** (1 dev senior full-time).
@@ -173,6 +173,18 @@ endpoints + 6 gaps abiertos (1 alta, 2 media, 3 baja).
   - `AgroUnitsSection` con 2 tabs (Unidades / Sectores), `AgroUnitPanel` (view+edit+contactos).
   - `CreateSectorDialog`, `CreateAgroUnitDialog`, `CreateContactDialog`.
   - Hooks: `useAgroSectors`, `useAgroUnits`, `useContacts`. 85/85 tests Vitest.
+- [✅] **Admin Fase 3** (Sesión 10, 2026-05-19): Organizaciones, DataCentrals y Asignaciones.
+  - `OrganizationsSection`, `DataCentralMainPanel`, `DataCentralPanel`. Componente `AssignCombobox` reutilizable.
+  - Hooks: `useDataCentrals`, `useUserAssignments`, `useDataCentralAssignments`. 91/91 tests Vitest.
+- [✅] **Admin Fase 4** (Sesión 11, 2026-05-20): Catálogos Agrícolas (Cultivos y Fitosanitarios).
+  - `CatalogsSection`, `CropPanel`, `PhytosanitaryPanel`. Primer uso de `FormData` multipart para fotos.
+  - Hooks: `useCrops`, `usePhytosanitary`. 99/99 tests Vitest.
+- [✅] **Admin Fase 5** (Sesión 13, 2026-05-21): Activos Agrícolas — Ranchos, Parcelas y Aliados.
+  - `AssetsSection`, `RanchPanel` (tabs Detalle/Parcelas/Aliados), `PlotPanel` (tabs Detalle/Mapa/Vértices).
+  - `RanchFormDialog` (cascada País→Estado), `PlotFormDialog`, `PlotVerticesImport`.
+  - Hooks: `useRanches`, `usePlots`, `useRanchPartners`, `useProducers`. GeoJSON FeatureCollection aplanado en hooks.
+  - Permisos: Gerente (rol ≥4) → crear/editar/importar vértices dentro de su scope; Admin (rol 5) → eliminar.
+  - Backend: 4 ajustes de permisos en `geo_assets/views.py` + 5 tests nuevos (44/44). 109/109 vitest, tsc 0 errores.
 **Pendiente:** invitación de nuevos usuarios, activación por email (UX por pulir).
 
 ### Fase Frontend 9 · Onboarding wizard (primer SuperAdmin)
@@ -194,13 +206,18 @@ endpoints + 6 gaps abiertos (1 alta, 2 media, 3 baja).
 ✅ Fase 1      → Auth + workspace selector (Sesión 2, 2026-05-13)
 ✅ Fase 8.1    → Admin: Usuarios (Sesión 8, 2026-05-18)
 ✅ Fase 8.2    → Admin: Agrounidades + Sectores + Contactos (Sesión 9, 2026-05-19)
+✅ Fase 8.3    → Admin: Organizaciones / DataCentrals (Sesión 10, 2026-05-19)
+✅ Fase 8.4    → Admin: Catálogos Agrícolas (Sesión 11, 2026-05-20)
+✅ Fase 8.5    → Admin: Activos Agrícolas (Sesión 13, 2026-05-21)
+✅ Sesión 14   → Task Manager Aspersión: importación CSV + homologador + plantillas + resumen; mejoras subprograma/parcela; bug fixes scope/owner-gerente/layout (2026-05-25)
+🔜 Fase Visor  → Visor de capas de datos de aspersión (heatmap por capas, ver `.context/geodata_analysis_usecases.md`) — PLANEADA en session_contract.json
 🔒 Fase 2      → Task Manager Gantt (4 dev-weeks, depende de Fase 1)
 🔒 Fase 3      → Visor de sesiones (1.5 dw)         ┐ pueden correr en paralelo
 🔒 Fase 4      → Visor de mapas (2 dw)              │ a Fase 2 cierre o entre sí,
 🔒 Fase 5      → Vista Técnico (1 dw)               │ según prioridad de producto
 🔒 Fase 6      → Central de datos (2.5 dw)          │
 🔒 Fase 7      → Catálogos (2 dw)                   │
-🔒 Fase 8.3    → Admin: Organizaciones / DataCentrals (2 dw) │
+🔒 Fase 8.6    → Admin: Onboarding / Invitaciones (pendiente UX) │
 🔒 Fase 9      → Onboarding wizard (1.5 dw)         │
 🔒 Fase 10     → Dashboard + métricas (1.5 dw)      ┘
 ```

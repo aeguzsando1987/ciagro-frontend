@@ -58,3 +58,34 @@ export type PhytosanitaryPhotoCreate = components['schemas']['PhytosanitaryPhoto
 export type PhytosanitaryType = components['schemas']['PhytosanitaryCatalogTypeEnum']
 /** Enum de etapa de desarrollo. */
 export type PhytosanitaryStage = components['schemas']['Stage74bEnum']
+
+// ── Activos Agrícolas (Fase 5) ───────────────────────────────────────────────
+
+/** GeoJSON Feature de un Rancho (Point). Respuesta de GET /geo_assets/ranches/{id}/. */
+export type RanchFeature = components['schemas']['Ranch']
+/** GeoJSON Feature de una Parcela (Polygon). Respuesta de GET /geo_assets/plots/{id}/. */
+export type PlotFeature = components['schemas']['Plot']
+/** Relación Rancho–Socio (tabla pivote). */
+export type RanchPartner = components['schemas']['RanchPartner']
+/** Enum de tipo de relación rancho-socio. */
+export type RelationType = components['schemas']['RelationTypeEnum']
+/** Vértice de entrada para importación de parcela. */
+export type PlotVertexInput = components['schemas']['PlotVertexInput']
+
+/**
+ * Rancho con campos aplanados — derivado de la FeatureCollection del backend.
+ * Los hooks aplanan: {...f.properties, id: f.id!, geom: f.geometry ?? null}
+ */
+export type RanchFlat = NonNullable<RanchFeature['properties']> & {
+  id: string
+  geom: RanchFeature['geometry'] | null
+}
+
+/**
+ * Parcela con campos aplanados — derivado de la FeatureCollection del backend.
+ * Los hooks aplanan: {...f.properties, id: f.id!, geom: f.geometry ?? null}
+ */
+export type PlotFlat = NonNullable<PlotFeature['properties']> & {
+  id: string
+  geom: PlotFeature['geometry'] | null
+}

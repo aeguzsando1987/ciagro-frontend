@@ -17,7 +17,14 @@ function LoginPage() {
   const { mutate, isPending, error } = useLogin()
 
   return (
-    <div className="flex min-h-dvh items-center justify-center p-8">
+    <div
+      className="flex min-h-dvh items-center justify-center p-8"
+      style={{
+        backgroundImage: 'url(/backgrounds/ciagro_bg_1.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
       <LoginForm
         onSubmit={(values) => mutate(values)}
         isPending={isPending}

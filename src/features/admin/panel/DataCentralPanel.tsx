@@ -44,7 +44,9 @@ export function DataCentralPanel({ dc, onClose }: Props) {
   const [localAssignedUserIds, setLocalAssignedUserIds] = useState<Set<string>>(new Set())
   const [localAssignedUnitIds, setLocalAssignedUnitIds] = useState<Set<string>>(new Set())
   const user = useAuthStore((s) => s.user)
-  const canEdit = (user?.role_level ?? 0) >= ROLE_LEVELS.SUPER_ADMIN
+  const isSuperAdmin = (user?.role_level ?? 0) >= ROLE_LEVELS.SUPER_ADMIN
+  const isOwnerOfThisDc = user?.datacentrals.some((d) => d.id === dc.id && d.is_owner) ?? false
+  const canEdit = isSuperAdmin || isOwnerOfThisDc
 
   const mutation = useUpdateDataCentral()
   const { data: userAssignments = [], isLoading: loadingUA } = useUserAssignments(dc.id)
@@ -169,9 +171,13 @@ export function DataCentralPanel({ dc, onClose }: Props) {
             {dc.name}
             {dc.is_primary && <Badge variant="secondary" className="ml-2 text-xs">Principal</Badge>}
           </DialogTitle>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             ← {(dc.data_central_main as { name: string }).name}
-          </p>
+          </button>
         </DialogHeader>
 
         <Tabs defaultValue="detail">

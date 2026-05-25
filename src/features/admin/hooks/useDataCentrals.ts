@@ -103,6 +103,9 @@ export function useCreateDataCentral() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: DC_QUERY_KEY })
+      // Actualiza el conteo de CIAs en la lista de organizaciones y en user.datacentrals
+      queryClient.invalidateQueries({ queryKey: DCM_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['me'] })
     },
   })
 }

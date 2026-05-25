@@ -1,70 +1,67 @@
-feat(admin): Fases 3.B, 4.B/C — Organizaciones, Catálogos y fix perfil
+feat(task-manager): Aspersión import CSV + mejoras subprograma + Activos Agrícolas + fixes
 
-Módulo de Administración — sesiones 10–12, 2026-05-19/20.
-Cubre admin_control_usecases.md §5–§6 (frontend completo) + bug fix usuarios.
-
-──────────────────────────────────────────────────────
-Fase 3.B — Organizaciones (DataCentrals/CIAs/Asignaciones)
-──────────────────────────────────────────────────────
-Nuevos hooks (src/features/admin/hooks/):
-- useDataCentrals.ts: 6 hooks para DCM+DC CRUD (list/detail/create/update).
-- useUserAssignments.ts: list + create + delete.
-- useDataCentralAssignments.ts: list + create + delete.
-
-Nuevo componente:
-- AssignCombobox.tsx: combobox con búsqueda + multi-select, sin nuevas deps.
-
-Nuevos dialogs:
-- CreateDataCentralMainDialog.tsx (name/desc/country/status/owner via AssignCombobox).
-- CreateDataCentralDialog.tsx (name/desc).
-
-Nuevos panels:
-- DataCentralMainPanel.tsx: tabs Detalle+CIAs Hijas, propaga onOpenDC.
-- DataCentralPanel.tsx: tabs Detalle+Usuarios+Agrounidades, multi-select AgroUnits.
-
-OrganizationsSection.tsx actualizado: reemplaza placeholder, maneja handleDCClose
-para retorno al panel padre desde DataCentralPanel.
-OrganizationsSection.test.tsx: 6 tests nuevos.
-
-BUG FIX aplicado: refetchOnMount:'always' en details para evitar caché stale;
-filtrado optimista local en DataCentralPanel tras add/remove.
+Sesiones 13–14, 2026-05-21/25.
+Incluye Fase 8.5 (Activos Agrícolas — frontend, ya logueada en Sesión 13) y la
+Sesión 14: importación de telemetría de aspersión, mejoras de subprograma/parcela
+y bug fixes de scope/owner-gerente/layout.
 
 ──────────────────────────────────────────────────────
-Fase 4.B/C — Catálogos Agrícolas (Cultivos + Fitosanitarios)
+Fase 8.5 — Activos Agrícolas (Ranchos + Parcelas) [ya documentada]
 ──────────────────────────────────────────────────────
-api.d.ts: regenerado con PhytosanitaryPhotoCreate y nuevos paths de fotos.
-types/index.ts: CropCatalog, PhytosanitaryCatalog, PhytosanitaryPhoto,
-PhytosanitaryStage, PhytosanitaryType añadidos.
-
-Nuevos hooks:
-- useCrops.ts: list/detail/create/update con multipart condicional (FormData
-  cuando hay File; bodySerializer:(b)=>b para que browser gestione boundary).
-- usePhytosanitary.ts: list/detail (refetchOnMount:'always')/create/update +
-  useCreatePhytoPhoto (FormData) + useDeletePhytoPhoto.
-
-Nuevos dialogs:
-- CreateCropDialog.tsx: RHF+zod, file input nativo para foto.
-- CreatePhytosanitaryDialog.tsx: sub-form de etapas con useState; flujo for..of
-  secuencial POST foto por etapa; toast agregado; AssignCombobox para default_crop.
-
-Nuevos panels:
-- CropPanel.tsx: 1 tab view/edit, gate SUPERVISOR.
-- PhytosanitaryPanel.tsx: 2 tabs Detalle + "Detalle de etapas" (add/delete inline).
-
-CatalogsSection.tsx: reemplaza placeholder — tabs Cultivos/Fitosanitarios,
-tablas, canCreate = roleLevel >= SUPERVISOR.
-CatalogsSection.test.tsx: 8 tests nuevos.
+- Hooks: useRanches, usePlots (+ import-vertices), useRanchPartners, useProducers.
+- Componentes: RanchFormDialog, PlotFormDialog, PlotVerticesImport.
+- Panels: RanchPanel (Detalle/Parcelas/Aliados), PlotPanel (Detalle/Mapa/Vértices).
+- AssetsSection: tabla de ranchos + filtro por productor.
+- api.d.ts regenerado con tipos Ranch/Plot/RanchPartner/PlotVertexInput.
 
 ──────────────────────────────────────────────────────
-Bug fix: Editar perfil y cambio de contraseña
+Sesión 14 — Aspersión: importación de telemetría (CSV)
 ──────────────────────────────────────────────────────
-ProfileModal.tsx (nuevo — src/features/workspace/):
-- Tab "Datos": PATCH /api/v1/users/me/ → actualiza email en useAuthStore.
-- Tab "Seguridad": POST /api/v1/auth/change-password/ sin redirigir.
+Hooks nuevos (src/features/task-manager/):
+- useAspersionImport.ts: usePreviewColumns (multipart), useImportAspersionData
+  (setQueryData optimista a 'processing' + invalidación), useAspersionTemplates,
+  useCreateAspersionTemplate.
+- useAspersionVariableStats.ts: fetch directo con token al endpoint /variable-stats/
+  (no tipado en api.d.ts).
+- useAspersionSessionDetail.ts: refetchInterval condicional — 2500ms SOLO mientras
+  import_status==='processing' ('pending' es idle, no se poletea).
 
-AppHeader.tsx: ítem "Editar perfil" (UserCog) para todos los roles.
+Homologador y resumen:
+- lib/aspersionFields.ts: 37 campos mapeables con etiqueta ES (espeja
+  DEFAULT_COLUMN_MAPPING del backend).
+- AspersionImportDialog.tsx: file picker → preview matched/unmatched → remapeo de
+  columnas no reconocidas → guardar plantilla opcional → importar → estado
+  processing/done/error/pending_mapping.
+- AspersionImportSummary.tsx: tabla genérica (itera data.variables) media/mín/máx/desv/n.
+- SesionModal.tsx: botón 'Importar datos'/'Reimportar datos' para todo autenticado +
+  AspersionImportSummary cuando import_status==='done'.
+- AspersionImportDialog.test.tsx: 5 tests con vi.mock de hooks (apiClient captura
+  globalThis.fetch antes que MSW → incompatibles).
 
-UserModal.tsx: sección "Contraseña" visible solo para SuperAdmin (level 5);
-POST /api/v1/users/{id}/set-password/ via fetch directo.
+──────────────────────────────────────────────────────
+Sesión 14 — Detalle/edición de subprograma + parcela
+──────────────────────────────────────────────────────
+- HijoModal → PlotInfoPanel: código de parcela como hipervínculo ('Click para ver
+  detalle de parcela' → abre PlotPanel anidado), superficie, aspersión tecnificada,
+  comentarios + mini-mapa. Datos de usePlotGeometry ya cacheado (sin request extra).
+- Cambio de parcela en edición: solo si el subprograma no tiene sesiones
+  (allSessions.length===0); si las tiene, campo deshabilitado + mensaje explicativo.
+  Nuevo usePlotsByProducer(producerId) en usePlots.
+- Gating por status (fix del 400 al crear sesión): 'Nueva Sesión' oculto si el hijo o
+  el maestro están completed/cancelled; 'Nuevo Subprograma' oculto si el maestro está
+  completed/cancelled.
+- PlotMiniMap: prop showTooltip (Popup hover lat/lon + área m²) y maxzoom:19 (overzoom).
 
-tsc --noEmit → 0 errores. vitest run → 99/99.
+──────────────────────────────────────────────────────
+Sesión 14 — Bug fixes módulo admin + layout
+──────────────────────────────────────────────────────
+- Scope SuperAdmin: w.$dc.task-manager respeta workspace
+  (canCreateMaster=isSuperAdmin||isOwnerOfThisDc).
+- Owner Gerente: DataCentralPanel canEdit=isSuperAdmin||isOwnerOfThisDc + botón '← ORG'
+  navega (onClose); OrganizationsSection filtra orgs a owner_username===user.username;
+  useCreateDataCentral invalida DCM_QUERY_KEY+['me'] (conteo de CIAs ya no queda stale).
+- Footer fijo #290629 (__root.tsx). Layout sticky: w.$dc.tsx y AdminLayout → h-dvh con
+  overflow en <main> + pb-9; header y sidebar fixed.
+- Login con imagen de fondo (public/backgrounds/) + Card translúcida.
+
+tsc --noEmit → 0 errores. vitest run → verde.

@@ -1041,3 +1041,147 @@ al hacer PATCH `/users/me/`.
 
 - `tsc --noEmit` → **0 errores**.
 - `vitest run` → **99/99 tests** (sin tests nuevos para este fix).
+
+---
+
+## Sesión 13 — Admin Fase 5: Activos Agrícolas (2026-05-21)
+
+### Contexto
+
+Cierre del módulo Admin con la sección de Ranchos y Parcelas (caso de uso §7). El backend `apps/geo_assets` ya tenía 39 tests y los serializers GeoJSON completos. Esta fase requirió ajustar permisos en backend, regenerar tipos y construir 9 archivos nuevos de frontend.
+
+### Decisión de permisos (acordada con usuario)
+
+| Acción | Permiso anterior | Permiso final |
+|---|---|---|
+| `RanchDestroyView` | `IsGerente` | `IsSuperAdmin` |
+| `PlotDestroyView` | `IsGerente` | `IsSuperAdmin` |
+| `PlotImportVerticesView` | `IsSuperAdmin` | `IsGerente` |
+| `RanchPartnerCreateView` | `IsSuperAdmin` | `IsGerente` |
+
+Gerente (rol ≥4) puede crear, editar e importar vértices dentro de su scope (garantizado por `ScopeFilterMixin`). Solo Admin (rol 5) puede eliminar.
+
+### Bug fix pre-existente en tests backend
+
+`RanchScopeFilterTests` y `GerenteWriteRanchPlotTests` fallaban por `DataCentralMain.owner_id NOT NULL` (campo añadido en Sesión V pero setUp de tests no lo asignaba). Fix: `DataCentralMain.objects.create(name=..., owner=self.admin)` y `get_or_create(name=..., defaults={"owner": user})`.
+
+### Archivos backend modificados
+
+- **`apps/geo_assets/views.py`** — 4 ajustes de `permission_classes` (ver tabla arriba).
+- **`apps/geo_assets/tests.py`** — fix de setUp + 5 tests nuevos: `test_gerente_puede_importar_vertices` (200), `test_gerente_no_puede_eliminar_ranch` (403), `test_gerente_no_puede_eliminar_plot` (403), `test_gerente_puede_crear_partner` (201), `test_gerente_no_puede_eliminar_partner` (403).
+
+**Resultado:** 44/44 tests `geo_assets` OK.
+
+### Archivos frontend creados
+
+| Archivo | Descripción |
+|---|---|
+| `hooks/useRanches.ts` | flattenRanch, CRUD, filtro `?producer=`. `RANCHES_KEY`. |
+| `hooks/usePlots.ts` | flattenPlot, CRUD, `useImportPlotVertices` → `/plots/{id}/import-vertices/`. |
+| `hooks/useRanchPartners.ts` | list + create + delete por ranch. |
+| `hooks/useProducers.ts` | `GET /organizations/?unit_type=Productor`. |
+| `components/RanchFormDialog.tsx` | RHF+zod; cascada `selectedCountryIso2` → `useStates`; `applyDrfErrors`. |
+| `components/PlotFormDialog.tsx` | `tech_spraying` como Select Sí/No (sin Checkbox disponible en shadcn). |
+| `components/PlotVerticesImport.tsx` | Filas dinámicas lat/lon, mínimo 3, botón remove deshabilitado si ≤3. |
+| `panel/RanchPanel.tsx` | Tabs Detalle/Parcelas/Aliados; view+edit toggle; RanchPartner inline add/remove. |
+| `panel/PlotPanel.tsx` | Tabs Detalle/Mapa(`PlotMiniMap`)/Vértices(`PlotVerticesImport`). |
+
+**Archivo modificado:** `sections/AssetsSection.tsx` — reemplaza placeholder; tabla de ranchos con filtro por productor; `canCreate = ROLE_LEVELS.MANAGER`; abre `RanchPanel` al click de fila.
+
+### Trampas aplicadas
+
+- **FeatureCollection → aplanar en hooks:** `{...f.properties, id: f.id!, geom: f.geometry ?? null}`. Nunca procesar estructura GeoJSON anidada en componentes UI.
+- **`total_area` / `centroid` son read-only:** calculados por `Plot.save()` vía PostGIS UTM 32614. Frontend no los recalcula.
+- **Backend cierra el polígono:** `PlotImportVerticesView` añade `coords[0]` al final — no duplicar en cliente.
+- **`ROLE_LEVELS.GERENTE` no existe** — usar `ROLE_LEVELS.MANAGER` (nivel 4).
+- **`vi.mock` hoisting:** mocks de `useAuthStore` deben estar al nivel de módulo con valores hardcoded, no en closures.
+- **MapLibre rompe JSDOM:** `PlotMiniMap` mockeado a `() => null` en tests de componentes.
+
+### Tests nuevos
+
+- `hooks/useRanches.test.ts` (5 tests): aplanado de FeatureCollection → id, geom, properties preservadas, geom null cuando undefined, total_area del backend sin modificar.
+- `sections/AssetsSection.test.tsx` (5 tests): header renderiza, botón "Nuevo rancho" visible para rol 5, fila de rancho en tabla, nombre de productor resuelto, dialog abre al click.
+
+### Verificación
+
+- `tsc --noEmit` → **0 errores**.
+- `vitest run` → **109/109 tests** (10 nuevos respecto a sesión 12).
+
+---
+
+## Sesión 14 — Task Manager Aspersión: importación CSV + mejoras de subprograma + bug fixes (2026-05-25)
+
+Sesión amplia con tres frentes en frontend (más cambios de backend documentados en
+`../CIAgro_alpha_backend/logs/development.md`).
+
+### Frente A — Importación de telemetría de aspersión (CSV)
+
+En el Task Manager, las sesiones de aspersión tenían el botón "Importar datos"
+deshabilitado ("próximamente"). El backend ya tenía el pipeline async (Celery); el
+trabajo fue mayormente frontend + ajuste de permisos/scope en backend.
+
+**Hooks nuevos:**
+- `useAspersionImport.ts`: `usePreviewColumns` (POST multipart `preview-columns`),
+  `useImportAspersionData` (POST `import`; en `onSuccess` hace `setQueryData` optimista
+  del detalle a `'processing'` para arrancar el polling de inmediato + invalidación),
+  `useAspersionTemplates` (GET), `useCreateAspersionTemplate` (POST).
+- `useAspersionVariableStats.ts`: fetch directo con token (patrón `useCurrentUser`) al
+  endpoint `/variable-stats/` que **no** está en `api.d.ts`.
+
+**Polling:** `useAspersionSessionDetail` recibe `refetchInterval` condicional — refresca
+cada 2.5 s **solo** mientras `import_status === 'processing'`. Trampa clave: `pending`
+es el estado **idle** por defecto, no "en progreso"; poletear en `pending` dejaba un
+loop infinito en sesiones sin importar.
+
+**Homologador** (`AspersionImportDialog.tsx`): file picker → preview que separa
+columnas reconocidas (verde, con su mapeo) de no reconocidas (ámbar, con `Select` para
+remapear a un campo de `lib/aspersionFields.ts`) → guardar plantilla reutilizable
+opcional → importar → estado `processing`/`done`/`error`/`pending_mapping`.
+`lib/aspersionFields.ts` lista 37 campos mapeables con etiqueta ES, espejando
+`DEFAULT_COLUMN_MAPPING` del backend (con comentario de sincronización).
+
+**Resumen post-import** (`AspersionImportSummary.tsx`): tabla genérica que itera
+`data.variables` (media/mín/máx/desv/n). Al ser genérica, los campos
+`applied_rate_l` (Proporción de aplicación líquida L/ha) y `product_quantity` (Media de
+producto aplicado) añadidos luego en backend aparecieron sin tocar el componente.
+
+**Trampa de tests:** `openapi-fetch` captura `globalThis.fetch` al cargar el módulo,
+**antes** de que MSW lo parchee → MSW no intercepta las llamadas de `apiClient`. Los
+5 tests de `AspersionImportDialog.test.tsx` usan `vi.mock` de los hooks, no MSW.
+
+### Frente B — Detalle/edición de subprograma + parcela
+
+- **`HijoModal` → `PlotInfoPanel`**: la columna derecha ahora muestra datos de la
+  parcela (código como **hipervínculo** con tooltip "Click para ver detalle de parcela"
+  que abre `PlotPanel` anidado, superficie, aspersión tecnificada, comentarios) además
+  del mini-mapa. Datos de `usePlotGeometry` ya cacheado → sin request extra.
+- **Cambio de parcela en edición**: solo si el subprograma **no** tiene sesiones
+  (`allSessions.length === 0`); si las tiene, campo deshabilitado + mensaje explicando
+  por qué. Nuevo `usePlotsByProducer(producerId)` (GET `/geo_assets/plots/?producer=`).
+  El backend valida igualmente (productor del maestro + solapamiento Y5).
+- **Gating por status** (fix del 400 al crear sesión): "Nueva Sesión" se oculta si el
+  hijo o el maestro están `completed`/`cancelled`; "Nuevo Subprograma" se oculta si el
+  maestro está `completed`/`cancelled`. Antes el backend rechazaba con 400 silencioso.
+- **`PlotMiniMap`**: prop `showTooltip` (Popup hover con lat/lon + área en m²) y
+  `maxzoom: 19` en el source ESRI (overzoom en lugar de tiles en blanco al acercar).
+
+### Frente C — Bug fixes del módulo de administración + layout
+
+- **Scope SuperAdmin**: `w.$dc.task-manager` respeta el workspace
+  (`canCreateMaster = isSuperAdmin || isOwnerOfThisDc`).
+- **Owner Gerente**: `DataCentralPanel` `canEdit = isSuperAdmin || isOwnerOfThisDc` y el
+  texto "← ORG" ahora es un `<button>` que navega atrás (`onClose`).
+  `OrganizationsSection` filtra organizaciones a `owner_username === user.username` para
+  no-SuperAdmin (antes mostraba también las invitadas). `useCreateDataCentral` invalida
+  `DCM_QUERY_KEY` + `['me']` → el conteo de CIAs ya no queda stale tras crear.
+- **Footer fijo** (`__root.tsx`): banda `#290629` con "CIAgro: Central de Inteligencia
+  Agrícola ®" (izq) y "Tierra Inteligente ®. Todos los derechos reservados {año}" (der).
+- **Layout sticky**: `w.$dc.tsx` y `AdminLayout` pasan de `min-h-dvh` a `h-dvh` con
+  `overflow-auto` solo en `<main>` + `pb-9`; header y sidebar quedan fijos.
+- **Login** con imagen de fondo (`public/backgrounds/ciagro_bg_1.jpg`) y Card translúcida
+  (`bg-white/80 backdrop-blur-sm`).
+
+### Verificación
+
+- `tsc --noEmit` → **0 errores**.
+- `vitest run` → verde (5 tests nuevos en `AspersionImportDialog.test.tsx`).

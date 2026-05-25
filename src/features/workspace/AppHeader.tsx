@@ -62,7 +62,7 @@ export function AppHeader() {
             Editar perfil
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void navigate({ to: '/workspaces' })}>
-            Cambiar workspace
+            Cambiar CIA
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

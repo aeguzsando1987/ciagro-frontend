@@ -25,7 +25,7 @@ export function AdminLayout() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex h-dvh flex-col">
       <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background px-4">
         <div className="flex items-center gap-3">
           <img src="/tierra_inteligente.svg" alt="Tierra Inteligente" className="h-7" draggable={false} />
@@ -35,7 +35,7 @@ export function AdminLayout() {
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm">
-            <Link to="/workspaces">Volver a workspaces</Link>
+            <Link to="/workspaces">Volver a selector de Organizaciones - CIAs</Link>
           </Button>
           <Button
             variant="ghost"
@@ -52,7 +52,7 @@ export function AdminLayout() {
 
       <div className="flex flex-1 overflow-hidden">
         <AdminSidebar roleLevel={roleLevel} />
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 pb-9">
           <Outlet />
         </main>
       </div>
