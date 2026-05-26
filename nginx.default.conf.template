@@ -25,12 +25,26 @@ server {
     location /api/ {
         proxy_pass ${BACKEND_ORIGIN};
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $http_host;  # incluye el puerto → build_absolute_uri del backend apunta al mismo origen
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 300s;      # imports/Celery pueden tardar
         client_max_body_size 100m;    # subida de CSV de aspersión
+    }
+
+    # Archivos subidos (fotos de catálogo, adjuntos). Django los sirve bajo /media/.
+    # NOTA PRODUCCIÓN: con DEBUG=False Django NO sirve /media/. En el servidor el backend
+    # debe servirlos (whitenoise o un volumen) o cambiar este bloque a servir desde disco.
+    location /media/ {
+        proxy_pass ${BACKEND_ORIGIN};
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;  # incluye el puerto → build_absolute_uri del backend apunta al mismo origen
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        expires 7d;
+        add_header Cache-Control "public";
     }
 
     # Fallback SPA: cualquier ruta no-archivo sirve index.html (TanStack Router).
