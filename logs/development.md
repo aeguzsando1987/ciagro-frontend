@@ -1239,3 +1239,39 @@ Total: **143/143 tests, 0 errores typecheck**.
 Durante la demo manual (6.E.2) se detectó que el polígono de parcela no coincidía con la nube de puntos de aspersión en el mapa. Para poder localizar los rectángulos en el mapa ESRI se añadió un `Marker` fijo de `react-map-gl/maplibre` en el primer punto del FeatureCollection (`baseFC.features[0].properties.lon/lat`): círculo amarillo (#facc15) de 14 px con borde negro y halo.
 
 No se instalaron dependencias nuevas (`Marker` ya es parte de `react-map-gl/maplibre`). El mock de tests se actualizó con `Marker: ({ children }) => <div data-testid="mock-marker">{children}</div>`. 7/7 tests pasan. `tsc 0 errores`.
+
+### Fix crítico: la capa 1 no pintaba al abrir el visor
+
+Síntoma reportado: al abrir el visor se veía el polígono de la parcela pero **ningún rectángulo de aspersión**, aun con la capa 1 (% de aplicación) seleccionada por defecto. Solo aparecían tras cambiar a otra capa y volver a la capa 1.
+
+**Diagnóstico — qué se descartó (con reproducción, no por intuición).** Se montaron reproducciones aisladas con Playwright + WebGL (swiftshader) para no seguir teorizando:
+
+- *maplibre puro* (addSource + addLayer con expresión `match` data-driven, sin `setData` posterior): **pinta correctamente**. Incluso arrancando lejos y haciendo `fitBounds` después → regenera teselas y pinta. Descarta: carrera de inicialización, la expresión data-driven en el `addLayer` inicial, y el re-tiling tras `fitBounds`.
+- *react-map-gl* replicando el patrón exacto del componente (data async, gating por estado, `fitBounds` imperativo vía ref): con la sonda fiable `queryRenderedFeatures` (el muestreo de píxeles daba falsos negativos por `preserveDrawingBuffer`), **renderiza los features en todos los escenarios**. Descarta el wrapper.
+
+Como las reproducciones no fallaban, el bug era específico de los datos/estado reales. Se instrumentó el componente con un diagnóstico temporal (`getStyle().layers`, `queryRenderedFeatures`, `getFilter`, distribución de buckets) y se pidió la salida de consola con datos reales. Reveló la causa exacta:
+
+```
+Error: layers.rect-fill.filter: array expected, undefined found  (en addLayer)
+rectFillIdx: -1   →  la capa 'rect-fill' nunca se creó
+ordenCapas: ['esri-base', 'plot-fill', 'plot-outline']  →  falta rect-fill
+```
+
+**Causa raíz.** El `<Layer>` recibía `filter={filterExpr}` donde `filterExpr` valía `undefined` cuando no había filtro activo (capa 1 con todas las categorías visibles). MapLibre, al validar el `addLayer`, **rechaza la capa completa** si la propiedad `filter` está presente pero no es un array — `undefined` explícito no es válido. Por eso `rect-fill` no se creaba y no se pintaba nada. Al cambiar de capa y volver, la actualización pasaba por `setFilter` (que sí tolera `undefined`), de ahí que "se arreglara" al segundo intento — una pista falsa.
+
+**Fix (una línea).** Pasar la prop `filter` solo cuando hay un filtro real:
+
+```tsx
+{...(filterExpr ? { filter: filterExpr } : {})}
+```
+
+**Limpieza.** Durante la búsqueda se había añadido andamiaje basado en hipótesis equivocadas (estado `mapReady` + `onLoad`, gating `mapReady && layerData`, `useLayoutEffect`, un efecto imperativo de `setData`, reset al cerrar). Confirmada la causa real, se eliminó todo y el componente volvió a la estructura estable (Map montado con `layerData`, `initialViewState` con bounds, como `PlotMiniMap`) más el fix del filtro. Se conservó `checkedBuckets` inicializado en `null` (= "todos visibles") en lugar de `Set` vacío, porque evita ocultar todo antes de la inicialización.
+
+### Mejoras UX del visor (misma sesión)
+
+- **Texto del botón**: "Ver detalles de aspersión" → "Abrir visor de datos de aspersión".
+- **Leyenda más clara**: checkbox visible (recuadro con borde de color + paloma ✓ al estar activo) y leyenda de ayuda "clic para mostrar u ocultar"; antes el `input` era `sr-only` y solo se intuía por el tachado del texto.
+- **Zoom**: `maxZoom={19}` en el `<Map>` + `maxZoom: 18` en `fitBounds`, para no pasar del nivel donde los tiles ESRI dejan de estar disponibles (imagen en blanco al acercar).
+- **Tests**: los botones de capa se buscan por `getByRole('button', ...)` porque el label ahora también aparece en el título de la leyenda; se añadió el mock de `Marker`. 7/7 verdes, `tsc 0 errores`.
+
+Commit: `fe6a665`.
