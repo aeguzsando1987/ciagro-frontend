@@ -1185,3 +1185,57 @@ producto aplicado) añadidos luego en backend aparecieron sin tocar el component
 
 - `tsc --noEmit` → **0 errores**.
 - `vitest run` → verde (5 tests nuevos en `AspersionImportDialog.test.tsx`).
+
+---
+
+## Sesión 15 — Visor de capas de datos de aspersión (2026-05-25)
+
+### Contexto
+
+La Sesión 14 cerró la importación de telemetría CSV. Esta sesión implementa el consumo visual de esos datos: un modal grande con mapa de calor donde cada punto de aspersión se representa como un rectángulo orientado, coloreado por la capa activa.
+
+### Decisiones clave
+
+**Backend (discovery):** El endpoint `GET /monitoring/aspersion/points/` usa `GeoModelSerializer` (legacy, no `GeoFeatureModelSerializer`), lo que produce una lista plana paginada `{count, next, previous, results: AspersionPoint[]}` — no un FeatureCollection. Esto difiere de lo que sugería el contrato. La `api.d.ts` generada era correcta; la construcción del FeatureCollection para MapLibre ocurre en cliente (`pointsToRectangleCollection`).
+
+**Decisión 6.B.0 (propose, elegida por el usuario):** Geometría del rectángulo por **trigonometría manual sin dependencias** (Opción A). Aproximación plana metros→grados con `cos(lat)` para el eje este. Error sub-centimétrico a esta escala (~14m × ~1.3m, lat 20.5°N). Descartado `@turf/destination` por añadir dependencia y ser sobredimensionado.
+
+### Arquitectura del visor
+
+1. **`lib/plotRectangles.ts`** — función pura `rectangleRing(lon, lat, headingDeg, widthM, heightM)` que computa 4 esquinas locales en el sistema (ancho, avance) del vehículo, las rota por el rumbo de brújula y las convierte a coordenadas geográficas. `pointsToRectangleCollection` consume `AspersionPoint[]` y produce el FeatureCollection de polígonos.
+
+2. **`lib/aspersionLayers.ts`** — fuente única de verdad de capas, paletas y funciones de clasificación. `classifyApplication` implementa los 5 buckets del caso de uso (umbrales exactos: <80 Deficiente, 80–95 Regular, 95–105 Excelente, 105–120 Sobredosis, >120 Sobredosis alta). `computeQuartiles` usa interpolación lineal estándar sobre los valores cargados.
+
+3. **`hooks/useAspersionPoints`** — itera páginas de la API (page_size=2000) siguiendo `next` hasta acumular todos los puntos. Mismo patrón de fetch directo que `useAspersionVariableStats`.
+
+4. **`AspersionMapModal`** — una sola `Source` GeoJSON + `Layer fill` con color `data-driven` (expresión MapLibre `match`). El cambio de capa recomputa el `FeatureCollection` anotado con `bucket` via `useMemo` y re-asigna el `data` de la Source. Los filtros de leyenda usan expresiones `filter` del layer (no montaje/desmontaje de Features). El modal bloquea cierre via `preventDefault` en `onInteractOutside`/`onEscapeKeyDown`.
+
+5. **`SesionModal.tsx`** — botón `📍 Ver detalles de aspersión` gateado por `import_status==='done' && points_count>0 && role_level>=SUPERVISOR`.
+
+### Tests
+
+- `plotRectangles.test.ts` — 8 tests (geometría 0°/90°, descarte de inválidos, parseDecimal).
+- `aspersionLayers.test.ts` — 12 tests (umbrales semáforo, cuartiles, estructura de capas).
+- `AspersionMapModal.test.tsx` — 6 tests (render, cierre, cambio de capa, toggle checkbox). MapLibre mockeado con stub de componentes (WebGL no disponible en JSDOM).
+
+Total: **143/143 tests, 0 errores typecheck**.
+
+### Deuda técnica abierta
+
+- **GAP-ASPERSION-PERCENTILES** (baja): si sesiones >5000 puntos degradan el cómputo de cuartiles en cliente, evaluar endpoint de `percentile_cont` en PostgreSQL (con propose antes de tocar backend).
+- **Demo manual pendiente (6.E.2):** la fase no se declara cerrada hasta verificar contra backend real (5 capas, hover, filtros de leyenda, cierre solo via botón).
+
+### Verificación
+
+- `tsc --noEmit` → **0 errores**.
+- `vitest run` → **143/143 verde** (26 archivos, +26 tests nuevos en esta sesión).
+
+---
+
+## Sesión 15 — continuación (2026-05-26)
+
+### Fix de depuración: pin en el primer punto de aspersión
+
+Durante la demo manual (6.E.2) se detectó que el polígono de parcela no coincidía con la nube de puntos de aspersión en el mapa. Para poder localizar los rectángulos en el mapa ESRI se añadió un `Marker` fijo de `react-map-gl/maplibre` en el primer punto del FeatureCollection (`baseFC.features[0].properties.lon/lat`): círculo amarillo (#facc15) de 14 px con borde negro y halo.
+
+No se instalaron dependencias nuevas (`Marker` ya es parte de `react-map-gl/maplibre`). El mock de tests se actualizó con `Marker: ({ children }) => <div data-testid="mock-marker">{children}</div>`. 7/7 tests pasan. `tsc 0 errores`.

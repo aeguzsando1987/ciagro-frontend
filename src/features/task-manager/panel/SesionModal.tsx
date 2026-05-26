@@ -31,6 +31,9 @@ import type { MasterProgramTree } from '@/features/task-manager/types'
 import { PlotMiniMap } from './PlotMiniMap'
 import { AspersionImportDialog } from '../components/AspersionImportDialog'
 import { AspersionImportSummary } from '../components/AspersionImportSummary'
+import { AspersionMapModal } from '../components/AspersionMapModal'
+import { useAuthStore } from '@/features/auth/useAuthStore'
+import { ROLE_LEVELS } from '@/lib/auth/roles'
 
 /* ─── Constants ───────────────────────────────────────────────────── */
 
@@ -415,6 +418,12 @@ function AspersionView({
   onEdit,
 }: AspersionViewProps) {
   const [importOpen, setImportOpen] = useState(false)
+  const [mapOpen, setMapOpen] = useState(false)
+  const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
+  const canViewMap =
+    roleLevel >= ROLE_LEVELS.SUPERVISOR &&
+    detail.import_status === 'done' &&
+    parseInt(detail.points_count ?? '0', 10) > 0
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
@@ -496,8 +505,18 @@ function AspersionView({
           />
         </div>
 
-        <div className="w-72 shrink-0">
+        <div className="w-72 shrink-0 space-y-2">
           <PlotMiniMap plotId={plotId} />
+          {canViewMap && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={() => setMapOpen(true)}
+            >
+              📍 Ver detalles de aspersión
+            </Button>
+          )}
         </div>
       </div>
 
@@ -506,6 +525,15 @@ function AspersionView({
           Editar
         </Button>
       </div>
+
+      {canViewMap && (
+        <AspersionMapModal
+          open={mapOpen}
+          onClose={() => setMapOpen(false)}
+          sessionId={detail.id}
+          plotId={plotId}
+        />
+      )}
     </div>
   )
 }

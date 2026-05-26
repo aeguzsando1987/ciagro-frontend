@@ -1,7 +1,7 @@
 # ROADMAP — CIAgro Alpha Frontend
 
-> **Estado actual:** Sesión 14 — Task Manager Aspersión (importación CSV + mejoras de subprograma) y bug fixes de scope/layout — completada. Siguiente: Fase Visor de capas de aspersión (ver `.context/geodata_analysis_usecases.md`).
-> **Última actualización:** 2026-05-25
+> **Estado actual:** Sesión 15 — Fase Visor de capas de aspersión implementada (6.B–6.E). Pin de depuración añadido. Pendiente: demo manual con backend real (6.E.2).
+> **Última actualización:** 2026-05-26
 > **Backend:** roadmap propio en `../../CIAgro_alpha_backend/logs/roadmap.md`
 > **Producto:** `../../.context/templates/product-doc.md`
 > **Convención:** los sprints son estimaciones de **dev-week** (1 dev senior full-time).
@@ -128,6 +128,56 @@ endpoints + 6 gaps abiertos (1 alta, 2 media, 3 baja).
 
 ---
 
+---
+
+## FASE FRONTEND — VISOR DE CAPAS DE ASPERSIÓN
+**Estado:** `[🔄] Implementada — Pendiente demo manual con backend real (6.E.2)`
+**Sesión:** 15 (2026-05-25) · **Contrato:** `aspersion-fase-6-visor-capas` (`session_contract.json`)
+**Cubre:** Caso de uso `.context/geodata_analysis_usecases.md` §2–§7.
+**Sprints estimados:** 1 dev-week. **Backend:** ✅ completo, sin endpoints nuevos.
+
+### 6.A — Análisis (cerrado antes de esta sesión)
+- [x] **6.A.0** Caso de uso analizado (§2–§7).
+- [x] **6.A.1** Backend analizado: `GeoModelSerializer` lista plana paginada (no FeatureCollection); `GeoPointsPagination` (500 default, 2000 máx); endpoints confirmados.
+- [x] **6.A.2** Viabilidad confirmada. Geometría y cuartiles en cliente. **Decisión 6.B.0:** trig manual sin dependencias (Opción A elegida sobre `@turf/destination`).
+
+### 6.B — Lógica pura (cerrada)
+- [x] **6.B.1** `lib/plotRectangles.ts` — `rectangleRing` (trig manual plana, 4 esquinas locales rotadas por rumbo de brújula) + `pointsToRectangleCollection` (descarte de puntos inválidos, fallback heading). 8 tests unitarios.
+- [x] **6.B.2** `lib/aspersionLayers.ts` — 5 capas `{key,label,field,kind,unit}`, `APPLICATION_CATEGORIES` (5 categorías semáforo con colores), `QUARTILE_PALETTES` (4 tonos por capa 2–5), funciones puras `classifyApplication`, `computeQuartiles`, `quartileOf`, `buildQuartileDefs`. 12 tests unitarios.
+
+### 6.C — Datos (cerrada)
+- [x] **6.C.1** `hooks/useAspersionPoints.ts` — itera páginas (`page_size=2000`) siguiendo `next` hasta acumular `AspersionPoint[]` completo. Patrón fetch directo con `tokens.getAccess()`.
+
+### 6.D — UI del visor (cerrada)
+- [x] **6.D.1** `AspersionMapModal.tsx` — modal grande (`max-w-6xl`, 92vh), cierre solo via `✕ Cerrar` (`preventDefault` en `onInteractOutside`/`onEscapeKeyDown`). Mapa ESRI + polígono de parcela + **una sola Source/Layer GeoJSON** con color `data-driven` (expresión `match` para categorías; `match q1/q2/q3/q4` para cuartiles). `fitBounds` reactivo via `MapRef`.
+- [x] **6.D.2** Selector de 5 capas; Capa 1 (% aplicación) por defecto.
+- [x] **6.D.3** Hover tooltip (`onMouseMove` + `queryRenderedFeatures`): lat/lon + valor(es) de la capa. Capa 1 además: `applied_rate_l`, `target_rate_l`, `p_apl`, categoría.
+- [x] **6.D.4** Tarjeta de leyenda inferior: categorías/cuartiles con checkboxes (todos ON por defecto), toggle oculta rectángulos via expresión `filter` del layer. Resumen MV (`pct_below/in_range/above`) en Capa 1.
+- [x] **6.D.5** `SesionModal.tsx` — botón `📍 Ver detalles de aspersión` visible si `import_status==='done' && points_count>0 && role_level>=SUPERVISOR`. Gating `ROLE_LEVELS.SUPERVISOR` (regla #5).
+- [x] **6.D.6** `AspersionMapModal.test.tsx` — 6 tests: render capas, cierre, leyenda Capa 1, cambio a cuartiles, toggle checkbox, modal cerrado. `react-map-gl/maplibre` mockeado.
+
+### 6.E — Cierre
+- [x] **6.E.1** `tsc --noEmit` → 0 errores. `vitest run` → 143/143 verde (26 files, +26 tests nuevos).
+- [ ] **6.E.2** Demo manual — pendiente: backend levantado + sample CSV importado + visor abierto con las 5 capas + hover + leyenda.
+- [x] **6.E.3** Logs actualizados: `dev_log.csv` (pasos 6.B.0→6.D.test), `gap_log.csv` (`GAP-ASPERSION-PERCENTILES`, baja), `development.md`, `roadmap.md`.
+
+### Criterios de salida
+- [x] `tsc --noEmit` 0 errores.
+- [x] `vitest run` verde (≥8 tests nuevos — se implementaron 26).
+- [x] Archivos de aceptación existentes: `lib/plotRectangles.ts` + test, `lib/aspersionLayers.ts` + test, `hooks/useAspersionPoints.ts`, `components/AspersionMapModal.tsx` + test.
+- [ ] Demo manual con backend real — **pendiente** (regla 4.3: fase no se declara cerrada sin demo).
+
+### Nuevos archivos (Sesión 15)
+- `src/features/task-manager/lib/plotRectangles.ts` + `.test.ts`
+- `src/features/task-manager/lib/aspersionLayers.ts` + `.test.ts`
+- `src/features/task-manager/hooks/useAspersionPoints.ts`
+- `src/features/task-manager/components/AspersionMapModal.tsx` + `.test.tsx`
+
+### Archivos modificados (Sesión 15)
+- `src/features/task-manager/panel/SesionModal.tsx` (botón + modal)
+
+---
+
 ## FASES FRONTEND 3–10 · MÓDULOS RESTANTES
 **Estado:** `[ ] Pendientes — UX/UI por pulir`
 
@@ -210,7 +260,7 @@ endpoints + 6 gaps abiertos (1 alta, 2 media, 3 baja).
 ✅ Fase 8.4    → Admin: Catálogos Agrícolas (Sesión 11, 2026-05-20)
 ✅ Fase 8.5    → Admin: Activos Agrícolas (Sesión 13, 2026-05-21)
 ✅ Sesión 14   → Task Manager Aspersión: importación CSV + homologador + plantillas + resumen; mejoras subprograma/parcela; bug fixes scope/owner-gerente/layout (2026-05-25)
-🔜 Fase Visor  → Visor de capas de datos de aspersión (heatmap por capas, ver `.context/geodata_analysis_usecases.md`) — PLANEADA en session_contract.json
+🔄 Sesión 15   → Visor de capas de aspersión — implementado (6.B–6.E), pendiente demo manual (2026-05-25)
 🔒 Fase 2      → Task Manager Gantt (4 dev-weeks, depende de Fase 1)
 🔒 Fase 3      → Visor de sesiones (1.5 dw)         ┐ pueden correr en paralelo
 🔒 Fase 4      → Visor de mapas (2 dw)              │ a Fase 2 cierre o entre sí,

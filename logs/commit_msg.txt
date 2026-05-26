@@ -1,3 +1,38 @@
+feat(visor-aspersion): Visor de capas de aspersión + pin de depuración — Sesión 15
+
+──────────────────────────────────────────────────────
+[SESIÓN 15 — continuación 2026-05-26]
+──────────────────────────────────────────────────────
+fix(visor-aspersion): Pin fijo en el primer punto de aspersión para testing manual.
+Marker amarillo (14px) en AspersionMapModal para localizar rectángulos cuando el
+polígono de parcela no coincide con la nube de puntos. Sin dependencias nuevas.
+AspersionMapModal.test.tsx: mock Marker añadido. 7/7 tests pasan.
+
+──────────────────────────────────────────────────────
+[SESIÓN 15 — original]
+──────────────────────────────────────────────────────
+Modal de mapa de calor para análisis de telemetría de aspersión.
+Accesible desde el detalle de sesión (import_status==='done', role>=SUPERVISOR).
+
+Nuevos archivos (src/features/task-manager/):
+- lib/plotRectangles.ts — trig manual sin deps (Opción A): rectangleRing +
+  pointsToRectangleCollection. 8 tests unitarios.
+- lib/aspersionLayers.ts — 5 capas, semáforo (5 categorías exactas del caso de uso),
+  cuartiles (computeQuartiles interpolación lineal), paletas. 12 tests unitarios.
+- hooks/useAspersionPoints.ts — itera páginas (page_size=2000) hasta acumular
+  AspersionPoint[] completo.
+- components/AspersionMapModal.tsx — modal grande, ESRI+polígono parcela+rectángulos
+  data-driven, 5 capas conmutables, hover tooltip, leyenda+checkboxes, stats MV.
+- components/AspersionMapModal.test.tsx — 6 tests, MapLibre mockeado.
+
+Modificados:
+- panel/SesionModal.tsx — botón "📍 Ver detalles de aspersión" + AspersionMapModal.
+
+143/143 vitest. tsc 0 errores. Demo manual pendiente (6.E.2).
+
+──────────────────────────────────────────────────────
+[SESIONES 13–14 — ANTERIORES]
+──────────────────────────────────────────────────────
 feat(task-manager): Aspersión import CSV + mejoras subprograma + Activos Agrícolas + fixes
 
 Sesiones 13–14, 2026-05-21/25.
