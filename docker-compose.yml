@@ -1,0 +1,30 @@
+# Despliegue del frontend de CIAgro (SPA Vite + nginx).
+# El backend ya corre en el mismo servidor publicando el puerto 8500 en el host;
+# nginx proxea /api a ese backend a través de host.docker.internal.
+#
+# Uso en el servidor:
+#   1. Coloca un archivo .env junto a este compose con (al menos) VITE_MAPTILER_KEY
+#      y, si aplica, BACKEND_ORIGIN.
+#   2. docker compose up -d --build
+#
+# Tras un git pull con cambios:  docker compose up -d --build   (reconstruye el bundle)
+
+services:
+  frontend:
+    build:
+      context: .
+      args:
+        # Ruta relativa → peticiones same-origin que nginx proxea al backend.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+        VITE_MAPTILER_KEY: ${VITE_MAPTILER_KEY:-}
+    image: ciagro-frontend:latest
+    container_name: ciagro-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    environment:
+      # Destino del proxy del API. En el mismo servidor, el backend publica 8500 en el host.
+      BACKEND_ORIGIN: ${BACKEND_ORIGIN:-http://host.docker.internal:8500}
+    extra_hosts:
+      # Permite que el contenedor alcance el host (Linux) para llegar al backend.
+      - "host.docker.internal:host-gateway"
