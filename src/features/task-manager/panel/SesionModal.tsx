@@ -514,7 +514,7 @@ function AspersionView({
               className="w-full"
               onClick={() => setMapOpen(true)}
             >
-              📍 Ver detalles de aspersión
+              📍 Abrir visor de datos de aspersión
             </Button>
           )}
         </div>

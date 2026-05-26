@@ -251,26 +251,10 @@ interface LegendCardProps {
 
 function LegendCard({ legendDefs, checkedBuckets, onToggle, activeLayer, sessionStats }: LegendCardProps) {
   return (
-    <div className="shrink-0 border-t bg-background px-4 py-2">
-      <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
-        <span className="text-xs font-medium text-muted-foreground mr-2">{activeLayer.label}:</span>
-        {legendDefs.map((def) => (
-          <label key={def.key} className="flex items-center gap-1.5 cursor-pointer select-none text-xs">
-            <input
-              type="checkbox"
-              className="sr-only"
-              checked={checkedBuckets.has(def.key)}
-              onChange={() => onToggle(def.key)}
-            />
-            <span
-              className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
-              style={{ backgroundColor: checkedBuckets.has(def.key) ? def.color : '#d1d5db' }}
-            />
-            <span className={checkedBuckets.has(def.key) ? '' : 'line-through text-muted-foreground'}>
-              {'range' in def ? `${def.label} ${def.range}` : def.label}
-            </span>
-          </label>
-        ))}
+    <div className="shrink-0 border-t bg-background px-4 py-2 space-y-1">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold">{activeLayer.label}</span>
+        <span className="text-xs text-muted-foreground italic">— clic en cada categoría para mostrar u ocultar</span>
         {activeLayer.kind === 'category' && sessionStats && (
           <span className="ml-auto text-xs text-muted-foreground">
             ✓ {parseFloat(sessionStats.pct_in_range ?? '0').toFixed(1)}% en rango ·{' '}
@@ -278,6 +262,39 @@ function LegendCard({ legendDefs, checkedBuckets, onToggle, activeLayer, session
             ↑ {parseFloat(sessionStats.pct_above ?? '0').toFixed(1)}% sobre
           </span>
         )}
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {legendDefs.map((def) => {
+          const checked = checkedBuckets.has(def.key)
+          return (
+            <label key={def.key} className="flex items-center gap-1.5 cursor-pointer select-none text-xs group">
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={checked}
+                onChange={() => onToggle(def.key)}
+              />
+              {/* Checkbox visual con ✓ interno */}
+              <span
+                className="inline-flex items-center justify-center w-4 h-4 rounded-sm border-2 shrink-0 transition-colors"
+                style={{
+                  borderColor: def.color,
+                  backgroundColor: checked ? def.color : 'transparent',
+                }}
+              >
+                {checked && <span className="text-white leading-none" style={{ fontSize: 10 }}>✓</span>}
+              </span>
+              {/* Pastilla de color */}
+              <span
+                className="inline-block w-3 h-3 rounded-sm shrink-0"
+                style={{ backgroundColor: checked ? def.color : '#d1d5db' }}
+              />
+              <span className={checked ? '' : 'line-through text-muted-foreground'}>
+                {'range' in def ? `${def.label} ${def.range}` : def.label}
+              </span>
+            </label>
+          )
+        })}
       </div>
     </div>
   )
@@ -287,7 +304,8 @@ function LegendCard({ legendDefs, checkedBuckets, onToggle, activeLayer, session
 
 export function AspersionMapModal({ open, onClose, sessionId, plotId }: AspersionMapModalProps) {
   const [activeLayerIdx, setActiveLayerIdx] = useState(0)
-  const [checkedBuckets, setCheckedBuckets] = useState<Set<string>>(new Set())
+  // null = sin inicializar (tratar como "todos activos"); Set vacío = usuario desmarcó todo
+  const [checkedBuckets, setCheckedBuckets] = useState<Set<string> | null>(null)
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null)
   const mapRef = useRef<MapRef>(null)
 
@@ -320,15 +338,16 @@ export function AspersionMapModal({ open, onClose, sessionId, plotId }: Aspersio
     return buildLayerData(baseFC, ASPERSION_LAYERS[activeLayerIdx]!)
   }, [baseFC, activeLayerIdx])
 
-  // Reiniciar checkboxes a "todos activos" al cambiar de capa
+  // Reiniciar checkboxes a "todos activos" al cambiar de capa.
   useEffect(() => {
     if (!layerData) return
     setCheckedBuckets(new Set(layerData.legendDefs.map((d) => d.key)))
   }, [layerData])
 
-  // Expresión de filtro para visibilidad por checkbox
+  // Expresión de filtro para visibilidad por checkbox.
+  // checkedBuckets===null significa "todos activos" (estado inicial antes de que lleguen datos).
   const filterExpr = useMemo(() => {
-    if (!layerData || layerData.legendDefs.length === 0) return undefined
+    if (!layerData || layerData.legendDefs.length === 0 || checkedBuckets === null) return undefined
     const allKeys = layerData.legendDefs.map((d) => d.key)
     if (checkedBuckets.size === allKeys.length) return undefined
     if (checkedBuckets.size === 0) return ['boolean', false]
@@ -353,15 +372,17 @@ export function AspersionMapModal({ open, onClose, sessionId, plotId }: Aspersio
     return null
   }, [plot, baseFC])
 
-  // Cuando el bbox cambia (e.g. polígono llega después que los puntos), volar al nuevo encuadre
+  // Cuando el bbox cambia (e.g. el polígono llega después que los puntos), volar al nuevo encuadre.
   useEffect(() => {
     if (!mapRef.current || !mapBounds) return
-    mapRef.current.fitBounds(mapBounds, { padding: 50, duration: 600 })
+    mapRef.current.fitBounds(mapBounds, { padding: 50, duration: 600, maxZoom: 18 })
   }, [mapBounds])
 
   const toggleBucket = (key: string) => {
     setCheckedBuckets((prev) => {
-      const next = new Set(prev)
+      // Si null (aún sin inicializar), tratar como todos activos
+      const base = prev ?? new Set(layerData?.legendDefs.map((d) => d.key) ?? [])
+      const next = new Set(base)
       next.has(key) ? next.delete(key) : next.add(key)
       return next
     })
@@ -408,93 +429,101 @@ export function AspersionMapModal({ open, onClose, sessionId, plotId }: Aspersio
             <MapOverlay>Sin puntos de aspersión cargados.</MapOverlay>
           )}
 
-          {/* El mapa se monta cuando hay datos (layerData) para evitar estado vacío */}
+          {/* El mapa se monta cuando hay datos (layerData), con el encuadre inicial ya en
+              los bounds de la parcela/puntos. */}
           {layerData && (
-            <Map
-              ref={mapRef}
-              initialViewState={
-                mapBounds
-                  ? { bounds: mapBounds, fitBoundsOptions: { padding: 50 } }
-                  : { longitude: -101, latitude: 20.5, zoom: 14 }
+          <Map
+            ref={mapRef}
+            initialViewState={
+              mapBounds
+                ? { bounds: mapBounds, fitBoundsOptions: { padding: 50, maxZoom: 18 } }
+                : { longitude: -101, latitude: 20.5, zoom: 6 }
+            }
+            maxZoom={19}
+            mapStyle={ESRI_STYLE}
+            cooperativeGestures
+            interactiveLayerIds={['rect-fill']}
+            attributionControl={false}
+            style={{ width: '100%', height: '100%' }}
+            onMouseMove={(e) => {
+              if (e.features && e.features.length > 0) {
+                setHoverInfo({
+                  lon: e.lngLat.lng,
+                  lat: e.lngLat.lat,
+                  props: e.features[0]!.properties as RectangleProps & { bucket?: string },
+                })
+              } else {
+                setHoverInfo(null)
               }
-              mapStyle={ESRI_STYLE}
-              cooperativeGestures
-              interactiveLayerIds={['rect-fill']}
-              attributionControl={false}
-              style={{ width: '100%', height: '100%' }}
-              onMouseMove={(e) => {
-                if (e.features && e.features.length > 0) {
-                  setHoverInfo({
-                    lon: e.lngLat.lng,
-                    lat: e.lngLat.lat,
-                    props: e.features[0]!.properties as RectangleProps & { bucket?: string },
-                  })
-                } else {
-                  setHoverInfo(null)
-                }
-              }}
-              onMouseLeave={() => setHoverInfo(null)}
-            >
-              {/* Polígono de la parcela */}
-              {plotGeojson && (
-                <Source id="plot" type="geojson" data={plotGeojson}>
-                  <Layer
-                    id="plot-fill"
-                    type="fill"
-                    paint={{ 'fill-color': '#22c55e', 'fill-opacity': 0.12 }}
-                  />
-                  <Layer
-                    id="plot-outline"
-                    type="line"
-                    paint={{ 'line-color': '#16a34a', 'line-width': 2 }}
-                  />
-                </Source>
-              )}
-
-              {/* Rectángulos de aspersión — una sola Source + Layer con color data-driven */}
-              <Source id="rects" type="geojson" data={layerData.annotated}>
+            }}
+            onMouseLeave={() => setHoverInfo(null)}
+          >
+            {/* Polígono de la parcela */}
+            {plotGeojson && (
+              <Source id="plot" type="geojson" data={plotGeojson}>
                 <Layer
-                  id="rect-fill"
+                  id="plot-fill"
                   type="fill"
-                  paint={{
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    'fill-color': layerData.colorExpr as unknown as any,
-                    'fill-opacity': 0.78,
-                    'fill-outline-color': 'rgba(0,0,0,0.08)',
-                  }}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  filter={filterExpr as any}
+                  paint={{ 'fill-color': '#22c55e', 'fill-opacity': 0.12 }}
+                />
+                <Layer
+                  id="plot-outline"
+                  type="line"
+                  paint={{ 'line-color': '#16a34a', 'line-width': 2 }}
                 />
               </Source>
+            )}
 
-              {/* Pin fijo en el primer punto — ayuda a localizar los rectángulos durante testing */}
-              {layerData.annotated.features[0] && (() => {
-                const p = layerData.annotated.features[0]!.properties
-                return (
-                  <Marker longitude={p.lon} latitude={p.lat} anchor="center">
-                    <div
-                      title="Punto 1"
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: '50%',
-                        background: '#facc15',
-                        border: '2px solid #000',
-                        boxShadow: '0 0 0 3px rgba(250,204,21,0.5)',
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  </Marker>
-                )
-              })()}
+            {/* Rectángulos de aspersión — una sola Source + Layer con color data-driven */}
+            {layerData && (
+              <>
+                <Source id="rects" type="geojson" data={layerData.annotated}>
+                  <Layer
+                    id="rect-fill"
+                    type="fill"
+                    paint={{
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      'fill-color': layerData.colorExpr as unknown as any,
+                      'fill-opacity': 0.78,
+                      'fill-outline-color': 'rgba(0,0,0,0.08)',
+                    }}
+                    // MapLibre rechaza el addLayer entero si se pasa filter={undefined}
+                    // (exige un array cuando la prop está presente). Solo se pasa si hay filtro.
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    {...(filterExpr ? { filter: filterExpr as any } : {})}
+                  />
+                </Source>
 
-              {hoverInfo && (
-                <HoverTooltip
-                  info={hoverInfo}
-                  layer={ASPERSION_LAYERS[activeLayerIdx]!}
-                />
-              )}
-            </Map>
+                {/* Pin fijo en el primer punto — ayuda a localizar los rectángulos durante testing */}
+                {layerData.annotated.features[0] && (() => {
+                  const p = layerData.annotated.features[0]!.properties
+                  return (
+                    <Marker longitude={p.lon} latitude={p.lat} anchor="center">
+                      <div
+                        title="Punto 1"
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: '50%',
+                          background: '#facc15',
+                          border: '2px solid #000',
+                          boxShadow: '0 0 0 3px rgba(250,204,21,0.5)',
+                          pointerEvents: 'none',
+                        }}
+                      />
+                    </Marker>
+                  )
+                })()}
+              </>
+            )}
+
+            {hoverInfo && (
+              <HoverTooltip
+                info={hoverInfo}
+                layer={ASPERSION_LAYERS[activeLayerIdx]!}
+              />
+            )}
+          </Map>
           )}
         </div>
 
@@ -502,7 +531,7 @@ export function AspersionMapModal({ open, onClose, sessionId, plotId }: Aspersio
         {layerData && layerData.legendDefs.length > 0 && (
           <LegendCard
             legendDefs={layerData.legendDefs}
-            checkedBuckets={checkedBuckets}
+            checkedBuckets={checkedBuckets ?? new Set(layerData.legendDefs.map((d) => d.key))}
             onToggle={toggleBucket}
             activeLayer={ASPERSION_LAYERS[activeLayerIdx]!}
             sessionStats={sessionStats}

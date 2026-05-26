@@ -98,11 +98,12 @@ describe('AspersionMapModal', () => {
   it('renderiza los 5 botones de capa cuando hay puntos', async () => {
     renderModal()
     await waitFor(() => {
-      expect(screen.getByText('% de aplicación')).toBeTruthy()
-      expect(screen.getByText('Flujo líquido')).toBeTruthy()
-      expect(screen.getByText('Presión de brazo')).toBeTruthy()
-      expect(screen.getByText('Producción')).toBeTruthy()
-      expect(screen.getByText('Velocidad')).toBeTruthy()
+      // getByRole filtra solo botones — descarta el span del título de la leyenda
+      expect(screen.getByRole('button', { name: '% de aplicación' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Flujo líquido' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Presión de brazo' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Producción' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Velocidad' })).toBeTruthy()
     })
   })
 
