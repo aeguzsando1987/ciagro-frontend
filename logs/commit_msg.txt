@@ -1,102 +1,42 @@
-feat(visor-aspersion): Visor de capas de aspersión + pin de depuración — Sesión 15
+feat(visor-aspersion): áreas en el visor + flush admin + fix de zoom — Sesión 16
+
+Tres afinamientos sobre la sesión de aspersión y su visor.
 
 ──────────────────────────────────────────────────────
-[SESIÓN 15 — continuación 2026-05-26]
+Áreas en el visor (total + por categoría)
 ──────────────────────────────────────────────────────
-fix(visor-aspersion): Pin fijo en el primer punto de aspersión para testing manual.
-Marker amarillo (14px) en AspersionMapModal para localizar rectángulos cuando el
-polígono de parcela no coincide con la nube de puntos. Sin dependencias nuevas.
-AspersionMapModal.test.tsx: mock Marker añadido. 7/7 tests pasan.
+- RectangleProps + area_ha (parseDecimal en pointsToRectangleCollection).
+- sumAreaByBucket(fc): función pura, suma hectáreas por bucket (ignora null/NaN);
+  se computa en buildLayerData y viaja como LayerData.areaByBucket.
+- LegendCard: "Área total: X ha" siempre (de sessionStats.area_total_ha, valor
+  autoritativo del backend) + desglose de área por categoría solo en la capa 1
+  (% aplicación). Helper formatHa (es-MX, 2 decimales).
 
 ──────────────────────────────────────────────────────
-[SESIÓN 15 — original]
+Flush por-sesión de datos de aspersión (solo SuperAdmin, rol 5)
 ──────────────────────────────────────────────────────
-Modal de mapa de calor para análisis de telemetría de aspersión.
-Accesible desde el detalle de sesión (import_status==='done', role>=SUPERVISOR).
-
-Nuevos archivos (src/features/task-manager/):
-- lib/plotRectangles.ts — trig manual sin deps (Opción A): rectangleRing +
-  pointsToRectangleCollection. 8 tests unitarios.
-- lib/aspersionLayers.ts — 5 capas, semáforo (5 categorías exactas del caso de uso),
-  cuartiles (computeQuartiles interpolación lineal), paletas. 12 tests unitarios.
-- hooks/useAspersionPoints.ts — itera páginas (page_size=2000) hasta acumular
-  AspersionPoint[] completo.
-- components/AspersionMapModal.tsx — modal grande, ESRI+polígono parcela+rectángulos
-  data-driven, 5 capas conmutables, hover tooltip, leyenda+checkboxes, stats MV.
-- components/AspersionMapModal.test.tsx — 6 tests, MapLibre mockeado.
-
-Modificados:
-- panel/SesionModal.tsx — botón "📍 Ver detalles de aspersión" + AspersionMapModal.
-
-143/143 vitest. tsc 0 errores. Demo manual pendiente (6.E.2).
+La reimportación AÑADE puntos (append), así que se añade una acción admin para
+borrar los datos importados DE LA SESIÓN ACTUAL (no de otras sesiones de la
+parcela). Requirió un endpoint nuevo en el backend (commit aparte).
+NOTA: corregido de un enfoque global inicial que borraba todas las sesiones —
+bug peligroso detectado en pruebas (al borrar una sesión se vaciaban otras).
+- useFlushAspersion(sessionId): POST /monitoring/aspersion/headers/<id>/flush/ +
+  invalidación de detalle/stats/puntos + toast.
+- FlushAspersionDialog(sessionId): acción destructiva blindada con código
+  aleatorio de 6 dígitos generado en el front; "Eliminar todo" deshabilitado
+  hasta teclearlo.
+- AspersionView: botón "Eliminar los datos de esta sesión" visible solo si
+  role_level >= SUPER_ADMIN + nota de que reimport es aditivo. Tras el flush el
+  visor desaparece solo (gating import_status==='done' && points_count>0).
 
 ──────────────────────────────────────────────────────
-[SESIONES 13–14 — ANTERIORES]
+Fix recurrente de zoom (imagen ESRI en blanco)
 ──────────────────────────────────────────────────────
-feat(task-manager): Aspersión import CSV + mejoras subprograma + Activos Agrícolas + fixes
+Con maxzoom:19 en la fuente, MapLibre pedía teselas z19 que ESRI no tiene en
+zonas rurales (404 → blanco); el overzoom solo ocurre POR ENCIMA del maxzoom de
+la fuente. Fix: ESRI_STYLE maxzoom 19→18 y Map maxZoom 19→20 → sobre z18 estira
+la última tesela disponible y la imagen siempre se ve. fitBounds queda en 18
+(apertura nítida).
 
-Sesiones 13–14, 2026-05-21/25.
-Incluye Fase 8.5 (Activos Agrícolas — frontend, ya logueada en Sesión 13) y la
-Sesión 14: importación de telemetría de aspersión, mejoras de subprograma/parcela
-y bug fixes de scope/owner-gerente/layout.
-
-──────────────────────────────────────────────────────
-Fase 8.5 — Activos Agrícolas (Ranchos + Parcelas) [ya documentada]
-──────────────────────────────────────────────────────
-- Hooks: useRanches, usePlots (+ import-vertices), useRanchPartners, useProducers.
-- Componentes: RanchFormDialog, PlotFormDialog, PlotVerticesImport.
-- Panels: RanchPanel (Detalle/Parcelas/Aliados), PlotPanel (Detalle/Mapa/Vértices).
-- AssetsSection: tabla de ranchos + filtro por productor.
-- api.d.ts regenerado con tipos Ranch/Plot/RanchPartner/PlotVertexInput.
-
-──────────────────────────────────────────────────────
-Sesión 14 — Aspersión: importación de telemetría (CSV)
-──────────────────────────────────────────────────────
-Hooks nuevos (src/features/task-manager/):
-- useAspersionImport.ts: usePreviewColumns (multipart), useImportAspersionData
-  (setQueryData optimista a 'processing' + invalidación), useAspersionTemplates,
-  useCreateAspersionTemplate.
-- useAspersionVariableStats.ts: fetch directo con token al endpoint /variable-stats/
-  (no tipado en api.d.ts).
-- useAspersionSessionDetail.ts: refetchInterval condicional — 2500ms SOLO mientras
-  import_status==='processing' ('pending' es idle, no se poletea).
-
-Homologador y resumen:
-- lib/aspersionFields.ts: 37 campos mapeables con etiqueta ES (espeja
-  DEFAULT_COLUMN_MAPPING del backend).
-- AspersionImportDialog.tsx: file picker → preview matched/unmatched → remapeo de
-  columnas no reconocidas → guardar plantilla opcional → importar → estado
-  processing/done/error/pending_mapping.
-- AspersionImportSummary.tsx: tabla genérica (itera data.variables) media/mín/máx/desv/n.
-- SesionModal.tsx: botón 'Importar datos'/'Reimportar datos' para todo autenticado +
-  AspersionImportSummary cuando import_status==='done'.
-- AspersionImportDialog.test.tsx: 5 tests con vi.mock de hooks (apiClient captura
-  globalThis.fetch antes que MSW → incompatibles).
-
-──────────────────────────────────────────────────────
-Sesión 14 — Detalle/edición de subprograma + parcela
-──────────────────────────────────────────────────────
-- HijoModal → PlotInfoPanel: código de parcela como hipervínculo ('Click para ver
-  detalle de parcela' → abre PlotPanel anidado), superficie, aspersión tecnificada,
-  comentarios + mini-mapa. Datos de usePlotGeometry ya cacheado (sin request extra).
-- Cambio de parcela en edición: solo si el subprograma no tiene sesiones
-  (allSessions.length===0); si las tiene, campo deshabilitado + mensaje explicativo.
-  Nuevo usePlotsByProducer(producerId) en usePlots.
-- Gating por status (fix del 400 al crear sesión): 'Nueva Sesión' oculto si el hijo o
-  el maestro están completed/cancelled; 'Nuevo Subprograma' oculto si el maestro está
-  completed/cancelled.
-- PlotMiniMap: prop showTooltip (Popup hover lat/lon + área m²) y maxzoom:19 (overzoom).
-
-──────────────────────────────────────────────────────
-Sesión 14 — Bug fixes módulo admin + layout
-──────────────────────────────────────────────────────
-- Scope SuperAdmin: w.$dc.task-manager respeta workspace
-  (canCreateMaster=isSuperAdmin||isOwnerOfThisDc).
-- Owner Gerente: DataCentralPanel canEdit=isSuperAdmin||isOwnerOfThisDc + botón '← ORG'
-  navega (onClose); OrganizationsSection filtra orgs a owner_username===user.username;
-  useCreateDataCentral invalida DCM_QUERY_KEY+['me'] (conteo de CIAs ya no queda stale).
-- Footer fijo #290629 (__root.tsx). Layout sticky: w.$dc.tsx y AdminLayout → h-dvh con
-  overflow en <main> + pb-9; header y sidebar fixed.
-- Login con imagen de fondo (public/backgrounds/) + Card translúcida.
-
-tsc --noEmit → 0 errores. vitest run → verde.
+tsc --noEmit → 0 errores. vitest run → 149/149 verde (+6 tests nuevos:
+plotRectangles area_ha, sumAreaByBucket, AspersionMapModal área, FlushAspersionDialog).

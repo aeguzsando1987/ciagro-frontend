@@ -36,7 +36,7 @@ const mockPoints = [
     course_deg: '277', boom_width_m: '13.97', distance_m: '1.5',
     applied_rate_l: '380', target_rate_l: '400',
     liquid_flow_ls: '0.6', boom_pressure_bar: '0.3',
-    production_hah: '7.6', speed_kmh: '5.4',
+    production_hah: '7.6', speed_kmh: '5.4', area_ha: '0.5',
   },
   {
     id: 'pt-2', session_header: 'sess-1', plot: null,
@@ -44,7 +44,7 @@ const mockPoints = [
     course_deg: '277', boom_width_m: '13.97', distance_m: '1.5',
     applied_rate_l: '250', target_rate_l: '400', // 62.5% → Deficiente
     liquid_flow_ls: '1.2', boom_pressure_bar: '0.6',
-    production_hah: '3.0', speed_kmh: '3.0',
+    production_hah: '3.0', speed_kmh: '3.0', area_ha: '0.25',
   },
 ]
 
@@ -70,7 +70,7 @@ vi.mock('../components/AspersionMapModal', async (importOriginal) => {
   }
 })
 
-import { AspersionMapModal } from './AspersionMapModal'
+import { AspersionMapModal, sumAreaByBucket } from './AspersionMapModal'
 
 // ─── Wrapper de test ─────────────────────────────────────────────────────────
 
@@ -130,6 +130,15 @@ describe('AspersionMapModal', () => {
     })
   })
 
+  it('muestra el área por categoría en la Capa 1 (% aplicación)', async () => {
+    renderModal()
+    await waitFor(() => {
+      // pt-1 (Excelente) area 0.5 ha; pt-2 (Deficiente) area 0.25 ha
+      expect(screen.getByText(/0\.5 ha/)).toBeTruthy()
+      expect(screen.getByText(/0\.25 ha/)).toBeTruthy()
+    })
+  })
+
   it('cambia a leyenda de cuartiles al seleccionar Capa 2 (Flujo líquido)', async () => {
     renderModal()
     await waitFor(() => screen.getByText('Flujo líquido'))
@@ -160,5 +169,38 @@ describe('AspersionMapModal', () => {
   it('no renderiza el mapa cuando open=false', () => {
     renderModal(false)
     expect(screen.queryByTestId('mock-map')).toBeNull()
+  })
+})
+
+describe('sumAreaByBucket', () => {
+  function fc(features: Array<{ bucket: string; area_ha: number | null }>) {
+    return {
+      type: 'FeatureCollection' as const,
+      features: features.map((p) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Polygon' as const, coordinates: [] },
+        properties: { bucket: p.bucket, area_ha: p.area_ha } as any,
+      })),
+    }
+  }
+
+  it('suma el área por bucket', () => {
+    const res = sumAreaByBucket(fc([
+      { bucket: 'excelente', area_ha: 0.5 },
+      { bucket: 'excelente', area_ha: 1.5 },
+      { bucket: 'deficiente', area_ha: 0.25 },
+    ]))
+    expect(res.excelente).toBeCloseTo(2.0)
+    expect(res.deficiente).toBeCloseTo(0.25)
+  })
+
+  it('ignora áreas null o no finitas', () => {
+    const res = sumAreaByBucket(fc([
+      { bucket: 'q1', area_ha: null },
+      { bucket: 'q1', area_ha: 0.3 },
+      { bucket: 'q2', area_ha: NaN },
+    ]))
+    expect(res.q1).toBeCloseTo(0.3)
+    expect(res.q2).toBeUndefined()
   })
 })

@@ -58,7 +58,11 @@ const ESRI_STYLE = {
         'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       ],
       tileSize: 256,
-      maxzoom: 19,
+      // maxzoom = último nivel con teselas REALES que pedimos a ESRI. ESRI World Imagery
+      // tiene cobertura aérea casi universal hasta z18; pedir z19 en zonas rurales devuelve
+      // 404 → mapa en blanco. Con 18, MapLibre hace overzoom (estira la última foto) más
+      // allá de 18, así la imagen SIEMPRE está disponible aunque se vea menos nítida.
+      maxzoom: 18,
       attribution: '© Esri',
     },
   },
@@ -111,6 +115,22 @@ interface LayerData {
   legendDefs: LegendEntry[]
   colorExpr: unknown[]
   quartilesRef: { q1: number; q2: number; q3: number } | null
+  /** Hectáreas acumuladas por bucket (para el desglose de área en la leyenda). */
+  areaByBucket: Record<string, number>
+}
+
+/** Suma `area_ha` por bucket sobre los rectángulos ya clasificados. Función pura (testeable). */
+export function sumAreaByBucket(
+  fc: GeoJSON.FeatureCollection<GeoJSON.Polygon, RectangleProps & { bucket: string }>,
+): Record<string, number> {
+  const acc: Record<string, number> = {}
+  for (const f of fc.features) {
+    const area = f.properties.area_ha
+    if (area == null || !Number.isFinite(area)) continue
+    const b = f.properties.bucket
+    acc[b] = (acc[b] ?? 0) + area
+  }
+  return acc
 }
 
 type HoverInfo = { lon: number; lat: number; props: RectangleProps & { bucket?: string } }
@@ -164,6 +184,7 @@ function buildLayerData(
       legendDefs: APPLICATION_CATEGORIES as LegendEntry[],
       colorExpr: buildCategoryColorExpr(APPLICATION_CATEGORIES),
       quartilesRef: null,
+      areaByBucket: sumAreaByBucket(annotated),
     }
   }
 
@@ -191,6 +212,7 @@ function buildLayerData(
     legendDefs: cuts ? (buildQuartileDefs(palette, cuts, layerDef.unit) as LegendEntry[]) : [],
     colorExpr: buildQuartileColorExpr(palette),
     quartilesRef: cuts ? { q1: cuts.q1, q2: cuts.q2, q3: cuts.q3 } : null,
+    areaByBucket: sumAreaByBucket(annotated),
   }
 }
 
@@ -241,21 +263,33 @@ function HoverTooltip({ info, layer }: { info: HoverInfo; layer: LayerDef }) {
   )
 }
 
+/** Formatea hectáreas a string es-MX con 2 decimales (null/NaN → '—'). */
+function formatHa(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return '—'
+  return value.toLocaleString('es-MX', { maximumFractionDigits: 2 })
+}
+
 interface LegendCardProps {
   legendDefs: LegendEntry[]
   checkedBuckets: Set<string>
   onToggle: (key: string) => void
   activeLayer: LayerDef
   sessionStats: AspersionSessionStats | undefined
+  areaByBucket: Record<string, number>
 }
 
-function LegendCard({ legendDefs, checkedBuckets, onToggle, activeLayer, sessionStats }: LegendCardProps) {
+function LegendCard({ legendDefs, checkedBuckets, onToggle, activeLayer, sessionStats, areaByBucket }: LegendCardProps) {
+  const isCategory = activeLayer.kind === 'category'
+  const totalHa = sessionStats ? parseFloat(sessionStats.area_total_ha) : null
   return (
     <div className="shrink-0 border-t bg-background px-4 py-2 space-y-1">
       <div className="flex items-center gap-2">
         <span className="text-xs font-semibold">{activeLayer.label}</span>
+        {totalHa != null && Number.isFinite(totalHa) && (
+          <span className="text-xs font-medium text-foreground">· Área total: {formatHa(totalHa)} ha</span>
+        )}
         <span className="text-xs text-muted-foreground italic">— clic en cada categoría para mostrar u ocultar</span>
-        {activeLayer.kind === 'category' && sessionStats && (
+        {isCategory && sessionStats && (
           <span className="ml-auto text-xs text-muted-foreground">
             ✓ {parseFloat(sessionStats.pct_in_range ?? '0').toFixed(1)}% en rango ·{' '}
             ↓ {parseFloat(sessionStats.pct_below ?? '0').toFixed(1)}% bajo ·{' '}
@@ -291,6 +325,10 @@ function LegendCard({ legendDefs, checkedBuckets, onToggle, activeLayer, session
               />
               <span className={checked ? '' : 'line-through text-muted-foreground'}>
                 {'range' in def ? `${def.label} ${def.range}` : def.label}
+                {/* Área por categoría: solo en la capa 1 (% aplicación) */}
+                {isCategory && (
+                  <span className="ml-1 text-muted-foreground">· {formatHa(areaByBucket[def.key])} ha</span>
+                )}
               </span>
             </label>
           )
@@ -439,7 +477,7 @@ export function AspersionMapModal({ open, onClose, sessionId, plotId }: Aspersio
                 ? { bounds: mapBounds, fitBoundsOptions: { padding: 50, maxZoom: 18 } }
                 : { longitude: -101, latitude: 20.5, zoom: 6 }
             }
-            maxZoom={19}
+            maxZoom={20}
             mapStyle={ESRI_STYLE}
             cooperativeGestures
             interactiveLayerIds={['rect-fill']}
@@ -535,6 +573,7 @@ export function AspersionMapModal({ open, onClose, sessionId, plotId }: Aspersio
             onToggle={toggleBucket}
             activeLayer={ASPERSION_LAYERS[activeLayerIdx]!}
             sessionStats={sessionStats}
+            areaByBucket={layerData.areaByBucket}
           />
         )}
       </DialogContent>

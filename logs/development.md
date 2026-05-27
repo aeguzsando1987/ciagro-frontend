@@ -1275,3 +1275,64 @@ ordenCapas: ['esri-base', 'plot-fill', 'plot-outline']  →  falta rect-fill
 - **Tests**: los botones de capa se buscan por `getByRole('button', ...)` porque el label ahora también aparece en el título de la leyenda; se añadió el mock de `Marker`. 7/7 verdes, `tsc 0 errores`.
 
 Commit: `fe6a665`.
+
+---
+
+## Sesión 16 — Áreas en el visor + flush admin + fix de zoom (2026-05-27)
+
+Tres afinamientos sobre la sesión de aspersión y su visor. El flush requirió un endpoint
+nuevo en el backend (ver `../../CIAgro_alpha_backend/logs/development.md`, misma sesión).
+
+### Áreas en el visor
+
+El caso de uso pide ver el **área total de aspersión** y el **área por categoría**. El dato
+ya existía: cada punto trae `area_ha` y el backend ya entrega `area_total_ha` en su MV
+(`useAspersionSessionStats`). Cambios:
+
+- `area_ha` añadido a `RectangleProps` y parseado en `pointsToRectangleCollection`.
+- `sumAreaByBucket(fc)` — función pura que suma hectáreas por `bucket` (ignora null/NaN).
+  Se computa en `buildLayerData` y viaja como `LayerData.areaByBucket`.
+- `LegendCard`: muestra **"Área total: X ha"** siempre (desde `area_total_ha`, valor
+  autoritativo del backend) y el **desglose por categoría** solo en la capa 1
+  (% aplicación). El total puede diferir levemente de la suma por categoría porque los
+  puntos sin geometría/ancho/distancia se descartan al construir los rectángulos; por eso
+  el total mostrado es el del backend, no la suma cliente.
+
+### Flush por-sesión de datos importados (solo SuperAdmin)
+
+La reimportación **añade** puntos (append, confirmado en backend), por lo que reimportar el
+mismo CSV acumula duplicados. Se añadió una acción exclusiva de SuperAdmin (rol 5) para
+**borrar los puntos de la sesión actual**.
+
+> **Corrección de alcance (bug peligroso).** El primer diseño borraba **todas** las sesiones
+> (global). En pruebas se detectó que al eliminar desde una sesión también se vaciaban otras
+> sesiones de la misma parcela — pérdida de datos no deseada. Se acotó el borrado a la sesión
+> indicada (`session_header_id`), tanto en backend como en frontend.
+
+- `useFlushAspersion(sessionId)` — `POST /monitoring/aspersion/headers/<id>/flush/`; al
+  terminar invalida detalle/stats/puntos y muestra toast.
+- `FlushAspersionDialog(sessionId)` — acción destructiva blindada: genera un **código
+  aleatorio de 6 dígitos** al abrir; el botón "Eliminar todo" permanece deshabilitado hasta
+  teclearlo exacto. Cierra solo por sus botones.
+- En `AspersionView`, botón destructivo "Eliminar los datos de esta sesión" visible solo si
+  `roleLevel >= SUPER_ADMIN`, con nota de que la reimportación es aditiva. Tras el flush, el
+  backend deja la cabecera en 'pending', así que el botón del visor desaparece solo (ya
+  gateado por `import_status==='done' && points_count>0`).
+
+### Fix recurrente de zoom (imagen ESRI en blanco)
+
+La imagen satelital desaparecía a cierto zoom. Causa: con `maxzoom: 19` en la fuente raster,
+MapLibre **pide** teselas z19 que ESRI no tiene en zonas rurales (404 → blanco); el overzoom
+solo ocurre **por encima** del `maxzoom` de la fuente. Fix: `maxzoom` 19→**18** en
+`ESRI_STYLE` y `maxZoom` 19→**20** en el `<Map>`. Así, sobre z18 MapLibre estira la última
+tesela disponible y la imagen **siempre** se ve (algo menos nítida al máximo acercamiento).
+`fitBounds` se mantiene en `maxZoom: 18` para que la apertura sea nítida.
+
+### Verificación
+
+- `tsc --noEmit` → **0 errores**. `vitest run` → **149/149 verde** (+6 tests nuevos).
+- Backend: 4 tests del flush por-sesión verdes (incluye el de aislamiento: borrar una sesión
+  no toca otra de la misma parcela); los 5 fallos de la suite `datalayers` son
+  **preexistentes** (CSV faltante + Phyto scope + validación de modelo), confirmado vía
+  `git stash` contra el código limpio.
+- Demo manual pendiente de confirmación del usuario.

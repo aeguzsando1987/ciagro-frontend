@@ -35,6 +35,7 @@ function makePoint(overrides: Partial<AspersionPoint> = {}): AspersionPoint {
     boom_pressure_bar: '0.3',
     production_hah: '7.6',
     speed_kmh: '5.4',
+    area_ha: '0.5',
     ...overrides,
   } as AspersionPoint
 }
@@ -77,7 +78,13 @@ describe('pointsToRectangleCollection', () => {
     expect(f.geometry.type).toBe('Polygon')
     expect(f.properties.applied_rate_l).toBeCloseTo(380)
     expect(f.properties.target_rate_l).toBeCloseTo(400)
+    expect(f.properties.area_ha).toBeCloseTo(0.5)
     expect(f.properties.lon).toBeCloseTo(LON)
+  })
+
+  it('parsea area_ha a null cuando falta', () => {
+    const fc = pointsToRectangleCollection([makePoint({ area_ha: null })])
+    expect(fc.features[0]!.properties.area_ha).toBeNull()
   })
 
   it('usa vehicle_heading como fallback cuando course_deg falta', () => {

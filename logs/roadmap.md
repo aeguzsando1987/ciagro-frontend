@@ -1,7 +1,7 @@
 # ROADMAP — CIAgro Alpha Frontend
 
-> **Estado actual:** Sesión 15 — Fase Visor de capas de aspersión implementada (6.B–6.E). Fix crítico: la capa 1 ya pinta al abrir (filter={undefined} rompía el addLayer). Pendiente: confirmar demo manual con backend real (6.E.2).
-> **Última actualización:** 2026-05-26
+> **Estado actual:** Sesión 16 — Afinamientos del visor de aspersión: áreas (total + por categoría), flush por-sesión de datos (solo SuperAdmin, requirió endpoint backend; corregido de un enfoque global que borraba otras sesiones) y fix recurrente de zoom (overzoom ESRI). 149/149 tests. Pendiente: confirmar demo manual.
+> **Última actualización:** 2026-05-27
 > **Backend:** roadmap propio en `../../CIAgro_alpha_backend/logs/roadmap.md`
 > **Producto:** `../../.context/templates/product-doc.md`
 > **Convención:** los sprints son estimaciones de **dev-week** (1 dev senior full-time).

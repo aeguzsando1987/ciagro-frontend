@@ -32,6 +32,7 @@ import { PlotMiniMap } from './PlotMiniMap'
 import { AspersionImportDialog } from '../components/AspersionImportDialog'
 import { AspersionImportSummary } from '../components/AspersionImportSummary'
 import { AspersionMapModal } from '../components/AspersionMapModal'
+import { FlushAspersionDialog } from '../components/FlushAspersionDialog'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 
@@ -419,11 +420,13 @@ function AspersionView({
 }: AspersionViewProps) {
   const [importOpen, setImportOpen] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
+  const [flushOpen, setFlushOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const canViewMap =
     roleLevel >= ROLE_LEVELS.SUPERVISOR &&
     detail.import_status === 'done' &&
     parseInt(detail.points_count ?? '0', 10) > 0
+  const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
@@ -492,6 +495,23 @@ function AspersionView({
             <Button size="sm" onClick={() => setImportOpen(true)}>
               {detail.import_status === 'done' ? 'Reimportar datos' : 'Importar datos'}
             </Button>
+            <p className="mt-2 text-xs text-muted-foreground">
+              La reimportación <strong>añade</strong> puntos a los existentes (no reemplaza).
+            </p>
+            {isSuperAdmin && (
+              <div className="mt-3 border-t border-dashed pt-3">
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setFlushOpen(true)}
+                >
+                  🗑 Eliminar los datos de esta sesión
+                </Button>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Acción de administrador: borra los puntos importados solo de esta sesión.
+                </p>
+              </div>
+            )}
           </div>
 
           {detail.import_status === 'done' && <AspersionImportSummary headerId={detail.id} />}
@@ -503,6 +523,10 @@ function AspersionView({
             open={importOpen}
             onOpenChange={setImportOpen}
           />
+
+          {isSuperAdmin && (
+            <FlushAspersionDialog open={flushOpen} onClose={() => setFlushOpen(false)} sessionId={detail.id} />
+          )}
         </div>
 
         <div className="w-72 shrink-0 space-y-2">

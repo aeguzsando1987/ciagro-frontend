@@ -43,6 +43,8 @@ export interface RectangleProps {
   boom_pressure_bar: number | null
   production_hah: number | null
   speed_kmh: number | null
+  /** Superficie del punto en hectáreas (para sumar área total y por categoría). */
+  area_ha: number | null
   /** Categoría/cuartil de la capa activa; lo escribe el visor antes de pintar (ver aspersionLayers). */
   bucket?: string
 }
@@ -130,6 +132,7 @@ export function pointsToRectangleCollection(
         boom_pressure_bar: parseDecimal(point.boom_pressure_bar),
         production_hah: parseDecimal(point.production_hah),
         speed_kmh: parseDecimal(point.speed_kmh),
+        area_ha: parseDecimal(point.area_ha),
       },
     })
   }
