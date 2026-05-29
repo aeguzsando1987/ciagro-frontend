@@ -1336,3 +1336,68 @@ tesela disponible y la imagen **siempre** se ve (algo menos nítida al máximo a
   **preexistentes** (CSV faltante + Phyto scope + validación de modelo), confirmado vía
   `git stash` contra el código limpio.
 - Demo manual pendiente de confirmación del usuario.
+
+## Sesión 17 — Visor de Datos Agrícolas (Fase 7 frontend) (2026-05-28)
+
+### Contexto
+
+Sección **nueva e independiente** del task-manager (contrato `visor-datos-agricolas-fase-7`,
+caso de uso `.context/geodata_visualizer_usecases.md`). Explorador jerárquico a la izquierda
++ dashboard a la derecha; **solo lectura**, gating `role_level >= SUPERVISOR (3)`. Reutiliza
+el visor de capas de la Fase 6 y los hooks de la jerarquía. Modo `pedagogic` OFF (cambios
+directos al repo).
+
+### Decisiones `propose` resueltas con el usuario
+
+- **7.B.0** — Reuso del mapa: se **extrajo** un componente auto-contenido `AspersionMap`
+  (recibe `sessionId`+`plotId`, dueño de hooks/estado/capas/leyenda). `AspersionMapModal`
+  quedó como wrapper delgado del Dialog. Sin romper el visor del task-manager.
+- **7.B.1** — Entrada **independiente**: ruta `/visor-datos` **fuera de `w.$dc`** (no requiere
+  CIAgro seleccionada; el explorador arranca en nivel Organización). Acceso por enlace
+  visible en el encabezado (`AppHeader`) + botón en la pantalla de selección
+  (`WorkspaceSelector`). Se descartó el módulo en el menú lateral.
+- **7.B.2** — Carpeta `src/features/geodata-visor/{components,hooks,lib}`.
+- **7.C.0** — Árbol del explorador: **componente recursivo propio, sin dependencias**.
+- **7.D.0** — Estadísticas por nivel: **cálculo en cliente** (`lib/visorStats.ts`); el
+  `GAP-VISOR-STATS` (agregación en backend) queda documentado como opción futura.
+
+### Arquitectura
+
+- **Backend (sin cambios):** se verificó que `AspersionSessionHeaderListView` ya filtra por
+  `?plot=` y ordena por `-aspersion_date`; el `query: never` de `api.d.ts` se resuelve con
+  cast `as never` en el hook nuevo (como `useDataCentrals`/`useMasterPrograms`).
+- `GeodataExplorer` — árbol estilo Explorador de Windows/SSMS, expansión perezosa por nivel
+  (Organización → CIAgro hija → Productores → Ranchos → Parcelas → Sesiones); doble clic en
+  la fila expande/contrae. Reutiliza `useDataCentralMains/useDataCentrals/useProducers
+  (extendido con datacentral)/useRanches/usePlots` + `useAspersionSessionHeaders` (nuevo).
+- `GeodataDashboard` — tarjetas de stats por nivel (compactas), mapa de polígonos de las
+  parcelas del rancho (`RanchPlotsMap`, Source/Layer GeoJSON + etiqueta por parcela y tarjeta
+  flotante Productor/Rancho que además sirve para volver al rancho). Al elegir una sesión,
+  monta `AspersionMap` con las 5 capas heatmap (capa 1 por defecto, selector, hover, leyenda).
+- `SessionsPanel` — tarjeta flotante (minimizable) con las sesiones de la parcela y filtro de
+  rango de fechas en cliente.
+- `GeodataVisorShell` — layout split con explorador **redimensionable** (arrastrar, máx 20%
+  del ancho) y **ocultable**; toggle para ocultar verticalmente el área de estadísticas.
+
+### Archivos
+
+Nuevos: `features/geodata-visor/components/{AspersionMap,GeodataExplorer,GeodataDashboard,
+RanchPlotsMap,SessionsPanel,GeodataVisorShell}.tsx` (+ tests de AspersionMap, GeodataExplorer,
+GeodataDashboard, SessionsPanel), `lib/visorStats.ts` (+test), `hooks/useAspersionSessionHeaders.ts`,
+`types.ts`, `routes/visor-datos.tsx`. Modificados: `task-manager/components/AspersionMapModal.tsx`
+(wrapper), `task-manager/hooks/useAspersionSessionStats.ts` (extraído), `admin/hooks/useProducers.ts`
+(param `datacentral`), `workspace/{AppHeader,WorkspaceSelector}.tsx`, `router.ts`.
+
+### Estado y pendientes
+
+- Implementado: 7.B (extracción + shell + gating), 7.C (explorador), 7.D (stats + mapa de
+  parcelas), 7.E.1 (sesiones + filtro de fechas), 7.E.2 (5 capas por sesión).
+- **Pendiente:** 7.E.3 (tarjeta de info de la sesión con enlaces a sesión/subprograma/programa
+  maestro) y 7.F (demo manual con backend real; actualizar `geodata_visualizer_usecases.md`
+  con la entrada única).
+
+### Verificación
+
+- `tsc --noEmit` → **0 errores**. `vitest run` → **169/169 verde** (incluidos los tests de la
+  Fase 6 tras extraer `AspersionMap`).
+- Demo manual con backend real **pendiente** de recorrido completo.

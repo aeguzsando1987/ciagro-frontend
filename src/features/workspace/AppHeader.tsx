@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from '@tanstack/react-router'
-import { Building2, ChevronDown, LogOut, ShieldCheck, UserCog } from 'lucide-react'
+import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { Building2, ChevronDown, LogOut, Map, ShieldCheck, UserCog } from 'lucide-react'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { Button } from '@/components/ui/button'
 import {
@@ -43,6 +43,17 @@ export function AppHeader() {
         </div>
       </div>
 
+      <div className="flex items-center gap-2">
+        {/* Enlace visible al Visor de Datos Agrícolas (Supervisor+); el backend gatea el scope. */}
+        {(user?.role_level ?? 0) >= ROLE_LEVELS.SUPERVISOR && (
+          <Button asChild variant="ghost" size="sm" className="gap-1.5">
+            <Link to="/visor-datos">
+              <Map className="h-4 w-4" />
+              Visor de datos
+            </Link>
+          </Button>
+        )}
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className="gap-1.5">
@@ -75,6 +86,7 @@ export function AppHeader() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
 
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
     </header>

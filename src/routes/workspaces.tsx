@@ -1,5 +1,5 @@
 import { createRoute, Link } from '@tanstack/react-router'
-import { LogOut, ShieldCheck } from 'lucide-react'
+import { LogOut, Map, ShieldCheck } from 'lucide-react'
 import { authenticatedRoute } from './_authenticated'
 import { WorkspaceSelector } from '@/features/workspace/WorkspaceSelector'
 import { useLogout } from '@/features/auth/useLogout'
@@ -32,7 +32,16 @@ function WorkspacesPage() {
         <span className="text-xs text-muted-foreground">CIAgro (ver. Alpha 1.0)</span>
       </div>
       <div className="absolute right-8 top-8 flex items-center gap-2">
-        {/* El panel /admin es accesible desde Supervisor+; el backend gatea los datos. */}
+        {/* Visor de Datos Agrícolas y panel /admin: accesibles desde Supervisor+;
+            el backend gatea los datos por scope. */}
+        {roleLevel >= ROLE_LEVELS.SUPERVISOR && (
+          <Button asChild variant="ghost" size="sm" className="gap-1.5">
+            <Link to="/visor-datos">
+              <Map className="h-4 w-4" />
+              Visor de datos
+            </Link>
+          </Button>
+        )}
         {roleLevel >= ROLE_LEVELS.SUPERVISOR && (
           <Button asChild variant="ghost" size="sm" className="gap-1.5">
             <Link to="/admin">

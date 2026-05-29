@@ -1,0 +1,38 @@
+feat(visor-datos): visor de datos agrícolas (explorador + dashboard)
+
+Sección nueva e independiente (/visor-datos, fuera de w.$dc) para explorar
+la jerarquía agrícola y visualizar las capas de aspersión, de solo lectura y
+gateada a role_level >= SUPERVISOR (3). Fase 7 frontend (7.B–7.E.2).
+
+Reuso del visor de la Fase 6 (7.B.0):
+- Se extrae AspersionMap, componente auto-contenido (sessionId+plotId) con la
+  lógica de las 5 capas heatmap, selector, hover y leyenda.
+- AspersionMapModal queda como wrapper delgado del Dialog (task-manager intacto).
+- useAspersionSessionStats movido a su propio hook.
+
+Sección y navegación (7.B):
+- Ruta /visor-datos con guard de rol; enlace en AppHeader + botón en
+  WorkspaceSelector. Shell con explorador redimensionable (máx 20%) y ocultable.
+
+Explorador jerárquico (7.C):
+- GeodataExplorer recursivo sin dependencias, expansión perezosa por nivel
+  (Organización → CIAgro hija → Productores → Ranchos → Parcelas → Sesiones);
+  doble clic expande/contrae.
+- Nuevo hook useAspersionSessionHeaders(plot); useProducers extendido con datacentral.
+
+Dashboard (7.D, 7.E.1, 7.E.2):
+- Estadísticas por nivel calculadas en cliente (lib/visorStats.ts).
+- Mapa de polígonos de las parcelas del rancho (RanchPlotsMap): click selecciona y
+  enfoca la parcela, etiqueta por parcela y tarjeta flotante Productor/Rancho que
+  además regresa a la vista del rancho.
+- Panel de sesiones minimizable con filtro por rango de fechas en cliente.
+- Al elegir una sesión, render de las 5 capas heatmap reusando AspersionMap.
+- Toggles para ocultar estadísticas (vertical) y el explorador (horizontal).
+
+Backend sin cambios: AspersionSessionHeaderListView ya filtra por ?plot=.
+
+Verificación: tsc --noEmit 0 errores; vitest 169/169 (incluye los tests de la
+Fase 6 tras la extracción).
+
+Pendiente: 7.E.3 (tarjeta de sesión con enlaces a sesión/subprograma/programa
+maestro), demo manual con backend real y actualización del caso de uso.
