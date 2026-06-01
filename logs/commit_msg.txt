@@ -1,3 +1,44 @@
+feat(workspace): wizard de primer uso para SuperAdmin sin organizaciones — Sesión 17
+
+Sesión 17, 2026-06-01. Rama dev-hypervisor (equipo nuevo). En un sistema recién
+desplegado y vacío, el SuperAdmin necesita una guía para crear su primera
+organización y sus CIAgros hijas. Se añade un wizard de primer uso omitible y se
+corrige el flujo del selector. (El fix de raíz en /users/me/ va en el backend,
+Sesión 45.)
+
+FirstUseWizard.tsx (nuevo):
+- Wizard de 4 pasos para SuperAdmin: bienvenida → crear organización (Paso 1/3) →
+  agregar 1+ CIAgros (Paso 2/3) → instructivo final (Paso 3/3). Omitible (skip) en
+  cada paso vía onExit.
+- Reusa los hooks useCreateDataCentralMain y useCreateDataCentral (admin). El owner
+  de la organización se fija automáticamente al usuario actual (useAuthStore.user.id).
+  El id de la org creada (que ahora devuelve el backend) alimenta el paso de CIAs.
+- Paso final: instrucciones para asignar productores y usuarios a cada CIAgro desde
+  el panel de Administración.
+
+WorkspaceSelector.tsx:
+- Nueva rama SuperAdminEntry (role_level >= 5): consulta useDataCentralsMain(); si el
+  sistema no tiene organizaciones muestra FirstUseWizard, si no el
+  DataCentralMainSelector normal. La decisión se fija una vez (mode) para que crear
+  la primera org no desmonte el wizard a mitad.
+- El auto-navegado por datacentrals.length===1 ahora excluye a SuperAdmin (pasa
+  siempre por SuperAdminEntry). El resto de roles mantienen su comportamiento.
+- Al salir del wizard invalida ['data-centrals-main'] y ['me'] (el hook admin usa
+  otra query key).
+
+.env.local (nuevo, no versionado): VITE_API_BASE_URL + VITE_MAPTILER_KEY placeholder.
+
+Verificación: tsc --noEmit 0 errores; vitest run 150/150 (+1 test del wizard);
+end-to-end con backend CIAGRO_SEED_DEMO=0 (sistema vacío) → admin rol 5 con 0
+organizaciones muestra el wizard.
+
+Deuda menor: src/types/api.d.ts no regenerado; el id que devuelve el endpoint de
+creación de organización se lee con una aserción de tipo puntual en FirstUseWizard
+(regenerar con npm run types:gen cuando convenga).
+
+──────────────────────────────────────────────────────
+[COMMIT ANTERIOR — Sesión 16, ya aplicado]
+──────────────────────────────────────────────────────
 feat(visor-aspersion): áreas en el visor + flush admin + fix de zoom — Sesión 16
 
 Tres afinamientos sobre la sesión de aspersión y su visor.

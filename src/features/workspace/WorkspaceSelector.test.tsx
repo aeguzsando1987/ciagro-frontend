@@ -80,6 +80,15 @@ describe('WorkspaceSelector', () => {
     expect(screen.getByText(/selecciona una organizacion/i)).toBeInTheDocument()
   })
 
+  it('shows first-use wizard for SuperAdmin when there are no organizations', () => {
+    // El mock de useDataCentralsMain devuelve [] → sistema sin organizaciones.
+    useAuthStore.setState({
+      user: { ...BASE_USER, role_level: 5, datacentrals: [] },
+    })
+    renderSelector()
+    expect(screen.getByText(/bienvenido a ciagro/i)).toBeInTheDocument()
+  })
+
   it('renders DataCentralChildSelector when role_level < 4', () => {
     useAuthStore.setState({
       user: {
