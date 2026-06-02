@@ -15,7 +15,7 @@ interface MeResponse {
 }
 
 // GET /api/v1/users/me/
-async function fetchCurrentUser(): Promise<AuthUser> {
+export async function fetchCurrentUser(): Promise<AuthUser> {
   const baseUrl = import.meta.env.VITE_API_BASE_URL
   const res = await fetch(`${baseUrl}/users/me/`, {
     headers: { Authorization: `Bearer ${tokens.getAccess() ?? ''}` },

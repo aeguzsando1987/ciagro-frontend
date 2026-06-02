@@ -22,7 +22,7 @@ const apiClientBaseUrl = baseUrl.replace(/\/api\/v1\/?$/, '')
 // con rotación doble.
 let refreshPromise: Promise<string> | null = null
 
-async function doRefresh(): Promise<string> {
+export async function doRefresh(): Promise<string> {
   if (refreshPromise) return refreshPromise
 
   refreshPromise = (async () => {
@@ -38,8 +38,11 @@ async function doRefresh(): Promise<string> {
 
       if (!res.ok) throw new Error('Refresh fallido')
 
-      const data = (await res.json()) as { access: string }
+      // SimpleJWT con rotación devuelve también un nuevo `refresh` y bloquea el viejo;
+      // si no rotamos en cliente, el segundo refresh siempre falla con 401.
+      const data = (await res.json()) as { access: string; refresh?: string }
       tokens.setAccess(data.access)
+      if (data.refresh) tokens.setRefresh(data.refresh)
       return data.access
     } finally {
       refreshPromise = null

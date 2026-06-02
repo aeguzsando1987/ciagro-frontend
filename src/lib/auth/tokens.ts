@@ -13,7 +13,7 @@
  * fuera de React sin Hooks.
  */
 
-const REFRESH_STORAGE_KEY = 'ciagro-refresh'
+export const REFRESH_STORAGE_KEY = 'ciagro-refresh'
 
 let accessToken: string | null = null
 
