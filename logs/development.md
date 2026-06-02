@@ -1388,16 +1388,52 @@ GeodataDashboard, SessionsPanel), `lib/visorStats.ts` (+test), `hooks/useAspersi
 (wrapper), `task-manager/hooks/useAspersionSessionStats.ts` (extraído), `admin/hooks/useProducers.ts`
 (param `datacentral`), `workspace/{AppHeader,WorkspaceSelector}.tsx`, `router.ts`.
 
+### Tarjeta de sesión con deep-links (7.E.3)
+
+`SessionInfoCard` resuelve la jerarquía de la sesión reutilizando
+`useAspersionSessionDetail` (→ `program_id` = subprograma) → `useHijoDetail` (→ `title` +
+`master_program`) → `useMasterTree` (→ título del maestro), y muestra 3 enlaces TanStack
+Router al task-manager. Como el task-manager abría sus modales por estado local (no por URL),
+se añadió **deep-link aditivo**: search params `openMaster/openHijo/openSesion/openSesionType`
+validados con zod + un `useEffect` (una sola vez al montar) que pre-abre el modal
+correspondiente. El modal de sesión no depende de la lista de masters; maestro/subprograma se
+encuentran en la lista que carga el loader del task-manager para esa CIAgro.
+
+### Bugs de auth (Fase 1) surgidos al probar el deep-link en pestaña nueva
+
+Tres fixes, registrados como bug fixes separados del visor:
+
+1. **Refresh-on-load.** `_authenticated.beforeLoad` era síncrono y mandaba a `/login`
+   cuando el access token (que vive solo en memoria) no estaba. Ahora es async: si hay
+   refresh token en localStorage, intenta `doRefresh()` y solo redirige si falla.
+2. **Rotación del refresh.** SimpleJWT rota el refresh token (cada `/auth/refresh/` devuelve
+   uno nuevo y bloquea el viejo). `doRefresh` solo guardaba `data.access` y descartaba el
+   `data.refresh` nuevo, por lo que el segundo refresh siempre fallaba con 401. Fix:
+   persistir `tokens.setRefresh(data.refresh)` si viene.
+3. **Precarga de `useAuthStore.user` en el guard.** `useAuthStore` no persiste; en pestaña
+   nueva el `user` es `null` hasta que `useCurrentUser` complete `/users/me/`, pero los
+   guards síncronos de los hijos (p.ej. el del task-manager por `role_level`) leen del store
+   antes. Fix: `_authenticated.beforeLoad` ahora también precarga `fetchCurrentUser()` y
+   `setUser` + seed del cache `['me']` (sin persistencia, regla 🛑 #3).
+4. **Sincronización de logout entre pestañas.** Cerrar sesión en una pestaña no afectaba a
+   las hermanas (el usuario seguía navegando con el access token en memoria de cada una).
+   Fix: `setupCrossTabLogout()` (llamado una vez en `main.tsx`) añade un listener de
+   `storage`; cuando OTRA pestaña elimina `REFRESH_STORAGE_KEY` (vía `tokens.clear()` por
+   logout, expiración o `forceLogout`), esta pestaña hace `tokens.clear() + clearUser() +
+   window.location.replace('/login')`. Solo reacciona a eliminaciones (`newValue === null`);
+   ignora escrituras (login, rotación).
+
 ### Estado y pendientes
 
 - Implementado: 7.B (extracción + shell + gating), 7.C (explorador), 7.D (stats + mapa de
-  parcelas), 7.E.1 (sesiones + filtro de fechas), 7.E.2 (5 capas por sesión).
-- **Pendiente:** 7.E.3 (tarjeta de info de la sesión con enlaces a sesión/subprograma/programa
-  maestro) y 7.F (demo manual con backend real; actualizar `geodata_visualizer_usecases.md`
-  con la entrada única).
+  parcelas), 7.E (sesiones + filtro de fechas + 5 capas por sesión + tarjeta con deep-links).
+- Caso de uso `.context/geodata_visualizer_usecases.md` actualizado con la nota de la
+  decisión 7.B.1 (entrada única independiente).
+- **Pendiente único:** demo manual con backend real (recorrido completo de todo el flujo).
 
 ### Verificación
 
-- `tsc --noEmit` → **0 errores**. `vitest run` → **169/169 verde** (incluidos los tests de la
-  Fase 6 tras extraer `AspersionMap`).
+- `tsc --noEmit` → **0 errores**. `vitest run` → **175/175 verde** (incluidos los tests de la
+  Fase 6 tras extraer `AspersionMap` y 3 nuevos de `crossTabLogout`; los fixes de auth no
+  rompen `guards.test`, que usa una copia propia y mínima del guard).
 - Demo manual con backend real **pendiente** de recorrido completo.

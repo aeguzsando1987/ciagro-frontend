@@ -28,6 +28,10 @@ vi.mock('@/features/admin/hooks/usePlots', () => ({
 vi.mock('../hooks/useAspersionSessionHeaders', () => ({
   useAspersionSessionHeaders: () => ({ data: [{ id: 's1' }, { id: 's2' }, { id: 's3' }], isLoading: false }),
 }))
+// SessionInfoCard tiene su propio test (resuelve hooks + Link de router); aquí se aísla.
+vi.mock('./SessionInfoCard', () => ({
+  SessionInfoCard: () => <div data-testid="session-info-card" />,
+}))
 // Hooks del visor de aspersión (usados por AspersionMap en nivel sesión).
 // La referencia del array DEBE ser estable: si cambia en cada render, el useMemo/effect
 // de AspersionMap entra en bucle infinito (recalcula capas y resetea checkboxes sin fin).

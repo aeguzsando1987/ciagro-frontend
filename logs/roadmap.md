@@ -1,6 +1,6 @@
 # ROADMAP — CIAgro Alpha Frontend
 
-> **Estado actual:** Sesión 17 — Visor de Datos Agrícolas (Fase 7 frontend): sección nueva e independiente (`/visor-datos`) con explorador jerárquico redimensionable/ocultable + dashboard (stats por nivel en cliente, mapa de polígonos de parcelas, 5 capas heatmap por sesión reusando el visor de la Fase 6, panel de sesiones con filtro de fechas). Implementado 7.B–7.E.2; pendiente 7.E.3 (tarjeta de sesión con enlaces) y demo manual. 169/169 tests.
+> **Estado actual:** Sesión 17 — Visor de Datos Agrícolas (Fase 7 frontend) implementado (7.B–7.E + caso de uso actualizado) + 4 fixes de auth de Fase 1 (refresh-on-load del access token, rotación del refresh, precarga de `/users/me/` antes de los guards síncronos, sincronización de logout entre pestañas vía storage event). 175/175 tests. **Pendiente único:** demo manual con backend real del recorrido completo del visor.
 > **Última actualización:** 2026-05-28
 > **Backend:** roadmap propio en `../../CIAgro_alpha_backend/logs/roadmap.md`
 > **Producto:** `../../.context/templates/product-doc.md`
@@ -261,7 +261,7 @@ endpoints + 6 gaps abiertos (1 alta, 2 media, 3 baja).
 ✅ Fase 8.5    → Admin: Activos Agrícolas (Sesión 13, 2026-05-21)
 ✅ Sesión 14   → Task Manager Aspersión: importación CSV + homologador + plantillas + resumen; mejoras subprograma/parcela; bug fixes scope/owner-gerente/layout (2026-05-25)
 🔄 Sesión 15   → Visor de capas de aspersión — implementado (6.B–6.E), pendiente demo manual (2026-05-25)
-🔄 Sesión 17   → Visor de Datos Agrícolas (Fase 7 fr.) — 7.B–7.E.2 implementado, pendiente 7.E.3 + demo (2026-05-28)
+🔄 Sesión 17   → Visor de Datos Agrícolas (Fase 7 fr.) — 7.B–7.E implementado + 4 fixes auth Fase 1 (refresh-on-load, rotación, user preload, cross-tab logout), pendiente demo manual (2026-05-28)
 🔒 Fase 2      → Task Manager Gantt (4 dev-weeks, depende de Fase 1)
 🔒 Fase 3      → Visor de sesiones (1.5 dw)         ┐ pueden correr en paralelo
 🔒 Fase 4      → Visor de mapas (2 dw)              │ a Fase 2 cierre o entre sí,

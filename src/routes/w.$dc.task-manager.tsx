@@ -1,5 +1,5 @@
 import { createRoute, redirect, useParams, useSearch } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import { workspaceDcRoute } from './w.$dc'
 import { useAuthStore } from '@/features/auth/useAuthStore'
@@ -35,6 +35,11 @@ const statusSchema = z
 const taskManagerSearchSchema = z.object({
   status: statusSchema,
   agro_unit: z.string().optional().catch(undefined),
+  // Deep-link desde el Visor de Datos Agrícolas: pre-abre un modal al cargar.
+  openMaster: z.string().optional().catch(undefined),
+  openHijo: z.string().optional().catch(undefined),
+  openSesion: z.string().optional().catch(undefined),
+  openSesionType: z.enum(['aspersion', 'phyto']).optional().catch(undefined),
 })
 
 /**
@@ -75,6 +80,28 @@ function TaskManagerPage() {
   const search = useSearch({ from: '/_authenticated/w/$dc/task-manager' })
   const [createMasterOpen, setCreateMasterOpen] = useState(false)
   const [modalStack, setModalStack] = useState<ModalFrame[]>([])
+
+  // Deep-link desde el Visor de Datos Agrícolas: pre-abre el modal correspondiente una
+  // sola vez al montar, según los search params open* (sesión → subprograma → maestro).
+  const deepLinkInit = useRef(false)
+  useEffect(() => {
+    if (deepLinkInit.current) return
+    deepLinkInit.current = true
+    if (search.openSesion && search.openHijo && search.openMaster) {
+      setModalStack([{
+        type: 'sesion',
+        sesionId: search.openSesion,
+        sesionType: search.openSesionType ?? 'aspersion',
+        hijoId: search.openHijo,
+        masterId: search.openMaster,
+      }])
+    } else if (search.openHijo && search.openMaster) {
+      setModalStack([{ type: 'hijo', hijoId: search.openHijo, masterId: search.openMaster }])
+    } else if (search.openMaster) {
+      setModalStack([{ type: 'master', masterId: search.openMaster }])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const user = useAuthStore((s) => s.user)
   const isManager = (user?.role_level ?? 0) >= ROLE_LEVELS.MANAGER

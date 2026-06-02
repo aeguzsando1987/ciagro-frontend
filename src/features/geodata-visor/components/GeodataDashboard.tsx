@@ -20,6 +20,7 @@ import {
 } from '../lib/visorStats'
 import { RanchPlotsMap } from './RanchPlotsMap'
 import { SessionsPanel } from './SessionsPanel'
+import { SessionInfoCard } from './SessionInfoCard'
 import { AspersionMap } from './AspersionMap'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
@@ -156,6 +157,9 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
     <div className="flex h-full flex-col gap-2.5">
       {!statsHidden && stats && <StatGrid loading={plots.isLoading} stats={stats} />}
       {!statsHidden && isPlotLevel && <PlotStats plotId={selection.plot!.id} />}
+      {!statsHidden && isSessionLevel && (
+        <SessionInfoCard sessionId={selection.session!.id} datacentralId={selection.datacentral?.id} />
+      )}
       <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-lg border">
         {isSessionLevel ? (
           /* Sesión seleccionada: las 5 capas heatmap sobre la parcela (reuso Fase 6). */
