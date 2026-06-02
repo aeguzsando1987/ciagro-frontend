@@ -1437,3 +1437,54 @@ Tres fixes, registrados como bug fixes separados del visor:
   Fase 6 tras extraer `AspersionMap` y 3 nuevos de `crossTabLogout`; los fixes de auth no
   rompen `guards.test`, que usa una copia propia y mínima del guard).
 - Demo manual con backend real **pendiente** de recorrido completo.
+
+---
+
+## Sesión 17 — Wizard de primer uso (SuperAdmin sin organizaciones) (2026-06-01)
+
+### Contexto
+
+Puesta en marcha en un equipo nuevo (rama `dev-hypervisor`). En un sistema recién
+desplegado y vacío (sin organizaciones), el SuperAdmin necesita una guía para crear su
+primera organización y sus CIAgros hijas. Antes, ese estado caía en "Sin acceso" o
+auto-navegaba mal. Se añade un wizard de primer uso **omitible** y se corrige el flujo
+del selector. (El fix de raíz en `/users/me/` se hizo en el backend — Sesión 45.)
+
+### Cambios
+
+**`src/features/workspace/FirstUseWizard.tsx`** (nuevo)
+- Wizard de 4 pasos para SuperAdmin: bienvenida → crear organización (Paso 1/3) →
+  agregar 1+ CIAgros (Paso 2/3) → instructivo final (Paso 3/3). Omitible (skip) en cada
+  paso vía `onExit`.
+- Reusa los hooks existentes `useCreateDataCentralMain` y `useCreateDataCentral`
+  (admin). El owner de la organización se fija automáticamente al usuario actual
+  (`useAuthStore().user.id`). El id de la org creada (que ahora devuelve el backend)
+  alimenta el paso de CIAs.
+- Paso final: instrucciones para asignar productores y usuarios a cada CIAgro desde el
+  panel de Administración.
+
+**`src/features/workspace/WorkspaceSelector.tsx`**
+- Nueva rama `SuperAdminEntry` (role_level >= 5): consulta `useDataCentralsMain()`; si el
+  sistema no tiene organizaciones muestra `FirstUseWizard`, en caso contrario el
+  `DataCentralMainSelector` normal. La decisión se fija una sola vez (`mode`) para que
+  crear la primera org dentro del wizard no lo desmonte a mitad.
+- El auto-navegado por `datacentrals.length === 1` ahora excluye a SuperAdmin (pasa
+  siempre por `SuperAdminEntry`). El resto de roles mantienen su comportamiento.
+- Al salir del wizard se invalidan las queries `['data-centrals-main']` y `['me']` para
+  que el selector y el perfil reflejen lo recién creado (el hook admin usa otra query key).
+
+**`.env.local`** (nuevo, no versionado)
+- `VITE_API_BASE_URL=http://localhost:8500/api/v1` y `VITE_MAPTILER_KEY` placeholder.
+
+### Verificación
+
+- `tsc --noEmit` → **0 errores**. `vitest run` → **150/150 verde** (+1 test:
+  `WorkspaceSelector` muestra el wizard para SuperAdmin sin organizaciones).
+- End-to-end con backend `CIAGRO_SEED_DEMO=0` (sistema vacío): `admin` (rol 5) recibe 0
+  organizaciones y se muestra el wizard.
+
+### Deuda técnica menor
+
+- `src/types/api.d.ts` no se regeneró; el `id` que ahora devuelve el endpoint de creación
+  de organización se lee con una aserción de tipo puntual en `FirstUseWizard`. Regenerar
+  con `npm run types:gen` cuando convenga.
