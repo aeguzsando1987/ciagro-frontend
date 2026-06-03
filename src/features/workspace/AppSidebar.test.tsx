@@ -27,30 +27,30 @@ describe('AppSidebar — module visibility by role_level', () => {
     await waitFor(() => screen.getByText('Dashboard'))
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
-    expect(screen.queryByText('Programas')).not.toBeInTheDocument()
+    expect(screen.queryByText('Task Manager')).not.toBeInTheDocument()
     expect(screen.queryByText('Administracion')).not.toBeInTheDocument()
   })
 
-  it('TECHNICIAN (level 2): shows Dashboard + Sesiones + Mapa (NO Programas, Supervisor+ only)', async () => {
+  it('TECHNICIAN (level 2): shows Dashboard + Sesiones + Mapa (NO Task Manager, Supervisor+ only)', async () => {
     useAuthStore.setState({ user: { ...BASE_USER, role_level: 2 } })
     renderInWorkspaceRoute(AppSidebar)
 
     await waitFor(() => screen.getByText('Dashboard'))
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
-    expect(screen.queryByText('Programas')).not.toBeInTheDocument()
+    expect(screen.queryByText('Task Manager')).not.toBeInTheDocument()
     expect(screen.getByText('Sesiones')).toBeInTheDocument()
     expect(screen.getByText('Mapa')).toBeInTheDocument()
     expect(screen.queryByText('Central de datos')).not.toBeInTheDocument()
   })
 
-  it('SUPERVISOR (level 3): shows Programas (level minimo del modulo)', async () => {
+  it('SUPERVISOR (level 3): shows Task Manager (level minimo del modulo)', async () => {
     useAuthStore.setState({ user: { ...BASE_USER, role_level: 3 } })
     renderInWorkspaceRoute(AppSidebar)
 
     await waitFor(() => screen.getByText('Dashboard'))
 
-    expect(screen.getByText('Programas')).toBeInTheDocument()
+    expect(screen.getByText('Task Manager')).toBeInTheDocument()
     expect(screen.queryByText('Central de datos')).not.toBeInTheDocument()
   })
 
@@ -61,7 +61,7 @@ describe('AppSidebar — module visibility by role_level', () => {
     await waitFor(() => screen.getByText('Dashboard'))
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
-    expect(screen.getByText('Programas')).toBeInTheDocument()
+    expect(screen.getByText('Task Manager')).toBeInTheDocument()
     expect(screen.getByText('Central de datos')).toBeInTheDocument()
     expect(screen.getByText('Catalogos')).toBeInTheDocument()
     expect(screen.getByText('Administracion')).toBeInTheDocument()

@@ -117,6 +117,7 @@ export function ProducerRanchesMap({ ranches, plots, onSelectRanch, producerName
           <div className="mt-1 text-[10px] opacity-90">Clic en un rancho para ver sus parcelas</div>
         </div>
       )}
+
     </div>
   )
 }

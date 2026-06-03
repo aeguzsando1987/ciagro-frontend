@@ -126,7 +126,15 @@ export function mapMastersToTasks(
   const hijoIdByTask: Record<string, string> = {}
   const sesionTypeByTask: Record<string, 'aspersion' | 'phyto'> = {}
 
-  masters.forEach((master, idx) => {
+  const treeById = Object.fromEntries(
+    masters.map((m, i) => [m.id, trees[i]])
+  )
+
+  const sortedMasters = [...masters].sort(
+    (a, b) => (a.est_start_date ?? '').localeCompare(b.est_start_date ?? '')
+  )
+
+  sortedMasters.forEach((master) => {
     const masterRange = resolveRange(master.est_start_date, master.est_finish_date)
     const masterColors = STATUS_COLORS[master.status ?? 'pending'] ?? STATUS_COLORS.pending!
     const masterTaskId = `m:${master.id}`
@@ -147,10 +155,14 @@ export function mapMastersToTasks(
     taskMeta[masterTaskId] = { statusDisplay: master.status_display ?? '-' }
     masterIdByTask[masterTaskId] = master.id
 
-    const tree = expanded.has(master.id) ? trees[idx] : undefined
+    const tree = expanded.has(master.id) ? treeById[master.id] : undefined
     if (!tree) return
 
-    tree.programas.forEach((hijo) => {
+    const sortedHijos = [...tree.programas].sort(
+      (a, b) => (a.est_start_date ?? '').localeCompare(b.est_start_date ?? '')
+    )
+
+    sortedHijos.forEach((hijo) => {
       const hijoRange = resolveRange(hijo.est_start_date, hijo.est_finish_date)
       const hijoOut = isOutOfRange(hijoRange, masterRange)
       const baseColors = STATUS_COLORS[hijo.status ?? 'pending'] ?? STATUS_COLORS.pending!
@@ -175,7 +187,10 @@ export function mapMastersToTasks(
       }
       masterIdByTask[hijoTaskId] = master.id
 
-      hijo.aspersion_sessions.forEach((s) => {
+      const sortedAspersiones = [...hijo.aspersion_sessions].sort(
+        (a, b) => (a.aspersion_date ?? '').localeCompare(b.aspersion_date ?? '')
+      )
+      sortedAspersiones.forEach((s) => {
         const sRange = pointRange(s.aspersion_date)
         const sOut = isOutOfRange(sRange, hijoRange)
         const sTaskId = `s:${s.id}`
@@ -199,7 +214,10 @@ export function mapMastersToTasks(
         sesionTypeByTask[sTaskId] = 'aspersion'
       })
 
-      hijo.phyto_monitoring_headers.forEach((s) => {
+      const sortedPhytos = [...hijo.phyto_monitoring_headers].sort(
+        (a, b) => (a.session_date ?? '').localeCompare(b.session_date ?? '')
+      )
+      sortedPhytos.forEach((s) => {
         const sRange = pointRange(s.session_date)
         const sOut = isOutOfRange(sRange, hijoRange)
         const sTaskId = `s:${s.id}`

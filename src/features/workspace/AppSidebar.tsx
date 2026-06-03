@@ -17,7 +17,7 @@ interface NavModule {
 
 const NAV_MODULES: NavModule[] = [
   { label: 'Dashboard', icon: LayoutDashboard, minRole: ROLE_LEVELS.GUEST, implemented: true, to: '/w/$dc/dashboard' },
-  { label: 'Programas', icon: GanttChart, minRole: ROLE_LEVELS.SUPERVISOR, implemented: true, to: '/w/$dc/task-manager' },
+  { label: 'Task Manager', icon: GanttChart, minRole: ROLE_LEVELS.SUPERVISOR, implemented: true, to: '/w/$dc/task-manager' },
   { label: 'Sesiones', icon: ClipboardList, minRole: ROLE_LEVELS.TECHNICIAN, implemented: false },
   { label: 'Mapa', icon: Map, minRole: ROLE_LEVELS.TECHNICIAN, implemented: false },
   { label: 'Central de datos', icon: BarChart3, minRole: ROLE_LEVELS.MANAGER, implemented: false },

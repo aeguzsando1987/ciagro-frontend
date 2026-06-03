@@ -1,5 +1,6 @@
 import { createRoute, redirect, useParams, useSearch } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
+import { Info } from 'lucide-react'
 import { z } from 'zod'
 import { workspaceDcRoute } from './w.$dc'
 import { useAuthStore } from '@/features/auth/useAuthStore'
@@ -15,6 +16,12 @@ import { MaestroModal } from '@/features/task-manager/panel/MaestroModal'
 import { HijoModal } from '@/features/task-manager/panel/HijoModal'
 import { SesionModal } from '@/features/task-manager/panel/SesionModal'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import type { MasterProgram, ProgramaStatus } from '@/features/task-manager/types'
 
 type ModalFrame =
@@ -79,6 +86,7 @@ function TaskManagerPage() {
   const { dc } = useParams({ from: '/_authenticated/w/$dc/task-manager' })
   const search = useSearch({ from: '/_authenticated/w/$dc/task-manager' })
   const [createMasterOpen, setCreateMasterOpen] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false)
   const [modalStack, setModalStack] = useState<ModalFrame[]>([])
 
   // Deep-link desde el Visor de Datos Agrícolas: pre-abre el modal correspondiente una
@@ -151,26 +159,76 @@ function TaskManagerPage() {
     <div className="flex h-full flex-col gap-4">
       <header className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Programas</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold">Task Manager</h1>
+            <button
+              onClick={() => setInfoOpen(true)}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Información del módulo"
+            >
+              <Info className="h-4 w-4" />
+            </button>
+          </div>
           <p className="text-sm text-muted-foreground">
-            Cronograma de Programas, Subprogramas y Sesiones.
+            Planificación y seguimiento de programas, subprogramas y sesiones de campo.
           </p>
         </div>
         {canCreateMaster && (
           <Button size="sm" onClick={() => setCreateMasterOpen(true)}>
-            + Nuevo Programa
+            + Nuevo
           </Button>
         )}
       </header>
 
+      <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Acerca del Task Manager</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 px-1 pb-2 text-xs" style={{ color: '#2e2e2e' }}>
+            <p>
+              El <strong>Task Manager</strong> es el módulo central
+              de planificación agrícola. Organiza el trabajo de campo en tres niveles jerárquicos:
+            </p>
+            <ul className="space-y-2.5 pl-1">
+              <li className="flex gap-2.5">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500 mt-0.5" />
+                <span>
+                  <strong>Programa</strong> — ciclo productivo
+                  completo asignado a un productor (p. ej. temporada de maíz 2026).
+                </span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-violet-500 mt-0.5" />
+                <span>
+                  <strong>Subprograma</strong> — actividad específica
+                  dentro del programa, vinculada a una parcela y cultivo.
+                </span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-sky-500 mt-0.5" />
+                <span>
+                  <strong>Sesión</strong> — evento de campo
+                  ejecutado: aspersión con telemetría GPS o monitoreo fitosanitario.
+                </span>
+              </li>
+            </ul>
+            <p>
+              El cronograma Gantt muestra el avance y detecta automáticamente actividades
+              fuera del rango de fechas planificado.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <FilterBar />
 
-      {isLoading && <p className="text-muted-foreground">Cargando Programas...</p>}
-      {error && <p className="text-destructive">Error al cargar Programas.</p>}
+      {isLoading && <p className="text-muted-foreground">Cargando...</p>}
+      {error && <p className="text-destructive">Error al cargar los programas.</p>}
       {masters && masters.length === 0 && !isLoading && (
         <p className="text-muted-foreground">
-          No hay Programas en este workspace todavía.
-          {isManager && ' Usa el botón "+ Nuevo Programa" para crear el primero.'}
+          No hay programas en este workspace todavía.
+          {isManager && ' Usa el botón "+ Nuevo" para crear el primero.'}
         </p>
       )}
       {masters && masters.length > 0 && (

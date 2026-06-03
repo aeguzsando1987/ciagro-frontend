@@ -246,6 +246,7 @@ export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerNam
           </div>
         </div>
       )}
+
     </div>
   )
 }
