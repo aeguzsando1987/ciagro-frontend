@@ -1,42 +1,18 @@
-feat(admin+visor): mini-tutorial de primer uso, UX de admin, mapa de ranchos y orgs inactivas
+feat(ux): mejoras de UI en Task Manager y Visor de Datos
 
-Sesión 18 (rama dev). Tanda de mejoras de producto probadas con base de datos limpia.
+Sesión 19 (rama dev). Mejoras de usabilidad y nomenclatura.
 
-Wizard de primer uso → mini-tutorial (5 pasos)
-- FirstUseWizard: bienvenida → organización → CIAgros → productores (1-2 AgroUnit tipo
-  Productor) → asignar productores a CIAgros (matriz de checkboxes) → final con aviso de
-  que aún no hay usuarios y cómo registrarlos/asignarlos desde Administración.
-- Reusa useCreateAgroUnit y useCreateDataCentralAssignment; conserva los ids creados entre
-  pasos. Animación slide-in por paso (key={step} + keyframe wizard-slide-in).
-- Requiere el fix de backend (id en DataCentralWriteSerializer) para asignar productores a
-  CIAgros recién creadas.
+Task Manager
+- Sidebar: label "Programas" → "Task Manager"
+- Encabezado del panel: título, subtítulo y botón actualizados
+- Ícono (i) con modal informativo que describe los tres niveles
+  (Programa, Subprograma, Sesión) con bullets de color por nivel
+- Gantt: orden ascendente (más viejo → más nuevo) en los tres niveles
 
-UX de Administración
-- Banners informativos en las tabs Usuarios y Agrounidades de una CIAgro (la asignación da
-  acceso al espacio de datos de la CIAgro; se evita el término "workspace").
-- Labels: "Dueño de organización" (antes Owner) con nota; "Código o nombre" (antes Nombre)
-  para CIAgros.
-- AssignCombobox con prop inline (el dropdown crece el panel en vez de desbordarlo) +
-  transición de altura del DialogContent (interpolate-size + .animate-size).
+Visor de Datos — intento de modos de mapa (revertido)
+- Se intentó agregar selector Satélite/Calles/Terreno/Híbrido.
+- Revertido por bug de ordenamiento de capas MapLibre (key en Source
+  forzaba remount → basemap quedaba encima de los datos).
+- Commit 7b219e5 = checkpoint antes de reimplementar.
 
-Visor de Datos Agrícolas
-- Nivel productor: ProducerRanchesMap con un pin por rancho (geom Point → lat/lon →
-  centroide de sus parcelas como fallback); clic en un pin sube a nivel rancho.
-- Nivel rancho: pin con el nombre del rancho; tarjeta flotante Productor·Rancho navegable
-  (productor → vuelve a productor; rancho → vuelve a las parcelas).
-- AspersionMap: prop floatingToolbar → toolbar transparente flotante con botones de capa más
-  pequeños y botón "← Parcela" con estilo de retorno. El modal del task-manager no cambia.
-
-Fix: Manager dueño de organización sin CIAs
-- WorkspaceSelector reescrito (ManagerEntry/BasicEntry). Un Manager (rol 4) dueño de una org
-  sin CIAs hijas ya no cae en NoAccessScreen: si ve alguna org, muestra el selector
-  jerárquico; DataCentralMainSelector avisa cuando la org no tiene CIAgros.
-
-Organizaciones inactivas deshabilitadas
-- useDataCentralMains(includeInactive) y useDataCentrals(dcmId, includeInactive): el panel
-  admin pide inactivas (para reactivarlas); el selector y el visor usan el default.
-- Guard de ruta /w/$dc: beforeLoad redirige a /workspaces si la CIA no es accesible; useEffect
-  reactivo expulsa "en caliente" (con toast) si la org se desactiva durante la sesión.
-
-Verificación: tsc --noEmit 0 errores; suites de workspace, admin, geodata-visor y guards en
-verde. Acompaña al commit de backend (Sesión 18: orgs inactivas + id en CIAgro write).
+Verificación: tsc --noEmit 0 errores; 177/177 vitest verdes.

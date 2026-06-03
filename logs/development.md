@@ -1549,3 +1549,67 @@ Con el backend excluyendo orgs inactivas de los listados y de `/users/me/`, el f
 
 - `tsc --noEmit` → 0 errores. Suites afectadas (workspace, admin, geodata-visor, guards) en
   verde tras cada cambio.
+
+---
+
+## Sesión 19 — Mejoras de UX en Task Manager y Visor (2026-06-03)
+
+### Contexto
+
+Tanda de mejoras visuales y de usabilidad pedidas durante revisión del producto.
+Sin cambios en backend. Commit checkpoint `7b219e5` en rama `dev`.
+
+### Sidebar — label "Task Manager"
+
+`AppSidebar.tsx`: el módulo que antes figuraba como "Programas" ahora se llama
+**"Task Manager"** en la barra lateral izquierda de los workspaces. Test
+`AppSidebar.test.tsx` actualizado en consecuencia (4 ocurrencias).
+
+### Gantt — orden ascendente
+
+`GanttHierarchy.tsx` (`mapMastersToTasks`): los tres niveles jerárquicos ahora se
+ordenan de **más viejo a más nuevo** antes de construir el `Task[]` del Gantt:
+
+- Programas maestros → por `est_start_date`
+- Subprogramas (hijos) → por `est_start_date`
+- Sesiones de aspersión → por `aspersion_date`
+- Sesiones fitosanitarias → por `session_date`
+
+Decisión de implementación: se construye `treeById` (mapa `id → tree`) para
+desacoplar el sort de los maestros del índice `i` de `trees[]` (que sigue el orden
+original de la lista antes del sort). Sin este lookup, `trees[idx]` post-sort
+apuntaría al árbol equivocado.
+
+### Panel Task Manager — encabezado y modal informativo
+
+`w.$dc.task-manager.tsx`:
+
+- Título: `"Programas"` → `"Task Manager"`.
+- Subtítulo: `"Cronograma de Programas, Subprogramas y Sesiones."` →
+  `"Planificación y seguimiento de programas, subprogramas y sesiones de campo."`.
+- Botón: `"+ Nuevo Programa"` → `"+ Nuevo"`.
+- **Ícono (i)** junto al título: botón con `<Info>` de lucide-react; abre un
+  `Dialog` que explica los tres niveles del módulo (Programa, Subprograma, Sesión)
+  con un bullet de color por nivel y texto descriptivo del dominio agrícola.
+- Estilo del modal informativo: `text-xs`, `px-1 pb-2`, color fijo `#2e2e2e`
+  (no heredado del tema) para mayor contraste sobre fondo claro.
+- Textos de estado: "Cargando Programas…" → "Cargando…"; "No hay Programas…" →
+  "No hay programas…"; mensaje del botón vacío actualizado a `"+ Nuevo"`.
+
+### Modos de mapa — intento y rollback (checkpoint)
+
+Se intentó agregar un selector de modos de fondo (Satélite / Calles / Terreno /
+Híbrido) a los tres mapas del Visor de Datos (`AspersionMap`, `RanchPlotsMap`,
+`ProducerRanchesMap`). La implementación usó `BasemapLayer` con `key={modeKey}` en
+la `<Source>` de react-map-gl, lo que forzaba un unmount/remount al cambiar de
+modo. MapLibre re-agrega la capa al **final** del stack tras el remount, quedando
+encima de las capas de datos (polígonos, rectángulos) y ocultándolas.
+
+Se revirtieron todos los cambios antes de reimplementar. El commit `7b219e5` sirve
+como **checkpoint limpio**. La reimplementación correcta usará `setTiles` reactivo
+(sin remount) con solo los modos **Satélite** e **Híbrido**.
+
+### Verificación
+
+- `tsc --noEmit` → **0 errores**. `vitest run` → **177/177 verde** (sin tests nuevos;
+  ajuste en `AppSidebar.test.tsx`).
