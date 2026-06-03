@@ -6,6 +6,8 @@
 import { useEffect, useMemo, useRef } from 'react'
 import Map, { Marker } from 'react-map-gl/maplibre'
 import type { MapRef } from 'react-map-gl/maplibre'
+import { MapModeSelector } from './MapModeSelector'
+import { useMapMode } from '../lib/mapModes'
 import { ESRI_STYLE } from './AspersionMap'
 import type { RanchFlat, PlotFlat } from '@/features/admin/types'
 
@@ -45,6 +47,7 @@ interface ProducerRanchesMapProps {
 
 export function ProducerRanchesMap({ ranches, plots, onSelectRanch, producerName }: ProducerRanchesMapProps) {
   const mapRef = useRef<MapRef>(null)
+  const { mapMode, setMapMode } = useMapMode(mapRef)
 
   const pins = useMemo(
     () =>
@@ -118,6 +121,7 @@ export function ProducerRanchesMap({ ranches, plots, onSelectRanch, producerName
         </div>
       )}
 
+      <MapModeSelector active={mapMode} onChange={setMapMode} />
     </div>
   )
 }

@@ -1,18 +1,26 @@
-feat(ux): mejoras de UI en Task Manager y Visor de Datos
+feat(visor-datos): modos de mapa Satélite/Híbrido sin API key
 
-Sesión 19 (rama dev). Mejoras de usabilidad y nomenclatura.
+Sesión 20 (rama dev). Reimplementación correcta del selector de modos
+que en la sesión 19 quedó como spike revertido.
 
-Task Manager
-- Sidebar: label "Programas" → "Task Manager"
-- Encabezado del panel: título, subtítulo y botón actualizados
-- Ícono (i) con modal informativo que describe los tres niveles
-  (Programa, Subprograma, Sesión) con bullets de color por nivel
-- Gantt: orden ascendente (más viejo → más nuevo) en los tres niveles
+Causa raíz del fallo previo
+- VITE_MAPTILER_KEY era un placeholder → el híbrido MapTiler daba 403
+  y "no se veía ningún cambio". setTiles reactivo además era frágil.
 
-Visor de Datos — intento de modos de mapa (revertido)
-- Se intentó agregar selector Satélite/Calles/Terreno/Híbrido.
-- Revertido por bug de ordenamiento de capas MapLibre (key en Source
-  forzaba remount → basemap quedaba encima de los datos).
-- Commit 7b219e5 = checkpoint antes de reimplementar.
+Solución (sin API key, robusta)
+- ESRI_STYLE incorpora las capas de referencia GRATUITAS de ESRI
+  (World_Transportation + World_Boundaries_and_Places, PNG transparente)
+  con visibility:'none' inicial, declaradas en el estilo base → siempre
+  al fondo, las capas de datos quedan encima.
+- Hook compartido useMapMode(mapRef): el modo híbrido solo alterna la
+  visibilidad de esas capas vía setLayoutProperty (espera al evento
+  'load' si el estilo no cargó). Cero remount, cero reordenamiento.
+- Eliminado MapTiler / BLANK_STYLE / MAP_MODES.tiles de mapModes.ts.
 
-Verificación: tsc --noEmit 0 errores; 177/177 vitest verdes.
+Alcance por mapa
+- Navegación (ProducerRanchesMap, RanchPlotsMap): selector Satélite/Híbrido.
+- Vista de capas de datos (AspersionMap, heatmap): selector retirado a
+  pedido; queda fijo en satélite (carreteras/etiquetas estorban el heatmap).
+
+Verificación: tsc --noEmit 0 errores; 177/177 vitest verdes; modo
+confirmado manualmente por el usuario.

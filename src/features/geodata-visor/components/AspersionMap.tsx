@@ -49,6 +49,11 @@ import {
 } from '@/features/task-manager/lib/aspersionLayers'
 
 // ─── ESRI satellite style — mismo que PlotMiniMap ─────────────────────────────
+// Incluye, además de la imagen base, dos capas de referencia de ESRI (carreteras y
+// etiquetas/lugares) inicialmente OCULTAS. El modo "Híbrido" simplemente las muestra
+// (ver useMapMode): son PNG transparentes que se superponen a la imagen. Todas las capas
+// del basemap se definen aquí, así quedan SIEMPRE al fondo (las capas de datos que añade
+// react-map-gl se montan encima). Alternar visibilidad no reordena ni remonta nada.
 export const ESRI_STYLE = {
   version: 8 as const,
   sources: {
@@ -65,8 +70,39 @@ export const ESRI_STYLE = {
       maxzoom: 18,
       attribution: '© Esri',
     },
+    // Capas de referencia gratuitas y sin API key (PNG transparente).
+    'esri-transportation': {
+      type: 'raster' as const,
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 18,
+    },
+    'esri-places': {
+      type: 'raster' as const,
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      ],
+      tileSize: 256,
+      maxzoom: 18,
+    },
   },
-  layers: [{ id: 'esri-base', type: 'raster' as const, source: 'esri' }],
+  layers: [
+    { id: 'esri-base', type: 'raster' as const, source: 'esri' },
+    {
+      id: 'esri-transportation',
+      type: 'raster' as const,
+      source: 'esri-transportation',
+      layout: { visibility: 'none' as const },
+    },
+    {
+      id: 'esri-places',
+      type: 'raster' as const,
+      source: 'esri-places',
+      layout: { visibility: 'none' as const },
+    },
+  ],
 }
 
 function bboxFromCoords(coords: number[][]): [number, number, number, number] {
@@ -453,6 +489,7 @@ export function AspersionMap({
             {toolbarInner}
           </div>
         )}
+
         {loadingPoints && (
           <MapOverlay>
             <span className="animate-spin mr-2">⏳</span> Cargando puntos…

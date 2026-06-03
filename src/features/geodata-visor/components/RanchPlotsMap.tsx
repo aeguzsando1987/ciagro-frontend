@@ -10,6 +10,8 @@ import { useEffect, useMemo, useRef } from 'react'
 import Map, { Layer, Marker, Source } from 'react-map-gl/maplibre'
 import type { MapRef } from 'react-map-gl/maplibre'
 import { ArrowLeft } from 'lucide-react'
+import { MapModeSelector } from './MapModeSelector'
+import { useMapMode } from '../lib/mapModes'
 import { ESRI_STYLE } from './AspersionMap'
 import type { PlotFlat } from '@/features/admin/types'
 
@@ -71,6 +73,7 @@ interface RanchPlotsMapProps {
 
 export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerName, ranchName, onBackToRanch, onBackToProducer }: RanchPlotsMapProps) {
   const mapRef = useRef<MapRef>(null)
+  const { mapMode, setMapMode } = useMapMode(mapRef)
 
   // Etiqueta semitransparente por parcela, anclada en su centroide.
   const labels = useMemo(
@@ -247,6 +250,7 @@ export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerNam
         </div>
       )}
 
+      <MapModeSelector active={mapMode} onChange={setMapMode} />
     </div>
   )
 }

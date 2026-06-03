@@ -1613,3 +1613,53 @@ como **checkpoint limpio**. La reimplementación correcta usará `setTiles` reac
 
 - `tsc --noEmit` → **0 errores**. `vitest run` → **177/177 verde** (sin tests nuevos;
   ajuste en `AppSidebar.test.tsx`).
+
+## Sesión 20 — Modos de mapa Satélite/Híbrido en el Visor de Datos (2026-06-03)
+
+Reimplementación correcta del selector de modos de fondo que en la Sesión 19 quedó
+como spike revertido. Objetivo simple: poder alternar entre imagen satelital pura y
+una vista híbrida (satélite + carreteras + etiquetas).
+
+### Causa raíz de los intentos fallidos previos
+
+1. **`VITE_MAPTILER_KEY` era un placeholder** (`your-maptiler-key-here`). El modo
+   híbrido pedía teselas a MapTiler con esa key inválida → `403` → nunca cargaba
+   nada → "no se ve ningún cambio". El híbrido era **imposible** sin una API key
+   válida.
+2. `setTiles()` reactivo era frágil: timing de carga del mapa + mismatch de
+   `tileSize`/`maxzoom` entre proveedores.
+
+### Solución adoptada — overlays de referencia de ESRI + toggle de visibilidad
+
+ESRI publica capas de referencia **gratuitas y sin API key** (PNG transparente)
+diseñadas para superponerse a World Imagery:
+
+- `Reference/World_Transportation` → carreteras.
+- `Reference/World_Boundaries_and_Places` → etiquetas/lugares/límites.
+
+`ESRI_STYLE` (en `AspersionMap.tsx`) ahora define, además de la imagen base, esas
+dos capas de referencia con `layout.visibility: 'none'` inicial. Todas las capas
+del basemap se declaran en el estilo inicial, así quedan **siempre al fondo**; las
+capas de datos que monta react-map-gl se añaden encima. Cambiar de modo solo alterna
+la **visibilidad** de las capas de referencia → **cero remount, cero reordenamiento,
+cero dependencia de API key**.
+
+`mapModes.ts` se reescribió: se eliminó MapTiler/`BLANK_STYLE`/`MAP_MODES.tiles` y se
+expone un hook compartido `useMapMode(mapRef)` que mantiene el modo activo y aplica
+`setLayoutProperty(id, 'visibility', …)` sobre las capas de referencia. Si el estilo
+aún no terminó de cargar, espera al evento `load` antes de tocarlas (setLayoutProperty
+lanza si el estilo no está listo).
+
+### Alcance por mapa
+
+- **Navegación** (`ProducerRanchesMap`, `RanchPlotsMap`): selector Satélite/Híbrido
+  vía `useMapMode`.
+- **Vista de capas de datos** (`AspersionMap`, heatmap de aspersión): a pedido, se
+  **quitó el selector** — el satélite puro es lo correcto para el heatmap (carreteras
+  y etiquetas estorbarían). Queda fijo en satélite (default del estilo).
+
+### Verificación
+
+- Endpoints ESRI de referencia verificados (`200`, PNG transparente).
+- `tsc --noEmit` → **0 errores**. `vitest run` → **177/177 verde**.
+- Confirmado manualmente por el usuario: el cambio de modo funciona.
