@@ -19,10 +19,10 @@ import {
   datacentralStats, producerStats, ranchStats, plotStats,
 } from '../lib/visorStats'
 import { RanchPlotsMap } from './RanchPlotsMap'
+import { ProducerRanchesMap } from './ProducerRanchesMap'
 import { SessionsPanel } from './SessionsPanel'
 import { SessionInfoCard } from './SessionInfoCard'
 import { AspersionMap } from './AspersionMap'
-import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import type { VisorSelection } from '../types'
 
@@ -86,12 +86,40 @@ function DataCentralStats({ dcId }: { dcId: string }) {
   return <StatGrid loading={loading} stats={datacentralStats(producerIds.length, ranches, plots)} />
 }
 
-function ProducerStats({ producerId }: { producerId: string }) {
+/** Vista de productor: tarjetas de stats + mapa con un pin por rancho. */
+function ProducerView({ selection, onSelect, statsHidden }: DashboardProps & { statsHidden: boolean }) {
+  const producerId = selection.producer!.id
   const ranches = useRanches(producerId)
   const plots = usePlots({ producerId })
   const loading = ranches.isLoading || plots.isLoading
   const areaHa = sumArea(plots.data ?? [])
-  return <StatGrid loading={loading} stats={producerStats(ranches.data?.length ?? 0, plots.data?.length ?? 0, areaHa)} />
+
+  return (
+    <div className="flex h-full flex-col gap-2.5">
+      {!statsHidden && (
+        <StatGrid loading={loading} stats={producerStats(ranches.data?.length ?? 0, plots.data?.length ?? 0, areaHa)} />
+      )}
+      <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-lg border">
+        <ProducerRanchesMap
+          ranches={ranches.data ?? []}
+          plots={plots.data ?? []}
+          producerName={selection.producer?.name}
+          onSelectRanch={(ranch) => onSelect(selectRanchFromMap(selection, ranch))}
+        />
+      </div>
+    </div>
+  )
+}
+
+/** Selección de rancho a partir de la ruta del productor (clic en un pin). */
+function selectRanchFromMap(selection: VisorSelection, ranch: { id: string; name: string }): VisorSelection {
+  return {
+    org: selection.org,
+    datacentral: selection.datacentral,
+    producer: selection.producer,
+    ranch,
+    level: 'ranch',
+  }
 }
 
 // ─── Vistas con mapa (rancho / parcela / sesión) ──────────────────────────────
@@ -116,6 +144,16 @@ function selectRanchLevel(selection: VisorSelection): VisorSelection {
     producer: selection.producer,
     ranch: selection.ranch,
     level: 'ranch',
+  }
+}
+
+/** Vuelve a la vista del productor (mapa de pines de ranchos). */
+function selectProducerLevel(selection: VisorSelection): VisorSelection {
+  return {
+    org: selection.org,
+    datacentral: selection.datacentral,
+    producer: selection.producer,
+    level: 'producer',
   }
 }
 
@@ -166,15 +204,15 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
           <AspersionMap
             sessionId={selection.session!.id}
             plotId={selection.plot!.id}
+            floatingToolbar
             toolbarStart={
-              <Button
-                size="sm"
-                variant="outline"
-                className="mr-2 gap-1"
+              <button
+                type="button"
                 onClick={() => onSelect(selectPlotLevel(selection))}
+                className="mr-2 flex h-7 items-center gap-1 rounded-md bg-black/55 px-2.5 text-xs font-medium text-white shadow hover:bg-black/70"
               >
-                <ArrowLeft className="h-4 w-4" /> Parcela
-              </Button>
+                <ArrowLeft className="h-3.5 w-3.5" /> Parcela
+              </button>
             }
           />
         ) : (
@@ -185,6 +223,7 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
             producerName={selection.producer?.name}
             ranchName={selection.ranch?.name}
             onBackToRanch={() => onSelect(selectRanchLevel(selection))}
+            onBackToProducer={selection.producer ? () => onSelect(selectProducerLevel(selection)) : undefined}
           />
         )}
         {isPlotLevel && (
@@ -220,7 +259,7 @@ function LevelBody({ selection, onSelect, statsHidden }: DashboardProps & { stat
     case 'datacentral':
       return <DataCentralStats dcId={selection.datacentral!.id} />
     case 'producer':
-      return <ProducerStats producerId={selection.producer!.id} />
+      return <ProducerView selection={selection} onSelect={onSelect} statsHidden={statsHidden} />
     case 'ranch':
     case 'plot':
     case 'session':
@@ -242,7 +281,7 @@ function selectionName(selection: VisorSelection): string {
 export function GeodataDashboard({ selection, onSelect }: DashboardProps) {
   const [statsHidden, setStatsHidden] = useState(false)
   // El toggle de estadísticas solo aplica en niveles con mapa (gana alto el mapa).
-  const hasMap = selection.level === 'ranch' || selection.level === 'plot' || selection.level === 'session'
+  const hasMap = selection.level === 'producer' || selection.level === 'ranch' || selection.level === 'plot' || selection.level === 'session'
 
   return (
     <div className="flex h-full flex-col gap-2.5">

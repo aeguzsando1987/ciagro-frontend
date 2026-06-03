@@ -61,11 +61,15 @@ interface RanchPlotsMapProps {
   /** Para la tarjeta flotante de contexto (mismo productor/rancho para todo el mapa). */
   producerName?: string
   ranchName?: string
-  /** Si se provee, la tarjeta flotante es clickeable y vuelve a la vista del rancho. */
+  /** Si se provee, la línea del rancho es clickeable y vuelve a la vista del rancho
+   *  (deselecciona la parcela). */
   onBackToRanch?: () => void
+  /** Si se provee, la línea del productor es clickeable y vuelve a la vista del productor
+   *  (mapa de pines de ranchos). */
+  onBackToProducer?: () => void
 }
 
-export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerName, ranchName, onBackToRanch }: RanchPlotsMapProps) {
+export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerName, ranchName, onBackToRanch, onBackToProducer }: RanchPlotsMapProps) {
   const mapRef = useRef<MapRef>(null)
 
   // Etiqueta semitransparente por parcela, anclada en su centroide.
@@ -93,6 +97,13 @@ export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerNam
     () => boundsOf(plots, selectedPlotId) ?? boundsOf(plots),
     [plots, selectedPlotId],
   )
+
+  // Centro del grupo de parcelas → ancla del pin del rancho.
+  const ranchCenter = useMemo<[number, number] | null>(() => {
+    const b = boundsOf(plots)
+    if (!b) return null
+    return [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]
+  }, [plots])
 
   useEffect(() => {
     if (!mapRef.current || !bounds) return
@@ -168,6 +179,18 @@ export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerNam
           </Source>
         )}
 
+        {/* Pin del rancho: visible solo a nivel rancho (sin parcela seleccionada). */}
+        {!selectedPlotId && ranchName && ranchCenter && (
+          <Marker longitude={ranchCenter[0]} latitude={ranchCenter[1]} anchor="bottom">
+            <div style={{ pointerEvents: 'none', textAlign: 'center' }}>
+              <div className="rounded-md bg-emerald-800/90 px-2 py-1 text-[11px] font-semibold text-white shadow-md whitespace-nowrap">
+                📍 {ranchName}
+              </div>
+              <div className="mx-auto h-2 w-0.5 bg-emerald-800/90" />
+            </div>
+          </Marker>
+        )}
+
         {/* Etiqueta por parcela: solo su código.
             pointer-events: none → el clic atraviesa la etiqueta y llega al polígono. */}
         {labels.map(({ plot, center }) => {
@@ -187,28 +210,42 @@ export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerNam
         })}
       </Map>
 
-      {/* Tarjeta flotante de contexto (Productor · Rancho). Si hay una parcela
-          seleccionada, es clickeable y vuelve a la vista completa del rancho. */}
-      {(producerName || ranchName) && (() => {
-        const backable = !!selectedPlotId && !!onBackToRanch
-        return (
-          <div
-            role={backable ? 'button' : undefined}
-            onClick={backable ? onBackToRanch : undefined}
-            className={`absolute left-3 top-3 z-10 rounded-md bg-black/55 px-3 py-2 text-white shadow ${
-              backable ? 'cursor-pointer pointer-events-auto hover:bg-black/70' : 'pointer-events-none'
-            }`}
-          >
-            {producerName && <div className="text-[11px] opacity-80">{producerName}</div>}
-            {ranchName && <div className="text-sm font-semibold leading-tight">{ranchName}</div>}
-            {backable && (
-              <div className="mt-1 flex items-center gap-1 text-[10px] opacity-90">
-                <ArrowLeft className="h-3 w-3" /> Ver todas las parcelas
-              </div>
-            )}
+      {/* Tarjeta flotante de contexto (Productor · Rancho).
+          - Productor: botón → vuelve a la vista del productor (pines de ranchos).
+          - Rancho: botón solo si hay parcela seleccionada → vuelve a la vista del rancho. */}
+      {(producerName || ranchName) && (
+        <div className="absolute left-3 top-3 z-10 rounded-md bg-black/55 px-3 py-2 text-white shadow">
+          {producerName && (
+            onBackToProducer ? (
+              <button
+                type="button"
+                onClick={onBackToProducer}
+                className="flex items-center gap-1 text-[11px] opacity-80 hover:opacity-100 hover:underline"
+              >
+                <ArrowLeft className="h-3 w-3" /> {producerName}
+              </button>
+            ) : (
+              <div className="text-[11px] opacity-80">{producerName}</div>
+            )
+          )}
+          {ranchName && (
+            selectedPlotId && onBackToRanch ? (
+              <button
+                type="button"
+                onClick={onBackToRanch}
+                className="flex items-center gap-1 text-sm font-semibold leading-tight hover:underline"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" /> {ranchName}
+              </button>
+            ) : (
+              <div className="text-sm font-semibold leading-tight">{ranchName}</div>
+            )
+          )}
+          <div className="mt-0.5 text-[10px] opacity-80">
+            {selectedPlotId ? 'Clic en el rancho para ver todas las parcelas' : 'Clic en una parcela para ver sus sesiones'}
           </div>
-        )
-      })()}
+        </div>
+      )}
     </div>
   )
 }

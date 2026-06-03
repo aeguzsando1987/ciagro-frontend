@@ -20,7 +20,8 @@ export function OrganizationsSection() {
   const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
   const canCreate = isSuperAdmin
 
-  const { data: rawOrgs = [], isLoading, error } = useDataCentralMains()
+  // El panel de Administración incluye organizaciones inactivas para poder reactivarlas.
+  const { data: rawOrgs = [], isLoading, error } = useDataCentralMains(true)
   // Non-SuperAdmin: solo ver y gestionar las organizaciones de las que es dueño.
   const orgs = isSuperAdmin
     ? rawOrgs

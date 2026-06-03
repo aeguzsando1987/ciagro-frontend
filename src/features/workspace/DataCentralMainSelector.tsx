@@ -33,10 +33,20 @@ export function DataCentralMainSelector() {
         >
           &larr; Volver a organizaciones
         </button>
-        <DataCentralChildSelector
-          datacentrals={children}
-          title={`CIAs de ${selectedMain.name}`}
-        />
+        {children.length === 0 ? (
+          <div className="w-full max-w-md space-y-2">
+            <h2 className="text-xl font-semibold">CIAs de {selectedMain.name}</h2>
+            <p className="rounded-md border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+              Esta organización aún no tiene CIAgros. Crea la primera desde el panel de
+              <strong> Administración → Organizaciones</strong>.
+            </p>
+          </div>
+        ) : (
+          <DataCentralChildSelector
+            datacentrals={children}
+            title={`CIAs de ${selectedMain.name}`}
+          />
+        )}
       </div>
     )
   }

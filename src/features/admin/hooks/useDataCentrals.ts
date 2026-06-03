@@ -10,11 +10,18 @@ export const DC_QUERY_KEY  = ['admin', 'datacentrals'] as const
 
 // ── DataCentralMain ───────────────────────────────────────────────────────────
 
-export function useDataCentralMains() {
+/**
+ * @param includeInactive si true, incluye organizaciones con status inactivo
+ *   (solo para el panel de Administración, que debe poder reactivarlas). Por defecto
+ *   el backend ya excluye las inactivas del selector/visor.
+ */
+export function useDataCentralMains(includeInactive = false) {
   return useQuery(queryOptions({
-    queryKey: DCM_QUERY_KEY,
+    queryKey: includeInactive ? [...DCM_QUERY_KEY, 'all'] as const : DCM_QUERY_KEY,
     queryFn: async (): Promise<DataCentralMainDetail[]> => {
-      const { data, error } = await apiClient.GET('/api/v1/organizations/data-centrals-main/')
+      const { data, error } = await apiClient.GET('/api/v1/organizations/data-centrals-main/', {
+        params: { query: (includeInactive ? { include_inactive: 'true' } : {}) as never },
+      })
       if (error) throw new Error('No se pudo cargar las organizaciones')
       return data?.results ?? []
     },
@@ -75,12 +82,22 @@ export function useUpdateDataCentralMain() {
 
 // ── DataCentral ───────────────────────────────────────────────────────────────
 
-export function useDataCentrals(dcmId?: string) {
+/**
+ * @param includeInactive si true, incluye CIAs de organizaciones inactivas (panel admin).
+ *   Por defecto el backend ya las excluye del selector/visor.
+ */
+export function useDataCentrals(dcmId?: string, includeInactive = false) {
   return useQuery(queryOptions({
-    queryKey: dcmId ? [...DC_QUERY_KEY, dcmId] : DC_QUERY_KEY,
+    queryKey: [
+      ...(dcmId ? [...DC_QUERY_KEY, dcmId] : DC_QUERY_KEY),
+      ...(includeInactive ? ['all'] : []),
+    ] as const,
     queryFn: async (): Promise<DataCentralDetail[]> => {
+      const query: Record<string, string> = {}
+      if (dcmId) query['data_central_main'] = dcmId
+      if (includeInactive) query['include_inactive'] = 'true'
       const { data, error } = await apiClient.GET('/api/v1/organizations/datacentrals/', {
-        params: { query: (dcmId ? { data_central_main: dcmId } : {}) as never },
+        params: { query: query as never },
       })
       if (error) throw new Error('No se pudo cargar las CIAs')
       return data?.results ?? []

@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AssignCombobox } from '../components/AssignCombobox'
-import { Trash2 } from 'lucide-react'
+import { Info, Trash2 } from 'lucide-react'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
 import { Field } from '../components/Field'
 import { useUpdateDataCentral } from '../hooks/useDataCentrals'
@@ -165,7 +165,7 @@ export function DataCentralPanel({ dc, onClose }: Props) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto animate-size">
         <DialogHeader>
           <DialogTitle>
             {dc.name}
@@ -191,7 +191,7 @@ export function DataCentralPanel({ dc, onClose }: Props) {
           <TabsContent value="detail">
             {mode === 'view' ? (
               <div className="space-y-3 text-sm">
-                <Row label="Nombre">{dc.name}</Row>
+                <Row label="Código o nombre">{dc.name}</Row>
                 <Row label="Descripción">{dc.description || '—'}</Row>
                 <Row label="Slug"><span className="font-mono text-xs">{dc.slug}</span></Row>
                 <Row label="Tipo">
@@ -209,7 +209,7 @@ export function DataCentralPanel({ dc, onClose }: Props) {
               </div>
             ) : (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <Field label="Nombre *" error={errors.name?.message}>
+                <Field label="Código o nombre *" error={errors.name?.message}>
                   <Input {...register('name')} />
                 </Field>
                 <Field label="Descripción" error={errors.description?.message}>
@@ -232,6 +232,15 @@ export function DataCentralPanel({ dc, onClose }: Props) {
           {/* ── Tab Usuarios ── */}
           <TabsContent value="users">
             <div className="space-y-3">
+              <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>
+                  Asigna aquí los usuarios que podrán acceder a <strong>{dc.name}</strong>,
+                  el espacio de datos de esta CIAgro. Solo los asignados verán sus
+                  productores, parcelas, programas y sesiones (limitado por su rol).
+                </p>
+              </div>
+
               {loadingUA ? (
                 <p className="text-sm text-muted-foreground">Cargando usuarios…</p>
               ) : userAssignments.length === 0 ? (
@@ -268,6 +277,7 @@ export function DataCentralPanel({ dc, onClose }: Props) {
                     onChange={setSelectedUserId}
                     placeholder="Busca un usuario…"
                     disabled={createUA.isPending}
+                    inline
                   />
                   <Button
                     size="sm"
@@ -284,6 +294,15 @@ export function DataCentralPanel({ dc, onClose }: Props) {
           {/* ── Tab Agrounidades ── */}
           <TabsContent value="units">
             <div className="space-y-3">
+              <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>
+                  Asigna aquí las agrounidades (productores, comercializadoras, etc.) que
+                  forman parte del espacio de datos de <strong>{dc.name}</strong>. Solo las
+                  asignadas aportan sus ranchos, parcelas y sesiones a esta CIAgro.
+                </p>
+              </div>
+
               {loadingDCA ? (
                 <p className="text-sm text-muted-foreground">Cargando agrounidades…</p>
               ) : dcAssignments.length === 0 ? (
@@ -324,6 +343,7 @@ export function DataCentralPanel({ dc, onClose }: Props) {
                     placeholder="Busca agrounidades…"
                     assignLabel="Asignar"
                     disabled={createDCA.isPending}
+                    inline
                   />
                 </div>
               )}

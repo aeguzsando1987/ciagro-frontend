@@ -1,7 +1,7 @@
 # ROADMAP — CIAgro Alpha Frontend
 
-> **Estado actual:** Sesión 17 — Visor de Datos Agrícolas (Fase 7 frontend) implementado (7.B–7.E + caso de uso actualizado) + 4 fixes de auth de Fase 1 (refresh-on-load del access token, rotación del refresh, precarga de `/users/me/` antes de los guards síncronos, sincronización de logout entre pestañas vía storage event). 175/175 tests. **Pendiente único:** demo manual con backend real del recorrido completo del visor.
-> **Última actualización:** 2026-05-28
+> **Estado actual:** Sesión 18 — Tanda de mejoras de producto: wizard de primer uso convertido en mini-tutorial (org → CIAgros → productores → asignaciones → info usuarios) con animación; UX de Administración (banners de asignación, labels "Dueño de organización"/"Código o nombre", combobox inline + transición de tamaño); visor con mapa de ranchos por productor (pines) y toolbar flotante; fix Manager dueño de org sin CIAs (no más NoAccessScreen); organizaciones inactivas deshabilitadas en selector/visor con guard de expulsión en caliente. Apoyado en cambios de backend Sesión 18.
+> **Última actualización:** 2026-06-03
 > **Backend:** roadmap propio en `../../CIAgro_alpha_backend/logs/roadmap.md`
 > **Producto:** `../../.context/templates/product-doc.md`
 > **Convención:** los sprints son estimaciones de **dev-week** (1 dev senior full-time).

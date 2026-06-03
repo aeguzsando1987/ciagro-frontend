@@ -12,10 +12,14 @@ vi.mock('@tanstack/react-router', async (importActual) => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
-// useDataCentralsMain se llama dentro de DataCentralMainSelector (lazy, al renderizar).
-// Lo mockeamos para evitar el fetch cuando role_level >= 4.
+// useDataCentralsMain se llama dentro de ManagerEntry/SuperAdminEntry y de
+// DataCentralMainSelector. Mock controlable por test (variables prefijadas con mock
+// para satisfacer las reglas de hoisting de Vitest).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockMainsData: any[] = []
+let mockMainsLoading = false
 vi.mock('@/features/workspace/useDataCentralsMain', () => ({
-  useDataCentralsMain: () => ({ data: [], isLoading: false }),
+  useDataCentralsMain: () => ({ data: mockMainsData, isLoading: mockMainsLoading }),
 }))
 
 import { WorkspaceSelector } from './WorkspaceSelector'
@@ -43,6 +47,8 @@ describe('WorkspaceSelector', () => {
   beforeEach(() => {
     mockNavigate.mockClear()
     useAuthStore.setState({ user: null })
+    mockMainsData = []
+    mockMainsLoading = false
   })
 
   it('shows NoAccessScreen when user has no datacentrals', () => {
@@ -65,7 +71,10 @@ describe('WorkspaceSelector', () => {
     })
   })
 
-  it('renders DataCentralMainSelector when role_level >= 4', () => {
+  it('renders DataCentralMainSelector when role_level >= 4 and has orgs', () => {
+    // Manager con orgs visibles → siempre muestra selector jerárquico (incluso si
+    // alguna org no tiene CIAs hijas todavía).
+    mockMainsData = [{ id: 'org-1', name: 'Org Uno', is_owner: true, datacentrals_count: '0' }]
     useAuthStore.setState({
       user: {
         ...BASE_USER,
@@ -78,6 +87,18 @@ describe('WorkspaceSelector', () => {
     })
     renderSelector()
     expect(screen.getByText(/selecciona una organizacion/i)).toBeInTheDocument()
+  })
+
+  it('Manager dueño de una org sin CIAs hijas igual ve el selector de organizaciones', () => {
+    // El bug reportado: Manager + 0 datacentrals (porque su única org no tiene CIAs)
+    // antes caía en NoAccessScreen. Ahora debe ver la org en el selector.
+    mockMainsData = [{ id: 'org-1', name: 'Mi Org', is_owner: true, datacentrals_count: '0' }]
+    useAuthStore.setState({
+      user: { ...BASE_USER, role_level: 4, datacentrals: [] },
+    })
+    renderSelector()
+    expect(screen.getByText(/selecciona una organizacion/i)).toBeInTheDocument()
+    expect(screen.queryByText(/sin acceso/i)).not.toBeInTheDocument()
   })
 
   it('shows first-use wizard for SuperAdmin when there are no organizations', () => {

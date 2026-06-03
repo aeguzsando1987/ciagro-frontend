@@ -64,3 +64,24 @@
     font-feature-settings: 'rlig' 1, 'calt' 1;
   }
 }
+
+/* Slide-in usado por el FirstUseWizard al avanzar de paso. */
+@keyframes wizard-slide-in {
+  from { transform: translateX(24px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.wizard-slide-in {
+  animation: wizard-slide-in 240ms ease-out both;
+}
+
+/* Permite transicionar entre height/max-height intrínsecos (auto, max-content)
+ * de forma fluida. Soportado en Chrome/Edge 129+. Browsers sin soporte hacen
+ * fallback al cambio instantáneo (sin romper nada). */
+:root {
+  interpolate-size: allow-keywords;
+}
+
+/* Aplicar para suavizar cambios de tamaño del panel (tabs, combobox inline). */
+.animate-size {
+  transition: height 280ms ease, max-height 280ms ease;
+}

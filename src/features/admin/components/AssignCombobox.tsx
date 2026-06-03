@@ -21,6 +21,13 @@ interface BaseProps {
   items: AssignItem[]
   placeholder?: string
   disabled?: boolean
+  /**
+   * Si true, el dropdown se renderiza EN FLUJO (no absolute) — empuja el
+   * contenido siguiente al abrirse y el contenedor crece naturalmente.
+   * Útil cuando el combobox vive dentro de un Dialog/panel scrollable y
+   * preferimos que el panel crezca a que el dropdown overflowee fuera.
+   */
+  inline?: boolean
 }
 
 interface SingleProps {
@@ -39,7 +46,7 @@ interface MultiProps {
 type Props = BaseProps & (SingleProps | MultiProps)
 
 export function AssignCombobox(props: Props) {
-  const { items, placeholder = 'Selecciona…', disabled } = props
+  const { items, placeholder = 'Selecciona…', disabled, inline = false } = props
 
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -122,7 +129,12 @@ export function AssignCombobox(props: Props) {
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md">
+        <div
+          className={cn(
+            'mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md',
+            inline ? '' : 'absolute z-50',
+          )}
+        >
           {/* Buscador */}
           <div className="p-2 border-b">
             <Input

@@ -54,7 +54,8 @@ export function DataCentralMainPanel({ dcm, onClose, onOpenDC }: Props) {
   const mutation = useUpdateDataCentralMain()
   const { data: countries = [] } = useCountries()
   const { data: allUsers = [] } = useUsers()
-  const { data: datacentrals = [], isLoading: loadingDCs } = useDataCentrals(dcm.id)
+  // Panel admin: incluye CIAs de organizaciones inactivas para poder gestionarlas.
+  const { data: datacentrals = [], isLoading: loadingDCs } = useDataCentrals(dcm.id, true)
 
   const owners = allUsers.filter((u) => (u.user_role?.level ?? 0) >= 4)
 
@@ -121,7 +122,14 @@ export function DataCentralMainPanel({ dcm, onClose, onOpenDC }: Props) {
                   <Row label="Estatus">
                     <Badge variant="outline">{STATUS_LABELS[dcm.status ?? ''] ?? dcm.status}</Badge>
                   </Row>
-                  <Row label="Owner">{dcm.owner_username ?? dcm.owner ?? '—'}</Row>
+                  <Row label="Dueño de organización">
+                    <div>
+                      <div>{dcm.owner_username ?? dcm.owner ?? '—'}</div>
+                      <p className="text-xs text-muted-foreground">
+                        Persona responsable de la organización (rol Gerente o Admin).
+                      </p>
+                    </div>
+                  </Row>
                   <Row label="CIAs">{dcm.datacentrals_count ?? '—'}</Row>
                   <Row label="Creada">{dcm.created_at ? new Date(dcm.created_at).toLocaleDateString('es-MX') : '—'}</Row>
                   {canEdit && (
@@ -161,7 +169,7 @@ export function DataCentralMainPanel({ dcm, onClose, onOpenDC }: Props) {
                       )} />
                     </Field>
                   </div>
-                  <Field label="Owner *" error={errors.owner_id?.message}>
+                  <Field label="Dueño de organización *" error={errors.owner_id?.message}>
                     <Controller name="owner_id" control={control} render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange}>
                         <SelectTrigger><SelectValue placeholder="Selecciona un usuario" /></SelectTrigger>
@@ -172,6 +180,10 @@ export function DataCentralMainPanel({ dcm, onClose, onOpenDC }: Props) {
                         </SelectContent>
                       </Select>
                     )} />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      El <strong>dueño (owner)</strong> es la persona responsable de la
+                      organización. Debe ser usuario con rol Gerente o Admin.
+                    </p>
                   </Field>
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={cancelEdit}>Cancelar</Button>

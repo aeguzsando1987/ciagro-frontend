@@ -65,8 +65,8 @@ export function CreateDataCentralDialog({ open, onOpenChange, dataCentralMainId 
           <DialogTitle>Nueva CIA Hija</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Field label="Nombre *" error={errors.name?.message}>
-            <Input {...register('name')} placeholder="Nombre de la CIA" />
+          <Field label="Código o nombre *" error={errors.name?.message}>
+            <Input {...register('name')} placeholder="Código o nombre de la CIAgro" />
           </Field>
           <Field label="Descripción" error={errors.description?.message}>
             <textarea

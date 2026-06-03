@@ -309,6 +309,9 @@ interface AspersionMapProps {
   toolbarStart?: React.ReactNode
   /** Slot alineado a la derecha de la toolbar (p.ej. el botón "✕ Cerrar" del modal). */
   toolbarEnd?: React.ReactNode
+  /** Si true, la toolbar flota sobre el mapa (transparente). Si false (modal), va en
+   *  flujo arriba del mapa. */
+  floatingToolbar?: boolean
   /** Clases extra para el contenedor raíz. */
   className?: string
 }
@@ -321,6 +324,7 @@ export function AspersionMap({
   enabled = true,
   toolbarStart,
   toolbarEnd,
+  floatingToolbar = false,
   className,
 }: AspersionMapProps) {
   const [activeLayerIdx, setActiveLayerIdx] = useState(0)
@@ -412,26 +416,43 @@ export function AspersionMap({
     ? { type: 'Feature' as const, geometry: plot.geometry as GeoJSON.Geometry, properties: {} }
     : null
 
+  // Contenido de la toolbar (botones de capa + slots). Compartido entre el modo en
+  // flujo (modal) y el modo flotante sobre el mapa (visor de datos).
+  const toolbarInner = (
+    <>
+      {toolbarStart}
+      {ASPERSION_LAYERS.map((layer, i) => (
+        <Button
+          key={layer.key}
+          size="sm"
+          variant={i === activeLayerIdx ? 'default' : 'outline'}
+          className="h-6 px-1.5 text-[10px] leading-none"
+          onClick={() => { setActiveLayerIdx(i); setHoverInfo(null) }}
+        >
+          {layer.label}
+        </Button>
+      ))}
+      {toolbarEnd && <div className="ml-auto">{toolbarEnd}</div>}
+    </>
+  )
+
   return (
     <div className={`flex flex-col h-full min-h-0 overflow-hidden ${className ?? ''}`}>
-      {/* ─ Toolbar de capas ─────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2 shrink-0">
-        {toolbarStart}
-        {ASPERSION_LAYERS.map((layer, i) => (
-          <Button
-            key={layer.key}
-            size="sm"
-            variant={i === activeLayerIdx ? 'default' : 'outline'}
-            onClick={() => { setActiveLayerIdx(i); setHoverInfo(null) }}
-          >
-            {layer.label}
-          </Button>
-        ))}
-        {toolbarEnd && <div className="ml-auto">{toolbarEnd}</div>}
-      </div>
+      {/* ─ Toolbar en flujo (solo modo no flotante: modal) ──────────── */}
+      {!floatingToolbar && (
+        <div className="flex flex-wrap items-center gap-1.5 border-b px-3 py-1.5 shrink-0">
+          {toolbarInner}
+        </div>
+      )}
 
       {/* ─ Mapa ───────────────────────────────────────────────────── */}
       <div className="flex-1 relative min-h-0">
+        {/* ─ Toolbar flotante sobre el mapa (transparente) ──────────── */}
+        {floatingToolbar && (
+          <div className="absolute left-2 top-2 z-20 flex flex-wrap items-center gap-1.5">
+            {toolbarInner}
+          </div>
+        )}
         {loadingPoints && (
           <MapOverlay>
             <span className="animate-spin mr-2">⏳</span> Cargando puntos…

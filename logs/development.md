@@ -1488,3 +1488,64 @@ del selector. (El fix de raíz en `/users/me/` se hizo en el backend — Sesión
 - `src/types/api.d.ts` no se regeneró; el `id` que ahora devuelve el endpoint de creación
   de organización se lee con una aserción de tipo puntual en `FirstUseWizard`. Regenerar
   con `npm run types:gen` cuando convenga.
+
+## Sesión 18 — Mejoras de producto: wizard, UX admin, visor y organizaciones inactivas (2026-06-03)
+
+### Contexto
+
+Sesión de pulido sobre la rama `dev` (frontend canónico), tras integrar el wizard de primer
+uso y el visor. Conjunto de mejoras pedidas mientras se probaba el sistema de cero con base
+de datos limpia (`CIAGRO_SEED_DEMO=0`).
+
+### Wizard de primer uso → mini-tutorial completo
+
+`FirstUseWizard` pasó de 3 a **5 pasos**: bienvenida → organización → CIAgros → **productores**
+(1-2 AgroUnit tipo Productor) → **asignar productores a CIAgros** (matriz de checkboxes) →
+final con **aviso de que aún no hay usuarios** y cómo registrarlos/asignarlos desde
+Administración. Reusa `useCreateAgroUnit` y `useCreateDataCentralAssignment`. Cada paso
+conserva los ids creados para el siguiente. Animación **slide-in** por paso (`key={step}` +
+keyframe `wizard-slide-in`). Requirió un fix de backend (id en `DataCentralWriteSerializer`)
+para que la asignación de productores a CIAgros recién creadas funcionara.
+
+### UX de Administración
+
+- **Banners informativos** (azul) en las tabs *Usuarios* y *Agrounidades* de una CIAgro,
+  explicando que la asignación da acceso al "espacio de datos" de la CIAgro (se evitó el
+  término *workspace* a pedido).
+- Labels: **"Dueño de organización"** (antes "Owner") con nota explicativa en crear/editar/ver;
+  **"Código o nombre"** (antes "Nombre") para CIAgros.
+- `AssignCombobox` con prop **`inline`**: el dropdown crece el panel en vez de desbordarlo;
+  el `DialogContent` anima su altura (`interpolate-size: allow-keywords` + `.animate-size`).
+
+### Visor de Datos Agrícolas
+
+- **Nivel productor**: `ProducerRanchesMap` dibuja un **pin por rancho** (cascada de ubicación
+  geom Point → lat/lon → centroide de sus parcelas). Clic en un pin sube a nivel rancho.
+- **Nivel rancho**: pin con el nombre del rancho; la tarjeta flotante Productor·Rancho ahora
+  **navega** (productor → vuelve a productor; rancho → vuelve a las parcelas).
+- **AspersionMap**: prop `floatingToolbar` → toolbar **transparente y flotante** sobre el mapa,
+  botones de capa más pequeños; botón **"← Parcela"** con estilo de retorno. El modal del
+  task-manager conserva su toolbar en flujo (no se ve afectado).
+
+### Fix: Manager dueño de organización sin CIAs
+
+`WorkspaceSelector` reescrito con `ManagerEntry`/`BasicEntry`. Antes, un Manager (rol 4) dueño
+de una org **sin CIAs hijas** caía en `NoAccessScreen` (la decisión se tomaba por
+`user.datacentrals` antes de mirar si poseía organizaciones). Ahora `ManagerEntry` consulta
+`useDataCentralsMain`: si ve alguna org muestra el selector jerárquico aunque la org no tenga
+CIAs, y `DataCentralMainSelector` muestra "esta organización aún no tiene CIAgros".
+
+### Organizaciones inactivas deshabilitadas
+
+Con el backend excluyendo orgs inactivas de los listados y de `/users/me/`, el frontend:
+
+- `useDataCentralMains(includeInactive)` y `useDataCentrals(dcmId, includeInactive)` — el panel
+  admin pide `true` (para reactivarlas); el selector y el visor usan el default (sin inactivas).
+- **Guard de ruta `/w/$dc`**: `beforeLoad` redirige a `/workspaces` si la CIA no está entre las
+  accesibles del usuario; un `useEffect` reactivo **expulsa en caliente** (con toast) si la org
+  se desactiva durante la sesión y `/me` deja de incluir la CIA.
+
+### Verificación
+
+- `tsc --noEmit` → 0 errores. Suites afectadas (workspace, admin, geodata-visor, guards) en
+  verde tras cada cambio.

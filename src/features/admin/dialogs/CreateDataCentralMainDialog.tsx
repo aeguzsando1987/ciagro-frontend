@@ -109,7 +109,7 @@ export function CreateDataCentralMainDialog({ open, onOpenChange }: Props) {
               )} />
             </Field>
           </div>
-          <Field label="Owner (Gerente o Admin) *" error={errors.owner_id?.message}>
+          <Field label="Dueño de organización *" error={errors.owner_id?.message}>
             <Controller name="owner_id" control={control} render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger><SelectValue placeholder="Selecciona un usuario" /></SelectTrigger>
@@ -122,6 +122,10 @@ export function CreateDataCentralMainDialog({ open, onOpenChange }: Props) {
                 </SelectContent>
               </Select>
             )} />
+            <p className="mt-1 text-xs text-muted-foreground">
+              El <strong>dueño (owner)</strong> es la persona responsable de la
+              organización. Debe ser usuario con rol Gerente o Admin.
+            </p>
           </Field>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
