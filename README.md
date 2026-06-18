@@ -112,10 +112,27 @@ Detalle completo y convenciones de naming: `logs/dev_log.csv` Paso 13.
 
 ## Despliegue
 
-> Pendiente de definir. SPA estática (output `dist/`) servible por cualquier host
-> estático (Nginx, Caddy, S3+CloudFront, Vercel, Netlify). El interceptor JWT y
-> el manejo de auth están diseñados para funcionar con backend en mismo o distinto
-> dominio (decisión Paso 5).
+**Recomendado (servidor / prueba por IP): contenedor del repo.** El `Dockerfile`
+(multi-stage: build de Vite → nginx) + `docker-compose.yml` sirven el bundle y
+**proxean `/api` y `/media` al backend** (`host.docker.internal:8500`), de modo
+que la SPA es *same-origin* (sin CORS y sin hornear la IP del servidor):
+
+```bash
+# El backend ya corriendo y publicando :8500 en el host
+FRONTEND_PORT=8080 docker compose up -d --build      # → http://<IP>:8080
+```
+
+Variables: `FRONTEND_PORT` (puerto público, default 80), `BACKEND_ORIGIN`
+(default `http://host.docker.internal:8500`), `VITE_API_BASE_URL` (default
+`/api/v1`, same-origin). Es un **build** (sin hot-reload): tras cambios,
+`docker compose up -d --build`.
+
+> Guía completa de arranque en servidor de empresa (todo en Docker, acceso por
+> IP/VPN): `../.context/prompts/arranque-servidor-empresa.md`.
+
+La SPA estática (`dist/`) también es servible por cualquier host estático (Nginx,
+Caddy, S3+CloudFront, Vercel, Netlify). El interceptor JWT y el manejo de auth
+funcionan con backend en mismo o distinto dominio (decisión Paso 5).
 
 ---
 
