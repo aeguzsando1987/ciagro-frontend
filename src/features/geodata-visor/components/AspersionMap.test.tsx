@@ -56,7 +56,7 @@ vi.mock('@/features/task-manager/hooks/useAspersionSessionStats', () => ({
   useAspersionSessionStats: () => ({ data: null }),
 }))
 
-import { AspersionMap, sumAreaByBucket } from './AspersionMap'
+import { AspersionMap, sumAreaByBucket, areaShareByBucket } from './AspersionMap'
 
 function renderMap() {
   const qc = createTestQueryClient()
@@ -151,5 +151,35 @@ describe('sumAreaByBucket', () => {
     ]))
     expect(res.q1).toBeCloseTo(0.3)
     expect(res.q2).toBeUndefined()
+  })
+})
+
+describe('areaShareByBucket', () => {
+  it('calcula el % de área sobre la base y suma 100%', () => {
+    const res = areaShareByBucket(
+      { excelente: 3, regular: 1, deficiente: 0 },
+      ['deficiente', 'regular', 'excelente'],
+    )
+    expect(res.excelente).toBeCloseTo(75)
+    expect(res.regular).toBeCloseTo(25)
+    expect(res.deficiente).toBeCloseTo(0)
+    expect((res.deficiente ?? 0) + (res.regular ?? 0) + (res.excelente ?? 0)).toBeCloseTo(100)
+  })
+
+  it('acota la base a las keys indicadas (ignora buckets fuera, p. ej. sin_meta)', () => {
+    const res = areaShareByBucket(
+      { excelente: 3, regular: 1, sin_meta: 96 },
+      ['regular', 'excelente'],
+    )
+    // sin_meta no entra en la base (3 + 1 = 4) ni en la salida
+    expect(res.excelente).toBeCloseTo(75)
+    expect(res.regular).toBeCloseTo(25)
+    expect(res.sin_meta).toBeUndefined()
+  })
+
+  it('base 0 → 0 para todas las keys', () => {
+    const res = areaShareByBucket({}, ['regular', 'excelente'])
+    expect(res.regular).toBe(0)
+    expect(res.excelente).toBe(0)
   })
 })

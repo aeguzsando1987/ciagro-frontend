@@ -200,11 +200,21 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
       )}
       <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-lg border">
         {isSessionLevel ? (
-          /* Sesión seleccionada: las 5 capas heatmap sobre la parcela (reuso Fase 6). */
+          /* Sesión seleccionada: las 5 capas heatmap sobre la parcela (reuso Fase 6).
+             La lista de sesiones va en la columna derecha del mapa, y debajo de ella la
+             tarjeta de categorías de % de aplicación (renderizada por AspersionMap). */
           <AspersionMap
             sessionId={selection.session!.id}
             plotId={selection.plot!.id}
             floatingToolbar
+            sessionsSlot={
+              <SessionsPanel
+                floating={false}
+                plotId={selection.plot!.id}
+                selectedSessionId={selection.session?.id ?? null}
+                onSelectSession={(session) => onSelect(selectSession(selection, session))}
+              />
+            }
             toolbarStart={
               <button
                 type="button"
@@ -226,7 +236,9 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
             onBackToProducer={selection.producer ? () => onSelect(selectProducerLevel(selection)) : undefined}
           />
         )}
-        {isPlotLevel && (
+        {/* Nivel parcela (sin sesión): lista de sesiones flotante sobre el mapa de parcelas.
+            A nivel sesión la lista vive dentro de AspersionMap (sessionsSlot). */}
+        {isPlotLevel && !isSessionLevel && (
           <SessionsPanel
             plotId={selection.plot!.id}
             selectedSessionId={selection.session?.id ?? null}

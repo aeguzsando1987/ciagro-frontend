@@ -33,6 +33,7 @@ import {
   pointsToRectangleCollection,
   type RectangleProps,
 } from '@/features/task-manager/lib/plotRectangles'
+import { CategoryStatsCard } from './CategoryStatsCard'
 import {
   ASPERSION_LAYERS,
   APPLICATION_CATEGORIES,
@@ -136,6 +137,23 @@ export function sumAreaByBucket(
     acc[b] = (acc[b] ?? 0) + area
   }
   return acc
+}
+
+/**
+ * % de área de cada bucket sobre la suma de los buckets indicados (base). Función pura.
+ * `keys` acota la base (p. ej. las 5 categorías con meta, excluyendo `sin_meta`), por lo
+ * que los porcentajes de esas claves suman ~100%. Si la base es 0, devuelve 0 para todas.
+ */
+export function areaShareByBucket(
+  areaByBucket: Record<string, number>,
+  keys: string[],
+): Record<string, number> {
+  const base = keys.reduce((acc, k) => acc + (areaByBucket[k] ?? 0), 0)
+  const out: Record<string, number> = {}
+  for (const k of keys) {
+    out[k] = base > 0 ? ((areaByBucket[k] ?? 0) / base) * 100 : 0
+  }
+  return out
 }
 
 type HoverInfo = { lon: number; lat: number; props: RectangleProps & { bucket?: string } }
@@ -259,7 +277,7 @@ function HoverTooltip({ info, layer }: { info: HoverInfo; layer: LayerDef }) {
 }
 
 /** Formatea hectáreas a string es-MX con 2 decimales (null/NaN → '—'). */
-function formatHa(value: number | null | undefined): string {
+export function formatHa(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return '—'
   return value.toLocaleString('es-MX', { maximumFractionDigits: 2 })
 }
@@ -348,6 +366,13 @@ interface AspersionMapProps {
   /** Si true, la toolbar flota sobre el mapa (transparente). Si false (modal), va en
    *  flujo arriba del mapa. */
   floatingToolbar?: boolean
+  /**
+   * Contenido a fijar en la columna derecha sobre el mapa (p. ej. el `SessionsPanel`
+   * del visor). Cuando se provee, debajo de él se renderiza la tarjeta de categorías
+   * de % de aplicación (solo en la capa categórica). Si se omite (modal del
+   * task-manager), no se dibuja columna derecha alguna.
+   */
+  sessionsSlot?: React.ReactNode
   /** Clases extra para el contenedor raíz. */
   className?: string
 }
@@ -361,6 +386,7 @@ export function AspersionMap({
   toolbarStart,
   toolbarEnd,
   floatingToolbar = false,
+  sessionsSlot,
   className,
 }: AspersionMapProps) {
   const [activeLayerIdx, setActiveLayerIdx] = useState(0)
@@ -487,6 +513,21 @@ export function AspersionMap({
         {floatingToolbar && (
           <div className="absolute left-2 top-2 z-20 flex flex-wrap items-center gap-1.5">
             {toolbarInner}
+          </div>
+        )}
+
+        {/* ─ Columna derecha (slot de sesiones + tarjeta de categorías) ─ */}
+        {sessionsSlot && (
+          <div className="absolute right-2 top-2 bottom-2 z-10 flex w-56 flex-col gap-2">
+            {sessionsSlot}
+            {layerData && layerData.legendDefs.length > 0 && ASPERSION_LAYERS[activeLayerIdx]!.kind === 'category' && (
+              <CategoryStatsCard
+                legendDefs={layerData.legendDefs}
+                areaByBucket={layerData.areaByBucket}
+                checkedBuckets={checkedBuckets ?? new Set(layerData.legendDefs.map((d) => d.key))}
+                onToggle={toggleBucket}
+              />
+            )}
           </div>
         )}
 

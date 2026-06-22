@@ -1,26 +1,32 @@
-feat(visor-datos): modos de mapa Satélite/Híbrido sin API key
+feat(visor-datos): tarjeta de % de aplicación por categoría (área) con filtro
 
-Sesión 20 (rama dev). Reimplementación correcta del selector de modos
-que en la sesión 19 quedó como spike revertido.
+Sesión 21 (rama dev). A nivel sesión del Visor de Datos se añade una tarjeta sobre el
+mapa (columna derecha, debajo de la lista de sesiones) que muestra, por categoría de
+% de aplicación, "<% del área> · <área en ha>", y donde cada categoría es un filtro
+que comparte estado con el semáforo de la barra inferior.
 
-Causa raíz del fallo previo
-- VITE_MAPTILER_KEY era un placeholder → el híbrido MapTiler daba 403
-  y "no se veía ningún cambio". setTiles reactivo además era frágil.
+Decisiones (confirmadas con el usuario)
+- Base del %: área de la categoría / área total con meta (categorías suman ~100%).
+- La barra inferior se mantiene; la tarjeta comparte checkedBuckets/toggleBucket.
+- sin_meta se omite (solo categorías con meta válida), igual que area_total_ha del back.
 
-Solución (sin API key, robusta)
-- ESRI_STYLE incorpora las capas de referencia GRATUITAS de ESRI
-  (World_Transportation + World_Boundaries_and_Places, PNG transparente)
-  con visibility:'none' inicial, declaradas en el estilo base → siempre
-  al fondo, las capas de datos quedan encima.
-- Hook compartido useMapMode(mapRef): el modo híbrido solo alterna la
-  visibilidad de esas capas vía setLayoutProperty (espera al evento
-  'load' si el estilo no cargó). Cero remount, cero reordenamiento.
-- Eliminado MapTiler / BLANK_STYLE / MAP_MODES.tiles de mapModes.ts.
+Cambios
+- CategoryStatsCard.tsx (NUEVO): tarjeta presentacional (checkbox + color + label/rango
+  + "% · ha"), encabezado con total con meta. Reusa areaShareByBucket/formatHa.
+- AspersionMap.tsx: nueva prop sessionsSlot (columna derecha con el slot de sesiones y
+  la tarjeta, esta solo en la capa categórica). Export de areaShareByBucket y formatHa.
+  Sin sessionsSlot el comportamiento queda idéntico (p. ej. modal del task-manager).
+- SessionsPanel.tsx: prop floating (default true). floating=false = variante de columna.
+- GeodataDashboard.tsx: a nivel sesión la lista vive dentro de AspersionMap (sessionsSlot);
+  a nivel parcela sigue flotante.
 
-Alcance por mapa
-- Navegación (ProducerRanchesMap, RanchPlotsMap): selector Satélite/Híbrido.
-- Vista de capas de datos (AspersionMap, heatmap): selector retirado a
-  pedido; queda fijo en satélite (carreteras/etiquetas estorban el heatmap).
+Datos
+- El area_ha por punto lo provee el backend. Hasta ahora venía NULL (el CSV no traía
+  área) y la tarjeta salía 0.0% / —. Se resolvió en el backend (trigger + backfill +
+  refresh MV, migración 0033), no con fallback en el front.
 
-Verificación: tsc --noEmit 0 errores; 177/177 vitest verdes; modo
-confirmado manualmente por el usuario.
+Verificación
+- tsc --noEmit: 0 errores. vitest (suites afectadas): 25/25 verde (tests nuevos de
+  areaShareByBucket y CategoryStatsCard).
+
+Documentación: logs/development.md (Sesión 21), logs/dev_log.csv.

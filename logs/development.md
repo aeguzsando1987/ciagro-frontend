@@ -1663,3 +1663,50 @@ lanza si el estilo no está listo).
 - Endpoints ESRI de referencia verificados (`200`, PNG transparente).
 - `tsc --noEmit` → **0 errores**. `vitest run` → **177/177 verde**.
 - Confirmado manualmente por el usuario: el cambio de modo funciona.
+
+## Sesión 21 — Tarjeta de % de aplicación por categoría (área) en el Visor (2026-06-22)
+
+A nivel **sesión** del Visor de Datos, además del semáforo de la barra inferior, se
+añade una **tarjeta sobre el mapa** (columna derecha, **debajo** de la lista de
+sesiones) que muestra, por categoría de % de aplicación: `<% del área> · <área en ha>`,
+y donde **cada categoría es un filtro** que comparte estado con la barra inferior.
+
+### Decisiones (confirmadas con el usuario)
+
+- **Base del %** = % del área: `áreaCategoría ÷ áreaTotalConMeta` (las categorías con
+  meta suman ~100%).
+- **Barra inferior**: se mantiene; la tarjeta es adicional y **comparte** el estado de
+  filtro (`checkedBuckets`/`toggleBucket`).
+- **`sin_meta`**: omitido (solo las categorías con meta válida), coincidiendo con el
+  `area_total_ha` del backend.
+
+### Cambios
+
+- **`CategoryStatsCard.tsx` (NUEVO)** — tarjeta presentacional. Por categoría: checkbox
+  + pastilla de color + etiqueta/rango + `{%} · {ha}`. Encabezado con el total con meta.
+  Reusa `areaShareByBucket`/`formatHa` de `AspersionMap`.
+- **`AspersionMap.tsx`** — nueva prop `sessionsSlot` que renderiza una columna derecha
+  (slot de sesiones + tarjeta, esta solo cuando la capa activa es la categórica). Se
+  exportan `areaShareByBucket` (% de área por bucket sobre la base de categorías) y
+  `formatHa`. Sin `sessionsSlot` (p. ej. el modal del task-manager) el comportamiento
+  queda idéntico al anterior.
+- **`SessionsPanel.tsx`** — nueva prop `floating` (default `true` = comportamiento
+  actual). Con `floating={false}` usa variante de **ítem de columna** (sin
+  posicionamiento absoluto) para convivir con la tarjeta.
+- **`GeodataDashboard.tsx`** — a nivel **sesión**, `SessionsPanel` se inyecta como
+  `sessionsSlot` de `AspersionMap` (la lista vive dentro del mapa, con la tarjeta
+  debajo); a nivel **parcela** sigue flotante como antes.
+
+### Datos (dependencia con backend)
+
+El `area_ha` por punto lo provee el backend. Hasta esta sesión venía NULL (el CSV no
+traía área), por lo que la tarjeta salía en `0.0%` / `—`. Se resolvió en el backend
+(trigger + backfill + refresh de la MV, migración `0033`), no con un fallback en el
+front. Con eso la tarjeta muestra valores reales.
+
+### Verificación
+
+- `tsc --noEmit` → **0 errores**.
+- `vitest run` (AspersionMap, CategoryStatsCard, SessionsPanel, GeodataDashboard) →
+  **25/25 verde** (incluye tests nuevos de `areaShareByBucket` y `CategoryStatsCard`).
+- Verificado en `npm run dev` contra el backend con `area_ha` ya poblado.

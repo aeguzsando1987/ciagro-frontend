@@ -41,4 +41,15 @@ describe('SessionsPanel', () => {
     fireEvent.click(screen.getByText('2026-02-10'))
     expect(onSelectSession).toHaveBeenCalledWith({ id: 's2', date: '2026-02-10' })
   })
+
+  it('floating={false} usa variante de columna (sin posicionamiento absoluto)', () => {
+    const { container } = render(
+      <SessionsPanel plotId="p1" selectedSessionId={null} onSelectSession={vi.fn()} floating={false} />,
+    )
+    const root = container.firstElementChild as HTMLElement
+    expect(root.className).toContain('relative')
+    expect(root.className).not.toContain('absolute')
+    // la lista sigue presente
+    expect(screen.getByText('2026-03-23')).toBeTruthy()
+  })
 })

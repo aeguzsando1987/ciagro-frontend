@@ -14,9 +14,15 @@ interface SessionsPanelProps {
   plotId: string
   selectedSessionId: string | null
   onSelectSession: (session: { id: string; date: string | null }) => void
+  /**
+   * `true` (default): tarjeta flotante absoluta arriba-derecha sobre el mapa.
+   * `false`: ítem de columna (sin posicionamiento absoluto) para convivir con otras
+   * tarjetas en una columna derecha (p. ej. la tarjeta de categorías a nivel sesión).
+   */
+  floating?: boolean
 }
 
-export function SessionsPanel({ plotId, selectedSessionId, onSelectSession }: SessionsPanelProps) {
+export function SessionsPanel({ plotId, selectedSessionId, onSelectSession, floating = true }: SessionsPanelProps) {
   const { data, isLoading } = useAspersionSessionHeaders(plotId)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -34,7 +40,13 @@ export function SessionsPanel({ plotId, selectedSessionId, onSelectSession }: Se
   }, [data, from, to])
 
   return (
-    <div className="absolute right-2 top-2 z-10 flex max-h-[calc(100%-1rem)] w-52 flex-col rounded-md border bg-background/85 shadow-lg backdrop-blur-sm">
+    <div
+      className={`flex flex-col rounded-md border bg-background/85 shadow-lg backdrop-blur-sm ${
+        floating
+          ? 'absolute right-2 top-2 z-10 max-h-[calc(100%-1rem)] w-52'
+          : 'relative w-full min-h-0 max-h-[50%]'
+      }`}
+    >
       <div className="border-b px-2 py-1.5">
         <div className="flex items-center justify-between gap-1">
           <h3 className="text-xs font-semibold">Sesiones de aspersión</h3>
