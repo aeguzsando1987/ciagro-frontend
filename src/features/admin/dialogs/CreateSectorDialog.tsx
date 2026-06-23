@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -13,7 +14,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
 import { Field } from '../components/Field'
-import { useCreateAgroSector } from '../hooks/useAgroSectors'
+import { useCreateAgroSector, useUpdateAgroSector } from '../hooks/useAgroSectors'
+import type { AgroSector } from '../types'
 
 const schema = z.object({
   sector_name: z.string().min(1, 'Requerido'),
@@ -26,13 +28,20 @@ type FormValues = z.infer<typeof schema>
 
 const KNOWN_FIELDS = ['sector_name', 'scian_code', 'activity_name', 'description'] as const
 
+const EMPTY: FormValues = { sector_name: '', scian_code: '', activity_name: '', description: '' }
+
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Si se pasa, el diálogo opera en modo edición (PATCH) sobre ese sector. */
+  sector?: AgroSector | null
 }
 
-export function CreateSectorDialog({ open, onOpenChange }: Props) {
-  const mutation = useCreateAgroSector()
+export function CreateSectorDialog({ open, onOpenChange, sector }: Props) {
+  const isEdit = !!sector
+  const createMutation = useCreateAgroSector()
+  const updateMutation = useUpdateAgroSector()
+  const mutation = isEdit ? updateMutation : createMutation
 
   const {
     register,
@@ -42,28 +51,53 @@ export function CreateSectorDialog({ open, onOpenChange }: Props) {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { sector_name: '', scian_code: '', activity_name: '', description: '' },
+    defaultValues: EMPTY,
   })
 
+  // Precargar (edición) o limpiar (creación) cada vez que se abre el diálogo.
+  useEffect(() => {
+    if (!open) return
+    reset(
+      sector
+        ? {
+            sector_name: sector.sector_name ?? '',
+            scian_code: sector.scian_code ?? '',
+            activity_name: sector.activity_name ?? '',
+            description: sector.description ?? '',
+          }
+        : EMPTY,
+    )
+  }, [open, sector, reset])
+
   function handleClose() {
-    reset()
+    reset(EMPTY)
     onOpenChange(false)
   }
 
   async function onSubmit(values: FormValues) {
     try {
-      await mutation.mutateAsync({
+      const payload = {
         sector_name: values.sector_name,
         activity_name: values.activity_name,
         ...(values.scian_code ? { scian_code: values.scian_code } : {}),
         ...(values.description ? { description: values.description } : {}),
-      })
-      toast.success('Sector agrícola creado correctamente.')
+      }
+      if (isEdit && sector) {
+        await updateMutation.mutateAsync({ id: sector.id, ...payload })
+        toast.success('Sector agrícola actualizado correctamente.')
+      } else {
+        await createMutation.mutateAsync(payload)
+        toast.success('Sector agrícola creado correctamente.')
+      }
       handleClose()
     } catch (err) {
       applyDrfErrors(err as never, setError, [...KNOWN_FIELDS])
       if (!(err as Record<string, unknown>)?.sector_name) {
-        toast.error('No se pudo crear el sector. Intenta de nuevo.')
+        toast.error(
+          isEdit
+            ? 'No se pudo actualizar el sector. Intenta de nuevo.'
+            : 'No se pudo crear el sector. Intenta de nuevo.',
+        )
       }
     }
   }
@@ -72,7 +106,7 @@ export function CreateSectorDialog({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Nuevo sector agrícola</DialogTitle>
+          <DialogTitle>{isEdit ? 'Editar sector agrícola' : 'Nuevo sector agrícola'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Field label="Nombre del sector *" error={errors.sector_name?.message}>
@@ -97,7 +131,11 @@ export function CreateSectorDialog({ open, onOpenChange }: Props) {
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting || mutation.isPending}>
-              {isSubmitting || mutation.isPending ? 'Guardando…' : 'Crear sector'}
+              {isSubmitting || mutation.isPending
+                ? 'Guardando…'
+                : isEdit
+                  ? 'Guardar cambios'
+                  : 'Crear sector'}
             </Button>
           </DialogFooter>
         </form>

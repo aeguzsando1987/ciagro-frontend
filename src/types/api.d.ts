@@ -5746,6 +5746,8 @@ export interface components {
             ranch: string;
             /** Format: uuid */
             partner: string;
+            readonly partner_name: string;
+            readonly partner_unit_type: string;
             relation_type: components["schemas"]["RelationTypeEnum"];
         };
         /**

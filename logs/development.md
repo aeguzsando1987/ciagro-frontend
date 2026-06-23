@@ -1710,3 +1710,71 @@ front. Con eso la tarjeta muestra valores reales.
 - `vitest run` (AspersionMap, CategoryStatsCard, SessionsPanel, GeodataDashboard) →
   **25/25 verde** (incluye tests nuevos de `areaShareByBucket` y `CategoryStatsCard`).
 - Verificado en `npm run dev` contra el backend con `area_ha` ya poblado.
+
+## Sesión 22 — Admin de agrounidades (sectores, aliados, ranchos/parcelas) + animaciones de modales (2026-06-23)
+
+Cuatro frentes de trabajo sobre el panel `/admin` y la capa de UI. Varios archivos se
+solapan entre features (p. ej. `AgroUnitPanel.tsx`, `RanchPanel.tsx`, los 7 paneles con
+pestañas), por lo que se documentan juntos.
+
+### 1. Sectores agrícolas: editar y eliminar
+
+La pestaña Sectores solo permitía listar y crear. Se añade editar/eliminar (el backend ya
+lo soportaba: `agro_sectors/{id}/` PATCH/DELETE).
+- **`hooks/useAgroSectors.ts`** — `useUpdateAgroSector` (PATCH) y `useDeleteAgroSector`
+  (DELETE), invalidando `AGRO_SECTORS_QUERY_KEY`.
+- **`dialogs/CreateSectorDialog.tsx`** — modo edición (prop `sector`): precarga y hace
+  PATCH; reutiliza el mismo formulario.
+- **`sections/AgroUnitsSection.tsx`** — columna "Acciones" (Editar/Eliminar, gated a
+  Supervisor+), borrado con `confirm()`.
+- Tests: `AgroUnitsSection.test.tsx` (mock de los hooks nuevos + 2 tests de acciones).
+
+### 2. Aliados (RanchPartner): selector de agrounidad filtrado por tipo
+
+El formulario pedía pegar el **UUID** de la unidad. Ahora el "Tipo de relación" filtra y la
+"Unidad" es un selector de agrounidades de ese tipo (espejo de
+`RELATION_TO_UNIT_TYPE` del backend).
+- **`hooks/useAgroUnits.ts`** — `useAgroUnits(unitType?)` filtrable por `?unit_type=`.
+- **`hooks/useRanchPartners.ts`** — `RanchPartnerCreate` omite los read-only nuevos.
+- **`panel/RanchPanel.tsx`** — Select de unidad filtrado; limpia la unidad al cambiar de
+  tipo; muestra `partner_name` en la lista (en vez del UUID).
+- **`types/api.d.ts`** — `partner_name`/`partner_unit_type` añadidos a mano al schema
+  `RanchPartner` (se evitó regenerar todo el archivo para no arrastrar drift no
+  relacionado). Backend: ver Sesión 22 punto 5 del repo back.
+
+### 3. Ranchos y parcelas desde el detalle de una AgroUnit
+
+`AgroUnitPanel` gana pestañas **Ranchos** y **Parcelas** (solo para unit_type Productor /
+Asociación agrícola) y contadores en Detalle. Backend sin cambios (filtros `?producer=` y
+creates ya existían).
+- **`panel/AgroUnitPanel.tsx`** — `canManageRanches`; `useRanches(unit.id)` y
+  `usePlots({producerId})`; contadores; pestaña Ranchos (lista + "Nuevo rancho"); pestaña
+  Parcelas (parcelas agrupadas por rancho + "Nueva parcela" por rancho; guía si no hay
+  ranchos); diálogos anidados.
+- **`components/RanchFormDialog.tsx`** — prop `fixedProducerId` (fija/oculta el productor
+  al crear desde la agrounidad).
+
+### 4. Animaciones de modales (toda la app)
+
+Los modales aparecían/cerraban de golpe; las clases `animate-in/out` de `dialog.tsx`/
+`sheet.tsx` eran inertes porque faltaba el plugin.
+- **Aparición/cierre (centralizado)**: `tailwindcss-animate` instalado y registrado en
+  `tailwind.config.ts` → activa las animaciones ya declaradas en todos los modales/sheets
+  (bonus: select/dropdown).
+- **Altura dinámica al cambiar de pestaña**: `auto-animate` se descartó (solo hace
+  crossfade, no interpola la altura del contenedor). Se creó
+  **`components/ui/animated-height.tsx`** (ResizeObserver + transición CSS de `height`,
+  respeta `prefers-reduced-motion`, no recorta en reposo → no rompe el scroll del modal) y
+  **`components/ui/animated-tabs.tsx`** (`AnimatedTabs` = `Tabs` envuelto en
+  `AnimatedHeight`). Se cambió el import `Tabs` → `AnimatedTabs as Tabs` en los **7 modales
+  con pestañas** (AgroUnitPanel, RanchPanel, PlotPanel, DataCentralMainPanel,
+  DataCentralPanel, PhytosanitaryPanel, ProfileModal). Las 2 secciones no-modales quedan
+  sin tocar.
+- **`src/test/setup.ts`** — mock de `ResizeObserver` (jsdom no lo trae).
+
+### Verificación
+
+- `tsc --noEmit` → 0 errores. `vitest run` → **187/187** verde.
+- Manual en `npm run dev`: editar/eliminar sectores; crear aliado por selector (con
+  nombre); crear rancho/parcela desde la agrounidad; modales con animación de apertura/
+  cierre y de altura al cambiar de pestaña.

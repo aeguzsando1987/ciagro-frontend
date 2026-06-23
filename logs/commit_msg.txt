@@ -1,32 +1,41 @@
-feat(visor-datos): tarjeta de % de aplicación por categoría (área) con filtro
+feat(admin+ui): sectores CRUD, aliados por selector, ranchos/parcelas en agrounidad y animaciones de modales
 
-Sesión 21 (rama dev). A nivel sesión del Visor de Datos se añade una tarjeta sobre el
-mapa (columna derecha, debajo de la lista de sesiones) que muestra, por categoría de
-% de aplicación, "<% del área> · <área en ha>", y donde cada categoría es un filtro
-que comparte estado con el semáforo de la barra inferior.
+Sesión 22 (rama dev). Cuatro frentes de trabajo sobre /admin y la capa de UI. Varios
+archivos se solapan entre features (AgroUnitPanel, RanchPanel, los 7 paneles con
+pestañas), por lo que se entregan en un solo commit.
 
-Decisiones (confirmadas con el usuario)
-- Base del %: área de la categoría / área total con meta (categorías suman ~100%).
-- La barra inferior se mantiene; la tarjeta comparte checkedBuckets/toggleBucket.
-- sin_meta se omite (solo categorías con meta válida), igual que area_total_ha del back.
+1) feat(admin) — Sectores agrícolas: editar y eliminar
+   La pestaña Sectores solo listaba/creaba (el backend ya soportaba PATCH/DELETE).
+   - useAgroSectors: useUpdateAgroSector (PATCH) + useDeleteAgroSector (DELETE).
+   - CreateSectorDialog: modo edición (prop sector) reutilizando el formulario.
+   - AgroUnitsSection: columna Acciones (Editar/Eliminar, gated Supervisor+), borrado con
+     confirm(). Tests añadidos en AgroUnitsSection.test.tsx.
 
-Cambios
-- CategoryStatsCard.tsx (NUEVO): tarjeta presentacional (checkbox + color + label/rango
-  + "% · ha"), encabezado con total con meta. Reusa areaShareByBucket/formatHa.
-- AspersionMap.tsx: nueva prop sessionsSlot (columna derecha con el slot de sesiones y
-  la tarjeta, esta solo en la capa categórica). Export de areaShareByBucket y formatHa.
-  Sin sessionsSlot el comportamiento queda idéntico (p. ej. modal del task-manager).
-- SessionsPanel.tsx: prop floating (default true). floating=false = variante de columna.
-- GeodataDashboard.tsx: a nivel sesión la lista vive dentro de AspersionMap (sessionsSlot);
-  a nivel parcela sigue flotante.
+2) feat(admin) — Aliados (RanchPartner) por selector filtrado por tipo
+   El form pedía pegar el UUID de la unidad. Ahora "Tipo de relación" filtra y "Unidad" es
+   un selector de agrounidades de ese tipo (espejo de RELATION_TO_UNIT_TYPE del backend).
+   - useAgroUnits(unitType?) filtrable por ?unit_type=.
+   - RanchPanel: Select de unidad; limpia la unidad al cambiar de tipo; muestra
+     partner_name en la lista (en vez del UUID).
+   - types/api.d.ts: partner_name/partner_unit_type añadidos a mano al schema RanchPartner
+     (se evitó regenerar todo el archivo para no arrastrar drift no relacionado).
+   Requiere el cambio de backend del mismo Sesión 22 (RanchPartnerSerializer).
 
-Datos
-- El area_ha por punto lo provee el backend. Hasta ahora venía NULL (el CSV no traía
-  área) y la tarjeta salía 0.0% / —. Se resolvió en el backend (trigger + backfill +
-  refresh MV, migración 0033), no con fallback en el front.
+3) feat(admin) — Ranchos y parcelas desde el detalle de una AgroUnit
+   AgroUnitPanel gana pestañas Ranchos y Parcelas (solo Productor/Asociación agrícola) y
+   contadores en Detalle. Backend sin cambios (filtros ?producer= y creates ya existían).
+   - AgroUnitPanel: useRanches(unit.id)/usePlots({producerId}); pestaña Parcelas agrupa por
+     rancho; crear rancho/parcela desde el panel (diálogos anidados).
+   - RanchFormDialog: prop fixedProducerId (fija/oculta el productor).
 
-Verificación
-- tsc --noEmit: 0 errores. vitest (suites afectadas): 25/25 verde (tests nuevos de
-  areaShareByBucket y CategoryStatsCard).
+4) feat(ui) — Animaciones de modales (toda la app)
+   - Aparición/cierre: tailwindcss-animate instalado y registrado en tailwind.config →
+     activa las clases ya escritas en dialog.tsx/sheet.tsx (bonus: select/dropdown).
+   - Altura al cambiar de pestaña: auto-animate descartado (solo crossfade, no interpola
+     altura); nuevo AnimatedHeight (ResizeObserver + transición CSS de height, respeta
+     prefers-reduced-motion, no rompe el scroll) y AnimatedTabs (Tabs envuelto). Import
+     Tabs->AnimatedTabs en los 7 modales con pestañas.
+   - src/test/setup.ts: mock de ResizeObserver (jsdom no lo trae).
 
-Documentación: logs/development.md (Sesión 21), logs/dev_log.csv.
+Verificación: tsc --noEmit 0 errores; vitest run 187/187 verde.
+Documentación: logs/development.md (Sesión 22), logs/dev_log.csv.

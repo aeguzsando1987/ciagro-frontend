@@ -22,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AnimatedTabs as Tabs } from '@/components/ui/animated-tabs'
 import { Trash2 } from 'lucide-react'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
 import { Field } from '../components/Field'
@@ -31,8 +32,15 @@ import { useUpdateAgroUnit } from '../hooks/useAgroUnits'
 import { useAgroSectors } from '../hooks/useAgroSectors'
 import { useCountries, useStates } from '../hooks/useGeography'
 import { useContactAssignments, useDeleteContactAssignment } from '../hooks/useContacts'
+import { useRanches } from '../hooks/useRanches'
+import { usePlots } from '../hooks/usePlots'
 import { CreateContactDialog } from '../dialogs/CreateContactDialog'
+import { RanchFormDialog } from '../components/RanchFormDialog'
+import { PlotFormDialog } from '../components/PlotFormDialog'
 import type { AgroUnit } from '../types'
+
+/** Tipos de agrounidad que actúan como productor (pueden tener ranchos/parcelas). */
+const RANCH_OWNER_TYPES = ['Productor', 'Asociación agrícola']
 
 const UNIT_TYPES = [
   'Productor', 'Acopiadora de grano', 'Asociación agrícola',
@@ -77,15 +85,25 @@ interface Props {
 export function AgroUnitPanel({ unit, onClose }: Props) {
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [contactDialogOpen, setContactDialogOpen] = useState(false)
+  const [ranchFormOpen, setRanchFormOpen] = useState(false)
+  const [plotFormRanchId, setPlotFormRanchId] = useState<string | null>(null)
   const user = useAuthStore((s) => s.user)
   const canEdit = (user?.role_level ?? 0) >= ROLE_LEVELS.SUPER_ADMIN
   const canManageContacts = (user?.role_level ?? 0) >= ROLE_LEVELS.SUPERVISOR
+  const canManageAssets = (user?.role_level ?? 0) >= ROLE_LEVELS.MANAGER
+
+  // Solo Productor/Asociación agrícola gestionan ranchos y parcelas.
+  const canManageRanches = RANCH_OWNER_TYPES.includes(unit.unit_type ?? '')
 
   const mutation = useUpdateAgroUnit()
   const { data: sectors = [] } = useAgroSectors()
   const { data: countries = [] } = useCountries()
   const { data: assignments = [], isLoading: loadingAssignments } = useContactAssignments(String(unit.id))
   const deleteAssignment = useDeleteContactAssignment()
+  // Ranchos y parcelas de la agrounidad (filtrados por producer en backend).
+  // Para tipos no-productor el backend devuelve [] (no son producer de ningún rancho).
+  const { data: ranches = [] } = useRanches(unit.id)
+  const { data: plots = [] } = usePlots({ producerId: unit.id })
 
   const {
     register,
@@ -178,6 +196,8 @@ export function AgroUnitPanel({ unit, onClose }: Props) {
             <TabsList className="mb-4">
               <TabsTrigger value="detail">Detalle</TabsTrigger>
               <TabsTrigger value="contacts">Contactos</TabsTrigger>
+              {canManageRanches && <TabsTrigger value="ranches">Ranchos</TabsTrigger>}
+              {canManageRanches && <TabsTrigger value="plots">Parcelas</TabsTrigger>}
             </TabsList>
 
             {/* ── Tab Detalle ── */}
@@ -195,6 +215,12 @@ export function AgroUnitPanel({ unit, onClose }: Props) {
                   <Row label="Correo">{unit.email ?? '—'}</Row>
                   <Row label="Sitio web">{unit.website ?? '—'}</Row>
                   <Row label="Dirección">{[unit.address_line_1, unit.address_line_2].filter(Boolean).join(', ') || '—'}</Row>
+                  {canManageRanches && (
+                    <>
+                      <Row label="Ranchos">{ranches.length}</Row>
+                      <Row label="Parcelas">{plots.length}</Row>
+                    </>
+                  )}
                   {canEdit && (
                     <div className="pt-2">
                       <Button size="sm" onClick={() => setMode('edit')}>Editar</Button>
@@ -334,6 +360,74 @@ export function AgroUnitPanel({ unit, onClose }: Props) {
                 )}
               </div>
             </TabsContent>
+
+            {/* ── Tab Ranchos ── */}
+            {canManageRanches && (
+              <TabsContent value="ranches">
+                <div className="space-y-3">
+                  {ranches.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Sin ranchos registrados.</p>
+                  ) : (
+                    <ul className="divide-y">
+                      {ranches.map((r) => (
+                        <li key={r.id} className="flex items-center justify-between py-2 text-sm">
+                          <div>
+                            <p className="font-medium">{r.name}</p>
+                            <p className="text-muted-foreground">{r.code}</p>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">
+                            {plots.filter((p) => p.ranch === r.id).length} parcelas
+                          </Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {canManageAssets && (
+                    <Button size="sm" onClick={() => setRanchFormOpen(true)}>
+                      Nuevo rancho
+                    </Button>
+                  )}
+                </div>
+              </TabsContent>
+            )}
+
+            {/* ── Tab Parcelas ── */}
+            {canManageRanches && (
+              <TabsContent value="plots">
+                {ranches.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Crea primero un rancho para poder registrar parcelas.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {ranches.map((r) => {
+                      const ranchPlots = plots.filter((p) => p.ranch === r.id)
+                      return (
+                        <div key={r.id} className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium">{r.name}</p>
+                            {canManageAssets && (
+                              <Button size="sm" variant="outline" onClick={() => setPlotFormRanchId(r.id)}>
+                                Nueva parcela
+                              </Button>
+                            )}
+                          </div>
+                          {ranchPlots.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">Sin parcelas.</p>
+                          ) : (
+                            <ul className="divide-y rounded-md border">
+                              {ranchPlots.map((p) => (
+                                <li key={p.id} className="px-3 py-2 text-sm">{p.code}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+            )}
           </Tabs>
         </DialogContent>
       </Dialog>
@@ -343,6 +437,22 @@ export function AgroUnitPanel({ unit, onClose }: Props) {
         onOpenChange={setContactDialogOpen}
         agroUnitId={String(unit.id)}
       />
+
+      {canManageRanches && (
+        <RanchFormDialog
+          open={ranchFormOpen}
+          onClose={() => setRanchFormOpen(false)}
+          fixedProducerId={unit.id}
+        />
+      )}
+
+      {canManageRanches && (
+        <PlotFormDialog
+          open={plotFormRanchId !== null}
+          onClose={() => setPlotFormRanchId(null)}
+          fixedRanchId={plotFormRanchId ?? undefined}
+        />
+      )}
     </>
   )
 }

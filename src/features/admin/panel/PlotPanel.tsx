@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AnimatedTabs as Tabs } from '@/components/ui/animated-tabs'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'

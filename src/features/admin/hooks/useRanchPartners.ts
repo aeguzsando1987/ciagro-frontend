@@ -23,7 +23,7 @@ export function useRanchPartners(ranchId: string | null) {
   return useQuery(ranchPartnersQueryOptions(ranchId))
 }
 
-type RanchPartnerCreate = Omit<RanchPartner, 'id'>
+type RanchPartnerCreate = Omit<RanchPartner, 'id' | 'partner_name' | 'partner_unit_type'>
 
 export function useCreateRanchPartner() {
   const queryClient = useQueryClient()

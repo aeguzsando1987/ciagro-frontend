@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import tailwindcssAnimate from 'tailwindcss-animate'
 
 // Configuración Tailwind + tokens de shadcn/ui mapeados a CSS variables
 // (definidas en src/styles/globals.css). Esto permite cambiar paleta global
@@ -55,7 +56,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [tailwindcssAnimate],
 }
 
 export default config

@@ -2,6 +2,7 @@ import { screen, waitFor, render } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useAgroUnits } from '../hooks/useAgroUnits'
+import { useAgroSectors } from '../hooks/useAgroSectors'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { http, HttpResponse } from 'msw'
 import { server } from '@/test/msw-server'
@@ -24,13 +25,19 @@ vi.mock('../hooks/useAgroUnits', () => ({
   useCreateAgroUnit: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
 }))
 
+const deleteSectorMutate = vi.fn()
 vi.mock('../hooks/useAgroSectors', () => ({
   useAgroSectors: vi.fn(() => ({ data: [], isLoading: false, error: null })),
   useCreateAgroSector: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+  useUpdateAgroSector: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+  useDeleteAgroSector: vi.fn(() => ({ mutateAsync: deleteSectorMutate, isPending: false })),
 }))
 
 // El dialog de crear unidad necesita countries
 beforeEach(() => {
+  // Estado base por test: sin sectores (los tests que los necesitan lo sobrescriben).
+  vi.mocked(useAgroSectors).mockReturnValue({ data: [], isLoading: false, error: null } as never)
+  deleteSectorMutate.mockClear()
   server.use(
     http.get(`${BASE}/api/v1/geography/countries/`, () => HttpResponse.json(EMPTY_PAGE)),
   )
@@ -69,6 +76,33 @@ describe('AgroUnitsSection', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument()
       expect(screen.getByText('Nueva agrounidad')).toBeInTheDocument()
     })
+  })
+
+  const sampleSector = {
+    id: 7, sector_name: 'Granos básicos', scian_code: '111140',
+    activity_name: 'Cultivo de maíz', description: '',
+  }
+
+  it('supervisor sees Editar/Eliminar actions for each sector', async () => {
+    const user = userEvent.setup()
+    vi.mocked(useAgroSectors).mockReturnValue({ data: [sampleSector], isLoading: false, error: null } as never)
+    renderSection()
+    await user.click(screen.getByRole('tab', { name: /Sectores/i }))
+    await waitFor(() => expect(screen.getByText('Granos básicos')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: /Editar/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Eliminar/i })).toBeInTheDocument()
+  })
+
+  it('confirms and calls delete on Eliminar click', async () => {
+    const user = userEvent.setup()
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    vi.mocked(useAgroSectors).mockReturnValue({ data: [sampleSector], isLoading: false, error: null } as never)
+    renderSection()
+    await user.click(screen.getByRole('tab', { name: /Sectores/i }))
+    await user.click(await screen.findByRole('button', { name: /Eliminar/i }))
+    expect(confirmSpy).toHaveBeenCalled()
+    expect(deleteSectorMutate).toHaveBeenCalledWith(7)
+    confirmSpy.mockRestore()
   })
 
   it('renders units in table when data present', () => {

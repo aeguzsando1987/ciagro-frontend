@@ -35,3 +35,38 @@ export function useCreateAgroSector() {
     },
   })
 }
+
+export function useUpdateAgroSector() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...payload
+    }: { id: number; sector_name: string; scian_code?: string; activity_name: string; description?: string }) => {
+      const { data, error } = await apiClient.PATCH('/api/v1/organizations/agro_sectors/{id}/', {
+        params: { path: { id } },
+        body: payload as never,
+      })
+      if (error) throw error
+      return data!
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AGRO_SECTORS_QUERY_KEY })
+    },
+  })
+}
+
+export function useDeleteAgroSector() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const { error } = await apiClient.DELETE('/api/v1/organizations/agro_sectors/{id}/', {
+        params: { path: { id } },
+      })
+      if (error) throw new Error('No se pudo eliminar el sector agrícola')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AGRO_SECTORS_QUERY_KEY })
+    },
+  })
+}

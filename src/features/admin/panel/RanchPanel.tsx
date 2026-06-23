@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AnimatedTabs as Tabs } from '@/components/ui/animated-tabs'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
@@ -33,7 +34,16 @@ import { useUpdateRanch, useDeleteRanch } from '../hooks/useRanches'
 import { usePlots } from '../hooks/usePlots'
 import { useRanchPartners, useCreateRanchPartner, useDeleteRanchPartner } from '../hooks/useRanchPartners'
 import { useProducers } from '../hooks/useProducers'
+import { useAgroUnits } from '../hooks/useAgroUnits'
 import type { RanchFlat, PlotFlat, RelationType } from '../types'
+
+// Espejo de RanchPartnerSerializer.RELATION_TO_UNIT_TYPE (backend): cada tipo de
+// relación admite socios de un único unit_type, que se usa para filtrar el selector.
+const REL_TO_UNIT_TYPE: Record<RelationType, string> = {
+  guild: 'Asociación agrícola',
+  grain_collector: 'Acopiadora de grano',
+  lab: 'Laboratorio',
+}
 
 const schema = z.object({
   name: z.string().min(1, 'Requerido'),
@@ -69,6 +79,8 @@ export function RanchPanel({ ranch, onClose }: Props) {
   const { data: plots = [] } = usePlots({ ranchId: ranch.id })
   const { data: partners = [] } = useRanchPartners(ranch.id)
   const { data: producers = [] } = useProducers()
+  // Agrounidades disponibles para el tipo de relación seleccionado (filtradas en backend).
+  const { data: partnerUnits = [] } = useAgroUnits(REL_TO_UNIT_TYPE[partnerRelType])
   const updateMutation = useUpdateRanch()
   const deleteMutation = useDeleteRanch()
   const createPartnerMutation = useCreateRanchPartner()
@@ -363,7 +375,10 @@ export function RanchPanel({ ranch, onClose }: Props) {
                     <label className="text-xs text-muted-foreground">Tipo de relación</label>
                     <Select
                       value={partnerRelType}
-                      onValueChange={(v) => setPartnerRelType(v as RelationType)}
+                      onValueChange={(v) => {
+                        setPartnerRelType(v as RelationType)
+                        setPartnerUnitId('') // cambia la lista filtrada → limpiar selección
+                      }}
                     >
                       <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -375,12 +390,24 @@ export function RanchPanel({ ranch, onClose }: Props) {
                   </div>
                   <div className="flex-1 space-y-1">
                     <label className="text-xs text-muted-foreground">Unidad</label>
-                    <Input
-                      className="h-8 text-sm"
-                      placeholder="UUID de la unidad…"
+                    <Select
                       value={partnerUnitId}
-                      onChange={(e) => setPartnerUnitId(e.target.value)}
-                    />
+                      onValueChange={setPartnerUnitId}
+                      disabled={partnerUnits.length === 0}
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue placeholder={
+                          partnerUnits.length === 0
+                            ? `Sin unidades de tipo «${REL_TO_UNIT_TYPE[partnerRelType]}»`
+                            : 'Selecciona una unidad'
+                        } />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {partnerUnits.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>{u.commercial_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <Button
                     size="sm"
@@ -398,7 +425,7 @@ export function RanchPanel({ ranch, onClose }: Props) {
                   {partners.map((pa) => (
                     <div key={pa.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
                       <div>
-                        <span className="font-medium">{pa.partner}</span>
+                        <span className="font-medium">{pa.partner_name ?? pa.partner}</span>
                         <Badge variant="secondary" className="ml-2 text-xs">
                           {REL_LABELS[pa.relation_type]}
                         </Badge>

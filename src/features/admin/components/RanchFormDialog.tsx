@@ -53,9 +53,11 @@ interface Props {
   open: boolean
   onClose: () => void
   initialData?: RanchFlat
+  /** Productor fijado (al crear desde el panel de una agrounidad). Oculta el selector. */
+  fixedProducerId?: string
 }
 
-export function RanchFormDialog({ open, onClose, initialData }: Props) {
+export function RanchFormDialog({ open, onClose, initialData, fixedProducerId }: Props) {
   const isEdit = !!initialData
 
   // Estado separado para la cascada: necesitamos iso_2 del país para filtrar estados,
@@ -92,7 +94,7 @@ export function RanchFormDialog({ open, onClose, initialData }: Props) {
           area_uom: initialData.area_uom ?? 'ha',
           status: initialData.status ?? 'active',
         }
-      : { area_uom: 'ha', status: 'active' },
+      : { area_uom: 'ha', status: 'active', producer: fixedProducerId ?? '' },
   })
 
   function handleClose() {
@@ -156,20 +158,22 @@ export function RanchFormDialog({ open, onClose, initialData }: Props) {
             </Field>
           </div>
 
-          <Field label="Productor" error={errors.producer?.message}>
-            <Controller
-              name="producer"
-              control={control}
-              render={({ field }) => (
-                <AssignCombobox
-                  items={producerItems}
-                  placeholder="Seleccionar productor…"
-                  value={field.value ?? ''}
-                  onChange={field.onChange}
-                />
-              )}
-            />
-          </Field>
+          {!fixedProducerId && (
+            <Field label="Productor" error={errors.producer?.message}>
+              <Controller
+                name="producer"
+                control={control}
+                render={({ field }) => (
+                  <AssignCombobox
+                    items={producerItems}
+                    placeholder="Seleccionar productor…"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+            </Field>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="País" error={errors.country?.message}>

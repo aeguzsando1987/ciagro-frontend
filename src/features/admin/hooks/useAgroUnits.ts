@@ -5,11 +5,13 @@ import type { components } from '@/types/api'
 
 export const AGRO_UNITS_QUERY_KEY = ['admin', 'agro-units'] as const
 
-export function agroUnitsQueryOptions() {
+export function agroUnitsQueryOptions(unitType?: string) {
   return queryOptions({
-    queryKey: AGRO_UNITS_QUERY_KEY,
+    queryKey: unitType ? [...AGRO_UNITS_QUERY_KEY, { unitType }] : AGRO_UNITS_QUERY_KEY,
     queryFn: async (): Promise<AgroUnit[]> => {
-      const { data, error } = await apiClient.GET('/api/v1/organizations/')
+      const { data, error } = await apiClient.GET('/api/v1/organizations/', {
+        params: unitType ? { query: { unit_type: unitType } as never } : undefined,
+      })
       if (error) throw new Error('No se pudo cargar las agrounidades')
       return data?.results ?? []
     },
@@ -17,8 +19,8 @@ export function agroUnitsQueryOptions() {
   })
 }
 
-export function useAgroUnits() {
-  return useQuery(agroUnitsQueryOptions())
+export function useAgroUnits(unitType?: string) {
+  return useQuery(agroUnitsQueryOptions(unitType))
 }
 
 export function agroUnitDetailQueryOptions(id: string | null) {

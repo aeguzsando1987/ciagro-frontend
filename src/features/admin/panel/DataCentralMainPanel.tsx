@@ -14,7 +14,8 @@ import { Badge } from '@/components/ui/badge'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AnimatedTabs as Tabs } from '@/components/ui/animated-tabs'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
 import { Field } from '../components/Field'
 import { CountryCombobox } from '../components/CountryCombobox'

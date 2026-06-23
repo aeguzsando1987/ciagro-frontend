@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { useAgroUnits } from '../hooks/useAgroUnits'
-import { useAgroSectors } from '../hooks/useAgroSectors'
+import { useAgroSectors, useDeleteAgroSector } from '../hooks/useAgroSectors'
 import { CreateAgroUnitDialog } from '../dialogs/CreateAgroUnitDialog'
 import { CreateSectorDialog } from '../dialogs/CreateSectorDialog'
 import { AgroUnitPanel } from '../panel/AgroUnitPanel'
@@ -30,7 +31,20 @@ export function AgroUnitsSection() {
 
   const [createUnitOpen, setCreateUnitOpen] = useState(false)
   const [createSectorOpen, setCreateSectorOpen] = useState(false)
+  const [editSector, setEditSector] = useState<AgroSector | null>(null)
   const [selectedUnit, setSelectedUnit] = useState<AgroUnit | null>(null)
+
+  const deleteSector = useDeleteAgroSector()
+
+  async function handleDeleteSector(sector: AgroSector) {
+    if (!confirm(`¿Eliminar el sector "${sector.sector_name}"? Esta acción no se puede deshacer.`)) return
+    try {
+      await deleteSector.mutateAsync(sector.id)
+      toast.success('Sector agrícola eliminado.')
+    } catch {
+      toast.error('No se pudo eliminar el sector. Puede estar en uso por una agrounidad.')
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -123,6 +137,9 @@ export function AgroUnitsSection() {
                     <th className="px-4 py-2 text-left font-medium">Nombre del sector</th>
                     <th className="px-4 py-2 text-left font-medium">Código SCIAN</th>
                     <th className="px-4 py-2 text-left font-medium">Actividad principal</th>
+                    {canCreateSector && (
+                      <th className="px-4 py-2 text-right font-medium">Acciones</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -131,6 +148,23 @@ export function AgroUnitsSection() {
                       <td className="px-4 py-2 font-medium">{sector.sector_name}</td>
                       <td className="px-4 py-2 text-muted-foreground">{sector.scian_code ?? '—'}</td>
                       <td className="px-4 py-2">{sector.activity_name ?? '—'}</td>
+                      {canCreateSector && (
+                        <td className="px-4 py-2">
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="outline" onClick={() => setEditSector(sector)}>
+                              Editar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteSector(sector)}
+                              disabled={deleteSector.isPending}
+                            >
+                              Eliminar
+                            </Button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -142,6 +176,11 @@ export function AgroUnitsSection() {
 
       <CreateAgroUnitDialog open={createUnitOpen} onOpenChange={setCreateUnitOpen} />
       <CreateSectorDialog open={createSectorOpen} onOpenChange={setCreateSectorOpen} />
+      <CreateSectorDialog
+        open={editSector !== null}
+        onOpenChange={(open) => !open && setEditSector(null)}
+        sector={editSector}
+      />
       {selectedUnit && (
         <AgroUnitPanel unit={selectedUnit} onClose={() => setSelectedUnit(null)} />
       )}
