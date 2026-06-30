@@ -178,6 +178,54 @@ endpoints + 6 gaps abiertos (1 alta, 2 media, 3 baja).
 
 ---
 
+## FASE FRONTEND · REPORTEADOR DE SESIONES
+**Estado:** `[ ] Pendiente — sesión dedicada (contrato en .context/templates/session-template.json)`
+**Cubre:** use case `.context/usecases/use-case-report-session.md` (flujos 1–4).
+**Backend:** ✅ **Fase AC completa y validada** en rama `dev-session-report` (CIAgro_alpha_back): endpoints
+SessionReport/SessionIssue + sync, 13 tests, admin funcional.
+**Rama de este repo:** crear **`dev-reports`** (desde `dev`). Homologación DIFERIDA: `dev-reports` (front) y
+`dev-session-report` (back) se mergean **juntas** a `dev`→`master` solo cuando ambas estén validadas.
+
+> Reporte por SESIÓN, polimórfico. Se accede desde el Task Manager y desde el Visor de datos
+> (toggle a la derecha del visor de aspersión). Tarjeta con datos denormalizados + semáforo de
+> 5 buckets, observaciones, tabla de temas de atención (issues) y botón "Sincronizar datos de sesión".
+> Reutiliza `AspersionMapModal`, los hooks de sesión y el formulario de creación de sesión.
+
+### API real (Fase AC backend) a consumir
+- `GET/POST /field_ops/session-reports/` — list (scoped) / create. Filtro: `?session_type=aspersion&object_id=<uuid header>`.
+- `GET /field_ops/session-reports/<id>/` · `PATCH .../update/` · `DELETE .../delete/`
+- `POST /field_ops/session-reports/<id>/sync/` — "Sincronizar datos de sesión" (recalcula snapshots; **409** si publicado).
+- `GET/POST /field_ops/session-issues/` (`?report=<uuid>`) · `PATCH .../update/` · `DELETE .../delete/`
+- **Crear reporte:** body `{ session_type:"aspersion", object_id:<uuid>, resume_text, report_date?, day_temperature?, lead?, ranch_manager?, status? }`.
+- **`stats_snapshot`:** `points_count, area_cobertura_ha, dosis_promedio_l, media_meta_l, volumen_total_l, fecha_inicio, fecha_fin, variables{velocidad,flujo_liquido,presion → {avg,min,max,unit}}, proporcion_meta[], semaforo{sobredosis|excelente|esperada|baja|deficiente → {color,area_ha,pct_area_total}}`.
+- **`general_snapshot`:** `actividad, productor, rancho, parcela, superficie_parcela_ha, ubicacion, cultivo, fecha_aplicacion`.
+- **Permisos (D8):** lectura con scope; escritura `IsTechnician` (nivel ≥2); borrar reporte `IsSupervisor`.
+- **D3:** editar texto NO recalcula stats; solo "Sincronizar" lo hace; al publicar, congelado.
+
+### FR-RS.A — Acceso e infraestructura
+- [ ] **FR-RS.A1** Toggle "Reportes" a la derecha del visor de aspersión (`AspersionMapModal`) + panel lateral; habilitado solo si la sesión tiene datos cargados (`import_status==='done' && points_count>0`) y `role_level>=SUPERVISOR`.
+- [ ] **FR-RS.A2** Mismo acceso desde Task Manager (sesión seleccionada) reutilizando el panel.
+- [ ] **FR-RS.A3** Hooks `useSessionReport(sessionType, objectId)` / `useSessionIssues(reportId)` / `useSyncSessionReport` (TanStack Query) con `apiClient` tipado (`src/lib/api/client.ts`). Regenerar tipos OpenAPI (`npm run types:gen`) contra el back de Fase AC.
+
+### FR-RS.B — Tarjeta + formulario de reporte
+- [ ] **FR-RS.B1** Tarjeta de cabecera desde `general_snapshot`+`stats_snapshot` (Agricultor/Granja/Actividad/Área/Proporción meta/Área de cobertura/Dosis/Volumen + variables velocidad/flujo/presión con avg·min·max + Fecha inicio/fin).
+- [ ] **FR-RS.B2** Semáforo de 5 buckets (mapear `color` → estilo; reutilizar `APPLICATION_CATEGORIES` de `lib/aspersionLayers.ts`) con `pct_area_total` y `area_ha`.
+- [ ] **FR-RS.B3** Botón "Generar reporte de actividad" (si `GET ?session_type&object_id` viene vacío) → `POST` con `session_type:"aspersion"` + `object_id`.
+- [ ] **FR-RS.B4** Campos editables: observaciones (`resume_text`, obligatorio), fecha (default hoy, no futura), `lead`, `ranch_manager`, `day_temperature`, `status`. `PATCH .../update/` (no recalcula stats).
+- [ ] **FR-RS.B5** Botón "Sincronizar datos de sesión" → `POST .../sync/`; deshabilitado/oculto si `status==='publicado'` (maneja 409). Reutilizar patrón `useDrfErrorMap` para errores por campo.
+
+### FR-RS.C — Tabla de temas de atención (issues)
+- [ ] **FR-RS.C1** Tabla editable de SessionIssue (título/`issue_type`/`relevancia`/`attention_status`/`registered_at`/detalle/sugerencia/acción/responsable). CRUD vía `session-issues/`.
+- [ ] **FR-RS.C2** Responsable: interno `assigned_user` (selector de usuario + link a perfil `admin/usuarios/<id>`) o externo `outer_assigned_user` (texto).
+- [ ] **FR-RS.C3** Botón "Lanzar actividad relacionada" → reutiliza formulario de creación de sesión; al crear, enlaza `related_content_type`+`related_object_id` del issue (PATCH issue).
+
+### FR-RS.D — Cierre
+- [ ] **FR-RS.D1** Tests component (Vitest) + typecheck. Demo manual contra el back de Fase AC.
+- [ ] **FR-RS.D2** Logs frontend (dev_log/development/roadmap/gap_log).
+- [ ] **FR-RS.D3** (Futuro) Botón "Generar reporte en PDF".
+
+---
+
 ## FASES FRONTEND 3–10 · MÓDULOS RESTANTES
 **Estado:** `[ ] Pendientes — UX/UI por pulir`
 
