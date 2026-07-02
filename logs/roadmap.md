@@ -221,7 +221,7 @@ SessionReport/SessionIssue + sync, 13 tests, admin funcional.
 ### FR-RS.C — Tabla de temas de atención (issues)
 - [x] **FR-RS.C1** `SessionIssuesTable` + `IssueForm` (CRUD inline): título/`issue_type`/`relevancia`/`attention_status`/`registered_at`/`followed_up_at`/detalle/sugerencia/acción. Vía `session-issues/`.
 - [x] **FR-RS.C2** Responsable: interno `assigned_user` (Select `useDatacentralUsers` cuando hay `datacentralId`; muestra `assigned_user_name`) o externo `outer_assigned_user` (texto). Deep-link a perfil pendiente (no hay ruta per-ID; muestra nombre).
-- [ ] **FR-RS.C3** (DIFERIDO — F4, ver GAP-FR-RS-004) "Lanzar actividad relacionada": 3 bloqueos (content_type sin resolver en front, `CreateSessionDialog` no devuelve id, falta selector de programa destino). Enganche `related_*` disponible en API.
+- [ ] **FR-RS.C3** (DIFERIDO — F4, ver GAP-FR-RS-004) "Lanzar actividad relacionada": ligar una sesión (aspersión **o fitosanitaria**) al issue. **VIABLE**, desbloqueable reutilizando infra. Distinción clave: *enlazar* una sesión NO necesita el adapter de reporte (GAP-AC-001 no bloquea el enlace phyto). Ruta (5 pasos): **BACK** (1) alias write `related_session_type` en `SessionIssueSerializer` (espejo de `session_type`) → resuelve `content_type` vía `SESSION_TYPE_ALIASES`; (2) añadir `phyto` a `SESSION_TYPE_ALIASES` (solo para enlazar). **FRONT** (3) `CreateSessionDialog` (ya crea aspersión y phyto) devuelve el `id`; (4) selector de programa/master destino; (5) issue → elegir tipo → crear → `PATCH` `related_session_type`+`related_object_id`. La creación de sesiones ya existe; lo pendiente es el **enganche**.
 
 ### FR-RS.E — Añadidos UX del panel (sesión 23, 2026-07-01)
 - [x] **FR-RS.E1** Encabezado + botón "Sincronizar" **fijos** arriba del panel (`SheetContent` a columna flex: cabecera con borde + cuerpo scrollable).
@@ -230,10 +230,10 @@ SessionReport/SessionIssue + sync, 13 tests, admin funcional.
 
 ### FR-RS.F — (FASE FUTURA) Compartir reportes públicos por liga — ver GAP-FR-RS-006
 - [ ] **Dictamen: VIABLE (alta).** Compartir un reporte `publicado` con clientes (con o sin usuario) por liga pública.
-- [ ] Decisiones del dev (2026-07-01): v1 incluye **todo + el mapa**; control de liga = **token no adivinable + revocar/regenerar**.
-- [ ] **Back:** `share_token` en `SessionReport` + endpoint público `AllowAny` `GET /field_ops/public/session-reports/<token>/` (solo `publicado`, sin scope) + serializer público (omite PII) + revocar + **endpoint público de puntos** (para el mapa) + migración.
-- [ ] **Front:** botón "Compartir/Copiar liga" (solo `publicado`) + ruta pública `/r/<token>` fuera del shell autenticado + vista read-only (ReportCard/Semáforo/issues + `AspersionMap locked`).
-- [ ] **Coordinada back+front, homologación conjunta.** Seguridad: token no adivinable, solo publicado, revocar, decisión de PII, rate-limit.
+- [ ] **Enfoque SIMPLE (dev 2026-07-01):** **sin campo `share_token` ni migración** — se reutiliza el **UUID que el reporte ya tiene** (uuid4 = no adivinable). Liga = `/r/<report_uuid>`. **Revocar = despublicar** (status ≠ `publicado` → la liga deja de responder). v1 incluye **todo + el mapa**.
+- [ ] **Back:** endpoint público `AllowAny` `GET /field_ops/public/session-reports/<uuid>/` (solo `publicado`, sin scope, read-only) + serializer público (omite PII) + **endpoint público de puntos** para el mapa (ligado al reporte publicado). **Sin migración.**
+- [ ] **Front:** botón "Compartir/Copiar liga" (solo `publicado`, copia `/r/<uuid>`) + ruta pública `/r/<uuid>` fuera del shell autenticado + vista read-only (ReportCard/Semáforo/issues + `AspersionMap locked`).
+- [ ] **Coordinada back+front, homologación conjunta.** Seguridad: UUID no adivinable, solo publicado, revocar=despublicar, decisión de PII, rate-limit. Descartado: `share_token` dedicado (permitiría rotar sin despublicar, a cambio de migración).
 
 ### FR-RS.D — Cierre
 - [x] **FR-RS.D1** Tests Vitest+RTL (18 nuevos: semáforo, fechas, schema, panel) + typecheck. Smoke autenticado contra Fase AC (create/update/sync 200+409/issues CRUD). Demo manual validada a ojo por el dev (steps 2–3).

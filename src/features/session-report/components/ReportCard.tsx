@@ -23,15 +23,41 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-function VariableRow({ label, v }: { label: string; v?: StatsVariable }) {
+function toNum(v: number | string | null | undefined): number | null {
+  if (v === null || v === undefined || v === '') return null
+  const n = typeof v === 'number' ? v : Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+function VariableRow({
+  label,
+  v,
+  altUnit,
+}: {
+  label: string
+  v?: StatsVariable
+  /** Unidad alterna (p. ej. bar→PSI): muestra una segunda línea convertida. */
+  altUnit?: { label: string; factor: number }
+}) {
   if (!v) return null
+  const conv = (x: number | string | null | undefined): string => {
+    const n = toNum(x)
+    return n === null || !altUnit ? '—' : (n * altUnit.factor).toFixed(2)
+  }
   return (
-    <li className="flex items-center justify-between gap-2 text-sm">
+    <li className="flex items-start justify-between gap-2 text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <span className="tabular-nums">
-        {num(v.avg)} <span className="text-xs text-muted-foreground">prom</span>
-        <span className="mx-1 text-muted-foreground">·</span>
-        {num(v.min)}–{num(v.max)} {v.unit}
+      <span className="text-right">
+        <span className="tabular-nums">
+          {num(v.avg)} <span className="text-xs text-muted-foreground">prom</span>
+          <span className="mx-1 text-muted-foreground">·</span>
+          {num(v.min)}–{num(v.max)} {v.unit}
+        </span>
+        {altUnit && (
+          <span className="block text-xs tabular-nums text-muted-foreground">
+            {conv(v.avg)} prom · {conv(v.min)}–{conv(v.max)} {altUnit.label}
+          </span>
+        )}
       </span>
     </li>
   )
@@ -79,7 +105,7 @@ export function ReportCard({ report }: { report: SessionReport }) {
             <ul className="space-y-1">
               <VariableRow label="Velocidad" v={s.variables.velocidad} />
               <VariableRow label="Flujo líquido" v={s.variables.flujo_liquido} />
-              <VariableRow label="Presión" v={s.variables.presion} />
+              <VariableRow label="Presión" v={s.variables.presion} altUnit={{ label: 'PSI', factor: 14.538 }} />
             </ul>
           </div>
         )}

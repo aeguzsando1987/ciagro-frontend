@@ -5,9 +5,9 @@ import type { StatsSnapshot } from '../types'
 describe('resolveSemaforoColor', () => {
   it('mapea los nombres del backend a hex', () => {
     expect(resolveSemaforoColor('amarillo')).toBe('#eab308')
-    expect(resolveSemaforoColor('verde')).toBe('#16a34a')
+    expect(resolveSemaforoColor('verde')).toBe('#5bb304')
     expect(resolveSemaforoColor('verde_amarillento')).toBe('#84cc16')
-    expect(resolveSemaforoColor('azul_electrico')).toBe('#2563eb')
+    expect(resolveSemaforoColor('azul_electrico')).toBe('#4052D6')
     expect(resolveSemaforoColor('rojo')).toBe('#dc2626')
   })
 

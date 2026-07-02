@@ -86,7 +86,7 @@ describe('GeodataDashboard', () => {
       session: { id: 's1', date: '2026-03-23' },
     }
     render(<GeodataDashboard selection={sel} onSelect={vi.fn()} />)
-    expect(screen.getByRole('button', { name: '% de aplicación' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Proporción volumen' })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Parcela/ })).toBeTruthy()
   })
 })

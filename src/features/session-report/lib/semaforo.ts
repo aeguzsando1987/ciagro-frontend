@@ -30,9 +30,12 @@ export const SEMAFORO_LABELS: Record<SemaforoBucketKey, string> = {
  * verde_amarillento | amarillo | rojo` (ver `report_adapters.py`). Lo traducimos a hex.
  * Si algún día el backend mandara un hex (`#...`) lo dejamos pasar tal cual.
  */
+// Paleta unificada con el visor (semáforo de "Proporción volumen"):
+// sobredosis=#4052D6 (azul_electrico) · excelente=#5bb304 (verde) · esperada=#84cc16 ·
+// baja=#eab308 · deficiente=#dc2626.
 const COLOR_NAME_TO_HEX: Record<string, string> = {
-  azul_electrico: '#2563eb',
-  verde: '#16a34a',
+  azul_electrico: '#4052D6',
+  verde: '#5bb304',
   verde_amarillento: '#84cc16',
   amarillo: '#eab308',
   rojo: '#dc2626',
