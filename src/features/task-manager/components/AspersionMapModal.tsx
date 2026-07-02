@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { AspersionMap } from '@/features/geodata-visor/components/AspersionMap'
+import { SessionReportToggle } from '@/features/session-report/components/SessionReportToggle'
 
 interface AspersionMapModalProps {
   open: boolean
@@ -23,9 +24,10 @@ interface AspersionMapModalProps {
   /** UUID de la AspersionSessionHeader. */
   sessionId: string
   plotId: string | null
+  datacentralId?: string | null
 }
 
-export function AspersionMapModal({ open, onClose, sessionId, plotId }: AspersionMapModalProps) {
+export function AspersionMapModal({ open, onClose, sessionId, plotId, datacentralId }: AspersionMapModalProps) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose() }}>
       <DialogContent
@@ -39,7 +41,12 @@ export function AspersionMapModal({ open, onClose, sessionId, plotId }: Aspersio
           plotId={plotId}
           enabled={open}
           toolbarStart={<DialogTitle className="text-base font-semibold mr-2">Mapa de aspersión</DialogTitle>}
-          toolbarEnd={<Button size="sm" variant="outline" onClick={onClose}>✕ Cerrar</Button>}
+          toolbarEnd={
+            <div className="flex items-center gap-2">
+              <SessionReportToggle objectId={sessionId} plotId={plotId} datacentralId={datacentralId} />
+              <Button size="sm" variant="outline" onClick={onClose}>✕ Cerrar</Button>
+            </div>
+          }
         />
       </DialogContent>
     </Dialog>

@@ -202,27 +202,44 @@ SessionReport/SessionIssue + sync, 13 tests, admin funcional.
 - **Permisos (D8):** lectura con scope; escritura `IsTechnician` (nivel ≥2); borrar reporte `IsSupervisor`.
 - **D3:** editar texto NO recalcula stats; solo "Sincronizar" lo hace; al publicar, congelado.
 
+> **Sesión 23 (2026-06-30/07-01) — Reporteador FRONTEND: ✅ IMPLEMENTADO en rama `dev-reports`.**
+> Homologación DIFERIDA: `dev-reports` (front) + `dev-session-report` (back) se mergean juntas a
+> `dev`→`master` solo tras validar ambas. 205/205 tests, typecheck sin errores propios (5 ajenos = GAP-FR-RS-001).
+
 ### FR-RS.A — Acceso e infraestructura
-- [ ] **FR-RS.A1** Toggle "Reportes" a la derecha del visor de aspersión (`AspersionMapModal`) + panel lateral; habilitado solo si la sesión tiene datos cargados (`import_status==='done' && points_count>0`) y `role_level>=SUPERVISOR`.
-- [ ] **FR-RS.A2** Mismo acceso desde Task Manager (sesión seleccionada) reutilizando el panel.
-- [ ] **FR-RS.A3** Hooks `useSessionReport(sessionType, objectId)` / `useSessionIssues(reportId)` / `useSyncSessionReport` (TanStack Query) con `apiClient` tipado (`src/lib/api/client.ts`). Regenerar tipos OpenAPI (`npm run types:gen`) contra el back de Fase AC.
+- [x] **FR-RS.A1** Toggle "Reportes" en el visor de aspersión (`AspersionMapModal` + `GeodataDashboard`) vía `SessionReportToggle` reutilizable + `SessionReportPanel` (Sheet ancho). Gate: `import_status==='done' && points_count>0 && role_level>=SUPERVISOR`.
+- [x] **FR-RS.A2** Mismo acceso desde Task Manager (`SesionModal`/AspersionView) reutilizando el panel.
+- [x] **FR-RS.A3** Hooks `useSessionReport` / `useSessionIssues` / `useSyncSessionReport` (+ create/update/delete) con `apiClient` tipado. Tipos OpenAPI regenerados (`npm run types:gen`) contra Fase AC.
 
 ### FR-RS.B — Tarjeta + formulario de reporte
-- [ ] **FR-RS.B1** Tarjeta de cabecera desde `general_snapshot`+`stats_snapshot` (Agricultor/Granja/Actividad/Área/Proporción meta/Área de cobertura/Dosis/Volumen + variables velocidad/flujo/presión con avg·min·max + Fecha inicio/fin).
-- [ ] **FR-RS.B2** Semáforo de 5 buckets (mapear `color` → estilo; reutilizar `APPLICATION_CATEGORIES` de `lib/aspersionLayers.ts`) con `pct_area_total` y `area_ha`.
-- [ ] **FR-RS.B3** Botón "Generar reporte de actividad" (si `GET ?session_type&object_id` viene vacío) → `POST` con `session_type:"aspersion"` + `object_id`.
-- [ ] **FR-RS.B4** Campos editables: observaciones (`resume_text`, obligatorio), fecha (default hoy, no futura), `lead`, `ranch_manager`, `day_temperature`, `status`. `PATCH .../update/` (no recalcula stats).
-- [ ] **FR-RS.B5** Botón "Sincronizar datos de sesión" → `POST .../sync/`; deshabilitado/oculto si `status==='publicado'` (maneja 409). Reutilizar patrón `useDrfErrorMap` para errores por campo.
+- [x] **FR-RS.B1** `ReportCard` desde `general_snapshot`+`stats_snapshot` (Agricultor/Granja/Actividad/Área/Proporción meta/Área cobertura/Dosis/Volumen + variables velocidad/flujo/presión avg·min·max + Fecha inicio/fin).
+- [x] **FR-RS.B2** `SemaforoBadges` de 5 buckets con `pct_area_total` y `area_ha`. **CORRECCIÓN:** el `color` del backend es un NOMBRE (`azul_electrico|verde|verde_amarillento|amarillo|rojo`), no hex, y los buckets difieren de `APPLICATION_CATEGORIES` → se usa `resolveSemaforoColor` (F3/GAP-AC-004), NO se reutiliza `aspersionLayers`.
+- [x] **FR-RS.B3** "Generar reporte de actividad" (si el GET filtrado viene vacío) → `POST` con `session_type:"aspersion"` + `object_id` (`ReportForm` mode=create).
+- [x] **FR-RS.B4** Campos editables (`ReportForm`): `resume_text`(oblig), `report_date`(default hoy/no futura), `lead`, `ranch_manager`, `day_temperature`, `status`. `PATCH .../update/` (no recalcula stats — verificado por smoke). Errores DRF por campo con `applyDrfErrors`.
+- [x] **FR-RS.B5** `SyncReportButton` → `POST .../sync/`; oculto si `status==='publicado'` (maneja 409 → `ReportPublishedError`).
 
 ### FR-RS.C — Tabla de temas de atención (issues)
-- [ ] **FR-RS.C1** Tabla editable de SessionIssue (título/`issue_type`/`relevancia`/`attention_status`/`registered_at`/detalle/sugerencia/acción/responsable). CRUD vía `session-issues/`.
-- [ ] **FR-RS.C2** Responsable: interno `assigned_user` (selector de usuario + link a perfil `admin/usuarios/<id>`) o externo `outer_assigned_user` (texto).
-- [ ] **FR-RS.C3** Botón "Lanzar actividad relacionada" → reutiliza formulario de creación de sesión; al crear, enlaza `related_content_type`+`related_object_id` del issue (PATCH issue).
+- [x] **FR-RS.C1** `SessionIssuesTable` + `IssueForm` (CRUD inline): título/`issue_type`/`relevancia`/`attention_status`/`registered_at`/`followed_up_at`/detalle/sugerencia/acción. Vía `session-issues/`.
+- [x] **FR-RS.C2** Responsable: interno `assigned_user` (Select `useDatacentralUsers` cuando hay `datacentralId`; muestra `assigned_user_name`) o externo `outer_assigned_user` (texto). Deep-link a perfil pendiente (no hay ruta per-ID; muestra nombre).
+- [ ] **FR-RS.C3** (DIFERIDO — F4, ver GAP-FR-RS-004) "Lanzar actividad relacionada": 3 bloqueos (content_type sin resolver en front, `CreateSessionDialog` no devuelve id, falta selector de programa destino). Enganche `related_*` disponible en API.
+
+### FR-RS.E — Añadidos UX del panel (sesión 23, 2026-07-01)
+- [x] **FR-RS.E1** Encabezado + botón "Sincronizar" **fijos** arriba del panel (`SheetContent` a columna flex: cabecera con borde + cuerpo scrollable).
+- [x] **FR-RS.E2** `AspersionMap` gana prop **`locked`** (mapa estático acotado a la parcela: sin zoom/paneo/rotación/perspectiva, `maxBounds` a la parcela; conserva selector de capas). No afecta el visor.
+- [x] **FR-RS.E3** Botón vertical **"Ver mapa"** en el borde izquierdo del panel → drawer fijo a la izquierda con `<AspersionMap locked>` (referencia satelital de la parcela; montaje lazy; oculto en móvil).
+
+### FR-RS.F — (FASE FUTURA) Compartir reportes públicos por liga — ver GAP-FR-RS-006
+- [ ] **Dictamen: VIABLE (alta).** Compartir un reporte `publicado` con clientes (con o sin usuario) por liga pública.
+- [ ] Decisiones del dev (2026-07-01): v1 incluye **todo + el mapa**; control de liga = **token no adivinable + revocar/regenerar**.
+- [ ] **Back:** `share_token` en `SessionReport` + endpoint público `AllowAny` `GET /field_ops/public/session-reports/<token>/` (solo `publicado`, sin scope) + serializer público (omite PII) + revocar + **endpoint público de puntos** (para el mapa) + migración.
+- [ ] **Front:** botón "Compartir/Copiar liga" (solo `publicado`) + ruta pública `/r/<token>` fuera del shell autenticado + vista read-only (ReportCard/Semáforo/issues + `AspersionMap locked`).
+- [ ] **Coordinada back+front, homologación conjunta.** Seguridad: token no adivinable, solo publicado, revocar, decisión de PII, rate-limit.
 
 ### FR-RS.D — Cierre
-- [ ] **FR-RS.D1** Tests component (Vitest) + typecheck. Demo manual contra el back de Fase AC.
-- [ ] **FR-RS.D2** Logs frontend (dev_log/development/roadmap/gap_log).
-- [ ] **FR-RS.D3** (Futuro) Botón "Generar reporte en PDF".
+- [x] **FR-RS.D1** Tests Vitest+RTL (18 nuevos: semáforo, fechas, schema, panel) + typecheck. Smoke autenticado contra Fase AC (create/update/sync 200+409/issues CRUD). Demo manual validada a ojo por el dev (steps 2–3).
+- [x] **FR-RS.D2** Logs frontend (dev_log/development/roadmap/gap_log) + memoria `.CLAUDE/`.
+- [ ] **FR-RS.D3** (Futuro) Botón "Generar reporte en PDF" (GAP-AC-003).
+- [ ] **Pendiente de cierre:** demo manual completa del dev (create→sync→issues) y homologación conjunta con `dev-session-report`.
 
 ---
 

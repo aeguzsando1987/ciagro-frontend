@@ -375,6 +375,12 @@ interface AspersionMapProps {
   sessionsSlot?: React.ReactNode
   /** Clases extra para el contenedor raíz. */
   className?: string
+  /**
+   * Modo bloqueado: mapa estático acotado a la parcela (sin zoom, paneo, rotación ni
+   * perspectiva). Se conserva el selector de capas. Útil como referencia visual embebida
+   * (p. ej. en el Reporteador de Sesiones). Default `false` (visor = interactivo).
+   */
+  locked?: boolean
 }
 
 // ─── Componente principal ────────────────────────────────────────────────────
@@ -388,6 +394,7 @@ export function AspersionMap({
   floatingToolbar = false,
   sessionsSlot,
   className,
+  locked = false,
 }: AspersionMapProps) {
   const [activeLayerIdx, setActiveLayerIdx] = useState(0)
   // null = sin inicializar (tratar como "todos activos"); Set vacío = usuario desmarcó todo
@@ -547,13 +554,22 @@ export function AspersionMap({
           ref={mapRef}
           initialViewState={
             mapBounds
-              ? { bounds: mapBounds, fitBoundsOptions: { padding: 50, maxZoom: 18 } }
+              ? {
+                  bounds: mapBounds,
+                  // En modo bloqueado (referencia) damos un poco más de margen para que el
+                  // polígono no toque los bordes; el visor mantiene su encuadre cercano.
+                  fitBoundsOptions: { padding: locked ? 64 : 50, maxZoom: locked ? 17 : 18 },
+                }
               : { longitude: -101, latitude: 20.5, zoom: 6 }
           }
           maxZoom={20}
           mapStyle={ESRI_STYLE}
-          cooperativeGestures
-          interactiveLayerIds={['rect-fill']}
+          cooperativeGestures={!locked}
+          interactive={!locked}
+          dragRotate={!locked}
+          pitchWithRotate={!locked}
+          touchPitch={!locked}
+          interactiveLayerIds={locked ? [] : ['rect-fill']}
           attributionControl={false}
           style={{ width: '100%', height: '100%' }}
           onMouseMove={(e) => {

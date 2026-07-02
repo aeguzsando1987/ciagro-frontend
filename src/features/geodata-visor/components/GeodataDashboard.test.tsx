@@ -47,6 +47,9 @@ vi.mock('@/features/task-manager/hooks/useAspersionPoints', () => ({
 vi.mock('@/features/task-manager/hooks/usePlotGeometry', () => ({ usePlotGeometry: () => ({ data: null }) }))
 vi.mock('@/features/task-manager/hooks/useAspersionVariableStats', () => ({ useAspersionVariableStats: () => ({ data: null }) }))
 vi.mock('@/features/task-manager/hooks/useAspersionSessionStats', () => ({ useAspersionSessionStats: () => ({ data: null }) }))
+// SessionReportToggle (toolbarEnd del visor a nivel sesión) consulta el detalle de la sesión;
+// se mockea para no requerir QueryClientProvider (sin datos → el toggle no renderiza).
+vi.mock('@/features/task-manager/hooks/useAspersionSessionDetail', () => ({ useAspersionSessionDetail: () => ({ data: null }) }))
 
 import { GeodataDashboard } from './GeodataDashboard'
 import type { VisorSelection } from '../types'
