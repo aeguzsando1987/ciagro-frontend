@@ -24,7 +24,7 @@ function WorkspacesPage() {
     <div className="relative flex min-h-dvh items-center justify-center p-8">
       <div className="absolute left-8 top-8 flex flex-col items-start gap-1">
         <img
-          src="/tierra_inteligente.svg"
+          src="/agroindustry.png"
           alt="Tierra Inteligente"
           className="w-56"
           draggable={false}
