@@ -4,6 +4,9 @@ import {
   applicationPercent,
   computeQuartiles,
   quartileOf,
+  classifyRateQuality,
+  buildTargetDefs,
+  targetBucketOf,
   ASPERSION_LAYERS,
   APPLICATION_CATEGORIES,
 } from './aspersionLayers'
@@ -23,27 +26,31 @@ describe('applicationPercent', () => {
 })
 
 describe('classifyApplication', () => {
-  it('clasifica según los umbrales exactos del caso de uso', () => {
-    expect(classifyApplication(300, 400)).toBe('deficiente')   // 75% < 80
-    expect(classifyApplication(315, 400)).toBe('deficiente')   // 78.75% < 80
+  // Umbrales unificados con el reporte: <75 Deficiente | 75–90 Baja | 90–100 Esperada |
+  //   100–115 Excelente | >115 Sobredosis.
+  it('< 75% es deficiente', () => {
+    expect(classifyApplication(296, 400)).toBe('deficiente')   // 74%
+    expect(classifyApplication(299, 400)).toBe('deficiente')   // 74.75%
   })
 
-  it('límite 80% cae en regular (80–95% incluye el 80)', () => {
-    expect(classifyApplication(320, 400)).toBe('regular')      // 80.0% exacto
+  it('75–90% es baja (75 incluido)', () => {
+    expect(classifyApplication(300, 400)).toBe('baja')         // 75.0% exacto
+    expect(classifyApplication(356, 400)).toBe('baja')         // 89%
   })
 
-  it('95% excelente (incluido en 95–105)', () => {
-    expect(classifyApplication(380, 400)).toBe('excelente')    // 95%
+  it('90–100% es esperada (90 incluido, 100 excluido)', () => {
+    expect(classifyApplication(360, 400)).toBe('esperada')     // 90%
+    expect(classifyApplication(396, 400)).toBe('esperada')     // 99%
+  })
+
+  it('100–115% es excelente (100 y 115 incluidos)', () => {
     expect(classifyApplication(400, 400)).toBe('excelente')    // 100%
+    expect(classifyApplication(460, 400)).toBe('excelente')    // 115%
   })
 
-  it('105% sobredosis (incluido en 105–120)', () => {
-    expect(classifyApplication(420, 400)).toBe('sobredosis')   // 105%
-    expect(classifyApplication(480, 400)).toBe('sobredosis')   // 120%
-  })
-
-  it('> 120% sobredosis_alta', () => {
-    expect(classifyApplication(481, 400)).toBe('sobredosis_alta') // 120.25%
+  it('> 115% es sobredosis', () => {
+    expect(classifyApplication(461, 400)).toBe('sobredosis')   // 115.25%
+    expect(classifyApplication(600, 400)).toBe('sobredosis')   // 150%
   })
 
   it('sin meta cuando applied o target son null/0', () => {
@@ -98,16 +105,49 @@ describe('quartileOf', () => {
 })
 
 describe('estructura de ASPERSION_LAYERS y APPLICATION_CATEGORIES', () => {
-  it('hay 5 capas con keys únicos', () => {
-    expect(ASPERSION_LAYERS).toHaveLength(5)
+  it('hay 7 capas con keys únicos', () => {
+    expect(ASPERSION_LAYERS).toHaveLength(7)
     const keys = ASPERSION_LAYERS.map((l) => l.key)
-    expect(new Set(keys).size).toBe(5)
+    expect(new Set(keys).size).toBe(7)
     expect(keys[0]).toBe('application')
+    expect(keys).toContain('target_rate')
+    expect(keys).toContain('rate_quality')
   })
 
-  it('APPLICATION_CATEGORIES tiene 5 categorías con colores únicos', () => {
+  it('la capa de presión trae unidad alterna PSI (×14.538)', () => {
+    const presion = ASPERSION_LAYERS.find((l) => l.key === 'boom_pressure')!
+    expect(presion.altUnit).toEqual({ label: 'PSI', factor: 14.538 })
+  })
+
+  it('APPLICATION_CATEGORIES: 5 categorías, keys y colores del semáforo unificado', () => {
     expect(APPLICATION_CATEGORIES).toHaveLength(5)
-    const colors = APPLICATION_CATEGORIES.map((c) => c.color)
-    expect(new Set(colors).size).toBe(5)
+    const keys = APPLICATION_CATEGORIES.map((c) => c.key)
+    expect(keys).toEqual(['deficiente', 'baja', 'esperada', 'excelente', 'sobredosis'])
+    expect(new Set(APPLICATION_CATEGORIES.map((c) => c.color)).size).toBe(5)
+    expect(APPLICATION_CATEGORIES.find((c) => c.key === 'sobredosis')!.color).toBe('#4052D6')
+  })
+})
+
+describe('classifyRateQuality', () => {
+  it('mapea los textos del CSV a los 3 buckets', () => {
+    expect(classifyRateQuality('Bajo Objetivo')).toBe('bajo')
+    expect(classifyRateQuality('Bien')).toBe('bien')
+    expect(classifyRateQuality('Sobre el objetivo')).toBe('sobre')
+  })
+  it('fallback sin_dato para vacío o desconocido', () => {
+    expect(classifyRateQuality(null)).toBe('sin_dato')
+    expect(classifyRateQuality('otro')).toBe('sin_dato')
+  })
+})
+
+describe('buildTargetDefs / targetBucketOf', () => {
+  it('genera una entrada por valor distinto (ordenado)', () => {
+    const defs = buildTargetDefs([800, 400, 400, null, 800])
+    expect(defs.map((d) => d.key)).toEqual(['400', '800'])
+    expect(defs[0]!.label).toBe('400.00 L/ha')
+  })
+  it('targetBucketOf devuelve la key string o sin_meta', () => {
+    expect(targetBucketOf(400)).toBe('400')
+    expect(targetBucketOf(null)).toBe('sin_meta')
   })
 })

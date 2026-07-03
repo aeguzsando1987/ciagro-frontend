@@ -35,6 +35,7 @@ import { AspersionMapModal } from '../components/AspersionMapModal'
 import { FlushAspersionDialog } from '../components/FlushAspersionDialog'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
+import { SessionReportPanel } from '@/features/session-report/components/SessionReportPanel'
 
 /* ─── Constants ───────────────────────────────────────────────────── */
 
@@ -245,6 +246,7 @@ export function SesionModal({
           <AspersionView
             detail={aspersionDetail}
             plotId={plotId}
+            datacentralId={datacentralId}
             transitions={transitions}
             isMutatingStatus={isMutatingStatus}
             cancelPromptOpen={cancelPromptOpen}
@@ -392,6 +394,7 @@ function StatusBar({
 interface AspersionViewProps {
   detail: import('../hooks/useAspersionSessionDetail').AspersionSessionDetail
   plotId: string | null
+  datacentralId: string
   transitions: string[]
   isMutatingStatus: boolean
   cancelPromptOpen: boolean
@@ -407,6 +410,7 @@ interface AspersionViewProps {
 function AspersionView({
   detail,
   plotId,
+  datacentralId,
   transitions,
   isMutatingStatus,
   cancelPromptOpen,
@@ -420,6 +424,7 @@ function AspersionView({
 }: AspersionViewProps) {
   const [importOpen, setImportOpen] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
   const [flushOpen, setFlushOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const canViewMap =
@@ -541,6 +546,16 @@ function AspersionView({
               📍 Abrir visor de datos de aspersión
             </Button>
           )}
+          {canViewMap && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={() => setReportOpen(true)}
+            >
+              📋 Reportes
+            </Button>
+          )}
         </div>
       </div>
 
@@ -556,6 +571,17 @@ function AspersionView({
           onClose={() => setMapOpen(false)}
           sessionId={detail.id}
           plotId={plotId}
+          datacentralId={datacentralId}
+        />
+      )}
+
+      {canViewMap && (
+        <SessionReportPanel
+          open={reportOpen}
+          onClose={() => setReportOpen(false)}
+          objectId={detail.id}
+          plotId={plotId}
+          datacentralId={datacentralId}
         />
       )}
     </div>

@@ -23,6 +23,7 @@ import { ProducerRanchesMap } from './ProducerRanchesMap'
 import { SessionsPanel } from './SessionsPanel'
 import { SessionInfoCard } from './SessionInfoCard'
 import { AspersionMap } from './AspersionMap'
+import { SessionReportToggle } from '@/features/session-report/components/SessionReportToggle'
 import { ArrowLeft } from 'lucide-react'
 import type { VisorSelection } from '../types'
 
@@ -223,6 +224,13 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
               >
                 <ArrowLeft className="h-3.5 w-3.5" /> Parcela
               </button>
+            }
+            toolbarEnd={
+              <SessionReportToggle
+                objectId={selection.session!.id}
+                plotId={selection.plot!.id}
+                datacentralId={selection.datacentral?.id ?? null}
+              />
             }
           />
         ) : (

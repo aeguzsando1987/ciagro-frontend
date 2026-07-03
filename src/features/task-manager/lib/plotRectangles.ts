@@ -43,6 +43,8 @@ export interface RectangleProps {
   boom_pressure_bar: number | null
   production_hah: number | null
   speed_kmh: number | null
+  /** Calidad de la tasa (texto del CSV: "Bajo Objetivo" | "Bien" | "Sobre el objetivo"). */
+  rate_quality: string | null
   /** Superficie del punto en hectáreas (para sumar área total y por categoría). */
   area_ha: number | null
   /** Categoría/cuartil de la capa activa; lo escribe el visor antes de pintar (ver aspersionLayers). */
@@ -132,6 +134,7 @@ export function pointsToRectangleCollection(
         boom_pressure_bar: parseDecimal(point.boom_pressure_bar),
         production_hah: parseDecimal(point.production_hah),
         speed_kmh: parseDecimal(point.speed_kmh),
+        rate_quality: point.rate_quality ?? null,
         area_ha: parseDecimal(point.area_ha),
       },
     })

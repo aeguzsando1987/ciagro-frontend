@@ -38,15 +38,19 @@ import {
   ASPERSION_LAYERS,
   APPLICATION_CATEGORIES,
   QUARTILE_PALETTES,
+  RATE_QUALITY_CATEGORIES,
   classifyApplication,
+  classifyRateQuality,
   computeQuartiles,
   quartileOf,
   buildQuartileDefs,
+  buildTargetDefs,
+  targetBucketOf,
   applicationPercent,
   type LayerDef,
   type CategoryDef,
   type QuartileDef,
-  type LayerKey,
+  type QuartileLayerKey,
 } from '@/features/task-manager/lib/aspersionLayers'
 
 // ─── ESRI satellite style — mismo que PlotMiniMap ─────────────────────────────
@@ -181,24 +185,44 @@ function buildLayerData(
 ): LayerData | null {
   if (baseFC.features.length === 0) return null
 
-  if (layerDef.kind === 'category') {
+  // Helper: anota cada feature con su bucket y arma el LayerData categórico.
+  const buildCategorical = (
+    bucketOf: (f: GeoJSON.Feature<GeoJSON.Polygon, RectangleProps>) => string,
+    legendDefs: CategoryDef[],
+  ): LayerData => {
     const annotated = {
       ...baseFC,
       features: baseFC.features.map((f) => ({
         ...f,
-        properties: {
-          ...f.properties,
-          bucket: classifyApplication(f.properties.applied_rate_l, f.properties.target_rate_l),
-        },
+        properties: { ...f.properties, bucket: bucketOf(f) },
       })),
     } as LayerData['annotated']
     return {
       annotated,
-      legendDefs: APPLICATION_CATEGORIES as LegendEntry[],
-      colorExpr: buildCategoryColorExpr(APPLICATION_CATEGORIES),
+      legendDefs: legendDefs as LegendEntry[],
+      colorExpr: buildCategoryColorExpr(legendDefs),
       quartilesRef: null,
       areaByBucket: sumAreaByBucket(annotated),
     }
+  }
+
+  if (layerDef.kind === 'category') {
+    return buildCategorical(
+      (f) => classifyApplication(f.properties.applied_rate_l, f.properties.target_rate_l),
+      APPLICATION_CATEGORIES,
+    )
+  }
+
+  if (layerDef.kind === 'quality') {
+    return buildCategorical(
+      (f) => classifyRateQuality(f.properties.rate_quality),
+      RATE_QUALITY_CATEGORIES,
+    )
+  }
+
+  if (layerDef.kind === 'target') {
+    const defs = buildTargetDefs(baseFC.features.map((f) => f.properties.target_rate_l))
+    return buildCategorical((f) => targetBucketOf(f.properties.target_rate_l), defs)
   }
 
   // Quartile layer
@@ -207,7 +231,7 @@ function buildLayerData(
     .map((f) => f.properties[fieldKey] as number | null)
     .filter((v): v is number => v != null && Number.isFinite(v))
   const cuts = computeQuartiles(values)
-  const palette = QUARTILE_PALETTES[layerDef.key as Exclude<LayerKey, 'application'>]
+  const palette = QUARTILE_PALETTES[layerDef.key as QuartileLayerKey]
   const annotated = {
     ...baseFC,
     features: baseFC.features.map((f) => ({
@@ -241,9 +265,8 @@ function MapOverlay({ children }: { children: React.ReactNode }) {
 
 function HoverTooltip({ info, layer }: { info: HoverInfo; layer: LayerDef }) {
   const { lon, lat, props } = info
-  const isPct = layer.kind === 'category'
-  const fieldValue = props[layer.field as keyof RectangleProps] as number | null
   const pApl = applicationPercent(props.applied_rate_l, props.target_rate_l)
+  const numValue = props[layer.field as keyof RectangleProps] as number | null
 
   return (
     <Popup
@@ -259,16 +282,29 @@ function HoverTooltip({ info, layer }: { info: HoverInfo; layer: LayerDef }) {
         <p className="text-muted-foreground">
           {lat.toFixed(6)}, {lon.toFixed(6)}
         </p>
-        {isPct ? (
+        {layer.kind === 'category' && (
           <>
             <p>Aplicado: <span className="font-medium">{props.applied_rate_l?.toFixed(1)} L/ha</span></p>
             <p>Meta: <span className="font-medium">{props.target_rate_l?.toFixed(1)} L/ha</span></p>
             <p>% apl.: <span className="font-medium">{pApl != null ? `${pApl.toFixed(1)}%` : '—'}</span></p>
-            {props.bucket && <p>Categoría: <span className="font-medium capitalize">{props.bucket.replace('_', ' ')}</span></p>}
+            {props.bucket && <p>Categoría: <span className="font-medium capitalize">{props.bucket}</span></p>}
           </>
-        ) : (
+        )}
+        {layer.kind === 'quality' && (
+          <p>Rate Quality: <span className="font-medium">{props.rate_quality ?? '—'}</span></p>
+        )}
+        {layer.kind === 'target' && (
+          <p>Proporción meta: <span className="font-medium">{numValue != null ? `${numValue.toFixed(2)} ${layer.unit}` : '—'}</span></p>
+        )}
+        {layer.kind === 'quartile' && (
           <p>
-            {layer.label}: <span className="font-medium">{fieldValue?.toFixed(3) ?? '—'} {layer.unit}</span>
+            {layer.label}:{' '}
+            <span className="font-medium">
+              {numValue != null ? numValue.toFixed(3) : '—'} {layer.unit}
+              {layer.altUnit && numValue != null && (
+                <> - {(numValue * layer.altUnit.factor).toFixed(2)} {layer.altUnit.label}</>
+              )}
+            </span>
           </p>
         )}
       </div>
@@ -375,6 +411,12 @@ interface AspersionMapProps {
   sessionsSlot?: React.ReactNode
   /** Clases extra para el contenedor raíz. */
   className?: string
+  /**
+   * Modo bloqueado: mapa estático acotado a la parcela (sin zoom, paneo, rotación ni
+   * perspectiva). Se conserva el selector de capas. Útil como referencia visual embebida
+   * (p. ej. en el Reporteador de Sesiones). Default `false` (visor = interactivo).
+   */
+  locked?: boolean
 }
 
 // ─── Componente principal ────────────────────────────────────────────────────
@@ -388,6 +430,7 @@ export function AspersionMap({
   floatingToolbar = false,
   sessionsSlot,
   className,
+  locked = false,
 }: AspersionMapProps) {
   const [activeLayerIdx, setActiveLayerIdx] = useState(0)
   // null = sin inicializar (tratar como "todos activos"); Set vacío = usuario desmarcó todo
@@ -547,13 +590,22 @@ export function AspersionMap({
           ref={mapRef}
           initialViewState={
             mapBounds
-              ? { bounds: mapBounds, fitBoundsOptions: { padding: 50, maxZoom: 18 } }
+              ? {
+                  bounds: mapBounds,
+                  // En modo bloqueado (referencia) damos un poco más de margen para que el
+                  // polígono no toque los bordes; el visor mantiene su encuadre cercano.
+                  fitBoundsOptions: { padding: locked ? 64 : 50, maxZoom: locked ? 17 : 18 },
+                }
               : { longitude: -101, latitude: 20.5, zoom: 6 }
           }
           maxZoom={20}
           mapStyle={ESRI_STYLE}
-          cooperativeGestures
-          interactiveLayerIds={['rect-fill']}
+          cooperativeGestures={!locked}
+          interactive={!locked}
+          dragRotate={!locked}
+          pitchWithRotate={!locked}
+          touchPitch={!locked}
+          interactiveLayerIds={locked ? [] : ['rect-fill']}
           attributionControl={false}
           style={{ width: '100%', height: '100%' }}
           onMouseMove={(e) => {

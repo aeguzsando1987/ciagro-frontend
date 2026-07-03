@@ -84,10 +84,10 @@ describe('AspersionMapModal', () => {
   it('renderiza los 5 botones de capa cuando hay puntos', async () => {
     renderModal()
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: '% de aplicación' })).toBeTruthy()
-      expect(screen.getByRole('button', { name: 'Flujo líquido' })).toBeTruthy()
-      expect(screen.getByRole('button', { name: 'Presión de brazo' })).toBeTruthy()
-      expect(screen.getByRole('button', { name: 'Producción' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Proporción volumen' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Caudal' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Presión' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Productividad' })).toBeTruthy()
       expect(screen.getByRole('button', { name: 'Velocidad' })).toBeTruthy()
     })
   })
