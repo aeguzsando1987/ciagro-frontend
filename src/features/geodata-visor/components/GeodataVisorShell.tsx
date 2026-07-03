@@ -43,7 +43,7 @@ export function GeodataVisorShell() {
       {/* ─ Encabezado ─────────────────────────────────────────────── */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background px-4">
         <div className="flex items-center gap-3">
-          <img src="/tierra_inteligente.svg" alt="Tierra Inteligente" className="h-7" draggable={false} />
+          <img src="/agroindustry.png" alt="Tierra Inteligente" className="h-7" draggable={false} />
           <span className="font-bold tracking-tight">CIAgro</span>
           <span className="text-muted-foreground">/</span>
           <span className="text-sm font-medium">Visor de Datos Agrícolas</span>

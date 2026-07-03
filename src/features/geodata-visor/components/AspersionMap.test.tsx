@@ -72,11 +72,13 @@ describe('AspersionMap', () => {
     vi.clearAllMocks()
   })
 
-  it('renderiza los 5 botones de capa embebido (sin chrome de modal)', async () => {
+  it('renderiza los botones de capa embebido (sin chrome de modal)', async () => {
     renderMap()
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: '% de aplicación' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Proporción volumen' })).toBeTruthy()
       expect(screen.getByRole('button', { name: 'Velocidad' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Proporción meta' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Rate Quality' })).toBeTruthy()
     })
     // No hay botón de cierre: es responsabilidad del contenedor (modal), no del mapa
     expect(screen.queryByText('✕ Cerrar')).toBeNull()
@@ -98,10 +100,10 @@ describe('AspersionMap', () => {
     })
   })
 
-  it('cambia a leyenda de cuartiles al seleccionar Capa 2 (Flujo líquido)', async () => {
+  it('cambia a leyenda de cuartiles al seleccionar Caudal', async () => {
     renderMap()
-    await waitFor(() => screen.getByText('Flujo líquido'))
-    fireEvent.click(screen.getByText('Flujo líquido'))
+    await waitFor(() => screen.getByText('Caudal'))
+    fireEvent.click(screen.getByText('Caudal'))
     await waitFor(() => {
       const q1Items = screen.getAllByText(/Q1/)
       expect(q1Items.length).toBeGreaterThan(0)

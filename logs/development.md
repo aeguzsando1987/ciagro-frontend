@@ -1778,3 +1778,71 @@ Los modales aparecían/cerraban de golpe; las clases `animate-in/out` de `dialog
 - Manual en `npm run dev`: editar/eliminar sectores; crear aliado por selector (con
   nombre); crear rancho/parcela desde la agrounidad; modales con animación de apertura/
   cierre y de altura al cambiar de pestaña.
+
+---
+
+## Sesión 23 — Reporteador de Sesiones (FRONTEND) · rama `dev-reports`
+
+> Backend Fase AC (rama `dev-session-report`) ya completo/validado. Esta sesión consume su API
+> y construye la UI/UX. Homologación DIFERIDA: `dev-reports` + `dev-session-report` se mergean
+> juntas a `dev`→`master` solo cuando ambas estén validadas. Contrato: `session-report-front`.
+
+### act `analyze` + `plan` (con pausa) — decisiones F1–F5
+
+- **F1** Panel = `SessionReportPanel` autónomo en **Sheet lateral ancho** (el `sessionsSlot` del
+  visor mide ~224px, insuficiente). Reutilizado desde el visor y desde Task Manager.
+- **F2** Tipos regenerados con `npm run types:gen` contra el back de Fase AC en `:8500`.
+- **F3** Semáforo = **`stats_snapshot.semaforo[*].color` del backend** (las `APPLICATION_CATEGORIES`
+  del visor tienen otros buckets/rangos y **no** aplican; corrige el supuesto del roadmap FR-RS.B2).
+- **F4** "Lanzar actividad relacionada" **diferida**: solo enganche `related_*`; dialog de creación
+  a fase posterior (gap FR).
+- **F-acceso** toggle en visor **y** botón en `SesionModal`.
+- **F5** Sync = botón directo + toast; oculto/disabled si `publicado`; 409 con mensaje claro.
+
+### act `implement` — Step 1 `types-hooks*` (✅, en pausa)
+
+- `npm run types:gen` → `src/types/api.d.ts` con `session-reports`/`session-issues`. El diff fue
+  grande (el schema estaba desactualizado): typecheck pasó de **17 → 5** errores; los 5 restantes
+  son **pre-existentes y ajenos** (admin/workspace, `id` requerido en bodies de create) → gap
+  GAP-FR-RS-001, fuera de alcance por decisión del dev.
+- Feature `src/features/session-report/`:
+  - `types.ts` — `SessionReport`/`SessionIssue` del schema + interfaces de snapshots (el schema los
+    expone como `unknown`) + helpers `generalSnapshotOf`/`statsSnapshotOf`.
+  - `hooks/useSessionReport.ts` — `useSessionReport` (GET filtrado → reporte único o null), create,
+    update (no recalcula), **sync (409 → `ReportPublishedError`)**.
+  - `hooks/useSessionIssues.ts` — list + create/update/delete.
+  - `schemas/` — zod (resume obligatorio, fecha no futura/default hoy, enums con valores exactos del
+    back incl. espacios `tema de atencion`/`sin atender`).
+  - `lib/semaforo.ts` — orden/labels de 5 buckets + **`resolveSemaforoColor`** (el back manda el
+    color como NOMBRE: `azul_electrico|verde|verde_amarillento|amarillo|rojo`, no hex → mapeo a hex).
+  - `lib/dates.ts` — `todayIso`/`isFutureDate` (fecha local sin desfase de zona).
+
+### Verificación del Step 1
+
+- **Smoke autenticado** contra sesión real `b22db6c4-9837-4efc-ade1-13c4a88355f4` (5226 puntos):
+  GET list `200`, POST create, GET detail (snapshots con las claves esperadas), POST **sync `200`**,
+  POST issue, DELETE issue+report `204`. Datos del smoke **limpiados** (sesión queda sin reporte).
+- Hallazgo de entorno: roles del sistema **sin seedear** en el DB local (admin con `user_role=null`);
+  corrido `seed_roles` + admin→SuperAdmin (gap GAP-FR-RS-002).
+- Tipos del feature: **0 errores** propios en `npm run typecheck`.
+
+### act `implement` — Steps 4–7 (✅ completos)
+
+- **Step 4 `formulario`**: `ReportForm` (create+edit) RHF+zod+`applyDrfErrors`. `resume_text` oblig,
+  `report_date` no futura/default hoy, `lead`/`ranch_manager`/`day_temperature`/`status`. Cableado en
+  el panel (empty-state → create con Cancelar; con-reporte → ReportCard + edit). Smoke: PATCH no recalcula stats.
+- **Step 5 `issues`**: `SessionIssuesTable` + `IssueForm` (CRUD inline; usa los `*_display` del back).
+  Responsable interno (Select `useDatacentralUsers` si hay `datacentralId`) o externo (`outer_assigned_user`).
+  `datacentralId` cableado por panel/toggle desde GeodataDashboard, SesionModal y AspersionMapModal.
+  related_* (F4) diferido → GAP-FR-RS-004. Smoke CRUD (create/list?report/patch/delete204) OK.
+- **Step 6 `sync`**: `SyncReportButton` → `POST .../sync/`; oculto si `publicado`; 409 → `ReportPublishedError`
+  con toast. Smoke: 200 en `en_proceso`, 409 en `publicado`.
+- **Step 7 `tests`**: 18 tests nuevos (semáforo/fechas/schema/panel). Suite 205/205, typecheck sin
+  errores propios (5 ajenos = GAP-FR-RS-001), ESLint limpio.
+
+### Cierre de la sesión 23 (frontend)
+- Feature `src/features/session-report/` completo (steps 1–7). Accesos: visor (Task Manager + Visor de datos)
+  y Task Manager. Solo aspersión (GAP-AC-001).
+- Gaps abiertos: GAP-FR-RS-001 (typecheck ajeno), 002 (roles sin seed), 003 (soft-delete bloquea recrear),
+  004 (F4 actividad relacionada diferida). GAP-AC-003 (PDF) futuro.
+- **NO homologado** (homologación diferida y conjunta con `dev-session-report`). Pendiente: demo manual completa del dev.

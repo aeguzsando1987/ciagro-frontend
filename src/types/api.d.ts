@@ -4,292 +4,6 @@
  */
 
 export interface paths {
-    "/api/v1/agro-catalogs/crops/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar catálogo de cultivos y variedades */
-        get: operations["v1_agro_catalogs_crops_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/crops/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Detalle de un cultivo o variedad */
-        get: operations["v1_agro_catalogs_crops_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/crops/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Actualizar cultivo o variedad */
-        put: operations["v1_agro_catalogs_crops_update_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Actualizar cultivo o variedad */
-        patch: operations["v1_agro_catalogs_crops_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/crops/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crear cultivo o variedad */
-        post: operations["v1_agro_catalogs_crops_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/evaluations/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar esquemas de evaluación */
-        get: operations["v1_agro_catalogs_evaluations_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/evaluations/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Detalle de un esquema de evaluación */
-        get: operations["v1_agro_catalogs_evaluations_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/evaluations/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Actualizar esquema de evaluación */
-        put: operations["v1_agro_catalogs_evaluations_update_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Actualizar esquema de evaluación */
-        patch: operations["v1_agro_catalogs_evaluations_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/evaluations/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crear esquema de evaluación */
-        post: operations["v1_agro_catalogs_evaluations_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/evaluations/fields-spec/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Campos disponibles para un tipo de actividad (introspección de evaluador)
-         * @description Devuelve los campos y campos calculados disponibles para construir o validar un `scheme` de evaluación. Útil para autocompletado en el admin.
-         *
-         *     Requiere `?activity_type=ASPERSION` (u otro tipo registrado en el registry).
-         */
-        get: operations["v1_agro_catalogs_evaluations_fields_spec_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/phytosanitary/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar catálogo fitosanitario
-         * @description Retorna plagas y enfermedades del catálogo. Cada elemento incluye `stage_photos` — carrete de fotos etiquetadas por etapa del ciclo de vida (Huevesillo→Adulto para plagas; Inicio→Terminal para enfermedades).
-         */
-        get: operations["v1_agro_catalogs_phytosanitary_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/phytosanitary/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Detalle de un problema fitosanitario
-         * @description Retorna el detalle completo incluyendo `stage_photos` — carrete de fotos etiquetadas por etapa del ciclo de vida.
-         */
-        get: operations["v1_agro_catalogs_phytosanitary_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/phytosanitary/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Actualizar problema fitosanitario */
-        put: operations["v1_agro_catalogs_phytosanitary_update_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Actualizar problema fitosanitario */
-        patch: operations["v1_agro_catalogs_phytosanitary_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/phytosanitary/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crear problema fitosanitario */
-        post: operations["v1_agro_catalogs_phytosanitary_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/phytosanitary/photos/{id}/delete/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Eliminar foto de etapa de desarrollo fitosanitario */
-        delete: operations["v1_agro_catalogs_phytosanitary_photos_delete_destroy"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agro-catalogs/phytosanitary/photos/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crear foto de etapa de desarrollo fitosanitario */
-        post: operations["v1_agro_catalogs_phytosanitary_photos_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/change-password/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Cambiar contraseña */
-        post: operations["v1_auth_change_password_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/auth/login/": {
         parameters: {
             query?: never;
@@ -304,28 +18,31 @@ export interface paths {
          * @description Autentica con `username` y `password`. Retorna `access` (vida 5 min) y `refresh` (vida 7 días). El `access` token incluye los claims `role_name` y `role_level`.
          *
          *     **En Swagger UI**: una vez obtenido el `access` token, pulsa **Authorize** (candado en la parte superior) y pégalo como `Bearer <access_token>`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/auth/login/ \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "username": "admin",
+         *       "password": "root"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("auth/login/")
+         *         suspend fun login(@Body body: Map<String, String>): TokenPair
+         *     }
+         *
+         *     val result = api.login()
+         *     ```
          */
         post: operations["v1_auth_login_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/logout/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Logout — invalidar refresh token
-         * @description Añade el `refresh` token a la blacklist de simplejwt. Después de esto, ese refresh token no puede usarse para obtener nuevos access tokens. El cliente debe también borrar el access token de su almacenamiento local.
-         */
-        post: operations["v1_auth_logout_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -344,8 +61,117 @@ export interface paths {
         /**
          * Refrescar access token
          * @description Recibe un `refresh` token valido y retorna un nuevo `access` token (y un nuevo `refresh` si `ROTATE_REFRESH_TOKENS=True`). El refresh anterior queda en la blacklist.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/auth/refresh/ \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "refresh": "<refresh_jwt>"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("auth/refresh/")
+         *         suspend fun refresh(@Body body: RefreshReq): AccessRes
+         *     }
+         *
+         *     val result = api.refresh()
+         *     ```
          */
         post: operations["v1_auth_refresh_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Logout — invalidar refresh token
+         * @description Añade el `refresh` token a la blacklist de simplejwt. Después de esto, ese refresh token no puede usarse para obtener nuevos access tokens. El cliente debe también borrar el access token de su almacenamiento local.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/auth/logout/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "refresh": "<refresh_jwt>"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("auth/logout/")
+         *         suspend fun logout(@Body body: RefreshReq): Unit
+         *     }
+         *
+         *     val result = api.logout()
+         *     ```
+         */
+        post: operations["v1_auth_logout_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/change-password/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cambiar contraseña
+         * @description Cambia la contraseña del usuario autenticado validando la actual. Tras el cambio, `requires_password_change` queda en `false`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/auth/change-password/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "old_password": "actual",
+         *       "new_password": "nueva-segura"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("auth/change-password/")
+         *         suspend fun changePassword(@Body body: ChangePasswordReq): Unit
+         *     }
+         *
+         *     val result = api.changePassword()
+         *     ```
+         */
+        post: operations["v1_auth_change_password_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -364,6 +190,34 @@ export interface paths {
         /**
          * Registrar usuario (admin)
          * @description Crea un User + Individual. El usuario recibirá `requires_password_change=True`. Solo SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/auth/register/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "username": "tecnico1",
+         *       "email": "t1@ej.mx",
+         *       "password": "secreta",
+         *       "first_name": "Ana",
+         *       "last_name": "López",
+         *       "user_role": 2
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("auth/register/")
+         *         suspend fun adminRegister(@Body body: AdminRegisterReq): DetailResponse
+         *     }
+         *
+         *     val result = api.adminRegister()
+         *     ```
          */
         post: operations["v1_auth_register_create"];
         delete?: never;
@@ -383,10 +237,2711 @@ export interface paths {
         put?: never;
         /**
          * Auto-registro público
-         * @description Crea un usuario sin rol asignado. Disponible sin autenticación (AllowAny).
+         * @description Crea un usuario sin rol asignado (`status=pending_activation`). Disponible sin autenticación (AllowAny). Un admin lo activa después.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/auth/signup/ \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "username": "nuevo",
+         *       "email": "nuevo@ej.mx",
+         *       "password": "secreta",
+         *       "first_name": "Juan",
+         *       "last_name": "Pérez",
+         *       "phone": "+52..."
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("auth/signup/")
+         *         suspend fun signup(@Body body: SignupReq): DetailResponse
+         *     }
+         *
+         *     val result = api.signup()
+         *     ```
          */
         post: operations["v1_auth_signup_create"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar usuarios activos
+         * @description Lista usuarios no eliminados. SuperAdmin ve todos; Owner/Gerente solo los usuarios activos de sus workspaces (para poblar el selector de asignaciones).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/users/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("users/")
+         *         suspend fun listUsers(): Paginated<User>
+         *     }
+         *
+         *     val result = api.listUsers()
+         *     ```
+         */
+        get: operations["v1_users_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Perfil propio (GET/PATCH)
+         * @description `GET` retorna el perfil completo del usuario autenticado, incluido `datacentrals[]` (workspaces visibles con flag `is_owner`) que alimenta el selector de workspace. `PATCH` actualiza campos del `Individual` asociado (nombre, teléfono, etc.).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/users/me/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("users/me/")
+         *         suspend fun me(): UserDetail
+         *     }
+         *
+         *     val result = api.me()
+         *     ```
+         */
+        get: operations["v1_users_me_retrieve"];
+        /**
+         * Perfil propio (GET/PATCH)
+         * @description `GET` retorna el perfil completo del usuario autenticado, incluido `datacentrals[]` (workspaces visibles con flag `is_owner`) que alimenta el selector de workspace. `PATCH` actualiza campos del `Individual` asociado (nombre, teléfono, etc.).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/users/me/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("users/me/")
+         *         suspend fun me(): UserDetail
+         *     }
+         *
+         *     val result = api.me()
+         *     ```
+         */
+        put: operations["v1_users_me_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Perfil propio (GET/PATCH)
+         * @description `GET` retorna el perfil completo del usuario autenticado, incluido `datacentrals[]` (workspaces visibles con flag `is_owner`) que alimenta el selector de workspace. `PATCH` actualiza campos del `Individual` asociado (nombre, teléfono, etc.).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/users/me/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("users/me/")
+         *         suspend fun me(): UserDetail
+         *     }
+         *
+         *     val result = api.me()
+         *     ```
+         */
+        patch: operations["v1_users_me_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/users/roles/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar roles de acceso (UserRole)
+         * @description Catálogo de roles de acceso (RBAC) ordenados por `level`. Útil para poblar selectores al crear o activar usuarios.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/users/roles/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("users/roles/")
+         *         suspend fun listRoles(): List<UserRole>
+         *     }
+         *
+         *     val result = api.listRoles()
+         *     ```
+         */
+        get: operations["v1_users_roles_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/work-roles/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar roles laborales (WorkRole)
+         * @description Catálogo de roles laborales (ej. 'Ingeniero agrónomo') ordenado por nombre.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/users/work-roles/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("users/work-roles/")
+         *         suspend fun listWorkRoles(): List<WorkRole>
+         *     }
+         *
+         *     val result = api.listWorkRoles()
+         *     ```
+         */
+        get: operations["v1_users_work_roles_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/work-roles/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear rol laboral (WorkRole)
+         * @description Da de alta un rol laboral (ej. 'Ingeniero agrónomo'). Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/users/work-roles/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "work_name": "Ingeniero agrónomo"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("users/work-roles/create/")
+         *         suspend fun createWorkRole(@Body body: WorkRoleReq): WorkRole
+         *     }
+         *
+         *     val result = api.createWorkRole()
+         *     ```
+         */
+        post: operations["v1_users_work_roles_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar usuario (soft delete)
+         * @description Marca un usuario como eliminado (soft delete). Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/users/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("users/{id}/")
+         *         suspend fun deleteUser(@Path("id") id: String): Unit
+         *     }
+         *
+         *     val result = api.deleteUser(id)
+         *     ```
+         */
+        delete: operations["v1_users_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Editar un usuario (admin)
+         * @description Edita los campos de `User` (email, status, user_role) y el perfil `Individual` de cualquier usuario. Solo PATCH (parcial). No edita la contraseña — para eso existe ChangePasswordView. Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/users/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "status": "active",
+         *       "user_role": 3
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("users/{id}/update/")
+         *         suspend fun adminUpdateUser(@Path("id") id: String, @Body body: AdminUserUpdateReq): UserDetail
+         *     }
+         *
+         *     val result = api.adminUpdateUser(id)
+         *     ```
+         */
+        patch: operations["v1_users_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/users/{id}/set-password/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Establecer contraseña (admin)
+         * @description Permite a un SuperAdmin establecer una nueva contraseña para cualquier usuario sin requerir la contraseña actual. Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/users/{id}/set-password/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "new_password": "nueva",
+         *       "confirm_password": "nueva"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("users/{id}/set-password/")
+         *         suspend fun adminSetPassword(@Path("id") id: String, @Body body: SetPasswordReq): DetailResponse
+         *     }
+         *
+         *     val result = api.adminSetPassword(id)
+         *     ```
+         */
+        post: operations["v1_users_set_password_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/assignments/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar asignaciones usuario → DataCentral
+         * @description Devuelve todas las asignaciones User↔DataCentral. Filtros opcionales: `?user=<uuid>` filtra por usuario; `?datacentral=<id>` filtra por workspace. SuperAdmin ve todas; Gerente Owner solo las de sus CIAgros.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/users/assignments/?datacentral=<id> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("users/assignments/")
+         *         suspend fun listUserAssignments(): List<UserAssignment>
+         *     }
+         *
+         *     val result = api.listUserAssignments()
+         *     ```
+         */
+        get: operations["v1_users_assignments_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/assignments/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear asignación usuario → DataCentral
+         * @description Asigna un usuario a un workspace (DataCentral). SuperAdmin puede asignar a cualquier DataCentral; Gerente Owner solo a las CIAgros que le pertenecen.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/users/assignments/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "user": "<uuid>",
+         *       "datacentral": "<uuid>"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("users/assignments/create/")
+         *         suspend fun createUserAssignment(@Body body: UserAssignmentReq): UserAssignment
+         *     }
+         *
+         *     val result = api.createUserAssignment()
+         *     ```
+         */
+        post: operations["v1_users_assignments_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/assignments/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar asignación usuario → DataCentral
+         * @description Revoca el acceso de un usuario a un workspace. SuperAdmin puede eliminar cualquier asignación; Gerente Owner solo las de sus CIAgros.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/users/assignments/{id}/delete/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("users/assignments/{id}/delete/")
+         *         suspend fun deleteUserAssignment(@Path("id") id: String): Unit
+         *     }
+         *
+         *     val result = api.deleteUserAssignment(id)
+         *     ```
+         */
+        delete: operations["v1_users_assignments_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/pending/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar usuarios pendientes de activación
+         * @description Devuelve usuarios que se registraron vía app móvil (`status=pending_activation`) y aún no han sido activados por un administrador. Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/users/pending/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("users/pending/")
+         *         suspend fun listPendingUsers(): List<UserDetail>
+         *     }
+         *
+         *     val result = api.listPendingUsers()
+         *     ```
+         */
+        get: operations["v1_users_pending_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/activate/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Activar usuario pendiente
+         * @description Asigna un rol al usuario y cambia su status a `active`. Flujo típico: técnico se registra en app → admin lo activa aquí → admin asigna DataCentral vía `/users/assignments/create/`. Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/users/{id}/activate/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "user_role": 2
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("users/{id}/activate/")
+         *         suspend fun activateUser(@Path("id") id: String, @Body body: ActivateUserReq): UserDetail
+         *     }
+         *
+         *     val result = api.activateUser(id)
+         *     ```
+         */
+        patch: operations["v1_users_activate_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/users/by-datacentral/{dc_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar usuarios de un datacentral
+         * @description Retorna los usuarios activos asignados al datacentral indicado. El solicitante debe pertenecer al mismo datacentral (seguridad multi-tenant). Accesible por role_level >= 2 (Técnico+).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/users/by-datacentral/{dc_id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("users/by-datacentral/{dc_id}/")
+         *         suspend fun usersByDatacentral(@Path("dc_id") dc_id: String): List<UserMinimal>
+         *     }
+         *
+         *     val result = api.usersByDatacentral(dc_id)
+         *     ```
+         */
+        get: operations["v1_users_by_datacentral_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geography/countries/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar países
+         * @description Catálogo estático de países (ISO). Usa `?page_size=300` para traerlos todos en una sola petición.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/geography/countries/?page_size=300 \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("geography/countries/")
+         *         suspend fun listCountries(): Paginated<Country>
+         *     }
+         *
+         *     val result = api.listCountries()
+         *     ```
+         */
+        get: operations["v1_geography_countries_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geography/states/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar estados/provincias
+         * @description Catálogo de estados/provincias. Filtra por país con `?country=<ISO-2>`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/geography/states/?country=MX \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("geography/states/")
+         *         suspend fun listStates(): Paginated<State>
+         *     }
+         *
+         *     val result = api.listStates()
+         *     ```
+         */
+        get: operations["v1_geography_states_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/agro_sectors/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar sectores agrícolas
+         * @description Catálogo de sectores agrícolas (ej. hortícola, frutícola) usado al clasificar unidades agrícolas.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/agro_sectors/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/agro_sectors/")
+         *         suspend fun listAgroSectors(): List<AgroSector>
+         *     }
+         *
+         *     val result = api.listAgroSectors()
+         *     ```
+         */
+        get: operations["v1_organizations_agro_sectors_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/agro_sectors/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear sector agrícola
+         * @description Da de alta un sector agrícola. Requiere nivel Supervisor o superior.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/organizations/agro_sectors/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Hortícola"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("organizations/agro_sectors/create/")
+         *         suspend fun createAgroSector(@Body body: AgroSectorReq): AgroSector
+         *     }
+         *
+         *     val result = api.createAgroSector()
+         *     ```
+         */
+        post: operations["v1_organizations_agro_sectors_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/agro_sectors/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle / actualizar / eliminar sector agrícola
+         * @description `GET` detalle, `PATCH/PUT` actualización y `DELETE` de un sector agrícola.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/agro_sectors/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/agro_sectors/{id}/")
+         *         suspend fun getAgroSector(@Path("id") id: String): AgroSector
+         *     }
+         *
+         *     val result = api.getAgroSector(id)
+         *     ```
+         */
+        get: operations["v1_organizations_agro_sectors_retrieve"];
+        /**
+         * Detalle / actualizar / eliminar sector agrícola
+         * @description `GET` detalle, `PATCH/PUT` actualización y `DELETE` de un sector agrícola.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/agro_sectors/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/agro_sectors/{id}/")
+         *         suspend fun getAgroSector(@Path("id") id: String): AgroSector
+         *     }
+         *
+         *     val result = api.getAgroSector(id)
+         *     ```
+         */
+        put: operations["v1_organizations_agro_sectors_update"];
+        post?: never;
+        /**
+         * Detalle / actualizar / eliminar sector agrícola
+         * @description `GET` detalle, `PATCH/PUT` actualización y `DELETE` de un sector agrícola.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/agro_sectors/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/agro_sectors/{id}/")
+         *         suspend fun getAgroSector(@Path("id") id: String): AgroSector
+         *     }
+         *
+         *     val result = api.getAgroSector(id)
+         *     ```
+         */
+        delete: operations["v1_organizations_agro_sectors_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Detalle / actualizar / eliminar sector agrícola
+         * @description `GET` detalle, `PATCH/PUT` actualización y `DELETE` de un sector agrícola.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/agro_sectors/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/agro_sectors/{id}/")
+         *         suspend fun getAgroSector(@Path("id") id: String): AgroSector
+         *     }
+         *
+         *     val result = api.getAgroSector(id)
+         *     ```
+         */
+        patch: operations["v1_organizations_agro_sectors_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/organizations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar unidades agrícolas (AgroUnit)
+         * @description Retorna las unidades agrícolas visibles al usuario. SuperAdmin ve todas; otros roles ven solo sus unidades asignadas vía `UserAssignment`. Usar `?unit_type=Productor` para obtener solo productores (útil en la app móvil) y `?datacentral=<uuid>` para filtrar por workspace.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/?unit_type=Productor&datacentral=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/")
+         *         suspend fun listAgroUnits(): Paginated<AgroUnit>
+         *     }
+         *
+         *     val result = api.listAgroUnits()
+         *     ```
+         */
+        get: operations["v1_organizations_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear unidad agrícola
+         * @description Crea una unidad agrícola (productor, empaque, etc.). Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/organizations/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "commercial_name": "Agrícola del Valle",
+         *       "code": "AV-001",
+         *       "unit_type": "Productor",
+         *       "agro_sector": 1
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("organizations/create/")
+         *         suspend fun createAgroUnit(@Body body: AgroUnitReq): AgroUnit
+         *     }
+         *
+         *     val result = api.createAgroUnit()
+         *     ```
+         */
+        post: operations["v1_organizations_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de una unidad agrícola
+         * @description Retorna el detalle de una AgroUnit visible para el usuario.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/{id}/")
+         *         suspend fun getAgroUnit(@Path("id") id: String): AgroUnit
+         *     }
+         *
+         *     val result = api.getAgroUnit(id)
+         *     ```
+         */
+        get: operations["v1_organizations_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar unidad agrícola
+         * @description Actualiza (parcial o total) una AgroUnit. Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/organizations/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "commercial_name": "Nuevo nombre"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("organizations/{id}/update/")
+         *         suspend fun updateAgroUnit(@Path("id") id: String, @Body body: AgroUnitReq): AgroUnit
+         *     }
+         *
+         *     val result = api.updateAgroUnit(id)
+         *     ```
+         */
+        put: operations["v1_organizations_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar unidad agrícola
+         * @description Actualiza (parcial o total) una AgroUnit. Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/organizations/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "commercial_name": "Nuevo nombre"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("organizations/{id}/update/")
+         *         suspend fun updateAgroUnit(@Path("id") id: String, @Body body: AgroUnitReq): AgroUnit
+         *     }
+         *
+         *     val result = api.updateAgroUnit(id)
+         *     ```
+         */
+        patch: operations["v1_organizations_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/organizations/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar unidad agrícola (soft delete)
+         * @description Marca la AgroUnit como eliminada (soft delete). Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/organizations/{id}/delete/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("organizations/{id}/delete/")
+         *         suspend fun deleteAgroUnit(@Path("id") id: String): Unit
+         *     }
+         *
+         *     val result = api.deleteAgroUnit(id)
+         *     ```
+         */
+        delete: operations["v1_organizations_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/contacts/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar contactos
+         * @description Directorio de contactos. Filtrar por unidad con `?agro_unit=<uuid>`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/contacts/?agro_unit=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/contacts/")
+         *         suspend fun listContacts(): Paginated<Contact>
+         *     }
+         *
+         *     val result = api.listContacts()
+         *     ```
+         */
+        get: operations["v1_organizations_contacts_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/contacts/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear contacto
+         * @description Da de alta un contacto en el directorio. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/organizations/contacts/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Juan Pérez",
+         *       "phone": "+52...",
+         *       "email": "juan@ej.mx"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("organizations/contacts/create/")
+         *         suspend fun createContact(@Body body: ContactReq): Contact
+         *     }
+         *
+         *     val result = api.createContact()
+         *     ```
+         */
+        post: operations["v1_organizations_contacts_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/contacts/assign/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Asignar contacto a unidad agrícola
+         * @description Vincula un contacto existente a una AgroUnit. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/organizations/contacts/assign/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "contact": "<uuid>",
+         *       "agro_unit": "<uuid>"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("organizations/contacts/assign/")
+         *         suspend fun assignContact(@Body body: ContactAssignmentReq): ContactAssignment
+         *     }
+         *
+         *     val result = api.assignContact()
+         *     ```
+         */
+        post: operations["v1_organizations_contacts_assign_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/contacts/assignments/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar asignaciones de contacto
+         * @description Asignaciones contacto↔AgroUnit. Filtrar con `?agro_unit=<uuid>`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/contacts/assignments/?agro_unit=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/contacts/assignments/")
+         *         suspend fun listContactAssignments(): List<ContactAssignment>
+         *     }
+         *
+         *     val result = api.listContactAssignments()
+         *     ```
+         */
+        get: operations["v1_organizations_contacts_assignments_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/contacts/assignments/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar asignación de contacto
+         * @description Revoca el vínculo contacto↔AgroUnit. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/organizations/contacts/assignments/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("organizations/contacts/assignments/{id}/")
+         *         suspend fun deleteContactAssignment(@Path("id") id: String): Unit
+         *     }
+         *
+         *     val result = api.deleteContactAssignment(id)
+         *     ```
+         */
+        delete: operations["v1_organizations_contacts_assignments_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/contacts/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle / actualizar / eliminar contacto
+         * @description `GET` detalle, `PATCH/PUT` actualización y `DELETE` (soft) de un contacto.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/contacts/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/contacts/{id}/")
+         *         suspend fun getContact(@Path("id") id: String): Contact
+         *     }
+         *
+         *     val result = api.getContact(id)
+         *     ```
+         */
+        get: operations["v1_organizations_contacts_retrieve"];
+        /**
+         * Detalle / actualizar / eliminar contacto
+         * @description `GET` detalle, `PATCH/PUT` actualización y `DELETE` (soft) de un contacto.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/contacts/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/contacts/{id}/")
+         *         suspend fun getContact(@Path("id") id: String): Contact
+         *     }
+         *
+         *     val result = api.getContact(id)
+         *     ```
+         */
+        put: operations["v1_organizations_contacts_update"];
+        post?: never;
+        /**
+         * Detalle / actualizar / eliminar contacto
+         * @description `GET` detalle, `PATCH/PUT` actualización y `DELETE` (soft) de un contacto.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/contacts/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/contacts/{id}/")
+         *         suspend fun getContact(@Path("id") id: String): Contact
+         *     }
+         *
+         *     val result = api.getContact(id)
+         *     ```
+         */
+        delete: operations["v1_organizations_contacts_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Detalle / actualizar / eliminar contacto
+         * @description `GET` detalle, `PATCH/PUT` actualización y `DELETE` (soft) de un contacto.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/contacts/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/contacts/{id}/")
+         *         suspend fun getContact(@Path("id") id: String): Contact
+         *     }
+         *
+         *     val result = api.getContact(id)
+         *     ```
+         */
+        patch: operations["v1_organizations_contacts_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/organizations/onboarding/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Onboarding — crear CIAgro Padre + DataCentral + AgroUnit inicial
+         * @description Crea en una sola transacción: DataCentralMain (CIAgro Padre) con owner=request.user, DataCentral primaria, AgroUnit inicial, DataCentralAssignment y UserAssignment. Solo ejecutable si el usuario autenticado no tiene ningún tenant asignado.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/organizations/onboarding/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "tenant_name": "Mi CIAgro",
+         *       "dc_name": "Workspace 1",
+         *       "agro_unit_name": "Unidad 1",
+         *       "agro_unit_code": "U-001"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("organizations/onboarding/")
+         *         suspend fun onboarding(@Body body: OnboardingReq): OnboardingResult
+         *     }
+         *
+         *     val result = api.onboarding()
+         *     ```
+         */
+        post: operations["v1_organizations_onboarding_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/data-centrals-main/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar CIAgros Padre del usuario
+         * @description Lista las organizaciones raíz (DataCentralMain) visibles. Excluye las inactivas salvo `?include_inactive=true` (panel de Administración).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/data-centrals-main/?include_inactive=false \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/data-centrals-main/")
+         *         suspend fun listDataCentralsMain(): List<DataCentralMain>
+         *     }
+         *
+         *     val result = api.listDataCentralsMain()
+         *     ```
+         */
+        get: operations["v1_organizations_data_centrals_main_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/data-centrals-main/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear CIAgro Padre
+         * @description Crea una organización raíz (DataCentralMain). Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/organizations/data-centrals-main/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Nueva CIAgro"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("organizations/data-centrals-main/create/")
+         *         suspend fun createDataCentralMain(@Body body: DataCentralMainReq): DataCentralMain
+         *     }
+         *
+         *     val result = api.createDataCentralMain()
+         *     ```
+         */
+        post: operations["v1_organizations_data_centrals_main_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/data-centrals-main/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de una CIAgro Padre
+         * @description Detalle de una organización raíz (DataCentralMain) visible para el usuario.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/data-centrals-main/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/data-centrals-main/{id}/")
+         *         suspend fun getDataCentralMain(@Path("id") id: String): DataCentralMain
+         *     }
+         *
+         *     val result = api.getDataCentralMain(id)
+         *     ```
+         */
+        get: operations["v1_organizations_data_centrals_main_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/data-centrals-main/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar CIAgro Padre
+         * @description Actualiza una organización raíz (incluye activar/desactivar vía `status`). Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/organizations/data-centrals-main/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "status": "active"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("organizations/data-centrals-main/{id}/update/")
+         *         suspend fun updateDataCentralMain(@Path("id") id: String, @Body body: DataCentralMainReq): DataCentralMain
+         *     }
+         *
+         *     val result = api.updateDataCentralMain(id)
+         *     ```
+         */
+        put: operations["v1_organizations_data_centrals_main_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar CIAgro Padre
+         * @description Actualiza una organización raíz (incluye activar/desactivar vía `status`). Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/organizations/data-centrals-main/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "status": "active"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("organizations/data-centrals-main/{id}/update/")
+         *         suspend fun updateDataCentralMain(@Path("id") id: String, @Body body: DataCentralMainReq): DataCentralMain
+         *     }
+         *
+         *     val result = api.updateDataCentralMain(id)
+         *     ```
+         */
+        patch: operations["v1_organizations_data_centrals_main_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/organizations/datacentrals/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar data centrals (workspaces) del usuario
+         * @description Lista los workspaces (DataCentral) visibles. Filtrar por organización con `?data_central_main=<uuid>`. Excluye las de orgs inactivas salvo `?include_inactive=true`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/datacentrals/?data_central_main=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/datacentrals/")
+         *         suspend fun listDataCentrals(): List<DataCentral>
+         *     }
+         *
+         *     val result = api.listDataCentrals()
+         *     ```
+         */
+        get: operations["v1_organizations_datacentrals_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/datacentrals/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear data central
+         * @description Crea un workspace (DataCentral) bajo una organización. Requiere SuperAdmin. La respuesta incluye el `id` (usado por el wizard de primer uso).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/organizations/datacentrals/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Workspace 2",
+         *       "data_central_main": "<uuid>"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("organizations/datacentrals/create/")
+         *         suspend fun createDataCentral(@Body body: DataCentralReq): DataCentral
+         *     }
+         *
+         *     val result = api.createDataCentral()
+         *     ```
+         */
+        post: operations["v1_organizations_datacentrals_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/datacentrals/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de una data central
+         * @description Detalle de un workspace (DataCentral) visible para el usuario.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/datacentrals/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/datacentrals/{id}/")
+         *         suspend fun getDataCentral(@Path("id") id: String): DataCentral
+         *     }
+         *
+         *     val result = api.getDataCentral(id)
+         *     ```
+         */
+        get: operations["v1_organizations_datacentrals_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/datacentrals/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar data central
+         * @description Actualiza un workspace (DataCentral). Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/organizations/datacentrals/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Nuevo nombre"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("organizations/datacentrals/{id}/update/")
+         *         suspend fun updateDataCentral(@Path("id") id: String, @Body body: DataCentralReq): DataCentral
+         *     }
+         *
+         *     val result = api.updateDataCentral(id)
+         *     ```
+         */
+        put: operations["v1_organizations_datacentrals_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar data central
+         * @description Actualiza un workspace (DataCentral). Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/organizations/datacentrals/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Nuevo nombre"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("organizations/datacentrals/{id}/update/")
+         *         suspend fun updateDataCentral(@Path("id") id: String, @Body body: DataCentralReq): DataCentral
+         *     }
+         *
+         *     val result = api.updateDataCentral(id)
+         *     ```
+         */
+        patch: operations["v1_organizations_datacentrals_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/organizations/datacentrals-assignments/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar asignaciones DataCentral ↔ AgroUnit
+         * @description Asignaciones de unidades a workspaces. Filtros: `?datacentral=<uuid>`, `?agro_unit=<uuid>`. Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/organizations/datacentrals-assignments/?datacentral=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("organizations/datacentrals-assignments/")
+         *         suspend fun listDataCentralAssignments(): List<DataCentralAssignment>
+         *     }
+         *
+         *     val result = api.listDataCentralAssignments()
+         *     ```
+         */
+        get: operations["v1_organizations_datacentrals_assignments_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/datacentrals-assignments/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Asignar AgroUnit a DataCentral
+         * @description Vincula una unidad agrícola a un workspace. Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/organizations/datacentrals-assignments/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "datacentral": "<uuid>",
+         *       "agro_unit": "<uuid>"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("organizations/datacentrals-assignments/create/")
+         *         suspend fun createDataCentralAssignment(@Body body: DataCentralAssignmentReq): DataCentralAssignment
+         *     }
+         *
+         *     val result = api.createDataCentralAssignment()
+         *     ```
+         */
+        post: operations["v1_organizations_datacentrals_assignments_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/datacentrals-assignments/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar asignación DataCentral ↔ AgroUnit
+         * @description Revoca el vínculo unidad↔workspace. Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/organizations/datacentrals-assignments/{id}/delete/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("organizations/datacentrals-assignments/{id}/delete/")
+         *         suspend fun deleteDataCentralAssignment(@Path("id") id: String): Unit
+         *     }
+         *
+         *     val result = api.deleteDataCentralAssignment(id)
+         *     ```
+         */
+        delete: operations["v1_organizations_datacentrals_assignments_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geo_assets/ranches/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar ranchos (GeoJSON FeatureCollection)
+         * @description Retorna los ranchos accesibles al usuario autenticado como GeoJSON `FeatureCollection`. Cada `Feature` incluye el polígono o punto de ubicación en `geometry` y los campos del rancho en `properties`. SuperAdmin ve todos; otros roles ven solo los ranchos de sus unidades asignadas.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/geo_assets/ranches/?producer=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("geo_assets/ranches/")
+         *         suspend fun listRanches(): FeatureCollection
+         *     }
+         *
+         *     val result = api.listRanches()
+         *     ```
+         */
+        get: operations["v1_geo_assets_ranches_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geo_assets/ranches/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar rancho
+         * @description Actualiza un rancho (GeoJSON `Feature`, parcial o total). Requiere Gerente+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/geo_assets/ranches/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "type": "Feature",
+         *       "properties": {
+         *         "name": "Nuevo nombre"
+         *       }
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("geo_assets/ranches/{id}/update/")
+         *         suspend fun updateRanch(@Path("id") id: String, @Body body: Feature): Feature
+         *     }
+         *
+         *     val result = api.updateRanch(id)
+         *     ```
+         */
+        put: operations["v1_geo_assets_ranches_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar rancho
+         * @description Actualiza un rancho (GeoJSON `Feature`, parcial o total). Requiere Gerente+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/geo_assets/ranches/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "type": "Feature",
+         *       "properties": {
+         *         "name": "Nuevo nombre"
+         *       }
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("geo_assets/ranches/{id}/update/")
+         *         suspend fun updateRanch(@Path("id") id: String, @Body body: Feature): Feature
+         *     }
+         *
+         *     val result = api.updateRanch(id)
+         *     ```
+         */
+        patch: operations["v1_geo_assets_ranches_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/geo_assets/ranches/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar rancho (soft delete)
+         * @description Marca el rancho como eliminado (soft delete). Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/geo_assets/ranches/{id}/delete/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("geo_assets/ranches/{id}/delete/")
+         *         suspend fun deleteRanch(@Path("id") id: String): Unit
+         *     }
+         *
+         *     val result = api.deleteRanch(id)
+         *     ```
+         */
+        delete: operations["v1_geo_assets_ranches_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geo_assets/ranches/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de un rancho (GeoJSON Feature)
+         * @description Detalle de un rancho como GeoJSON `Feature`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/geo_assets/ranches/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("geo_assets/ranches/{id}/")
+         *         suspend fun getRanch(@Path("id") id: String): Feature
+         *     }
+         *
+         *     val result = api.getRanch(id)
+         *     ```
+         */
+        get: operations["v1_geo_assets_ranches_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geo_assets/ranches/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear rancho
+         * @description Crea un rancho. El body es un GeoJSON `Feature` (geometría Polygon/Point + `properties`). Requiere Gerente+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/geo_assets/ranches/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "type": "Feature",
+         *       "geometry": {
+         *         "type": "Point",
+         *         "coordinates": [
+         *           -103.35,
+         *           20.67
+         *         ]
+         *       },
+         *       "properties": {
+         *         "name": "Rancho El Sol",
+         *         "producer": "<uuid>"
+         *       }
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("geo_assets/ranches/create/")
+         *         suspend fun createRanch(@Body body: Feature): Feature
+         *     }
+         *
+         *     val result = api.createRanch()
+         *     ```
+         */
+        post: operations["v1_geo_assets_ranches_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geo_assets/plots/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar parcelas (GeoJSON FeatureCollection)
+         * @description Retorna las parcelas accesibles al usuario como GeoJSON `FeatureCollection`. Cada `Feature` incluye el polígono de la parcela en `geometry` y sus atributos en `properties`. Las parcelas son la unidad espacial de referencia para los `DataLayerPoints` (mapas de calor).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/geo_assets/plots/?ranch=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("geo_assets/plots/")
+         *         suspend fun listPlots(): FeatureCollection
+         *     }
+         *
+         *     val result = api.listPlots()
+         *     ```
+         */
+        get: operations["v1_geo_assets_plots_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geo_assets/plots/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear parcela
+         * @description Crea una parcela. El body es un GeoJSON `Feature` con geometría `Polygon` (EPSG:4326, orden `[lon, lat]`) y `properties` (incl. `ranch`). Requiere Gerente+. Alternativa: crear sin geometría y luego cargar vértices con `import-vertices/`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/geo_assets/plots/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "type": "Feature",
+         *       "geometry": {
+         *         "type": "Polygon",
+         *         "coordinates": [
+         *           [
+         *             [
+         *               -103.35,
+         *               20.67
+         *             ],
+         *             [
+         *               -103.34,
+         *               20.67
+         *             ],
+         *             [
+         *               -103.34,
+         *               20.66
+         *             ],
+         *             [
+         *               -103.35,
+         *               20.66
+         *             ],
+         *             [
+         *               -103.35,
+         *               20.67
+         *             ]
+         *           ]
+         *         ]
+         *       },
+         *       "properties": {
+         *         "code": "P-001",
+         *         "plot_name": "Parcela 1",
+         *         "ranch": "<uuid>"
+         *       }
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("geo_assets/plots/create/")
+         *         suspend fun createPlot(@Body body: Feature): Feature
+         *     }
+         *
+         *     val result = api.createPlot()
+         *     ```
+         */
+        post: operations["v1_geo_assets_plots_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geo_assets/plots/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de una parcela (GeoJSON Feature)
+         * @description Detalle de una parcela como GeoJSON `Feature`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/geo_assets/plots/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("geo_assets/plots/{id}/")
+         *         suspend fun getPlot(@Path("id") id: String): Feature
+         *     }
+         *
+         *     val result = api.getPlot(id)
+         *     ```
+         */
+        get: operations["v1_geo_assets_plots_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geo_assets/plots/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar parcela
+         * @description Actualiza una parcela (GeoJSON `Feature`, parcial o total). Requiere Gerente+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/geo_assets/plots/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "type": "Feature",
+         *       "properties": {
+         *         "plot_name": "Nuevo nombre"
+         *       }
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("geo_assets/plots/{id}/update/")
+         *         suspend fun updatePlot(@Path("id") id: String, @Body body: Feature): Feature
+         *     }
+         *
+         *     val result = api.updatePlot(id)
+         *     ```
+         */
+        put: operations["v1_geo_assets_plots_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar parcela
+         * @description Actualiza una parcela (GeoJSON `Feature`, parcial o total). Requiere Gerente+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/geo_assets/plots/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "type": "Feature",
+         *       "properties": {
+         *         "plot_name": "Nuevo nombre"
+         *       }
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("geo_assets/plots/{id}/update/")
+         *         suspend fun updatePlot(@Path("id") id: String, @Body body: Feature): Feature
+         *     }
+         *
+         *     val result = api.updatePlot(id)
+         *     ```
+         */
+        patch: operations["v1_geo_assets_plots_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/geo_assets/plots/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar parcela (soft delete)
+         * @description Marca la parcela como eliminada (soft delete). Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/geo_assets/plots/{id}/delete/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("geo_assets/plots/{id}/delete/")
+         *         suspend fun deletePlot(@Path("id") id: String): Unit
+         *     }
+         *
+         *     val result = api.deletePlot(id)
+         *     ```
+         */
+        delete: operations["v1_geo_assets_plots_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geo_assets/plots/{id}/import-vertices/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importar vértices de parcela
+         * @description Reemplaza todos los vértices de la parcela con los recibidos y reconstruye `geom`, `centroid` y `total_area` vía PostGIS. Si `level` se omite en algún vértice, se usa su posición en el array. Requiere mínimo 3 vértices. Devuelve la parcela actualizada como GeoJSON Feature.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/geo_assets/plots/{id}/import-vertices/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "vertices": [
+         *         {
+         *           "latitude": 20.67,
+         *           "longitude": -103.35
+         *         },
+         *         {
+         *           "latitude": 20.67,
+         *           "longitude": -103.34
+         *         },
+         *         {
+         *           "latitude": 20.66,
+         *           "longitude": -103.35
+         *         }
+         *       ]
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("geo_assets/plots/{id}/import-vertices/")
+         *         suspend fun importPlotVertices(@Path("id") id: String, @Body body: ImportVerticesReq): Feature
+         *     }
+         *
+         *     val result = api.importPlotVertices(id)
+         *     ```
+         */
+        post: operations["v1_geo_assets_plots_import_vertices_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geo_assets/ranch-partners/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar socios del rancho
+         * @description Lista las asociaciones rancho↔socio. Filtra con `?ranch=<uuid>`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/geo_assets/ranch-partners/?ranch=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("geo_assets/ranch-partners/")
+         *         suspend fun listRanchPartners(): List<RanchPartner>
+         *     }
+         *
+         *     val result = api.listRanchPartners()
+         *     ```
+         */
+        get: operations["v1_geo_assets_ranch_partners_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geo_assets/ranch-partners/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Asociar socio a rancho
+         * @description Vincula un socio (AgroUnit) a un rancho. Requiere Gerente+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/geo_assets/ranch-partners/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "ranch": "<uuid>",
+         *       "partner": "<uuid>"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("geo_assets/ranch-partners/create/")
+         *         suspend fun createRanchPartner(@Body body: RanchPartnerReq): RanchPartner
+         *     }
+         *
+         *     val result = api.createRanchPartner()
+         *     ```
+         */
+        post: operations["v1_geo_assets_ranch_partners_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geo_assets/ranch-partners/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar asociación rancho-socio
+         * @description Revoca la asociación rancho↔socio. Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/geo_assets/ranch-partners/{id}/delete/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("geo_assets/ranch-partners/{id}/delete/")
+         *         suspend fun deleteRanchPartner(@Path("id") id: String): Unit
+         *     }
+         *
+         *     val result = api.deleteRanchPartner(id)
+         *     ```
+         */
+        delete: operations["v1_geo_assets_ranch_partners_delete_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -404,6 +2959,29 @@ export interface paths {
          * @description **GET:** Lista los adjuntos. Filtrar con `?model_name=ranch&object_id=<uuid>` para obtener los adjuntos de un objeto específico.
          *
          *     **POST:** Sube un archivo (multipart/form-data). Requiere nivel mínimo `Technician`. Actualiza automáticamente `attachments_url` en el objeto padre.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/core/attachments/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -F 'model_name=ranch' \
+         *       -F 'object_id=<uuid>' \
+         *       -F 'file=@documento.pdf'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @Multipart
+         *         @POST("core/attachments/")
+         *         suspend fun uploadAttachment(@Part("model_name") modelName: RequestBody, @Part("object_id") objectId: RequestBody, @Part file: MultipartBody.Part): Attachment
+         *     }
+         *
+         *     val result = api.uploadAttachment()
+         *     ```
          */
         get: operations["v1_core_attachments_list"];
         put?: never;
@@ -412,6 +2990,29 @@ export interface paths {
          * @description **GET:** Lista los adjuntos. Filtrar con `?model_name=ranch&object_id=<uuid>` para obtener los adjuntos de un objeto específico.
          *
          *     **POST:** Sube un archivo (multipart/form-data). Requiere nivel mínimo `Technician`. Actualiza automáticamente `attachments_url` en el objeto padre.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/core/attachments/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -F 'model_name=ranch' \
+         *       -F 'object_id=<uuid>' \
+         *       -F 'file=@documento.pdf'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @Multipart
+         *         @POST("core/attachments/")
+         *         suspend fun uploadAttachment(@Part("model_name") modelName: RequestBody, @Part("object_id") objectId: RequestBody, @Part file: MultipartBody.Part): Attachment
+         *     }
+         *
+         *     val result = api.uploadAttachment()
+         *     ```
          */
         post: operations["v1_core_attachments_create"];
         delete?: never;
@@ -433,6 +3034,25 @@ export interface paths {
         /**
          * Borrar archivo adjunto
          * @description Elimina el registro `Attachment` y actualiza automáticamente `attachments_url` en el objeto padre. Requiere nivel mínimo `Technician`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/core/attachments/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("core/attachments/{id}/")
+         *         suspend fun deleteAttachment(@Path("id") id: String): Unit
+         *     }
+         *
+         *     val result = api.deleteAttachment(id)
+         *     ```
          */
         delete: operations["v1_core_attachments_destroy"];
         options?: never;
@@ -440,7 +3060,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/field_ops/master-programs/": {
+    "/api/v1/agro-catalogs/crops/": {
         parameters: {
             query?: never;
             header?: never;
@@ -448,42 +3068,29 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar programas maestros
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         * Listar catálogo de cultivos y variedades
+         * @description Catálogo de cultivos y variedades. Filtra por código con `?code=`.
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
-         */
-        get: operations["v1_field_ops_master_programs_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/field_ops/master-programs/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Detalle de programa maestro
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *     **Ejemplos**
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/agro-catalogs/crops/?code=maiz \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("agro-catalogs/crops/")
+         *         suspend fun listCrops(): Paginated<Crop>
+         *     }
+         *
+         *     val result = api.listCrops()
+         *     ```
          */
-        get: operations["v1_field_ops_master_programs_retrieve"];
+        get: operations["v1_agro_catalogs_crops_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -492,45 +3099,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/field_ops/master-programs/{id}/tree/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Árbol completo de un programa maestro (Maestro → Programas → Sesiones)
-         * @description Devuelve el programa maestro con sus programas hijos y, por cada hijo, las sesiones de aspersión y fitosanitarias. Diseñado para el Gantt del frontend: resuelve toda la jerarquía en una sola petición (4 queries con prefetch_related).
-         */
-        get: operations["v1_field_ops_master_programs_tree_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/field_ops/master-programs/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Actualizar programa maestro */
-        put: operations["v1_field_ops_master_programs_update_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Actualizar programa maestro */
-        patch: operations["v1_field_ops_master_programs_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/field_ops/master-programs/create/": {
+    "/api/v1/agro-catalogs/crops/create/": {
         parameters: {
             query?: never;
             header?: never;
@@ -539,12 +3108,658 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Crear programa maestro */
-        post: operations["v1_field_ops_master_programs_create_create"];
+        /**
+         * Crear cultivo o variedad
+         * @description Da de alta un cultivo/variedad. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/agro-catalogs/crops/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "code": "MAIZ-AM",
+         *       "name": "Maíz",
+         *       "variety": "Amarillo"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("agro-catalogs/crops/create/")
+         *         suspend fun createCrop(@Body body: CropReq): Crop
+         *     }
+         *
+         *     val result = api.createCrop()
+         *     ```
+         */
+        post: operations["v1_agro_catalogs_crops_create_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/crops/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de un cultivo o variedad
+         * @description Detalle de un cultivo/variedad.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/agro-catalogs/crops/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("agro-catalogs/crops/{id}/")
+         *         suspend fun getCrop(@Path("id") id: String): Crop
+         *     }
+         *
+         *     val result = api.getCrop(id)
+         *     ```
+         */
+        get: operations["v1_agro_catalogs_crops_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/crops/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar cultivo o variedad
+         * @description Actualiza un cultivo/variedad. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/agro-catalogs/crops/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Maíz blanco"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("agro-catalogs/crops/{id}/update/")
+         *         suspend fun updateCrop(@Path("id") id: String, @Body body: CropReq): Crop
+         *     }
+         *
+         *     val result = api.updateCrop(id)
+         *     ```
+         */
+        put: operations["v1_agro_catalogs_crops_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar cultivo o variedad
+         * @description Actualiza un cultivo/variedad. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/agro-catalogs/crops/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Maíz blanco"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("agro-catalogs/crops/{id}/update/")
+         *         suspend fun updateCrop(@Path("id") id: String, @Body body: CropReq): Crop
+         *     }
+         *
+         *     val result = api.updateCrop(id)
+         *     ```
+         */
+        patch: operations["v1_agro_catalogs_crops_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/phytosanitary/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar catálogo fitosanitario
+         * @description Retorna plagas y enfermedades del catálogo. Cada elemento incluye `stage_photos` — carrete de fotos etiquetadas por etapa del ciclo de vida (Huevesillo→Adulto para plagas; Inicio→Terminal para enfermedades).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/agro-catalogs/phytosanitary/?type=Plaga \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("agro-catalogs/phytosanitary/")
+         *         suspend fun listPhytoCatalog(): Paginated<PhytoIssue>
+         *     }
+         *
+         *     val result = api.listPhytoCatalog()
+         *     ```
+         */
+        get: operations["v1_agro_catalogs_phytosanitary_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/phytosanitary/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear problema fitosanitario
+         * @description Da de alta una plaga o enfermedad en el catálogo. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/agro-catalogs/phytosanitary/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Mosca blanca",
+         *       "type": "Plaga",
+         *       "default_crop": 1
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("agro-catalogs/phytosanitary/create/")
+         *         suspend fun createPhytoIssue(@Body body: PhytoIssueReq): PhytoIssue
+         *     }
+         *
+         *     val result = api.createPhytoIssue()
+         *     ```
+         */
+        post: operations["v1_agro_catalogs_phytosanitary_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/phytosanitary/photos/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear foto de etapa de desarrollo fitosanitario
+         * @description Sube una foto (multipart) etiquetada por etapa del ciclo de vida del problema fitosanitario. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/agro-catalogs/phytosanitary/photos/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -F 'phytosanitary=<id>' \
+         *       -F 'stage=Adulto' \
+         *       -F 'photo=@foto.jpg'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @Multipart
+         *         @POST("agro-catalogs/phytosanitary/photos/create/")
+         *         suspend fun createPhytoPhoto(@Part("phytosanitary") phytosanitary: RequestBody, @Part("stage") stage: RequestBody, @Part("photo") photo: RequestBody): PhytoPhoto
+         *     }
+         *
+         *     val result = api.createPhytoPhoto()
+         *     ```
+         */
+        post: operations["v1_agro_catalogs_phytosanitary_photos_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/phytosanitary/photos/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar foto de etapa de desarrollo fitosanitario
+         * @description Elimina una foto del carrete de un problema fitosanitario. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/agro-catalogs/phytosanitary/photos/{id}/delete/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("agro-catalogs/phytosanitary/photos/{id}/delete/")
+         *         suspend fun deletePhytoPhoto(@Path("id") id: String): Unit
+         *     }
+         *
+         *     val result = api.deletePhytoPhoto(id)
+         *     ```
+         */
+        delete: operations["v1_agro_catalogs_phytosanitary_photos_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/phytosanitary/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de un problema fitosanitario
+         * @description Retorna el detalle completo incluyendo `stage_photos` — carrete de fotos etiquetadas por etapa del ciclo de vida.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/agro-catalogs/phytosanitary/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("agro-catalogs/phytosanitary/{id}/")
+         *         suspend fun getPhytoIssue(@Path("id") id: String): PhytoIssue
+         *     }
+         *
+         *     val result = api.getPhytoIssue(id)
+         *     ```
+         */
+        get: operations["v1_agro_catalogs_phytosanitary_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/phytosanitary/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar problema fitosanitario
+         * @description Actualiza una plaga/enfermedad del catálogo. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/agro-catalogs/phytosanitary/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Mosca blanca (sp.)"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("agro-catalogs/phytosanitary/{id}/update/")
+         *         suspend fun updatePhytoIssue(@Path("id") id: String, @Body body: PhytoIssueReq): PhytoIssue
+         *     }
+         *
+         *     val result = api.updatePhytoIssue(id)
+         *     ```
+         */
+        put: operations["v1_agro_catalogs_phytosanitary_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar problema fitosanitario
+         * @description Actualiza una plaga/enfermedad del catálogo. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/agro-catalogs/phytosanitary/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Mosca blanca (sp.)"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("agro-catalogs/phytosanitary/{id}/update/")
+         *         suspend fun updatePhytoIssue(@Path("id") id: String, @Body body: PhytoIssueReq): PhytoIssue
+         *     }
+         *
+         *     val result = api.updatePhytoIssue(id)
+         *     ```
+         */
+        patch: operations["v1_agro_catalogs_phytosanitary_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/evaluations/fields-spec/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Campos disponibles para un tipo de actividad (introspección de evaluador)
+         * @description Devuelve los campos y campos calculados disponibles para construir o validar un `scheme` de evaluación. Útil para autocompletado en el admin.
+         *
+         *     Requiere `?activity_type=ASPERSION` (u otro tipo registrado en el registry).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/agro-catalogs/evaluations/fields-spec/?activity_type=ASPERSION \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("agro-catalogs/evaluations/fields-spec/")
+         *         suspend fun evaluationFieldsSpec(): FieldsSpec
+         *     }
+         *
+         *     val result = api.evaluationFieldsSpec()
+         *     ```
+         */
+        get: operations["v1_agro_catalogs_evaluations_fields_spec_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/evaluations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar esquemas de evaluación
+         * @description Esquemas de evaluación (campos configurables) usados por programas y monitoreo. Filtra por `?activity_type=` y `?is_active=true`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/agro-catalogs/evaluations/?activity_type=ASPERSION&is_active=true \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("agro-catalogs/evaluations/")
+         *         suspend fun listEvaluations(): Paginated<EvaluationCatalog>
+         *     }
+         *
+         *     val result = api.listEvaluations()
+         *     ```
+         */
+        get: operations["v1_agro_catalogs_evaluations_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/evaluations/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear esquema de evaluación
+         * @description Crea un esquema de evaluación (`scheme` con campos por actividad). Requiere SuperAdmin. Usa `/evaluations/fields-spec/?activity_type=` para conocer los campos disponibles.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/agro-catalogs/evaluations/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "code": "ASP-STD",
+         *       "activity_type": "ASPERSION",
+         *       "scheme": {}
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("agro-catalogs/evaluations/create/")
+         *         suspend fun createEvaluation(@Body body: EvaluationReq): EvaluationCatalog
+         *     }
+         *
+         *     val result = api.createEvaluation()
+         *     ```
+         */
+        post: operations["v1_agro_catalogs_evaluations_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/evaluations/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de un esquema de evaluación
+         * @description Detalle de un esquema de evaluación.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/agro-catalogs/evaluations/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("agro-catalogs/evaluations/{id}/")
+         *         suspend fun getEvaluation(@Path("id") id: String): EvaluationCatalog
+         *     }
+         *
+         *     val result = api.getEvaluation(id)
+         *     ```
+         */
+        get: operations["v1_agro_catalogs_evaluations_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agro-catalogs/evaluations/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar esquema de evaluación
+         * @description Actualiza un esquema de evaluación. Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/agro-catalogs/evaluations/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "is_active": false
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("agro-catalogs/evaluations/{id}/update/")
+         *         suspend fun updateEvaluation(@Path("id") id: String, @Body body: EvaluationReq): EvaluationCatalog
+         *     }
+         *
+         *     val result = api.updateEvaluation(id)
+         *     ```
+         */
+        put: operations["v1_agro_catalogs_evaluations_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar esquema de evaluación
+         * @description Actualiza un esquema de evaluación. Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/agro-catalogs/evaluations/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "is_active": false
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("agro-catalogs/evaluations/{id}/update/")
+         *         suspend fun updateEvaluation(@Path("id") id: String, @Body body: EvaluationReq): EvaluationCatalog
+         *     }
+         *
+         *     val result = api.updateEvaluation(id)
+         *     ```
+         */
+        patch: operations["v1_agro_catalogs_evaluations_update_partial_update"];
         trace?: never;
     };
     "/api/v1/field_ops/tasks/": {
@@ -556,17 +3771,76 @@ export interface paths {
         };
         /**
          * Listar programas de campo
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         * @description Lista los programas (Programa) visibles. Filtros: `?status=`, `?plot=<uuid>`, `?master_program=<uuid>`, `?datacentral=<uuid>`.
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/tasks/?status=in_progress&datacentral=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("field_ops/tasks/")
+         *         suspend fun listProgramas(): Paginated<Programa>
+         *     }
+         *
+         *     val result = api.listProgramas()
+         *     ```
          */
         get: operations["v1_field_ops_tasks_list"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/tasks/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear programa de campo
+         * @description Crea un programa de campo (Programa) bajo un programa maestro. Requiere Gerente+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/field_ops/tasks/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "master_program": "<uuid>",
+         *       "plot": "<uuid>",
+         *       "crop": 1,
+         *       "status": "pending"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("field_ops/tasks/create/")
+         *         suspend fun createPrograma(@Body body: ProgramaReq): Programa
+         *     }
+         *
+         *     val result = api.createPrograma()
+         *     ```
+         */
+        post: operations["v1_field_ops_tasks_create_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -582,13 +3856,26 @@ export interface paths {
         };
         /**
          * Detalle de un programa de campo
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         * @description Detalle de un programa (Programa) visible para el usuario.
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/tasks/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("field_ops/tasks/{id}/")
+         *         suspend fun getPrograma(@Path("id") id: String): Programa
+         *     }
+         *
+         *     val result = api.getPrograma(id)
+         *     ```
          */
         get: operations["v1_field_ops_tasks_retrieve"];
         put?: never;
@@ -597,6 +3884,76 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/tasks/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar programa de campo
+         * @description Actualiza un programa (Programa). Requiere Gerente+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/field_ops/tasks/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "status": "in_progress"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("field_ops/tasks/{id}/update/")
+         *         suspend fun updatePrograma(@Path("id") id: String, @Body body: ProgramaReq): Programa
+         *     }
+         *
+         *     val result = api.updatePrograma(id)
+         *     ```
+         */
+        put: operations["v1_field_ops_tasks_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar programa de campo
+         * @description Actualiza un programa (Programa). Requiere Gerente+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/field_ops/tasks/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "status": "in_progress"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("field_ops/tasks/{id}/update/")
+         *         suspend fun updatePrograma(@Path("id") id: String, @Body body: ProgramaReq): Programa
+         *     }
+         *
+         *     val result = api.updatePrograma(id)
+         *     ```
+         */
+        patch: operations["v1_field_ops_tasks_update_partial_update"];
         trace?: never;
     };
     "/api/v1/field_ops/tasks/{id}/generate-report/": {
@@ -615,6 +3972,25 @@ export interface paths {
          *     **Idempotente**: si el reporte ya existe, actualiza `summary_data` y el evaluador; los campos manuales (`conclusion`, etc.) no se sobreescriben.
          *
          *     **409 Conflict** si el programa está en estado `closed`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/field_ops/tasks/{id}/generate-report/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("field_ops/tasks/{id}/generate-report/")
+         *         suspend fun generateReport(@Path("id") id: String): FieldTaskReport
+         *     }
+         *
+         *     val result = api.generateReport(id)
+         *     ```
          */
         post: operations["v1_field_ops_tasks_generate_report_create"];
         delete?: never;
@@ -623,362 +3999,400 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/field_ops/tasks/{id}/update/": {
+    "/api/v1/field_ops/master-programs/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
         /**
-         * Actualizar programa de campo
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         * Listar programas maestros
+         * @description Lista los programas maestros (MasterProgram) visibles. Filtros: `?agro_unit=<uuid>`, `?status=`, `?datacentral=<uuid>`.
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
-         */
-        put: operations["v1_field_ops_tasks_update_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Actualizar programa de campo
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *     **Ejemplos**
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
-         */
-        patch: operations["v1_field_ops_tasks_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/field_ops/tasks/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crear programa de campo */
-        post: operations["v1_field_ops_tasks_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo_assets/plots/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar parcelas (GeoJSON FeatureCollection)
-         * @description Retorna las parcelas accesibles al usuario como GeoJSON `FeatureCollection`. Cada `Feature` incluye el polígono de la parcela en `geometry` y sus atributos en `properties`. Las parcelas son la unidad espacial de referencia para los `DataLayerPoints` (mapas de calor).
-         */
-        get: operations["v1_geo_assets_plots_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo_assets/plots/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Detalle de una parcela (GeoJSON Feature)
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/master-programs/?agro_unit=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
-         */
-        get: operations["v1_geo_assets_plots_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo_assets/plots/{id}/delete/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Eliminar parcela (soft delete)
-         * @description Mixin reutilizables para viewsets y GenerricAPIViews
-         *     Sobreescritura de destroy parar desactivar en lugar de eliminar
-         *     Para poder hacer un soft delete se necesitan campos:
-         *     is_deleted
-         *     deleted_at
-         *     deleted_by
-         */
-        delete: operations["v1_geo_assets_plots_delete_destroy"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo_assets/plots/{id}/import-vertices/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Importar vértices de parcela
-         * @description Reemplaza todos los vértices de la parcela con los recibidos y reconstruye `geom`, `centroid` y `total_area` vía PostGIS. Si `level` se omite en algún vértice, se usa su posición en el array. Requiere mínimo 3 vértices. Devuelve la parcela actualizada como GeoJSON Feature.
-         */
-        post: operations["v1_geo_assets_plots_import_vertices_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo_assets/plots/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Actualizar parcela
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("field_ops/master-programs/")
+         *         suspend fun listMasterPrograms(): Paginated<MasterProgram>
+         *     }
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         *     val result = api.listMasterPrograms()
+         *     ```
          */
-        put: operations["v1_geo_assets_plots_update_update"];
+        get: operations["v1_field_ops_master_programs_list"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/master-programs/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /**
-         * Actualizar parcela
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         * Crear programa maestro
+         * @description Crea un programa maestro (MasterProgram) para una unidad agrícola. Requiere Gerente+.
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
-         */
-        patch: operations["v1_geo_assets_plots_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/geo_assets/plots/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crear parcela */
-        post: operations["v1_geo_assets_plots_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo_assets/ranch-partners/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar socios del rancho */
-        get: operations["v1_geo_assets_ranch_partners_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo_assets/ranch-partners/{id}/delete/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Eliminar asociación rancho-socio */
-        delete: operations["v1_geo_assets_ranch_partners_delete_destroy"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo_assets/ranch-partners/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Asociar socio a rancho */
-        post: operations["v1_geo_assets_ranch_partners_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo_assets/ranches/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar ranchos (GeoJSON FeatureCollection)
-         * @description Retorna los ranchos accesibles al usuario autenticado como GeoJSON `FeatureCollection`. Cada `Feature` incluye el polígono o punto de ubicación en `geometry` y los campos del rancho en `properties`. SuperAdmin ve todos; otros roles ven solo los ranchos de sus unidades asignadas.
-         */
-        get: operations["v1_geo_assets_ranches_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo_assets/ranches/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Detalle de un rancho (GeoJSON Feature)
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *     **Ejemplos**
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
-         */
-        get: operations["v1_geo_assets_ranches_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo_assets/ranches/{id}/delete/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Eliminar rancho (soft delete)
-         * @description Mixin reutilizables para viewsets y GenerricAPIViews
-         *     Sobreescritura de destroy parar desactivar en lugar de eliminar
-         *     Para poder hacer un soft delete se necesitan campos:
-         *     is_deleted
-         *     deleted_at
-         *     deleted_by
-         */
-        delete: operations["v1_geo_assets_ranches_delete_destroy"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/geo_assets/ranches/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Actualizar rancho
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/field_ops/master-programs/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "agro_unit": "<uuid>",
+         *       "name": "Temporada 2026",
+         *       "status": "pending"
+         *     }'
+         *     ```
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("field_ops/master-programs/create/")
+         *         suspend fun createMasterProgram(@Body body: MasterProgramReq): MasterProgram
+         *     }
+         *
+         *     val result = api.createMasterProgram()
+         *     ```
          */
-        put: operations["v1_geo_assets_ranches_update_update"];
+        post: operations["v1_field_ops_master_programs_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/master-programs/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de programa maestro
+         * @description Detalle de un programa maestro visible para el usuario.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/master-programs/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("field_ops/master-programs/{id}/")
+         *         suspend fun getMasterProgram(@Path("id") id: String): MasterProgram
+         *     }
+         *
+         *     val result = api.getMasterProgram(id)
+         *     ```
+         */
+        get: operations["v1_field_ops_master_programs_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/master-programs/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar programa maestro
+         * @description Actualiza un programa maestro. Requiere Gerente+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/field_ops/master-programs/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "status": "completed"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("field_ops/master-programs/{id}/update/")
+         *         suspend fun updateMasterProgram(@Path("id") id: String, @Body body: MasterProgramReq): MasterProgram
+         *     }
+         *
+         *     val result = api.updateMasterProgram(id)
+         *     ```
+         */
+        put: operations["v1_field_ops_master_programs_update_update"];
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         /**
-         * Actualizar rancho
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         * Actualizar programa maestro
+         * @description Actualiza un programa maestro. Requiere Gerente+.
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/field_ops/master-programs/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "status": "completed"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("field_ops/master-programs/{id}/update/")
+         *         suspend fun updateMasterProgram(@Path("id") id: String, @Body body: MasterProgramReq): MasterProgram
+         *     }
+         *
+         *     val result = api.updateMasterProgram(id)
+         *     ```
          */
-        patch: operations["v1_geo_assets_ranches_update_partial_update"];
+        patch: operations["v1_field_ops_master_programs_update_partial_update"];
         trace?: never;
     };
-    "/api/v1/geo_assets/ranches/create/": {
+    "/api/v1/field_ops/master-programs/{id}/tree/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Árbol completo de un programa maestro (Maestro → Programas → Sesiones)
+         * @description Devuelve el programa maestro con sus programas hijos y, por cada hijo, las sesiones de aspersión y fitosanitarias. Diseñado para el Gantt del frontend: resuelve toda la jerarquía en una sola petición (4 queries con prefetch_related).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/master-programs/{id}/tree/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("field_ops/master-programs/{id}/tree/")
+         *         suspend fun getMasterProgramTree(@Path("id") id: String): MasterProgramTree
+         *     }
+         *
+         *     val result = api.getMasterProgramTree(id)
+         *     ```
+         */
+        get: operations["v1_field_ops_master_programs_tree_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/session-reports/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar / crear reportes de sesión
+         * @description GET: lista los reportes visibles (scoped por tenant vía plot→ranch→producer). Filtros: `?session_type=aspersion&object_id=<uuid>` para traer el reporte de una sesión. POST (IsTechnician): crea el reporte. Valida que la sesión tenga datos cargados (adapter), resume obligatorio, fecha no futura, y scope. Los snapshots los arma el adapter.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/session-reports/?session_type=aspersion&object_id=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("field_ops/session-reports/")
+         *         suspend fun listSessionReports(): Paginated<SessionReport>
+         *     }
+         *
+         *     val result = api.listSessionReports()
+         *     ```
+         */
+        get: operations["v1_field_ops_session_reports_list"];
+        put?: never;
+        /**
+         * Listar / crear reportes de sesión
+         * @description GET: lista los reportes visibles (scoped por tenant vía plot→ranch→producer). Filtros: `?session_type=aspersion&object_id=<uuid>` para traer el reporte de una sesión. POST (IsTechnician): crea el reporte. Valida que la sesión tenga datos cargados (adapter), resume obligatorio, fecha no futura, y scope. Los snapshots los arma el adapter.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/session-reports/?session_type=aspersion&object_id=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("field_ops/session-reports/")
+         *         suspend fun listSessionReports(): Paginated<SessionReport>
+         *     }
+         *
+         *     val result = api.listSessionReports()
+         *     ```
+         */
+        post: operations["v1_field_ops_session_reports_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/session-reports/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de un reporte de sesión
+         * @description **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/session-reports/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("field_ops/session-reports/{id}/")
+         *         suspend fun getSessionReport(@Path("id") id: String): SessionReport
+         *     }
+         *
+         *     val result = api.getSessionReport(id)
+         *     ```
+         */
+        get: operations["v1_field_ops_session_reports_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/session-reports/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Editar un reporte de sesión (IsTechnician)
+         * @description Edita resumen, fecha, status y campos manuales. Recalcula snapshots si no está publicado (D3).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/field_ops/session-reports/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("field_ops/session-reports/{id}/update/")
+         *         suspend fun updateSessionReport(@Path("id") id: String): SessionReport
+         *     }
+         *
+         *     val result = api.updateSessionReport(id)
+         *     ```
+         */
+        put: operations["v1_field_ops_session_reports_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Editar un reporte de sesión (IsTechnician)
+         * @description Edita resumen, fecha, status y campos manuales. Recalcula snapshots si no está publicado (D3).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/field_ops/session-reports/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("field_ops/session-reports/{id}/update/")
+         *         suspend fun updateSessionReport(@Path("id") id: String): SessionReport
+         *     }
+         *
+         *     val result = api.updateSessionReport(id)
+         *     ```
+         */
+        patch: operations["v1_field_ops_session_reports_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/field_ops/session-reports/{id}/sync/": {
         parameters: {
             query?: never;
             header?: never;
@@ -987,43 +4401,225 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Crear rancho */
-        post: operations["v1_geo_assets_ranches_create_create"];
+        /**
+         * Sincronizar datos de sesión del reporte (IsTechnician)
+         * @description Recalcula general_snapshot + stats_snapshot desde la sesión actual: re-agrega los puntos de aspersión (capta puntos añadidos/eliminados) y re-lee productor/rancho/parcela/cultivo/fecha desde la sesión y su Programa. **409** si el reporte está `publicado` (congelado, D3). Devuelve el reporte actualizado.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/field_ops/session-reports/{id}/sync/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("field_ops/session-reports/{id}/sync/")
+         *         suspend fun syncSessionReport(@Path("id") id: String): SessionReport
+         *     }
+         *
+         *     val result = api.syncSessionReport(id)
+         *     ```
+         */
+        post: operations["v1_field_ops_session_reports_sync_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/geography/countries/": {
+    "/api/v1/field_ops/session-reports/{id}/delete/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Listar paises */
-        get: operations["v1_geography_countries_list"];
+        get?: never;
         put?: never;
         post?: never;
+        /**
+         * Eliminar (soft delete) un reporte de sesión (IsSupervisor)
+         * @description **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/field_ops/session-reports/{id}/delete/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("field_ops/session-reports/{id}/delete/")
+         *         suspend fun deleteSessionReport(@Path("id") id: String): Unit
+         *     }
+         *
+         *     val result = api.deleteSessionReport(id)
+         *     ```
+         */
+        delete: operations["v1_field_ops_session_reports_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/session-issues/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar / crear temas de atención (issues) de un reporte
+         * @description GET: filtra por `?report=<uuid>`. POST (IsTechnician): crea un issue.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/session-issues/?report=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("field_ops/session-issues/")
+         *         suspend fun listSessionIssues(): Paginated<SessionIssue>
+         *     }
+         *
+         *     val result = api.listSessionIssues()
+         *     ```
+         */
+        get: operations["v1_field_ops_session_issues_list"];
+        put?: never;
+        /**
+         * Listar / crear temas de atención (issues) de un reporte
+         * @description GET: filtra por `?report=<uuid>`. POST (IsTechnician): crea un issue.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/session-issues/?report=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("field_ops/session-issues/")
+         *         suspend fun listSessionIssues(): Paginated<SessionIssue>
+         *     }
+         *
+         *     val result = api.listSessionIssues()
+         *     ```
+         */
+        post: operations["v1_field_ops_session_issues_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/geography/states/": {
+    "/api/v1/field_ops/session-issues/{id}/update/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Listar estados/provincias */
-        get: operations["v1_geography_states_list"];
-        put?: never;
+        get?: never;
+        /**
+         * Editar un tema de atención (IsTechnician)
+         * @description **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/field_ops/session-issues/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("field_ops/session-issues/{id}/update/")
+         *         suspend fun updateSessionIssue(@Path("id") id: String): SessionIssue
+         *     }
+         *
+         *     val result = api.updateSessionIssue(id)
+         *     ```
+         */
+        put: operations["v1_field_ops_session_issues_update_update"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Editar un tema de atención (IsTechnician)
+         * @description **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/field_ops/session-issues/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("field_ops/session-issues/{id}/update/")
+         *         suspend fun updateSessionIssue(@Path("id") id: String): SessionIssue
+         *     }
+         *
+         *     val result = api.updateSessionIssue(id)
+         *     ```
+         */
+        patch: operations["v1_field_ops_session_issues_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/field_ops/session-issues/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar (soft delete) un tema de atención (IsTechnician)
+         * @description **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/field_ops/session-issues/{id}/delete/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("field_ops/session-issues/{id}/delete/")
+         *         suspend fun deleteSessionIssue(@Path("id") id: String): Unit
+         *     }
+         *
+         *     val result = api.deleteSessionIssue(id)
+         *     ```
+         */
+        delete: operations["v1_field_ops_session_issues_delete_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1036,10 +4632,79 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Listar contratos de datos (DataLayer) */
+        /**
+         * Listar contratos de datos (DataLayer)
+         * @description Lista los contratos de captura (MonitoringCatalog) que definen el `definition_scheme` (qué atributos JSONB se capturan en los puntos).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/")
+         *         suspend fun listDataLayers(): Paginated<DataLayer>
+         *     }
+         *
+         *     val result = api.listDataLayers()
+         *     ```
+         */
         get: operations["v1_monitoring_list"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear contrato de datos
+         * @description Define un contrato de captura (DataLayer) con su `definition_scheme`. Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Suelo NPK",
+         *       "definition_scheme": {
+         *         "ph": "float",
+         *         "n": "float"
+         *       }
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("monitoring/create/")
+         *         suspend fun createDataLayer(@Body body: DataLayerReq): DataLayer
+         *     }
+         *
+         *     val result = api.createDataLayer()
+         *     ```
+         */
+        post: operations["v1_monitoring_create_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1053,7 +4718,29 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Detalle de un contrato de datos */
+        /**
+         * Detalle de un contrato de datos
+         * @description Detalle de un contrato de captura (DataLayer).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/{id}/")
+         *         suspend fun getDataLayer(@Path("id") id: String): DataLayer
+         *     }
+         *
+         *     val result = api.getDataLayer(id)
+         *     ```
+         */
         get: operations["v1_monitoring_retrieve"];
         put?: never;
         post?: never;
@@ -1071,275 +4758,66 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Actualizar contrato de datos */
+        /**
+         * Actualizar contrato de datos
+         * @description Actualiza un contrato de captura (DataLayer). Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Suelo NPK v2"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/{id}/update/")
+         *         suspend fun updateDataLayer(@Path("id") id: String, @Body body: DataLayerReq): DataLayer
+         *     }
+         *
+         *     val result = api.updateDataLayer(id)
+         *     ```
+         */
         put: operations["v1_monitoring_update_update"];
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** Actualizar contrato de datos */
+        /**
+         * Actualizar contrato de datos
+         * @description Actualiza un contrato de captura (DataLayer). Requiere SuperAdmin.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "name": "Suelo NPK v2"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/{id}/update/")
+         *         suspend fun updateDataLayer(@Path("id") id: String, @Body body: DataLayerReq): DataLayer
+         *     }
+         *
+         *     val result = api.updateDataLayer(id)
+         *     ```
+         */
         patch: operations["v1_monitoring_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/monitoring/aspersion/headers/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar sesiones de aspersion
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
-         *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
-         */
-        get: operations["v1_monitoring_aspersion_headers_list"];
-        put?: never;
-        /**
-         * Listar sesiones de aspersion
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
-         *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
-         */
-        post: operations["v1_monitoring_aspersion_headers_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/aspersion/headers/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Detalle de una sesion de aspersion
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
-         *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
-         */
-        get: operations["v1_monitoring_aspersion_headers_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/aspersion/headers/{id}/import/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Importar puntos de aspersion desde CSV (async)
-         * @description Encola import_aspersion_csv con el CSV recibido. Responde 202 Accepted de inmediato con header_id y celery_task_id.
-         */
-        post: operations["v1_monitoring_aspersion_headers_import_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/aspersion/headers/{id}/preview-columns/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Vista previa de columnas del CSV
-         * @description Lee el header del CSV y devuelve columnas reconocidas vs no reconocidas.
-         */
-        post: operations["v1_monitoring_aspersion_headers_preview_columns_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/aspersion/headers/{id}/stats/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Estadísticas agregadas de una sesión de aspersión
-         * @description Devuelve métricas pre-calculadas desde la vista materializada mv_aspersion_session_stats. Se refresca automáticamente tras cada importación exitosa via Celery. Si la sesión no tiene puntos importados o la MV aún no fue refrescada, retorna 404.
-         */
-        get: operations["v1_monitoring_aspersion_headers_stats_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/aspersion/headers/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Actualizar metadatos de sesion de aspersion
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
-         *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
-         */
-        put: operations["v1_monitoring_aspersion_headers_update_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Actualizar metadatos de sesion de aspersion
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
-         *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
-         */
-        patch: operations["v1_monitoring_aspersion_headers_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/monitoring/aspersion/points/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar puntos de aspersion */
-        get: operations["v1_monitoring_aspersion_points_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/aspersion/templates/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar plantillas de importacion CSV */
-        get: operations["v1_monitoring_aspersion_templates_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/aspersion/templates/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Detalle de plantilla de importacion */
-        get: operations["v1_monitoring_aspersion_templates_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/aspersion/templates/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Actualizar plantilla de importacion */
-        put: operations["v1_monitoring_aspersion_templates_update_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Actualizar plantilla de importacion */
-        patch: operations["v1_monitoring_aspersion_templates_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/monitoring/aspersion/templates/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crear plantilla de importacion CSV */
-        post: operations["v1_monitoring_aspersion_templates_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crear contrato de datos */
-        post: operations["v1_monitoring_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/v1/monitoring/headers/": {
@@ -1349,7 +4827,29 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Listar encabezados de importación */
+        /**
+         * Listar encabezados de importación
+         * @description Lista las sesiones de importación (MonitoringHeader). Filtra por parcela con `?plot=<uuid>`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/headers/?plot=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/headers/")
+         *         suspend fun listMonitoringHeaders(): Paginated<MonitoringHeader>
+         *     }
+         *
+         *     val result = api.listMonitoringHeaders()
+         *     ```
+         */
         get: operations["v1_monitoring_headers_list"];
         put?: never;
         post?: never;
@@ -1357,65 +4857,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/headers/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Detalle de un encabezado de importación */
-        get: operations["v1_monitoring_headers_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/headers/{id}/stats/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Estadísticas pre-calculadas de una sesión (por campo numérico)
-         * @description Devuelve las estadísticas pre-calculadas (mean, min, max, stddev, count) para cada campo numérico del `definition_scheme` del MonitoringHeader indicado.
-         *
-         *     Los stats se calculan automáticamente al finalizar la importación CSV vía Celery. Si el header no tiene puntos importados aún, la lista estará vacía.
-         *
-         *     **Orden:** por `param_key` alfabético.
-         */
-        get: operations["v1_monitoring_headers_stats_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/headers/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Actualizar metadatos de encabezado */
-        put: operations["v1_monitoring_headers_update_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Actualizar metadatos de encabezado */
-        patch: operations["v1_monitoring_headers_update_partial_update"];
         trace?: never;
     };
     "/api/v1/monitoring/headers/create/": {
@@ -1427,7 +4868,36 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Crear encabezado de importación */
+        /**
+         * Crear encabezado de importación
+         * @description Crea una sesión de importación (MonitoringHeader). Requiere Technician+. La carga masiva de puntos se hace con `headers/import/`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/headers/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "datalayer": 1,
+         *       "plot": "<uuid>",
+         *       "crop": 1,
+         *       "import_date": "2026-06-08"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("monitoring/headers/create/")
+         *         suspend fun createMonitoringHeader(@Body body: MonitoringHeaderReq): MonitoringHeader
+         *     }
+         *
+         *     val result = api.createMonitoringHeader()
+         *     ```
+         */
         post: operations["v1_monitoring_headers_create_create"];
         delete?: never;
         options?: never;
@@ -1456,6 +4926,30 @@ export interface paths {
          *     - `csv_file` *(file, requerido)* — CSV con columnas obligatorias: `lat`, `lon`; opcional: `captured_at`; columnas adicionales se mapean a `parameters` JSONB segun `definition_scheme` del DataLayer
          *
          *     **Responde 202 Accepted** de inmediato con `header_id` y `celery_task_id`. Los puntos se crean de forma asíncrona; consultar el listado de puntos con `GET /api/v1/monitoring/points/?header=<header_id>` para verificar el resultado.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/headers/import/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -F 'datalayer=1' \
+         *       -F 'crop=1' \
+         *       -F 'import_date=2026-06-08' \
+         *       -F 'csv_file=@puntos.csv'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @Multipart
+         *         @POST("monitoring/headers/import/")
+         *         suspend fun importMonitoringCsv(@Part("datalayer") datalayer: RequestBody, @Part("crop") crop: RequestBody, @Part("import_date") importDate: RequestBody, @Part csv_file: MultipartBody.Part): ImportResponse
+         *     }
+         *
+         *     val result = api.importMonitoringCsv()
+         *     ```
          */
         post: operations["v1_monitoring_headers_import_create"];
         delete?: never;
@@ -1464,7 +4958,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/monitoring/phyto/checkpoints/": {
+    "/api/v1/monitoring/headers/{id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1472,10 +4966,29 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar puntos de chequeo fitosanitario
-         * @description `program_check` indica si la coordenada GPS del técnico cayó dentro del radio de tolerancia del target asociado. Se calcula automáticamente al crear.
+         * Detalle de un encabezado de importación
+         * @description Detalle de una sesión de importación (MonitoringHeader).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/headers/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/headers/{id}/")
+         *         suspend fun getMonitoringHeader(@Path("id") id: String): MonitoringHeader
+         *     }
+         *
+         *     val result = api.getMonitoringHeader(id)
+         *     ```
          */
-        get: operations["v1_monitoring_phyto_checkpoints_list"];
+        get: operations["v1_monitoring_headers_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1484,27 +4997,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/monitoring/phyto/checkpoints/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Detalle de un checkpoint fitosanitario
-         * @description Retorna el checkpoint completo incluyendo `stage_display` (etiqueta legible de la etapa) y `photo` como URL absoluta.
-         */
-        get: operations["v1_monitoring_phyto_checkpoints_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/phyto/checkpoints/{id}/delete/": {
+    "/api/v1/monitoring/headers/{id}/update/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1512,123 +5005,69 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
-        post?: never;
         /**
-         * Eliminar checkpoint fitosanitario (soft delete)
-         * @description Marca el checkpoint como eliminado (`is_deleted=True`). El registro permanece en la base de datos pero no aparece en los listados. Útil para corregir capturas erróneas sin perder trazabilidad.
+         * Actualizar metadatos de encabezado
+         * @description Actualiza los metadatos de un MonitoringHeader. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/headers/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "import_date": "2026-06-09"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/headers/{id}/update/")
+         *         suspend fun updateMonitoringHeader(@Path("id") id: String, @Body body: MonitoringHeaderReq): MonitoringHeader
+         *     }
+         *
+         *     val result = api.updateMonitoringHeader(id)
+         *     ```
          */
-        delete: operations["v1_monitoring_phyto_checkpoints_delete_destroy"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/phyto/checkpoints/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
+        put: operations["v1_monitoring_headers_update_update"];
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         /**
-         * Actualizar checkpoint fitosanitario
-         * @description Permite corregir un checkpoint ya registrado (stage, qty, presence_status, notas, foto). Solo acepta PATCH (actualización parcial). La geolocalización (geom) no debería modificarse una vez capturada.
+         * Actualizar metadatos de encabezado
+         * @description Actualiza los metadatos de un MonitoringHeader. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/headers/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "import_date": "2026-06-09"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/headers/{id}/update/")
+         *         suspend fun updateMonitoringHeader(@Path("id") id: String, @Body body: MonitoringHeaderReq): MonitoringHeader
+         *     }
+         *
+         *     val result = api.updateMonitoringHeader(id)
+         *     ```
          */
-        patch: operations["v1_monitoring_phyto_checkpoints_update_partial_update"];
+        patch: operations["v1_monitoring_headers_update_partial_update"];
         trace?: never;
     };
-    "/api/v1/monitoring/phyto/checkpoints/bulk-create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Registro masivo de checkpoints (sync offline)
-         * @description Recibe un array de checkpoints y los crea todos en una sola transacción atómica. Si alguno falla la validación, ninguno se guarda. Uso principal: sincronización offline — el técnico acumula capturas sin red y las envía en bloque al recuperar conexión.
-         */
-        post: operations["v1_monitoring_phyto_checkpoints_bulk_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/phyto/checkpoints/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Crear punto de chequeo fitosanitario
-         * @description Registra una observación GPS del técnico en campo.
-         *
-         *     **Cálculo automático de `program_check`:** si se envía `target`, el backend compara la distancia (proyección UTM Zona 14N) entre `geom` y `target.geom`. Si la distancia ≤ `header.radius_tolerance` metros → `program_check=True`.
-         *
-         *     **`plot`:** se hereda automáticamente de `header.plot` — no enviarlo.
-         *
-         *     **`geom`:** coordenada GeoJSON Point `{"type": "Point", "coordinates": [lon, lat]}`.
-         *
-         *     **`stage`:** etapa del ciclo de vida del problema (huevo, larva, pupa, ninfa, adulto, sin_alas_pequeño, con_alas_grande, vegetativa, reproductiva).
-         */
-        post: operations["v1_monitoring_phyto_checkpoints_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/phyto/checkpoints/import/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Importar checkpoints desde CSV (MVP offline)
-         * @description Importa una serie de puntos de chequeo fitosanitario desde un archivo CSV generado por la app móvil en modo offline.
-         *
-         *     **Flujo:** el técnico trabaja sin conexión, la app exporta un CSV con sus capturas. El administrador crea la sesión (`PhytoMonitoringHeader`) y luego importa el CSV usando este endpoint, vinculando todos los puntos a esa sesión.
-         *
-         *     **Columnas requeridas del CSV:**
-         *     - `geom_lon` — longitud GPS (float)
-         *     - `geom_lat` — latitud GPS (float)
-         *     - `captured_at` — datetime ISO 8601 (ej: `2026-04-19T10:30:00`)
-         *     - `phyto_issue_id` — ID entero del catálogo fitosanitario
-         *     - `stage` — etapa del ciclo de vida (larva, adulto, etc.)
-         *     - `presence_status` — nivel de presencia (low, warning, critical)
-         *
-         *     **Columnas opcionales:**
-         *     - `qty` — cantidad contada (entero)
-         *     - `notes` — notas libres del técnico
-         *
-         *     **Atomicidad:** si alguna fila es inválida se retorna 400 con el número de fila y el error. Ningún checkpoint se guarda hasta que todas las filas sean válidas.
-         */
-        post: operations["v1_monitoring_phyto_checkpoints_import_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/phyto/headers/": {
+    "/api/v1/monitoring/headers/{id}/stats/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1636,149 +5075,35 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar sesiones de monitoreo fitosanitario
-         * @description Devuelve todas las sesiones fitosanitarias. Uso típico en app móvil: `?assigned_to=<id>&status=pending` para mostrar las sesiones pendientes del técnico autenticado. `?status=completed` para el historial.
+         * Estadísticas pre-calculadas de una sesión (por campo numérico)
+         * @description Devuelve las estadísticas pre-calculadas (mean, min, max, stddev, count) para cada campo numérico del `definition_scheme` del MonitoringHeader indicado.
+         *
+         *     Los stats se calculan automáticamente al finalizar la importación CSV vía Celery. Si el header no tiene puntos importados aún, la lista estará vacía.
+         *
+         *     **Orden:** por `param_key` alfabético.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/headers/{id}/stats/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/headers/{id}/stats/")
+         *         suspend fun getMonitoringHeaderStats(@Path("id") id: String): List<SessionStats>
+         *     }
+         *
+         *     val result = api.getMonitoringHeaderStats(id)
+         *     ```
          */
-        get: operations["v1_monitoring_phyto_headers_list"];
+        get: operations["v1_monitoring_headers_stats_list"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/phyto/headers/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Detalle de una sesión fitosanitaria
-         * @description Incluye `target_points` con las coordenadas programadas para la sesión.
-         */
-        get: operations["v1_monitoring_phyto_headers_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/phyto/headers/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Actualizar sesión fitosanitaria
-         * @description Actualiza metadatos de la sesión (PATCH soportado — envía solo los campos a cambiar). Usar para corregir `radius_tolerance`, `strict_mode` o `additional_notes` después de crear la sesión.
-         */
-        put: operations["v1_monitoring_phyto_headers_update_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Actualizar sesión fitosanitaria
-         * @description Actualiza metadatos de la sesión (PATCH soportado — envía solo los campos a cambiar). Usar para corregir `radius_tolerance`, `strict_mode` o `additional_notes` después de crear la sesión.
-         */
-        patch: operations["v1_monitoring_phyto_headers_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/monitoring/phyto/headers/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Crear sesión de monitoreo fitosanitario
-         * @description Crea una nueva sesión de monitoreo fitosanitario en campo.
-         *
-         *     **Herencia automática de parcela y cultivo:**
-         *     Si no se envía `plot_id` pero sí `field_task_id`, el backend hereda `plot` y `crop` del programa. Si el programa tampoco tiene parcela asignada, la API retorna `400`.
-         *
-         *     **Reglas:**
-         *     - `plot_id` obligatorio **a menos que** `field_task_id` tenga parcela asignada.
-         *     - `field_task_id` y `crop_id` son siempre opcionales.
-         *     - `radius_tolerance` (metros) controla el umbral para `program_check` en checkpoints.
-         */
-        post: operations["v1_monitoring_phyto_headers_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/phyto/target-points/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar puntos objetivo fitosanitarios */
-        get: operations["v1_monitoring_phyto_target_points_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/phyto/target-points/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Actualizar punto objetivo (ej: marcar visitado)
-         * @description Actualiza el estado de un target point. Uso típico: marcar como `visited` o `skipped` una vez que el técnico pasa por el punto. PATCH soportado.
-         */
-        put: operations["v1_monitoring_phyto_target_points_update_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Actualizar punto objetivo (ej: marcar visitado)
-         * @description Actualiza el estado de un target point. Uso típico: marcar como `visited` o `skipped` una vez que el técnico pasa por el punto. PATCH soportado.
-         */
-        patch: operations["v1_monitoring_phyto_target_points_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/monitoring/phyto/target-points/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Crear punto objetivo fitosanitario
-         * @description Registra un punto GPS programado para que el técnico lo visite en campo.
-         *
-         *     **`geom`:** coordenada GeoJSON Point `{"type": "Point", "coordinates": [lon, lat]}`.
-         *     **`plot`:** se hereda automáticamente de `header.plot` — no es necesario enviarlo.
-         *     **`radius_m`:** radio de revisión (metros) específico para este punto; si se omite el header usa su `radius_tolerance` global para calcular `program_check`.
-         */
-        post: operations["v1_monitoring_phyto_target_points_create_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1807,25 +5132,27 @@ export interface paths {
          *     ```json
          *     {"pH": 6.8, "C": 1.23, "N": 0.15, "NDVI": 0.74}
          *     ```
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/points/?plot=<uuid>&attribute=pH \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/points/")
+         *         suspend fun listMonitoringPoints(): Paginated<MonitoringPoint>
+         *     }
+         *
+         *     val result = api.listMonitoringPoints()
+         *     ```
          */
         get: operations["v1_monitoring_points_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/monitoring/points/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Detalle de un punto georreferenciado */
-        get: operations["v1_monitoring_points_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1843,7 +5170,43 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Registrar un punto individual (uso excepcional) */
+        /**
+         * Registrar un punto individual (uso excepcional)
+         * @description Crea un MonitoringPoint individual. Uso excepcional: la carga normal es por CSV (`headers/import/`). Requiere Technician+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/points/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "header": "<uuid>",
+         *       "geom": {
+         *         "type": "Point",
+         *         "coordinates": [
+         *           -103.35,
+         *           20.67
+         *         ]
+         *       },
+         *       "parameters": {
+         *         "ph": 6.8
+         *       }
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("monitoring/points/create/")
+         *         suspend fun createMonitoringPoint(@Body body: MonitoringPointReq): MonitoringPoint
+         *     }
+         *
+         *     val result = api.createMonitoringPoint()
+         *     ```
+         */
         post: operations["v1_monitoring_points_create_create"];
         delete?: never;
         options?: never;
@@ -1867,6 +5230,25 @@ export interface paths {
          *     **Columnas fijas:** `lat`, `lon`, `captured_at`
          *
          *     **Columnas dinamicas:** una por cada clave presente en `parameters` del conjunto filtrado.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/points/export/?plot=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/points/export/")
+         *         suspend fun exportMonitoringCsv(): ResponseBody
+         *     }
+         *
+         *     val result = api.exportMonitoringCsv()
+         *     ```
          */
         get: operations["v1_monitoring_points_export_retrieve"];
         put?: never;
@@ -1886,51 +5268,26 @@ export interface paths {
         };
         /**
          * Heatmap de puntos de monitoreo
-         * @description Retorna coordenadas y el valor de un atributo JSONB para construir
-         *     un mapa de calor en el frontend.
+         * @description Devuelve `{lat, lon, value}` por punto para un atributo JSONB, más estadísticos de la sesión. Pensado para renderizar mapas de calor en el cliente.
          *
-         *     ## Cuándo usar este endpoint
+         *     **Ejemplos**
          *
-         *     El sistema tiene dos estrategias según el volumen de puntos:
-         *
-         *     - **< 5 000 puntos:** usar `GET /monitoring/points/?header=<uuid>` con
-         *       paginación y parámetros completos. El frontend carga todo y cambia
-         *       de capa localmente sin necesidad de una nueva petición al servidor.
-         *     - **≥ 5 000 puntos:** usar ESTE endpoint. Devuelve solo `{lat, lon, value}`
-         *       para el atributo solicitado — mucho más liviano que el GeoJSON completo
-         *       con todos los `parameters`.
-         *
-         *     ## Alcance de los estadísticos
-         *
-         *     Cada sesión de monitoreo (`MonitoringHeader`) genera su propia tabla de
-         *     estadísticos en `MonitoringSessionStats` (precalculados por Celery al
-         *     terminar la importación del CSV). Esto significa que el mismo atributo —
-         *     por ejemplo `pH` — puede tener rangos diferentes en cada sesión:
-         *
-         *     ```
-         *     Header A (parcela norte, enero):  pH  min=5.2  max=7.1
-         *     Header B (parcela sur,  marzo):   pH  min=6.0  max=8.4
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/points/heatmap/?header=<uuid>&attribute=pH \
+         *       -H "Authorization: Bearer $TOKEN"
          *     ```
          *
-         *     El parámetro `?header=<uuid>` define CUÁL sesión se consulta. Los
-         *     estadísticos retornados corresponden exclusivamente a esa sesión
-         *     y ese atributo — **no son globales ni mezclan sesiones**.
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/points/heatmap/")
+         *         suspend fun getHeatmap(): HeatmapResponse
+         *     }
          *
-         *     Los estadísticos se usan para configurar la escala de color del
-         *     heatmap (min → color frío, max → color cálido).
-         *
-         *     ## Relación con MonitoringCatalog
-         *
-         *     `MonitoringCatalog` define el tipo de monitoreo (esquema de campos,
-         *     colorimetría esperada). Un mismo catálogo puede tener múltiples sesiones
-         *     (`MonitoringHeader`), cada una con su propia importación CSV y sus propios
-         *     estadísticos. Este endpoint trabaja siempre al nivel de la **sesión**,
-         *     no del catálogo.
-         *
-         *     ## Parámetros requeridos
-         *
-         *     - `header` (UUID): ID de la sesión de monitoreo (`MonitoringHeader.id`)
-         *     - `attribute` (str): Nombre del campo en `parameters` (ej: `pH`, `NDVI`)
+         *     val result = api.getHeatmap()
+         *     ```
          */
         get: operations["v1_monitoring_points_heatmap_retrieve"];
         put?: never;
@@ -1941,7 +5298,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/organizations/": {
+    "/api/v1/monitoring/points/{id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1949,114 +5306,29 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar unidades agricolas (AgroUnit)
-         * @description Retorna las unidades agricolas visibles al usuario. SuperAdmin ve todas; otros roles ven solo sus unidades asignadas via `UserAssignment`. Usar `?unit_type=Productor` para obtener solo productores (útil en la app móvil).
-         */
-        get: operations["v1_organizations_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Detalle de una unidad agricola
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         * Detalle de un punto georreferenciado
+         * @description Detalle de un MonitoringPoint (GeoJSON con `geom` y `parameters` JSONB).
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
-         */
-        get: operations["v1_organizations_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/{id}/delete/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Eliminar unidad agricola (soft delete)
-         * @description Mixin reutilizables para viewsets y GenerricAPIViews
-         *     Sobreescritura de destroy parar desactivar en lugar de eliminar
-         *     Para poder hacer un soft delete se necesitan campos:
-         *     is_deleted
-         *     deleted_at
-         *     deleted_by
-         */
-        delete: operations["v1_organizations_delete_destroy"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Actualizar unidad agricola
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *     **Ejemplos**
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
-         */
-        put: operations["v1_organizations_update_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Actualizar unidad agricola
-         * @description Para delimitar el alcance del usuario (filtra queryset).
-         *     SuperAdmin (con level >= 5) puede ver todo.
-         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/points/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
          *
-         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
-         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
-         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/points/{id}/")
+         *         suspend fun getMonitoringPoint(@Path("id") id: String): MonitoringPoint
+         *     }
+         *
+         *     val result = api.getMonitoringPoint(id)
+         *     ```
          */
-        patch: operations["v1_organizations_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/organizations/agro_sectors/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar sectores agricolas */
-        get: operations["v1_organizations_agro_sectors_list"];
+        get: operations["v1_monitoring_points_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2065,61 +5337,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/organizations/agro_sectors/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Detalle / actualizar / eliminar sector agricola */
-        get: operations["v1_organizations_agro_sectors_retrieve"];
-        /** Detalle / actualizar / eliminar sector agricola */
-        put: operations["v1_organizations_agro_sectors_update"];
-        post?: never;
-        /** Detalle / actualizar / eliminar sector agricola */
-        delete: operations["v1_organizations_agro_sectors_destroy"];
-        options?: never;
-        head?: never;
-        /** Detalle / actualizar / eliminar sector agricola */
-        patch: operations["v1_organizations_agro_sectors_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/organizations/agro_sectors/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crear sector agricola */
-        post: operations["v1_organizations_agro_sectors_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/contacts/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar contactos */
-        get: operations["v1_organizations_contacts_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/contacts/{id}/": {
+    "/api/v1/monitoring/aspersion/templates/": {
         parameters: {
             query?: never;
             header?: never;
@@ -2127,76 +5345,29 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Detalle / actualizar / eliminar contacto
-         * @description Mixin reutilizables para viewsets y GenerricAPIViews
-         *     Sobreescritura de destroy parar desactivar en lugar de eliminar
-         *     Para poder hacer un soft delete se necesitan campos:
-         *     is_deleted
-         *     deleted_at
-         *     deleted_by
+         * Listar plantillas de importación CSV
+         * @description Plantillas de mapeo (AspersionImportTemplate) que traducen las cabeceras del CSV de la máquina a los campos del modelo.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/aspersion/templates/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/aspersion/templates/")
+         *         suspend fun listAspersionTemplates(): List<AspersionTemplate>
+         *     }
+         *
+         *     val result = api.listAspersionTemplates()
+         *     ```
          */
-        get: operations["v1_organizations_contacts_retrieve"];
-        /**
-         * Detalle / actualizar / eliminar contacto
-         * @description Mixin reutilizables para viewsets y GenerricAPIViews
-         *     Sobreescritura de destroy parar desactivar en lugar de eliminar
-         *     Para poder hacer un soft delete se necesitan campos:
-         *     is_deleted
-         *     deleted_at
-         *     deleted_by
-         */
-        put: operations["v1_organizations_contacts_update"];
-        post?: never;
-        /**
-         * Detalle / actualizar / eliminar contacto
-         * @description Mixin reutilizables para viewsets y GenerricAPIViews
-         *     Sobreescritura de destroy parar desactivar en lugar de eliminar
-         *     Para poder hacer un soft delete se necesitan campos:
-         *     is_deleted
-         *     deleted_at
-         *     deleted_by
-         */
-        delete: operations["v1_organizations_contacts_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * Detalle / actualizar / eliminar contacto
-         * @description Mixin reutilizables para viewsets y GenerricAPIViews
-         *     Sobreescritura de destroy parar desactivar en lugar de eliminar
-         *     Para poder hacer un soft delete se necesitan campos:
-         *     is_deleted
-         *     deleted_at
-         *     deleted_by
-         */
-        patch: operations["v1_organizations_contacts_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/organizations/contacts/assign/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Asignar contacto a unidad agricola */
-        post: operations["v1_organizations_contacts_assign_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/contacts/assignments/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar asignaciones de contacto (filtro ?agro_unit=) */
-        get: operations["v1_organizations_contacts_assignments_list"];
+        get: operations["v1_monitoring_aspersion_templates_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2205,247 +5376,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/organizations/contacts/assignments/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Eliminar asignacion de contacto */
-        delete: operations["v1_organizations_contacts_assignments_destroy"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/contacts/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crear contacto */
-        post: operations["v1_organizations_contacts_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crear unidad agricola */
-        post: operations["v1_organizations_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/data-centrals-main/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar CIAgros Padre del usuario */
-        get: operations["v1_organizations_data_centrals_main_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/data-centrals-main/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Detalle de una CIAgro Padre */
-        get: operations["v1_organizations_data_centrals_main_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/data-centrals-main/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Actualizar CIAgro Padre */
-        put: operations["v1_organizations_data_centrals_main_update_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Actualizar CIAgro Padre */
-        patch: operations["v1_organizations_data_centrals_main_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/organizations/data-centrals-main/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crear CIAgro Padre */
-        post: operations["v1_organizations_data_centrals_main_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/datacentrals/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar data centrals del usuario */
-        get: operations["v1_organizations_datacentrals_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/datacentrals-assignments/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar asignaciones DataCentral ↔ AgroUnit */
-        get: operations["v1_organizations_datacentrals_assignments_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/datacentrals-assignments/{id}/delete/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Eliminar asignación DataCentral ↔ AgroUnit */
-        delete: operations["v1_organizations_datacentrals_assignments_delete_destroy"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/datacentrals-assignments/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Asignar AgroUnit a DataCentral */
-        post: operations["v1_organizations_datacentrals_assignments_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/datacentrals/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Detalle de una data central */
-        get: operations["v1_organizations_datacentrals_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/datacentrals/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Actualizar data central */
-        put: operations["v1_organizations_datacentrals_update_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Actualizar data central */
-        patch: operations["v1_organizations_datacentrals_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/organizations/datacentrals/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Crear data central */
-        post: operations["v1_organizations_datacentrals_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/onboarding/": {
+    "/api/v1/monitoring/aspersion/templates/create/": {
         parameters: {
             query?: never;
             header?: never;
@@ -2455,25 +5386,77 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Onboarding — crear CIAgro Padre + DataCentral + AgroUnit inicial
-         * @description Crea en una sola transacción: DataCentralMain (CIAgro Padre) con owner=request.user, DataCentral primaria, AgroUnit inicial, DataCentralAssignment y UserAssignment. Solo ejecutable si el usuario autenticado no tiene ningún tenant asignado.
+         * Crear plantilla de importación CSV
+         * @description Crea una plantilla de mapeo de columnas para importar CSV de aspersión.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/aspersion/templates/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "code": "TPL-1",
+         *       "name": "Máquina X",
+         *       "column_mapping": {
+         *         "target_rate_l": [
+         *           "Propuesta(L/ha)"
+         *         ]
+         *       },
+         *       "decimal_separator": "."
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("monitoring/aspersion/templates/create/")
+         *         suspend fun createAspersionTemplate(@Body body: AspersionTemplateReq): AspersionTemplate
+         *     }
+         *
+         *     val result = api.createAspersionTemplate()
+         *     ```
          */
-        post: operations["v1_organizations_onboarding_create"];
+        post: operations["v1_monitoring_aspersion_templates_create_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/users/": {
+    "/api/v1/monitoring/aspersion/templates/{id}/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Listar usuarios activos */
-        get: operations["v1_users_list"];
+        /**
+         * Detalle de plantilla de importación
+         * @description Detalle de una plantilla de mapeo de importación.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/aspersion/templates/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/aspersion/templates/{id}/")
+         *         suspend fun getAspersionTemplate(@Path("id") id: String): AspersionTemplate
+         *     }
+         *
+         *     val result = api.getAspersionTemplate(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_aspersion_templates_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2482,7 +5465,1226 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/users/{id}/": {
+    "/api/v1/monitoring/aspersion/templates/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar plantilla de importación
+         * @description Actualiza una plantilla de mapeo de importación.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/aspersion/templates/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "decimal_separator": ","
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/aspersion/templates/{id}/update/")
+         *         suspend fun updateAspersionTemplate(@Path("id") id: String, @Body body: AspersionTemplateReq): AspersionTemplate
+         *     }
+         *
+         *     val result = api.updateAspersionTemplate(id)
+         *     ```
+         */
+        put: operations["v1_monitoring_aspersion_templates_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar plantilla de importación
+         * @description Actualiza una plantilla de mapeo de importación.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/aspersion/templates/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "decimal_separator": ","
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/aspersion/templates/{id}/update/")
+         *         suspend fun updateAspersionTemplate(@Path("id") id: String, @Body body: AspersionTemplateReq): AspersionTemplate
+         *     }
+         *
+         *     val result = api.updateAspersionTemplate(id)
+         *     ```
+         */
+        patch: operations["v1_monitoring_aspersion_templates_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/monitoring/aspersion/headers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar / crear sesiones de aspersión
+         * @description `GET` lista las sesiones de aspersión (AspersionSessionHeader) visibles; filtros `?program=<uuid>`, `?plot=<uuid>`, `?import_status=`. `POST` crea una sesión (Technician+); la carga de puntos se hace luego con `headers/{id}/import/`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/aspersion/headers/?program=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/aspersion/headers/")
+         *         suspend fun listAspersionSessions(): Paginated<AspersionSession>
+         *     }
+         *
+         *     val result = api.listAspersionSessions()
+         *     ```
+         */
+        get: operations["v1_monitoring_aspersion_headers_list"];
+        put?: never;
+        /**
+         * Listar / crear sesiones de aspersión
+         * @description `GET` lista las sesiones de aspersión (AspersionSessionHeader) visibles; filtros `?program=<uuid>`, `?plot=<uuid>`, `?import_status=`. `POST` crea una sesión (Technician+); la carga de puntos se hace luego con `headers/{id}/import/`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/aspersion/headers/?program=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/aspersion/headers/")
+         *         suspend fun listAspersionSessions(): Paginated<AspersionSession>
+         *     }
+         *
+         *     val result = api.listAspersionSessions()
+         *     ```
+         */
+        post: operations["v1_monitoring_aspersion_headers_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/aspersion/headers/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de una sesión de aspersión
+         * @description Detalle de una sesión de aspersión (AspersionSessionHeader).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/aspersion/headers/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/aspersion/headers/{id}/")
+         *         suspend fun getAspersionSession(@Path("id") id: String): AspersionSession
+         *     }
+         *
+         *     val result = api.getAspersionSession(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_aspersion_headers_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/aspersion/headers/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar metadatos de sesión de aspersión
+         * @description Actualiza los metadatos de una sesión de aspersión. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/aspersion/headers/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "aspersion_date": "2026-06-09"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/aspersion/headers/{id}/update/")
+         *         suspend fun updateAspersionSession(@Path("id") id: String, @Body body: AspersionSessionReq): AspersionSession
+         *     }
+         *
+         *     val result = api.updateAspersionSession(id)
+         *     ```
+         */
+        put: operations["v1_monitoring_aspersion_headers_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar metadatos de sesión de aspersión
+         * @description Actualiza los metadatos de una sesión de aspersión. Requiere Supervisor+.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/aspersion/headers/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "aspersion_date": "2026-06-09"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/aspersion/headers/{id}/update/")
+         *         suspend fun updateAspersionSession(@Path("id") id: String, @Body body: AspersionSessionReq): AspersionSession
+         *     }
+         *
+         *     val result = api.updateAspersionSession(id)
+         *     ```
+         */
+        patch: operations["v1_monitoring_aspersion_headers_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/monitoring/aspersion/headers/{id}/import/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importar puntos de aspersión desde CSV (async)
+         * @description Encola `import_aspersion_csv` con el CSV recibido (multipart/form-data). Responde **202 Accepted** de inmediato con `header_id` y `celery_task_id`; los puntos se crean de forma asíncrona. Usa una `template_id` para el mapeo de columnas.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/aspersion/headers/{id}/import/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -F 'csv_file=@aspersion.csv' \
+         *       -F 'template_id=<uuid>'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @Multipart
+         *         @POST("monitoring/aspersion/headers/{id}/import/")
+         *         suspend fun importAspersionCsv(@Path("id") id: String, @Part csv_file: MultipartBody.Part, @Part("template_id") templateId: RequestBody): ImportResponse
+         *     }
+         *
+         *     val result = api.importAspersionCsv(id)
+         *     ```
+         */
+        post: operations["v1_monitoring_aspersion_headers_import_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/aspersion/headers/{id}/preview-columns/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vista previa de columnas del CSV
+         * @description Lee el header del CSV y devuelve columnas reconocidas vs no reconocidas. Útil antes de importar para validar el mapeo de la plantilla.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/aspersion/headers/{id}/preview-columns/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -F 'csv_file=@aspersion.csv'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @Multipart
+         *         @POST("monitoring/aspersion/headers/{id}/preview-columns/")
+         *         suspend fun previewAspersionColumns(@Path("id") id: String, @Part csv_file: MultipartBody.Part): PreviewResult
+         *     }
+         *
+         *     val result = api.previewAspersionColumns(id)
+         *     ```
+         */
+        post: operations["v1_monitoring_aspersion_headers_preview_columns_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/aspersion/headers/{id}/stats/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Estadísticas agregadas de una sesión de aspersión
+         * @description Devuelve métricas pre-calculadas desde la vista materializada mv_aspersion_session_stats. Se refresca automáticamente tras cada importación exitosa via Celery. Si la sesión no tiene puntos importados o la MV aún no fue refrescada, retorna 404.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/aspersion/headers/{id}/stats/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/aspersion/headers/{id}/stats/")
+         *         suspend fun getAspersionStats(@Path("id") id: String): AspersionStats
+         *     }
+         *
+         *     val result = api.getAspersionStats(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_aspersion_headers_stats_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/aspersion/headers/{id}/variable-stats/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumen estadístico de variables clave de una sesión
+         * @description Calcula al vuelo (count/media/mín/máx/desv. est.) sobre los puntos importados para: Velocidad, Flujo líquido y Presión de brazo. No depende de la MV; refleja el estado actual de los puntos. `points_count=0` si la sesión no tiene puntos.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/aspersion/headers/{id}/variable-stats/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/aspersion/headers/{id}/variable-stats/")
+         *         suspend fun getAspersionVariableStats(@Path("id") id: String): VariableStats
+         *     }
+         *
+         *     val result = api.getAspersionVariableStats(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_aspersion_headers_variable_stats_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/aspersion/headers/{id}/flush/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Eliminar los puntos importados de UNA sesión de aspersión (solo SuperAdmin)
+         * @description Acción destructiva e irreversible: borra los AspersionSessionPoints de la sesión indicada (NO de otras sesiones) y resetea su cabecera a 'pending'. Pensada para limpiar duplicados acumulados por reimportaciones (la importación es append). Solo SuperAdmin (rol nivel ≥ 5).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/aspersion/headers/{id}/flush/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("monitoring/aspersion/headers/{id}/flush/")
+         *         suspend fun flushAspersionSession(@Path("id") id: String): FlushResult
+         *     }
+         *
+         *     val result = api.flushAspersionSession(id)
+         *     ```
+         */
+        post: operations["v1_monitoring_aspersion_headers_flush_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/aspersion/points/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar puntos de aspersión
+         * @description Lista los puntos GPS de aspersión (AspersionSessionPoints). Filtros: `?session_header=<uuid>`, `?plot=<uuid>`. Paginado.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/aspersion/points/?session_header=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/aspersion/points/")
+         *         suspend fun listAspersionPoints(): Paginated<AspersionPoint>
+         *     }
+         *
+         *     val result = api.listAspersionPoints()
+         *     ```
+         */
+        get: operations["v1_monitoring_aspersion_points_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/headers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar sesiones de monitoreo fitosanitario
+         * @description Devuelve todas las sesiones fitosanitarias. Uso típico en app móvil: `?assigned_to=<id>&status=pending` para mostrar las sesiones pendientes del técnico autenticado. `?status=completed` para el historial.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/phyto/headers/?assigned_to=<id>&status=pending \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/phyto/headers/")
+         *         suspend fun listPhytoHeaders(): Paginated<PhytoHeader>
+         *     }
+         *
+         *     val result = api.listPhytoHeaders()
+         *     ```
+         */
+        get: operations["v1_monitoring_phyto_headers_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/headers/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear sesión de monitoreo fitosanitario
+         * @description Crea una nueva sesión de monitoreo fitosanitario en campo.
+         *
+         *     **Herencia automática de parcela y cultivo:**
+         *     Si no se envía `plot_id` pero sí `field_task_id`, el backend hereda `plot` y `crop` del programa. Si el programa tampoco tiene parcela asignada, la API retorna `400`.
+         *
+         *     **Reglas:**
+         *     - `plot_id` obligatorio **a menos que** `field_task_id` tenga parcela asignada.
+         *     - `field_task_id` y `crop_id` son siempre opcionales.
+         *     - `radius_tolerance` (metros) controla el umbral para `program_check` en checkpoints.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/phyto/headers/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "plot_id": "<uuid>",
+         *       "field_task_id": "<uuid>",
+         *       "monitoring_date": "2026-06-08"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("monitoring/phyto/headers/create/")
+         *         suspend fun createPhytoHeader(@Body body: PhytoHeaderReq): PhytoHeader
+         *     }
+         *
+         *     val result = api.createPhytoHeader()
+         *     ```
+         */
+        post: operations["v1_monitoring_phyto_headers_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/headers/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de una sesión fitosanitaria
+         * @description Incluye `target_points` con las coordenadas programadas para la sesión.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/phyto/headers/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/phyto/headers/{id}/")
+         *         suspend fun getPhytoHeader(@Path("id") id: String): PhytoHeader
+         *     }
+         *
+         *     val result = api.getPhytoHeader(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_phyto_headers_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/headers/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar sesión fitosanitaria
+         * @description Actualiza metadatos de la sesión (PATCH soportado — envía solo los campos a cambiar). Usar para corregir `radius_tolerance`, `strict_mode` o `additional_notes` después de crear la sesión.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/phyto/headers/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "radius_tolerance": 8
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/phyto/headers/{id}/update/")
+         *         suspend fun updatePhytoHeader(@Path("id") id: String, @Body body: PhytoHeaderReq): PhytoHeader
+         *     }
+         *
+         *     val result = api.updatePhytoHeader(id)
+         *     ```
+         */
+        put: operations["v1_monitoring_phyto_headers_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar sesión fitosanitaria
+         * @description Actualiza metadatos de la sesión (PATCH soportado — envía solo los campos a cambiar). Usar para corregir `radius_tolerance`, `strict_mode` o `additional_notes` después de crear la sesión.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/phyto/headers/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "radius_tolerance": 8
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/phyto/headers/{id}/update/")
+         *         suspend fun updatePhytoHeader(@Path("id") id: String, @Body body: PhytoHeaderReq): PhytoHeader
+         *     }
+         *
+         *     val result = api.updatePhytoHeader(id)
+         *     ```
+         */
+        patch: operations["v1_monitoring_phyto_headers_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/target-points/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar puntos objetivo fitosanitarios
+         * @description Lista los puntos objetivo (PhytoTargetPoint) programados por el agrónomo. Filtros: `?header=<uuid>`, `?plot=<uuid>`, `?status=`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/phyto/target-points/?header=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/phyto/target-points/")
+         *         suspend fun listPhytoTargetPoints(): Paginated<PhytoTargetPoint>
+         *     }
+         *
+         *     val result = api.listPhytoTargetPoints()
+         *     ```
+         */
+        get: operations["v1_monitoring_phyto_target_points_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/target-points/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear punto objetivo fitosanitario
+         * @description Registra un punto GPS programado para que el técnico lo visite en campo.
+         *
+         *     **`geom`:** coordenada GeoJSON Point `{"type": "Point", "coordinates": [lon, lat]}`.
+         *     **`plot`:** se hereda automáticamente de `header.plot` — no es necesario enviarlo.
+         *     **`radius_m`:** radio de revisión (metros) específico para este punto; si se omite el header usa su `radius_tolerance` global para calcular `program_check`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/phyto/target-points/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "header": "<uuid>",
+         *       "geom": {
+         *         "type": "Point",
+         *         "coordinates": [
+         *           -102.29,
+         *           21.88
+         *         ]
+         *       },
+         *       "label": "TP-01",
+         *       "radius_m": 5
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("monitoring/phyto/target-points/create/")
+         *         suspend fun createPhytoTargetPoint(@Body body: PhytoTargetPointReq): PhytoTargetPoint
+         *     }
+         *
+         *     val result = api.createPhytoTargetPoint()
+         *     ```
+         */
+        post: operations["v1_monitoring_phyto_target_points_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/target-points/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar punto objetivo (ej: marcar visitado)
+         * @description Actualiza el estado de un target point. Uso típico: marcar como `visited` o `skipped` una vez que el técnico pasa por el punto. PATCH soportado.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/phyto/target-points/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "status": "visited"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/phyto/target-points/{id}/update/")
+         *         suspend fun updatePhytoTargetPoint(@Path("id") id: String, @Body body: PhytoTargetPointReq): PhytoTargetPoint
+         *     }
+         *
+         *     val result = api.updatePhytoTargetPoint(id)
+         *     ```
+         */
+        put: operations["v1_monitoring_phyto_target_points_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar punto objetivo (ej: marcar visitado)
+         * @description Actualiza el estado de un target point. Uso típico: marcar como `visited` o `skipped` una vez que el técnico pasa por el punto. PATCH soportado.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/phyto/target-points/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "status": "visited"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/phyto/target-points/{id}/update/")
+         *         suspend fun updatePhytoTargetPoint(@Path("id") id: String, @Body body: PhytoTargetPointReq): PhytoTargetPoint
+         *     }
+         *
+         *     val result = api.updatePhytoTargetPoint(id)
+         *     ```
+         */
+        patch: operations["v1_monitoring_phyto_target_points_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/checkpoints/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar puntos de chequeo fitosanitario
+         * @description `program_check` indica si la coordenada GPS del técnico cayó dentro del radio de tolerancia del target asociado. Se calcula automáticamente al crear.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/phyto/checkpoints/?header=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/phyto/checkpoints/")
+         *         suspend fun listPhytoCheckpoints(): Paginated<PhytoCheckPoint>
+         *     }
+         *
+         *     val result = api.listPhytoCheckpoints()
+         *     ```
+         */
+        get: operations["v1_monitoring_phyto_checkpoints_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/checkpoints/create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear punto de chequeo fitosanitario
+         * @description Registra una observación GPS del técnico en campo.
+         *
+         *     **Cálculo automático de `program_check`:** si se envía `target`, el backend compara la distancia (proyección UTM Zona 14N) entre `geom` y `target.geom`. Si la distancia ≤ `header.radius_tolerance` metros → `program_check=True`.
+         *
+         *     **`plot`:** se hereda automáticamente de `header.plot` — no enviarlo.
+         *
+         *     **`geom`:** coordenada GeoJSON Point `{"type": "Point", "coordinates": [lon, lat]}`.
+         *
+         *     **`stage`:** etapa del ciclo de vida del problema (huevo, larva, pupa, ninfa, adulto, sin_alas_pequeño, con_alas_grande, vegetativa, reproductiva).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/phyto/checkpoints/create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "header": "<uuid>",
+         *       "target": "<uuid>",
+         *       "phyto_issue": 12,
+         *       "stage": "larva",
+         *       "presence_status": "low",
+         *       "qty": 3,
+         *       "geom": {
+         *         "type": "Point",
+         *         "coordinates": [
+         *           -102.2895,
+         *           21.8802
+         *         ]
+         *       }
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("monitoring/phyto/checkpoints/create/")
+         *         suspend fun createPhytoCheckpoint(@Body body: PhytoCheckPointReq): PhytoCheckPoint
+         *     }
+         *
+         *     val result = api.createPhytoCheckpoint()
+         *     ```
+         */
+        post: operations["v1_monitoring_phyto_checkpoints_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/checkpoints/bulk-create/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registro masivo de checkpoints (sync offline)
+         * @description Recibe un array de checkpoints y los crea todos en una sola transacción atómica. Si alguno falla la validación, ninguno se guarda. Uso principal: sincronización offline — el técnico acumula capturas sin red y las envía en bloque al recuperar conexión.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/phyto/checkpoints/bulk-create/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '[
+         *       {
+         *         "header": "<uuid>",
+         *         "geom": {
+         *           "type": "Point",
+         *           "coordinates": [
+         *             -103.35,
+         *             20.67
+         *           ]
+         *         },
+         *         "phytoissue_id": 1,
+         *         "presence": true,
+         *         "count": 3
+         *       }
+         *     ]'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("monitoring/phyto/checkpoints/bulk-create/")
+         *         suspend fun bulkCreateCheckpoints(@Body body: List<PhytoCheckPointReq>): List<PhytoCheckPoint>
+         *     }
+         *
+         *     val result = api.bulkCreateCheckpoints()
+         *     ```
+         */
+        post: operations["v1_monitoring_phyto_checkpoints_bulk_create_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/checkpoints/import/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync móvil · Paso 1 — Importar checkpoints desde CSV
+         * @description Importa una serie de puntos de chequeo fitosanitario desde un archivo CSV generado por la app móvil en modo offline.
+         *
+         *     **Sync móvil (2 pasos):** este es el **paso 1**. Tras importar el CSV, las fotos tomadas en campo se suben en el **paso 2** vía `POST phyto/checkpoints/upload-photos/` (ZIP), que las vincula por nombre de archivo contra la columna `photo` de este CSV.
+         *
+         *     **Flujo:** el técnico trabaja sin conexión, la app exporta un CSV con sus capturas. El administrador crea la sesión (`PhytoMonitoringHeader`) y luego importa el CSV usando este endpoint, vinculando todos los puntos a esa sesión.
+         *
+         *     **Content-Type:** `multipart/form-data`.
+         *
+         *     **Campos del form-data:**
+         *     - `header` (UUID, requerido) — sesión `PhytoMonitoringHeader` destino. Debe estar en estado `pending` o `in_progress` (si está `completed`/`cancelled` → 409).
+         *     - `csv_file` (archivo, requerido) — CSV codificado en **UTF-8**.
+         *
+         *     **Columnas requeridas del CSV:**
+         *     - `geom_lon` — longitud GPS (float)
+         *     - `geom_lat` — latitud GPS (float)
+         *     - `captured_at` — datetime ISO 8601 (ej: `2026-04-19T10:30:00`)
+         *     - `phyto_issue_id` — ID entero del catálogo fitosanitario
+         *     - `stage` — etapa del ciclo de vida (larva, adulto, etc.)
+         *     - `presence_status` — nivel de presencia (low, warning, critical)
+         *
+         *     **Columnas opcionales:**
+         *     - `qty` — cantidad contada (entero)
+         *     - `pcp_oid` — OID del punto de muestreo asignado por la app móvil (entero). Agrupa los checkpoints de un mismo punto dentro de la sesión.
+         *     - `photo` — nombre de archivo de la foto tomada en ese punto (ej. `<ID_sesion>_<ID_punto>_<timestamp>.jpg`). Se guarda como referencia (`photo_ref`); el archivo real se sube aparte en un ZIP vía `phyto/checkpoints/upload-photos/`. Vacío si no se tomó foto.
+         *     - `notes` — notas libres del técnico
+         *
+         *     **Atomicidad:** si alguna fila es inválida se retorna 400 con el número de fila y el error. Ningún checkpoint se guarda hasta que todas las filas sean válidas.
+         *
+         *     **Permiso:** `IsSuperAdmin`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/phyto/checkpoints/import/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -F 'header=<uuid>' \
+         *       -F 'csv_file=@checkpoints.csv'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @Multipart
+         *         @POST("monitoring/phyto/checkpoints/import/")
+         *         suspend fun importPhytoCheckpointsCsv(@Part("header") header: RequestBody, @Part csv_file: MultipartBody.Part): ImportResponse
+         *     }
+         *
+         *     val result = api.importPhytoCheckpointsCsv()
+         *     ```
+         */
+        post: operations["v1_monitoring_phyto_checkpoints_import_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/checkpoints/upload-photos/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync móvil · Paso 2 — Subir anexos fotográficos (ZIP)
+         * @description Segundo paso del *sync* de la app móvil (tras importar el CSV de checkpoints en el paso 1).
+         *
+         *     Recibe un ZIP con las fotos tomadas en campo y las vincula al checkpoint correspondiente comparando el **nombre de archivo** de cada foto contra el campo `photo_ref` de los checkpoints de la sesión (`header`). El `photo_ref` proviene de la columna `photo` del CSV importado previamente.
+         *
+         *     **Content-Type:** `multipart/form-data`.
+         *
+         *     **Campos del form-data:**
+         *     - `header` (UUID, requerido) — sesión `PhytoMonitoringHeader` cuyos checkpoints recibirán las fotos. Debe estar en `pending`/`in_progress`.
+         *     - `photos_zip` (archivo, requerido) — archivo `.zip` con las imágenes. El nombre de cada entrada debe coincidir exactamente con el `photo_ref` del checkpoint (ej. `ses12_pt102_20260419T0945.jpg`). Formatos: cualquiera que Pillow reconozca (JPEG, PNG, …).
+         *
+         *     **Comportamiento (skip-and-report):** las fotos que no casan con ningún checkpoint se reportan en `unmatched_files` pero **no** abortan la operación. Los checkpoints con `photo_ref` pero sin archivo en el ZIP se reportan en `checkpoints_without_photo`. Re-subir una foto existente la sobrescribe (idempotente), por lo que el sync se puede reintentar sin duplicar.
+         *
+         *     **Respuesta 200** — siempre que la sesión sea válida y el ZIP legible, aunque ninguna foto case (en ese caso `matched: 0`).
+         *
+         *     **Errores:**
+         *     - `400` — falta `header`/`photos_zip`, o el archivo no es un ZIP válido.
+         *     - `404` — la sesión no existe o está fuera del scope del usuario.
+         *     - `409` — la sesión está `completed`/`cancelled`.
+         *
+         *     **Seguridad:** scoped por DataCentral del usuario (el productor del header debe estar asignado); cada archivo se valida como imagen real (Pillow); se ignoran directorios y se rechazan nombres con rutas (path traversal).
+         *
+         *     **Permiso:** `IsTechnician` (nivel ≥ 2).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/phyto/checkpoints/upload-photos/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -F 'header=<uuid>' \
+         *       -F 'photos_zip=@fotos.zip'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @Multipart
+         *         @POST("monitoring/phyto/checkpoints/upload-photos/")
+         *         suspend fun uploadPhytoCheckpointPhotos(@Part("header") header: RequestBody, @Part("photos_zip") photosZip: RequestBody): UploadPhotosResponse
+         *     }
+         *
+         *     val result = api.uploadPhytoCheckpointPhotos()
+         *     ```
+         */
+        post: operations["v1_monitoring_phyto_checkpoints_upload_photos_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/checkpoints/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de un checkpoint fitosanitario
+         * @description Retorna el checkpoint completo incluyendo `stage_display` (etiqueta legible de la etapa) y `photo` como URL absoluta.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/phyto/checkpoints/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/phyto/checkpoints/{id}/")
+         *         suspend fun getPhytoCheckpoint(@Path("id") id: String): PhytoCheckPoint
+         *     }
+         *
+         *     val result = api.getPhytoCheckpoint(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_phyto_checkpoints_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/checkpoints/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar checkpoint fitosanitario
+         * @description Permite corregir un checkpoint ya registrado (stage, qty, presence_status, notas, foto). Solo acepta PATCH (actualización parcial). La geolocalización (geom) no debería modificarse una vez capturada.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/phyto/checkpoints/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "qty": 5,
+         *       "presence_status": "warning"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/phyto/checkpoints/{id}/update/")
+         *         suspend fun updatePhytoCheckpoint(@Path("id") id: String, @Body body: PhytoCheckPointReq): PhytoCheckPoint
+         *     }
+         *
+         *     val result = api.updatePhytoCheckpoint(id)
+         *     ```
+         */
+        patch: operations["v1_monitoring_phyto_checkpoints_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/checkpoints/{id}/delete/": {
         parameters: {
             query?: never;
             header?: never;
@@ -2493,257 +6695,29 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Eliminar usuario (soft delete)
-         * @description Mixin reutilizables para viewsets y GenerricAPIViews
-         *     Sobreescritura de destroy parar desactivar en lugar de eliminar
-         *     Para poder hacer un soft delete se necesitan campos:
-         *     is_deleted
-         *     deleted_at
-         *     deleted_by
+         * Eliminar checkpoint fitosanitario (soft delete)
+         * @description Marca el checkpoint como eliminado (`is_deleted=True`). El registro permanece en la base de datos pero no aparece en los listados. Útil para corregir capturas erróneas sin perder trazabilidad.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/monitoring/phyto/checkpoints/{id}/delete/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("monitoring/phyto/checkpoints/{id}/delete/")
+         *         suspend fun deletePhytoCheckpoint(@Path("id") id: String): Unit
+         *     }
+         *
+         *     val result = api.deletePhytoCheckpoint(id)
+         *     ```
          */
-        delete: operations["v1_users_destroy"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/users/{id}/activate/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Activar usuario pendiente
-         * @description Asigna un rol al usuario y cambia su status a `active`. Flujo típico: técnico se registra en app → admin lo activa aquí → admin asigna DataCentral vía `/users/assignments/create/`. Requiere SuperAdmin.
-         */
-        patch: operations["v1_users_activate_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/users/{id}/set-password/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Establecer contraseña (admin)
-         * @description Permite a un SuperAdmin establecer una nueva contraseña para cualquier usuario sin requerir la contraseña actual. Requiere SuperAdmin.
-         */
-        post: operations["v1_users_set_password_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/users/{id}/update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Editar un usuario (admin)
-         * @description Edita los campos de `User` (email, status, user_role) y el perfil `Individual` de cualquier usuario. Solo PATCH (parcial). No edita la contraseña — para eso existe ChangePasswordView. Requiere SuperAdmin.
-         */
-        patch: operations["v1_users_update_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/users/assignments/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar asignaciones usuario → DataCentral
-         * @description Devuelve todas las asignaciones User↔DataCentral. Filtros opcionales: `?user=<uuid>` filtra por usuario; `?datacentral=<id>` filtra por workspace.
-         */
-        get: operations["v1_users_assignments_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/users/assignments/{id}/delete/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Eliminar asignación usuario → DataCentral
-         * @description Revoca el acceso de un usuario a un workspace. Requiere SuperAdmin.
-         */
-        delete: operations["v1_users_assignments_delete_destroy"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/users/assignments/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Crear asignación usuario → DataCentral
-         * @description Asigna un usuario a un workspace (DataCentral). Requiere SuperAdmin.
-         */
-        post: operations["v1_users_assignments_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/users/by-datacentral/{dc_id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar usuarios de un datacentral
-         * @description Retorna los usuarios activos asignados al datacentral indicado. El solicitante debe pertenecer al mismo datacentral (seguridad multi-tenant). Accesible por role_level >= 2 (Técnico+).
-         */
-        get: operations["v1_users_by_datacentral_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/users/me/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Perfil propio (GET/PATCH)
-         * @description `GET` retorna el perfil completo del usuario autenticado. `PATCH` actualiza campos del `Individual` asociado (nombre, teléfono, etc.).
-         */
-        get: operations["v1_users_me_retrieve"];
-        /**
-         * Perfil propio (GET/PATCH)
-         * @description `GET` retorna el perfil completo del usuario autenticado. `PATCH` actualiza campos del `Individual` asociado (nombre, teléfono, etc.).
-         */
-        put: operations["v1_users_me_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Perfil propio (GET/PATCH)
-         * @description `GET` retorna el perfil completo del usuario autenticado. `PATCH` actualiza campos del `Individual` asociado (nombre, teléfono, etc.).
-         */
-        patch: operations["v1_users_me_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/users/pending/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar usuarios pendientes de activación
-         * @description Devuelve usuarios que se registraron vía app móvil (`status=pending_activation`) y aún no han sido activados por un administrador. Requiere SuperAdmin.
-         */
-        get: operations["v1_users_pending_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/users/roles/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar roles de acceso (UserRole) */
-        get: operations["v1_users_roles_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/users/work-roles/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Listar roles laborales (WorkRole) */
-        get: operations["v1_users_work_roles_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/users/work-roles/create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Crear rol laboral (WorkRole)
-         * @description Da de alta un rol laboral (ej. 'Ingeniero agrónomo'). Requiere SuperAdmin.
-         */
-        post: operations["v1_users_work_roles_create_create"];
-        delete?: never;
+        delete: operations["v1_monitoring_phyto_checkpoints_delete_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3213,6 +7187,15 @@ export interface components {
             readonly uploaded_at: string;
             readonly uploaded_by_username: string | null;
         };
+        /**
+         * @description * `solucionado` - Solucionado
+         *     * `sin atender` - Sin atender
+         *     * `en atencion` - En atención
+         *     * `sin solucion` - Sin solución
+         *     * `na` - N/A
+         * @enum {string}
+         */
+        AttentionStatusEnum: "solucionado" | "sin atender" | "en atencion" | "sin solucion" | "na";
         /** @enum {unknown} */
         BlankEnum: "";
         /**
@@ -3365,6 +7348,8 @@ export interface components {
             readonly created_at: string;
         };
         DataCentralMainWrite: {
+            /** Format: uuid */
+            readonly id: string;
             name: string;
             description?: string | null;
             country?: number | null;
@@ -3373,6 +7358,8 @@ export interface components {
             owner_id: string;
         };
         DataCentralWrite: {
+            /** Format: uuid */
+            readonly id: string;
             name: string;
             description?: string;
             /** Format: uuid */
@@ -3582,6 +7569,12 @@ export interface components {
             country?: number | null;
             work_role?: number | null;
         };
+        /**
+         * @description * `observacion` - Observación
+         *     * `tema de atencion` - Tema de atención
+         * @enum {string}
+         */
+        IssueTypeEnum: "observacion" | "tema de atencion";
         LogoutRequest: {
             /** @description Refresh token a invalidar */
             refresh: string;
@@ -4228,6 +8221,36 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["RanchPartner"][];
         };
+        PaginatedSessionIssueList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["SessionIssue"][];
+        };
+        PaginatedSessionReportList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["SessionReport"][];
+        };
         PaginatedStateDetailList: {
             /** @example 123 */
             count: number;
@@ -4559,6 +8582,8 @@ export interface components {
             attachments_url?: unknown;
         };
         PatchedDataCentralMainWrite: {
+            /** Format: uuid */
+            readonly id?: string;
             name?: string;
             description?: string | null;
             country?: number | null;
@@ -4567,6 +8592,8 @@ export interface components {
             owner_id?: string;
         };
         PatchedDataCentralWrite: {
+            /** Format: uuid */
+            readonly id?: string;
             name?: string;
             description?: string;
             /** Format: uuid */
@@ -4737,6 +8764,7 @@ export interface components {
          *     - plot: denormalizado desde header.plot — no escribible
          *     - stage_display: label legible de la etapa (ej: "Larva / Joven")
          *     - photo: URL absoluta usando request.build_absolute_uri()
+         *     - photo_ref: nombre de archivo de referencia (llave de vínculo con el ZIP) — no escribible
          */
         PatchedPhytoCheckPoint: {
             /** Format: uuid */
@@ -4817,11 +8845,21 @@ export interface components {
              */
             qty?: number | null;
             /**
+             * OID del punto de muestreo (app móvil)
+             * @description Identificador del punto de muestreo/planta asignado por la app móvil. Agrupa y ordena los checkpoints de un mismo punto dentro de un header. No es la pk (esa sigue siendo el UUID heredado). Sin unique: se repite entre filas del mismo punto y entre headers.
+             */
+            readonly pcp_oid?: number | null;
+            /**
              * Dentro del radio programado
              * @description True si la coordenada GPS del checkpoint está dentro del radio de tolerancia (header.radius_tolerance metros) del target asociado. Calculado automáticamente en save().
              */
             readonly program_check?: boolean;
             readonly photo?: string;
+            /**
+             * Referencia de foto (app móvil)
+             * @description Nombre de archivo de la foto tomada en la app móvil para este punto (ej. <ID_sesion>_<ID_punto>_<timestamp>.jpg). Llega en la columna 'photo' del CSV de importación y sirve de llave para vincular el archivo real, subido aparte en un ZIP vía el endpoint upload-photos/, con el campo 'photo'. Vacío si en ese punto no se tomó foto.
+             */
+            readonly photo_ref?: string | null;
             /**
              * Notas adicionales
              * @description Observaciones libres sobre el punto de chequeo.
@@ -5171,6 +9209,117 @@ export interface components {
                 readonly slug?: string;
             };
         };
+        PatchedSessionIssue: {
+            /** Format: uuid */
+            readonly id?: string;
+            /**
+             * Reporte de sesión
+             * Format: uuid
+             */
+            report?: string;
+            issue_type?: components["schemas"]["IssueTypeEnum"];
+            readonly issue_type_display?: string;
+            /** Título */
+            title?: string;
+            /** Detalle del tema de atencion u observación */
+            detail?: string;
+            /** Nivel de relevancia del tema de atención */
+            relevancia?: components["schemas"]["RelevanciaEnum"];
+            readonly relevancia_display?: string;
+            /** Status del tema de atención */
+            attention_status?: components["schemas"]["AttentionStatusEnum"];
+            readonly attention_status_display?: string;
+            /**
+             * Fecha de registro del tema de atención
+             * Format: date
+             */
+            registered_at?: string | null;
+            /**
+             * Fecha de seguimiento
+             * Format: date
+             */
+            followed_up_at?: string | null;
+            /** Sugerencias para atención */
+            suggestion?: string;
+            /** Acción implementada para el tema de atención */
+            action_taken?: string;
+            /**
+             * Responsable interno
+             * Format: uuid
+             * @description Usuario de sistema asignado al segumiento. Serializer exponde nombre + link de eperfil
+             */
+            assigned_user?: string | null;
+            readonly assigned_user_name?: string;
+            /**
+             * Responsable externo de la actividad
+             * @description Campo libre para asignar personas externas
+             */
+            outer_assigned_user?: string;
+            /** Tipo de actividad relacionada */
+            related_content_type?: number | null;
+            /**
+             * Id de actividad relacionada
+             * Format: uuid
+             */
+            related_object_id?: string | null;
+        };
+        PatchedSessionReport: {
+            /** Format: uuid */
+            readonly id?: string;
+            session_type?: components["schemas"]["SessionTypeEnum"];
+            /**
+             * ID de sesión
+             * Format: uuid
+             * @description PK del header de sesión (UUID heredado de BaseAuditModel).
+             */
+            object_id?: string;
+            readonly activity_label?: string;
+            /**
+             * Parcela o lote
+             * Format: uuid
+             * @description Demormalizado para cubrir plot-ranch-producer
+             */
+            readonly plot?: string | null;
+            /**
+             * Observaciones
+             * @description Resumen/diagnśtico del reporte
+             */
+            resume_text?: string;
+            /**
+             * Fecha de reporte
+             * Format: date
+             * @description Por defecto fecha actual
+             */
+            report_date?: string;
+            /**
+             * Datos generales denormalizados
+             * @description Productor, rancho, parcela, superficie, ubicacion, cultivo
+             */
+            readonly general_snapshot?: unknown;
+            /**
+             * Datos cuantitativos/estadísticos
+             * @description Área de cobertura, dosis, volumen, velocidad, fechas y semáforo de 5 buckets. Congelado al publicar.
+             */
+            readonly stats_snapshot?: unknown;
+            /**
+             * Temperatura de día
+             * Format: decimal
+             * @description Manual. Se difiere con API de clima para otro feature
+             */
+            day_temperature?: string | null;
+            /** Responsable de actividad */
+            lead?: string;
+            /** Encargado del rancho */
+            ranch_manager?: string;
+            /** Status del reporte */
+            status?: components["schemas"]["SessionReportStatusEnum"];
+            readonly status_display?: string;
+            readonly issues?: components["schemas"]["SessionIssue"][];
+            /** Format: date-time */
+            readonly created_at?: string;
+            /** Format: date-time */
+            readonly updated_at?: string;
+        };
         /**
          * @description Punto capturado por el técnico en campo.
          *     - geom: GeoJSON Point (longitud, latitud GPS real del técnico)
@@ -5178,6 +9327,7 @@ export interface components {
          *     - plot: denormalizado desde header.plot — no escribible
          *     - stage_display: label legible de la etapa (ej: "Larva / Joven")
          *     - photo: URL absoluta usando request.build_absolute_uri()
+         *     - photo_ref: nombre de archivo de referencia (llave de vínculo con el ZIP) — no escribible
          */
         PhytoCheckPoint: {
             /** Format: uuid */
@@ -5258,11 +9408,21 @@ export interface components {
              */
             qty?: number | null;
             /**
+             * OID del punto de muestreo (app móvil)
+             * @description Identificador del punto de muestreo/planta asignado por la app móvil. Agrupa y ordena los checkpoints de un mismo punto dentro de un header. No es la pk (esa sigue siendo el UUID heredado). Sin unique: se repite entre filas del mismo punto y entre headers.
+             */
+            readonly pcp_oid: number | null;
+            /**
              * Dentro del radio programado
              * @description True si la coordenada GPS del checkpoint está dentro del radio de tolerancia (header.radius_tolerance metros) del target asociado. Calculado automáticamente en save().
              */
             readonly program_check: boolean;
             readonly photo: string;
+            /**
+             * Referencia de foto (app móvil)
+             * @description Nombre de archivo de la foto tomada en la app móvil para este punto (ej. <ID_sesion>_<ID_punto>_<timestamp>.jpg). Llega en la columna 'photo' del CSV de importación y sirve de llave para vincular el archivo real, subido aparte en un ZIP vía el endpoint upload-photos/, con el campo 'photo'. Vacío si en ese punto no se tomó foto.
+             */
+            readonly photo_ref: string | null;
             /**
              * Notas adicionales
              * @description Observaciones libres sobre el punto de chequeo.
@@ -5297,6 +9457,18 @@ export interface components {
          * @enum {string}
          */
         PhytoCheckPointStageEnum: "huevesillo" | "larva" | "ninfa" | "pupa" | "adulto" | "adulto_alas" | "inicio" | "desarrollo" | "avanzado" | "terminal";
+        PhytoCheckPointUploadPhotosRequest: {
+            /** Format: uuid */
+            header: string;
+            /** Format: uri */
+            photos_zip: string;
+        };
+        PhytoCheckPointUploadPhotosResponse: {
+            matched: number;
+            unmatched_files: string[];
+            checkpoints_without_photo: string[];
+            detail: string;
+        };
         /**
          * @description Sesión de monitoreo fitosanitario.
          *     - target_points: lista de puntos objetivo (solo lectura, nested).
@@ -5758,6 +9930,138 @@ export interface components {
          */
         RelationTypeEnum: "guild" | "grain_collector" | "lab";
         /**
+         * @description * `alta` - Alta
+         *     * `media` - Media
+         *     * `baja` - Baja
+         *     * `na` - No aplica
+         * @enum {string}
+         */
+        RelevanciaEnum: "alta" | "media" | "baja" | "na";
+        SessionIssue: {
+            /** Format: uuid */
+            readonly id: string;
+            /**
+             * Reporte de sesión
+             * Format: uuid
+             */
+            report: string;
+            issue_type?: components["schemas"]["IssueTypeEnum"];
+            readonly issue_type_display: string;
+            /** Título */
+            title: string;
+            /** Detalle del tema de atencion u observación */
+            detail?: string;
+            /** Nivel de relevancia del tema de atención */
+            relevancia?: components["schemas"]["RelevanciaEnum"];
+            readonly relevancia_display: string;
+            /** Status del tema de atención */
+            attention_status?: components["schemas"]["AttentionStatusEnum"];
+            readonly attention_status_display: string;
+            /**
+             * Fecha de registro del tema de atención
+             * Format: date
+             */
+            registered_at?: string | null;
+            /**
+             * Fecha de seguimiento
+             * Format: date
+             */
+            followed_up_at?: string | null;
+            /** Sugerencias para atención */
+            suggestion?: string;
+            /** Acción implementada para el tema de atención */
+            action_taken?: string;
+            /**
+             * Responsable interno
+             * Format: uuid
+             * @description Usuario de sistema asignado al segumiento. Serializer exponde nombre + link de eperfil
+             */
+            assigned_user?: string | null;
+            readonly assigned_user_name: string;
+            /**
+             * Responsable externo de la actividad
+             * @description Campo libre para asignar personas externas
+             */
+            outer_assigned_user?: string;
+            /** Tipo de actividad relacionada */
+            related_content_type?: number | null;
+            /**
+             * Id de actividad relacionada
+             * Format: uuid
+             */
+            related_object_id?: string | null;
+        };
+        SessionReport: {
+            /** Format: uuid */
+            readonly id: string;
+            session_type?: components["schemas"]["SessionTypeEnum"];
+            /**
+             * ID de sesión
+             * Format: uuid
+             * @description PK del header de sesión (UUID heredado de BaseAuditModel).
+             */
+            object_id: string;
+            readonly activity_label: string;
+            /**
+             * Parcela o lote
+             * Format: uuid
+             * @description Demormalizado para cubrir plot-ranch-producer
+             */
+            readonly plot: string | null;
+            /**
+             * Observaciones
+             * @description Resumen/diagnśtico del reporte
+             */
+            resume_text: string;
+            /**
+             * Fecha de reporte
+             * Format: date
+             * @description Por defecto fecha actual
+             */
+            report_date?: string;
+            /**
+             * Datos generales denormalizados
+             * @description Productor, rancho, parcela, superficie, ubicacion, cultivo
+             */
+            readonly general_snapshot: unknown;
+            /**
+             * Datos cuantitativos/estadísticos
+             * @description Área de cobertura, dosis, volumen, velocidad, fechas y semáforo de 5 buckets. Congelado al publicar.
+             */
+            readonly stats_snapshot: unknown;
+            /**
+             * Temperatura de día
+             * Format: decimal
+             * @description Manual. Se difiere con API de clima para otro feature
+             */
+            day_temperature?: string | null;
+            /** Responsable de actividad */
+            lead?: string;
+            /** Encargado del rancho */
+            ranch_manager?: string;
+            /** Status del reporte */
+            status?: components["schemas"]["SessionReportStatusEnum"];
+            readonly status_display: string;
+            readonly issues: components["schemas"]["SessionIssue"][];
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /**
+         * @description * `en_proceso` - En proceso
+         *     * `finalizado` - Finalizado
+         *     * `cancelado` - Cancelado
+         *     * `publicado` - Publicado
+         * @enum {string}
+         */
+        SessionReportStatusEnum: "en_proceso" | "finalizado" | "cancelado" | "publicado";
+        /**
+         * @description * `aspersion` - aspersion
+         * @enum {string}
+         */
+        SessionTypeEnum: "aspersion";
+        /**
          * @description * `low` - Baja
          *     * `medium` - Media
          *     * `high` - Alta
@@ -5868,14 +10172,14 @@ export interface components {
         /**
          * @description * `Productor` - Productor
          *     * `Acopiadora de grano` - Acopiadora de grano
-         *     * `Asociación agrícola` - Asociación agrícola
+         *     * `Asociación agrícola` - Asociación agrícola
          *     * `Empaque` - Empaque
          *     * `Laboratorio` - Laboratorio
          *     * `Consultoria` - Consultoria
          *     * `Otro` - Otro
          * @enum {string}
          */
-        UnitTypeEnum: "Productor" | "Acopiadora de grano" | "Asociación agrícola" | "Empaque" | "Laboratorio" | "Consultoria" | "Otro";
+        UnitTypeEnum: "Productor" | "Acopiadora de grano" | "Asociación agrícola" | "Empaque" | "Laboratorio" | "Consultoria" | "Otro";
         UserAssignment: {
             readonly id: number;
             /** Format: uuid */
@@ -5946,106 +10250,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    v1_agro_catalogs_crops_list: {
-        parameters: {
-            query?: {
-                /** @description Filtra por código (búsqueda parcial). */
-                code?: string;
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedCropCatalogList"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_crops_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CropCatalog"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_crops_update_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CropCatalog"];
-                "application/x-www-form-urlencoded": components["schemas"]["CropCatalog"];
-                "multipart/form-data": components["schemas"]["CropCatalog"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CropCatalog"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_crops_update_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedCropCatalog"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedCropCatalog"];
-                "multipart/form-data": components["schemas"]["PatchedCropCatalog"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CropCatalog"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_crops_create_create: {
+    v1_auth_login_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6054,83 +10259,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CropCatalog"];
-                "application/x-www-form-urlencoded": components["schemas"]["CropCatalog"];
-                "multipart/form-data": components["schemas"]["CropCatalog"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CropCatalog"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_evaluations_list: {
-        parameters: {
-            query?: {
-                /** @description Filtra por tipo de actividad: ASPERSION, PHYTOSANITARY, MONITORING, OTHER. */
-                activity_type?: string;
-                /** @description true = solo activos (default de frontend). */
-                is_active?: boolean;
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedEvaluationCatalogList"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_evaluations_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EvaluationCatalog"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_evaluations_update_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EvaluationCatalog"];
-                "application/x-www-form-urlencoded": components["schemas"]["EvaluationCatalog"];
-                "multipart/form-data": components["schemas"]["EvaluationCatalog"];
+                "application/json": components["schemas"]["CIAgroTokenObtainPair"];
+                "application/x-www-form-urlencoded": components["schemas"]["CIAgroTokenObtainPair"];
+                "multipart/form-data": components["schemas"]["CIAgroTokenObtainPair"];
             };
         };
         responses: {
@@ -6139,39 +10270,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EvaluationCatalog"];
+                    "application/json": components["schemas"]["CIAgroTokenObtainPair"];
                 };
             };
         };
     };
-    v1_agro_catalogs_evaluations_update_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedEvaluationCatalog"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedEvaluationCatalog"];
-                "multipart/form-data": components["schemas"]["PatchedEvaluationCatalog"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EvaluationCatalog"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_evaluations_create_create: {
+    v1_auth_refresh_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -6180,41 +10284,43 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EvaluationCatalog"];
-                "application/x-www-form-urlencoded": components["schemas"]["EvaluationCatalog"];
-                "multipart/form-data": components["schemas"]["EvaluationCatalog"];
+                "application/json": components["schemas"]["TokenRefresh"];
+                "application/x-www-form-urlencoded": components["schemas"]["TokenRefresh"];
+                "multipart/form-data": components["schemas"]["TokenRefresh"];
             };
         };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EvaluationCatalog"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_evaluations_fields_spec_retrieve: {
-        parameters: {
-            query: {
-                /** @description Tipo de actividad (ej: ASPERSION). */
-                activity_type: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["FieldsSpecResponse"];
+                    "application/json": components["schemas"]["TokenRefresh"];
                 };
+            };
+        };
+    };
+    v1_auth_logout_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogoutRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["LogoutRequest"];
+                "multipart/form-data": components["schemas"]["LogoutRequest"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             400: {
                 headers: {
@@ -6224,186 +10330,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_phytosanitary_list: {
-        parameters: {
-            query?: {
-                /** @description Filtra por ID del cultivo asociado. */
-                default_crop?: number;
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Filtra por tipo: `Plaga` o `Enfermedad`. */
-                type?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedPhytosanitaryCatalogList"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_phytosanitary_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PhytosanitaryCatalog"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_phytosanitary_update_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PhytosanitaryCatalog"];
-                "application/x-www-form-urlencoded": components["schemas"]["PhytosanitaryCatalog"];
-                "multipart/form-data": components["schemas"]["PhytosanitaryCatalog"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PhytosanitaryCatalog"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_phytosanitary_update_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedPhytosanitaryCatalog"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedPhytosanitaryCatalog"];
-                "multipart/form-data": components["schemas"]["PatchedPhytosanitaryCatalog"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PhytosanitaryCatalog"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_phytosanitary_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PhytosanitaryCatalog"];
-                "application/x-www-form-urlencoded": components["schemas"]["PhytosanitaryCatalog"];
-                "multipart/form-data": components["schemas"]["PhytosanitaryCatalog"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PhytosanitaryCatalog"];
-                };
-            };
-        };
-    };
-    v1_agro_catalogs_phytosanitary_photos_delete_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    v1_agro_catalogs_phytosanitary_photos_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["PhytosanitaryPhotoCreate"];
-                "application/x-www-form-urlencoded": components["schemas"]["PhytosanitaryPhotoCreate"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PhytosanitaryPhotoCreate"];
                 };
             };
         };
@@ -6445,90 +10371,6 @@ export interface operations {
             };
         };
     };
-    v1_auth_login_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CIAgroTokenObtainPair"];
-                "application/x-www-form-urlencoded": components["schemas"]["CIAgroTokenObtainPair"];
-                "multipart/form-data": components["schemas"]["CIAgroTokenObtainPair"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CIAgroTokenObtainPair"];
-                };
-            };
-        };
-    };
-    v1_auth_logout_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LogoutRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["LogoutRequest"];
-                "multipart/form-data": components["schemas"]["LogoutRequest"];
-            };
-        };
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    v1_auth_refresh_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TokenRefresh"];
-                "application/x-www-form-urlencoded": components["schemas"]["TokenRefresh"];
-                "multipart/form-data": components["schemas"]["TokenRefresh"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TokenRefresh"];
-                };
-            };
-        };
-    };
     v1_auth_register_create: {
         parameters: {
             query?: never;
@@ -6558,6 +10400,1657 @@ export interface operations {
         responses: {
             /** @description No response body */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_users_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUserDetailList"];
+                };
+            };
+        };
+    };
+    v1_users_me_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDetail"];
+                };
+            };
+        };
+    };
+    v1_users_me_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Individual"];
+                "application/x-www-form-urlencoded": components["schemas"]["Individual"];
+                "multipart/form-data": components["schemas"]["Individual"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Individual"];
+                };
+            };
+        };
+    };
+    v1_users_me_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedIndividual"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedIndividual"];
+                "multipart/form-data": components["schemas"]["PatchedIndividual"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Individual"];
+                };
+            };
+        };
+    };
+    v1_users_roles_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUserRoleList"];
+                };
+            };
+        };
+    };
+    v1_users_work_roles_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedWorkRoleList"];
+                };
+            };
+        };
+    };
+    v1_users_work_roles_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkRole"];
+                "application/x-www-form-urlencoded": components["schemas"]["WorkRole"];
+                "multipart/form-data": components["schemas"]["WorkRole"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkRole"];
+                };
+            };
+        };
+    };
+    v1_users_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_users_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAdminUserUpdate"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAdminUserUpdate"];
+                "multipart/form-data": components["schemas"]["PatchedAdminUserUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDetail"];
+                };
+            };
+        };
+    };
+    v1_users_set_password_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminSetPasswordRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["AdminSetPasswordRequest"];
+                "multipart/form-data": components["schemas"]["AdminSetPasswordRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_users_assignments_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUserAssignmentList"];
+                };
+            };
+        };
+    };
+    v1_users_assignments_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserAssignment"];
+                "application/x-www-form-urlencoded": components["schemas"]["UserAssignment"];
+                "multipart/form-data": components["schemas"]["UserAssignment"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAssignment"];
+                };
+            };
+        };
+    };
+    v1_users_assignments_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_users_pending_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUserDetailList"];
+                };
+            };
+        };
+    };
+    v1_users_activate_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedActivateUser"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedActivateUser"];
+                "multipart/form-data": components["schemas"]["PatchedActivateUser"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDetail"];
+                };
+            };
+        };
+    };
+    v1_users_by_datacentral_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                dc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUserMinimalList"];
+                };
+            };
+        };
+    };
+    v1_geography_countries_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedCountryList"];
+                };
+            };
+        };
+    };
+    v1_geography_states_list: {
+        parameters: {
+            query?: {
+                /** @description Filtra por codigo ISO-2 del pais (ej: `MX`, `US`). */
+                country?: string;
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedStateDetailList"];
+                };
+            };
+        };
+    };
+    v1_organizations_agro_sectors_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAgroSectorList"];
+                };
+            };
+        };
+    };
+    v1_organizations_agro_sectors_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgroSector"];
+                "application/x-www-form-urlencoded": components["schemas"]["AgroSector"];
+                "multipart/form-data": components["schemas"]["AgroSector"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgroSector"];
+                };
+            };
+        };
+    };
+    v1_organizations_agro_sectors_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgroSector"];
+                };
+            };
+        };
+    };
+    v1_organizations_agro_sectors_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgroSector"];
+                "application/x-www-form-urlencoded": components["schemas"]["AgroSector"];
+                "multipart/form-data": components["schemas"]["AgroSector"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgroSector"];
+                };
+            };
+        };
+    };
+    v1_organizations_agro_sectors_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_organizations_agro_sectors_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAgroSector"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAgroSector"];
+                "multipart/form-data": components["schemas"]["PatchedAgroSector"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgroSector"];
+                };
+            };
+        };
+    };
+    v1_organizations_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Filtra por tipo de unidad. Valores: `Productor`, `Acopiadora de grano`, `Asociación agrícola`, `Empaque`, `Laboratorio`, `Consultoria`, `Otro`. */
+                unit_type?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAgroUnitList"];
+                };
+            };
+        };
+    };
+    v1_organizations_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgroUnit"];
+                "application/x-www-form-urlencoded": components["schemas"]["AgroUnit"];
+                "multipart/form-data": components["schemas"]["AgroUnit"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgroUnit"];
+                };
+            };
+        };
+    };
+    v1_organizations_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgroUnit"];
+                };
+            };
+        };
+    };
+    v1_organizations_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgroUnit"];
+                "application/x-www-form-urlencoded": components["schemas"]["AgroUnit"];
+                "multipart/form-data": components["schemas"]["AgroUnit"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgroUnit"];
+                };
+            };
+        };
+    };
+    v1_organizations_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAgroUnit"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAgroUnit"];
+                "multipart/form-data": components["schemas"]["PatchedAgroUnit"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgroUnit"];
+                };
+            };
+        };
+    };
+    v1_organizations_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_organizations_contacts_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedContactList"];
+                };
+            };
+        };
+    };
+    v1_organizations_contacts_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Contact"];
+                "application/x-www-form-urlencoded": components["schemas"]["Contact"];
+                "multipart/form-data": components["schemas"]["Contact"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contact"];
+                };
+            };
+        };
+    };
+    v1_organizations_contacts_assign_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactAssignment"];
+                "application/x-www-form-urlencoded": components["schemas"]["ContactAssignment"];
+                "multipart/form-data": components["schemas"]["ContactAssignment"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactAssignment"];
+                };
+            };
+        };
+    };
+    v1_organizations_contacts_assignments_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedContactAssignmentListList"];
+                };
+            };
+        };
+    };
+    v1_organizations_contacts_assignments_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_organizations_contacts_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contact"];
+                };
+            };
+        };
+    };
+    v1_organizations_contacts_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Contact"];
+                "application/x-www-form-urlencoded": components["schemas"]["Contact"];
+                "multipart/form-data": components["schemas"]["Contact"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contact"];
+                };
+            };
+        };
+    };
+    v1_organizations_contacts_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_organizations_contacts_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedContact"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedContact"];
+                "multipart/form-data": components["schemas"]["PatchedContact"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contact"];
+                };
+            };
+        };
+    };
+    v1_organizations_onboarding_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Onboarding"];
+                "application/x-www-form-urlencoded": components["schemas"]["Onboarding"];
+                "multipart/form-data": components["schemas"]["Onboarding"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Onboarding"];
+                };
+            };
+        };
+    };
+    v1_organizations_data_centrals_main_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedDataCentralMainDetailList"];
+                };
+            };
+        };
+    };
+    v1_organizations_data_centrals_main_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataCentralMainWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["DataCentralMainWrite"];
+                "multipart/form-data": components["schemas"]["DataCentralMainWrite"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralMainWrite"];
+                };
+            };
+        };
+    };
+    v1_organizations_data_centrals_main_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralMainDetail"];
+                };
+            };
+        };
+    };
+    v1_organizations_data_centrals_main_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataCentralMainWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["DataCentralMainWrite"];
+                "multipart/form-data": components["schemas"]["DataCentralMainWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralMainWrite"];
+                };
+            };
+        };
+    };
+    v1_organizations_data_centrals_main_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDataCentralMainWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDataCentralMainWrite"];
+                "multipart/form-data": components["schemas"]["PatchedDataCentralMainWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralMainWrite"];
+                };
+            };
+        };
+    };
+    v1_organizations_datacentrals_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedDataCentralDetailList"];
+                };
+            };
+        };
+    };
+    v1_organizations_datacentrals_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataCentralWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["DataCentralWrite"];
+                "multipart/form-data": components["schemas"]["DataCentralWrite"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralWrite"];
+                };
+            };
+        };
+    };
+    v1_organizations_datacentrals_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralDetail"];
+                };
+            };
+        };
+    };
+    v1_organizations_datacentrals_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataCentralWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["DataCentralWrite"];
+                "multipart/form-data": components["schemas"]["DataCentralWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralWrite"];
+                };
+            };
+        };
+    };
+    v1_organizations_datacentrals_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDataCentralWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDataCentralWrite"];
+                "multipart/form-data": components["schemas"]["PatchedDataCentralWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralWrite"];
+                };
+            };
+        };
+    };
+    v1_organizations_datacentrals_assignments_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedDataCentralAssignmentList"];
+                };
+            };
+        };
+    };
+    v1_organizations_datacentrals_assignments_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataCentralAssignment"];
+                "application/x-www-form-urlencoded": components["schemas"]["DataCentralAssignment"];
+                "multipart/form-data": components["schemas"]["DataCentralAssignment"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataCentralAssignment"];
+                };
+            };
+        };
+    };
+    v1_organizations_datacentrals_assignments_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_geo_assets_ranches_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Filtra ranchos por UUID del productor (AgroUnit). Útil para navegar la jerarquía Productor → Rancho en la app móvil. */
+                producer?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedRanchList"];
+                };
+            };
+        };
+    };
+    v1_geo_assets_ranches_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Ranch"];
+                "application/x-www-form-urlencoded": components["schemas"]["Ranch"];
+                "multipart/form-data": components["schemas"]["Ranch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ranch"];
+                };
+            };
+        };
+    };
+    v1_geo_assets_ranches_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedRanch"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedRanch"];
+                "multipart/form-data": components["schemas"]["PatchedRanch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ranch"];
+                };
+            };
+        };
+    };
+    v1_geo_assets_ranches_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_geo_assets_ranches_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ranch"];
+                };
+            };
+        };
+    };
+    v1_geo_assets_ranches_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Ranch"];
+                "application/x-www-form-urlencoded": components["schemas"]["Ranch"];
+                "multipart/form-data": components["schemas"]["Ranch"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ranch"];
+                };
+            };
+        };
+    };
+    v1_geo_assets_plots_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Filtra parcelas por UUID del productor (AgroUnit). Alternativa directa sin pasar por rancho. */
+                producer?: string;
+                /** @description Filtra parcelas por UUID del rancho. Útil para navegar la jerarquía Rancho → Parcela en la app móvil. */
+                ranch?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedPlotList"];
+                };
+            };
+        };
+    };
+    v1_geo_assets_plots_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Plot"];
+                "application/x-www-form-urlencoded": components["schemas"]["Plot"];
+                "multipart/form-data": components["schemas"]["Plot"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plot"];
+                };
+            };
+        };
+    };
+    v1_geo_assets_plots_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plot"];
+                };
+            };
+        };
+    };
+    v1_geo_assets_plots_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Plot"];
+                "application/x-www-form-urlencoded": components["schemas"]["Plot"];
+                "multipart/form-data": components["schemas"]["Plot"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plot"];
+                };
+            };
+        };
+    };
+    v1_geo_assets_plots_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPlot"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPlot"];
+                "multipart/form-data": components["schemas"]["PatchedPlot"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plot"];
+                };
+            };
+        };
+    };
+    v1_geo_assets_plots_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_geo_assets_plots_import_vertices_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlotImportVertices"];
+                "application/x-www-form-urlencoded": components["schemas"]["PlotImportVertices"];
+                "multipart/form-data": components["schemas"]["PlotImportVertices"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plot"];
+                };
+            };
+        };
+    };
+    v1_geo_assets_ranch_partners_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Filtra socios por UUID del rancho. */
+                ranch?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedRanchPartnerList"];
+                };
+            };
+        };
+    };
+    v1_geo_assets_ranch_partners_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RanchPartner"];
+                "application/x-www-form-urlencoded": components["schemas"]["RanchPartner"];
+                "multipart/form-data": components["schemas"]["RanchPartner"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RanchPartner"];
+                };
+            };
+        };
+    };
+    v1_geo_assets_ranch_partners_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6640,15 +12133,13 @@ export interface operations {
             };
         };
     };
-    v1_field_ops_master_programs_list: {
+    v1_agro_catalogs_crops_list: {
         parameters: {
             query?: {
-                /** @description Filtrar por uuid de agro_unit (tipo 'Productor' o 'Asociación Agrícola') */
-                agro_unit?: string;
+                /** @description Filtra por código (búsqueda parcial). */
+                code?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
-                /** @description Filtrar por status */
-                status?: "cancelled" | "completed" | "in_progress" | "loaded" | "pending";
             };
             header?: never;
             path?: never;
@@ -6661,12 +12152,375 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedMasterProgramList"];
+                    "application/json": components["schemas"]["PaginatedCropCatalogList"];
                 };
             };
         };
     };
-    v1_field_ops_master_programs_retrieve: {
+    v1_agro_catalogs_crops_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CropCatalog"];
+                "application/x-www-form-urlencoded": components["schemas"]["CropCatalog"];
+                "multipart/form-data": components["schemas"]["CropCatalog"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CropCatalog"];
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_crops_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CropCatalog"];
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_crops_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CropCatalog"];
+                "application/x-www-form-urlencoded": components["schemas"]["CropCatalog"];
+                "multipart/form-data": components["schemas"]["CropCatalog"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CropCatalog"];
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_crops_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedCropCatalog"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedCropCatalog"];
+                "multipart/form-data": components["schemas"]["PatchedCropCatalog"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CropCatalog"];
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_phytosanitary_list: {
+        parameters: {
+            query?: {
+                /** @description Filtra por ID del cultivo asociado. */
+                default_crop?: number;
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Filtra por tipo: `Plaga` o `Enfermedad`. */
+                type?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedPhytosanitaryCatalogList"];
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_phytosanitary_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhytosanitaryCatalog"];
+                "application/x-www-form-urlencoded": components["schemas"]["PhytosanitaryCatalog"];
+                "multipart/form-data": components["schemas"]["PhytosanitaryCatalog"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhytosanitaryCatalog"];
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_phytosanitary_photos_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["PhytosanitaryPhotoCreate"];
+                "application/x-www-form-urlencoded": components["schemas"]["PhytosanitaryPhotoCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhytosanitaryPhotoCreate"];
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_phytosanitary_photos_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_agro_catalogs_phytosanitary_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhytosanitaryCatalog"];
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_phytosanitary_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhytosanitaryCatalog"];
+                "application/x-www-form-urlencoded": components["schemas"]["PhytosanitaryCatalog"];
+                "multipart/form-data": components["schemas"]["PhytosanitaryCatalog"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhytosanitaryCatalog"];
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_phytosanitary_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPhytosanitaryCatalog"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPhytosanitaryCatalog"];
+                "multipart/form-data": components["schemas"]["PatchedPhytosanitaryCatalog"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhytosanitaryCatalog"];
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_evaluations_fields_spec_retrieve: {
+        parameters: {
+            query: {
+                /** @description Tipo de actividad (ej: ASPERSION). */
+                activity_type: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldsSpecResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_evaluations_list: {
+        parameters: {
+            query?: {
+                /** @description Filtra por tipo de actividad: ASPERSION, PHYTOSANITARY, MONITORING, OTHER. */
+                activity_type?: string;
+                /** @description true = solo activos (default de frontend). */
+                is_active?: boolean;
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedEvaluationCatalogList"];
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_evaluations_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationCatalog"];
+                "application/x-www-form-urlencoded": components["schemas"]["EvaluationCatalog"];
+                "multipart/form-data": components["schemas"]["EvaluationCatalog"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationCatalog"];
+                };
+            };
+        };
+    };
+    v1_agro_catalogs_evaluations_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -6682,33 +12536,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MasterProgram"];
+                    "application/json": components["schemas"]["EvaluationCatalog"];
                 };
             };
         };
     };
-    v1_field_ops_master_programs_tree_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MasterProgramTree"];
-                };
-            };
-        };
-    };
-    v1_field_ops_master_programs_update_update: {
+    v1_agro_catalogs_evaluations_update_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -6719,9 +12552,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MasterProgram"];
-                "application/x-www-form-urlencoded": components["schemas"]["MasterProgram"];
-                "multipart/form-data": components["schemas"]["MasterProgram"];
+                "application/json": components["schemas"]["EvaluationCatalog"];
+                "application/x-www-form-urlencoded": components["schemas"]["EvaluationCatalog"];
+                "multipart/form-data": components["schemas"]["EvaluationCatalog"];
             };
         };
         responses: {
@@ -6730,12 +12563,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MasterProgram"];
+                    "application/json": components["schemas"]["EvaluationCatalog"];
                 };
             };
         };
     };
-    v1_field_ops_master_programs_update_partial_update: {
+    v1_agro_catalogs_evaluations_update_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -6746,9 +12579,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedMasterProgram"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedMasterProgram"];
-                "multipart/form-data": components["schemas"]["PatchedMasterProgram"];
+                "application/json": components["schemas"]["PatchedEvaluationCatalog"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedEvaluationCatalog"];
+                "multipart/form-data": components["schemas"]["PatchedEvaluationCatalog"];
             };
         };
         responses: {
@@ -6757,32 +12590,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MasterProgram"];
-                };
-            };
-        };
-    };
-    v1_field_ops_master_programs_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MasterProgram"];
-                "application/x-www-form-urlencoded": components["schemas"]["MasterProgram"];
-                "multipart/form-data": components["schemas"]["MasterProgram"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MasterProgram"];
+                    "application/json": components["schemas"]["EvaluationCatalog"];
                 };
             };
         };
@@ -6817,6 +12625,31 @@ export interface operations {
             };
         };
     };
+    v1_field_ops_tasks_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Programa"];
+                "application/x-www-form-urlencoded": components["schemas"]["Programa"];
+                "multipart/form-data": components["schemas"]["Programa"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Programa"];
+                };
+            };
+        };
+    };
     v1_field_ops_tasks_retrieve: {
         parameters: {
             query?: never;
@@ -6827,6 +12660,60 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Programa"];
+                };
+            };
+        };
+    };
+    v1_field_ops_tasks_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Programa"];
+                "application/x-www-form-urlencoded": components["schemas"]["Programa"];
+                "multipart/form-data": components["schemas"]["Programa"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Programa"];
+                };
+            };
+        };
+    };
+    v1_field_ops_tasks_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPrograma"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPrograma"];
+                "multipart/form-data": components["schemas"]["PatchedPrograma"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -6887,72 +12774,44 @@ export interface operations {
             };
         };
     };
-    v1_field_ops_tasks_update_update: {
+    v1_field_ops_master_programs_list: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
+            query?: {
+                /** @description Filtrar por uuid de agro_unit (tipo 'Productor' o 'Asociación Agrícola') */
+                agro_unit?: string;
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Filtrar por status */
+                status?: "cancelled" | "completed" | "in_progress" | "loaded" | "pending";
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["Programa"];
-                "application/x-www-form-urlencoded": components["schemas"]["Programa"];
-                "multipart/form-data": components["schemas"]["Programa"];
-            };
-        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Programa"];
+                    "application/json": components["schemas"]["PaginatedMasterProgramList"];
                 };
             };
         };
     };
-    v1_field_ops_tasks_update_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedPrograma"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedPrograma"];
-                "multipart/form-data": components["schemas"]["PatchedPrograma"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Programa"];
-                };
-            };
-        };
-    };
-    v1_field_ops_tasks_create_create: {
+    v1_field_ops_master_programs_create_create: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                "application/json": components["schemas"]["Programa"];
-                "application/x-www-form-urlencoded": components["schemas"]["Programa"];
-                "multipart/form-data": components["schemas"]["Programa"];
+                "application/json": components["schemas"]["MasterProgram"];
+                "application/x-www-form-urlencoded": components["schemas"]["MasterProgram"];
+                "multipart/form-data": components["schemas"]["MasterProgram"];
             };
         };
         responses: {
@@ -6961,38 +12820,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Programa"];
+                    "application/json": components["schemas"]["MasterProgram"];
                 };
             };
         };
     };
-    v1_geo_assets_plots_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Filtra parcelas por UUID del productor (AgroUnit). Alternativa directa sin pasar por rancho. */
-                producer?: string;
-                /** @description Filtra parcelas por UUID del rancho. Útil para navegar la jerarquía Rancho → Parcela en la app móvil. */
-                ranch?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedPlotList"];
-                };
-            };
-        };
-    };
-    v1_geo_assets_plots_retrieve: {
+    v1_field_ops_master_programs_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -7008,32 +12841,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Plot"];
+                    "application/json": components["schemas"]["MasterProgram"];
                 };
             };
         };
     };
-    v1_geo_assets_plots_delete_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    v1_geo_assets_plots_import_vertices_create: {
+    v1_field_ops_master_programs_update_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -7044,9 +12857,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PlotImportVertices"];
-                "application/x-www-form-urlencoded": components["schemas"]["PlotImportVertices"];
-                "multipart/form-data": components["schemas"]["PlotImportVertices"];
+                "application/json": components["schemas"]["MasterProgram"];
+                "application/x-www-form-urlencoded": components["schemas"]["MasterProgram"];
+                "multipart/form-data": components["schemas"]["MasterProgram"];
             };
         };
         responses: {
@@ -7055,12 +12868,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Plot"];
+                    "application/json": components["schemas"]["MasterProgram"];
                 };
             };
         };
     };
-    v1_geo_assets_plots_update_update: {
+    v1_field_ops_master_programs_update_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -7071,9 +12884,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["Plot"];
-                "application/x-www-form-urlencoded": components["schemas"]["Plot"];
-                "multipart/form-data": components["schemas"]["Plot"];
+                "application/json": components["schemas"]["PatchedMasterProgram"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedMasterProgram"];
+                "multipart/form-data": components["schemas"]["PatchedMasterProgram"];
             };
         };
         responses: {
@@ -7082,12 +12895,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Plot"];
+                    "application/json": components["schemas"]["MasterProgram"];
                 };
             };
         };
     };
-    v1_geo_assets_plots_update_partial_update: {
+    v1_field_ops_master_programs_tree_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -7096,56 +12909,27 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedPlot"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedPlot"];
-                "multipart/form-data": components["schemas"]["PatchedPlot"];
-            };
-        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Plot"];
+                    "application/json": components["schemas"]["MasterProgramTree"];
                 };
             };
         };
     };
-    v1_geo_assets_plots_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["Plot"];
-                "application/x-www-form-urlencoded": components["schemas"]["Plot"];
-                "multipart/form-data": components["schemas"]["Plot"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Plot"];
-                };
-            };
-        };
-    };
-    v1_geo_assets_ranch_partners_list: {
+    v1_field_ops_session_reports_list: {
         parameters: {
             query?: {
+                /** @description UUID del header de sesión. */
+                object_id?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
-                /** @description Filtra socios por UUID del rancho. */
-                ranch?: string;
+                /** @description Alias del tipo de sesión, p. ej. `aspersion`. */
+                session_type?: string;
             };
             header?: never;
             path?: never;
@@ -7158,43 +12942,28 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedRanchPartnerList"];
+                    "application/json": components["schemas"]["PaginatedSessionReportList"];
                 };
             };
         };
     };
-    v1_geo_assets_ranch_partners_delete_destroy: {
+    v1_field_ops_session_reports_create: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
+            query?: {
+                /** @description UUID del header de sesión. */
+                object_id?: string;
+                /** @description Alias del tipo de sesión, p. ej. `aspersion`. */
+                session_type?: string;
             };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    v1_geo_assets_ranch_partners_create_create: {
-        parameters: {
-            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RanchPartner"];
-                "application/x-www-form-urlencoded": components["schemas"]["RanchPartner"];
-                "multipart/form-data": components["schemas"]["RanchPartner"];
+                "application/json": components["schemas"]["SessionReport"];
+                "application/x-www-form-urlencoded": components["schemas"]["SessionReport"];
+                "multipart/form-data": components["schemas"]["SessionReport"];
             };
         };
         responses: {
@@ -7203,36 +12972,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RanchPartner"];
+                    "application/json": components["schemas"]["SessionReport"];
                 };
             };
         };
     };
-    v1_geo_assets_ranches_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Filtra ranchos por UUID del productor (AgroUnit). Útil para navegar la jerarquía Productor → Rancho en la app móvil. */
-                producer?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedRanchList"];
-                };
-            };
-        };
-    };
-    v1_geo_assets_ranches_retrieve: {
+    v1_field_ops_session_reports_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -7248,12 +12993,97 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Ranch"];
+                    "application/json": components["schemas"]["SessionReport"];
                 };
             };
         };
     };
-    v1_geo_assets_ranches_delete_destroy: {
+    v1_field_ops_session_reports_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionReport"];
+                "application/x-www-form-urlencoded": components["schemas"]["SessionReport"];
+                "multipart/form-data": components["schemas"]["SessionReport"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionReport"];
+                };
+            };
+        };
+    };
+    v1_field_ops_session_reports_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedSessionReport"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedSessionReport"];
+                "multipart/form-data": components["schemas"]["PatchedSessionReport"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionReport"];
+                };
+            };
+        };
+    };
+    v1_field_ops_session_reports_sync_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionReport"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_field_ops_session_reports_delete_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -7273,72 +13103,45 @@ export interface operations {
             };
         };
     };
-    v1_geo_assets_ranches_update_update: {
+    v1_field_ops_session_issues_list: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description UUID del reporte de sesión. */
+                report?: string;
             };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["Ranch"];
-                "application/x-www-form-urlencoded": components["schemas"]["Ranch"];
-                "multipart/form-data": components["schemas"]["Ranch"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Ranch"];
-                };
-            };
-        };
-    };
-    v1_geo_assets_ranches_update_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedRanch"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedRanch"];
-                "multipart/form-data": components["schemas"]["PatchedRanch"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Ranch"];
-                };
-            };
-        };
-    };
-    v1_geo_assets_ranches_create_create: {
-        parameters: {
-            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedSessionIssueList"];
+                };
+            };
+        };
+    };
+    v1_field_ops_session_issues_create: {
+        parameters: {
+            query?: {
+                /** @description UUID del reporte de sesión. */
+                report?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
             content: {
-                "application/json": components["schemas"]["Ranch"];
-                "application/x-www-form-urlencoded": components["schemas"]["Ranch"];
-                "multipart/form-data": components["schemas"]["Ranch"];
+                "application/json": components["schemas"]["SessionIssue"];
+                "application/x-www-form-urlencoded": components["schemas"]["SessionIssue"];
+                "multipart/form-data": components["schemas"]["SessionIssue"];
             };
         };
         responses: {
@@ -7347,56 +13150,82 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Ranch"];
+                    "application/json": components["schemas"]["SessionIssue"];
                 };
             };
         };
     };
-    v1_geography_countries_list: {
+    v1_field_ops_session_issues_update_update: {
         parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
+            query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionIssue"];
+                "application/x-www-form-urlencoded": components["schemas"]["SessionIssue"];
+                "multipart/form-data": components["schemas"]["SessionIssue"];
+            };
+        };
         responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedCountryList"];
+                    "application/json": components["schemas"]["SessionIssue"];
                 };
             };
         };
     };
-    v1_geography_states_list: {
+    v1_field_ops_session_issues_update_partial_update: {
         parameters: {
-            query?: {
-                /** @description Filtra por codigo ISO-2 del pais (ej: `MX`, `US`). */
-                country?: string;
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
+            query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedSessionIssue"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedSessionIssue"];
+                "multipart/form-data": components["schemas"]["PatchedSessionIssue"];
+            };
+        };
         responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedStateDetailList"];
+                    "application/json": components["schemas"]["SessionIssue"];
                 };
+            };
+        };
+    };
+    v1_field_ops_session_issues_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7418,6 +13247,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedMonitoringCatalogList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonitoringCatalog"];
+                "application/x-www-form-urlencoded": components["schemas"]["MonitoringCatalog"];
+                "multipart/form-data": components["schemas"]["MonitoringCatalog"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCatalog"];
                 };
             };
         };
@@ -7497,6 +13351,464 @@ export interface operations {
             };
         };
     };
+    v1_monitoring_headers_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description UUID de la parcela. Filtra los headers que pertenecen a esa parcela. */
+                plot?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedMonitoringHeaderList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_headers_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonitoringHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["MonitoringHeader"];
+                "multipart/form-data": components["schemas"]["MonitoringHeader"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_headers_import_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ImportCSVRequest"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportCSVResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_headers_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_headers_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonitoringHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["MonitoringHeader"];
+                "multipart/form-data": components["schemas"]["MonitoringHeader"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_headers_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedMonitoringHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedMonitoringHeader"];
+                "multipart/form-data": components["schemas"]["PatchedMonitoringHeader"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_headers_stats_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringSessionStats"][];
+                };
+            };
+        };
+    };
+    v1_monitoring_points_list: {
+        parameters: {
+            query?: {
+                /** @description Filtra por UUID del AgroUnit (productor). Incluye todos los ranchos y lotes del productor. */
+                agro_unit?: string;
+                /** @description Filtra puntos que contienen la clave JSONB indicada en `parameters` (ej: `?attribute=pH` retorna solo puntos que tienen la clave `pH`). Util para descartar puntos con datos incompletos antes de renderizar el mapa de calor. */
+                attribute?: string;
+                /** @description Filtra por codigo unico del DataLayer (ej: `SUELO-2024`, `NDVI-DRONE`). Ver GET /api/v1/monitoring/. */
+                datalayer?: string;
+                /** @description Filtra por UUID del DataLayerHeader (sesion de captura). */
+                header?: string;
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+                /** @description Filtra por UUID del Plot (lote/parcela). */
+                plot?: string;
+                /** @description Filtra por UUID del Ranch. Incluye todos los lotes del rancho. */
+                ranch?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedMonitoringPointsList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_points_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonitoringPoints"];
+                "application/x-www-form-urlencoded": components["schemas"]["MonitoringPoints"];
+                "multipart/form-data": components["schemas"]["MonitoringPoints"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringPoints"];
+                };
+            };
+        };
+    };
+    v1_monitoring_points_export_retrieve: {
+        parameters: {
+            query?: {
+                agro_unit?: string;
+                attribute?: string;
+                datalayer?: string;
+                header?: string;
+                plot?: string;
+                ranch?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    v1_monitoring_points_heatmap_retrieve: {
+        parameters: {
+            query: {
+                /** @description Nombre del campo en `parameters` a graficar (ej: `pH`, `NDVI`, `cant_prod`). */
+                attribute: string;
+                /** @description UUID de la sesión de monitoreo (MonitoringHeader). */
+                header: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeatmapResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeatmapError400"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeatmapError404"];
+                };
+            };
+        };
+    };
+    v1_monitoring_points_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringPoints"];
+                };
+            };
+        };
+    };
+    v1_monitoring_aspersion_templates_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAspersionImportTemplateList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_aspersion_templates_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AspersionImportTemplate"];
+                "application/x-www-form-urlencoded": components["schemas"]["AspersionImportTemplate"];
+                "multipart/form-data": components["schemas"]["AspersionImportTemplate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AspersionImportTemplate"];
+                };
+            };
+        };
+    };
+    v1_monitoring_aspersion_templates_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AspersionImportTemplate"];
+                };
+            };
+        };
+    };
+    v1_monitoring_aspersion_templates_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AspersionImportTemplate"];
+                "application/x-www-form-urlencoded": components["schemas"]["AspersionImportTemplate"];
+                "multipart/form-data": components["schemas"]["AspersionImportTemplate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AspersionImportTemplate"];
+                };
+            };
+        };
+    };
+    v1_monitoring_aspersion_templates_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAspersionImportTemplate"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAspersionImportTemplate"];
+                "multipart/form-data": components["schemas"]["PatchedAspersionImportTemplate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AspersionImportTemplate"];
+                };
+            };
+        };
+    };
     v1_monitoring_aspersion_headers_list: {
         parameters: {
             query?: {
@@ -7567,6 +13879,60 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AspersionSessionHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_aspersion_headers_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AspersionSessionHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["AspersionSessionHeader"];
+                "multipart/form-data": components["schemas"]["AspersionSessionHeader"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AspersionSessionHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_aspersion_headers_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAspersionSessionHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAspersionSessionHeader"];
+                "multipart/form-data": components["schemas"]["PatchedAspersionSessionHeader"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -7693,7 +14059,7 @@ export interface operations {
             };
         };
     };
-    v1_monitoring_aspersion_headers_update_update: {
+    v1_monitoring_aspersion_headers_variable_stats_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -7702,25 +14068,31 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AspersionSessionHeader"];
-                "application/x-www-form-urlencoded": components["schemas"]["AspersionSessionHeader"];
-                "multipart/form-data": components["schemas"]["AspersionSessionHeader"];
-            };
-        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AspersionSessionHeader"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
     };
-    v1_monitoring_aspersion_headers_update_partial_update: {
+    v1_monitoring_aspersion_headers_flush_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -7729,20 +14101,16 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedAspersionSessionHeader"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedAspersionSessionHeader"];
-                "multipart/form-data": components["schemas"]["PatchedAspersionSessionHeader"];
-            };
-        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AspersionSessionHeader"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -7775,525 +14143,6 @@ export interface operations {
             };
         };
     };
-    v1_monitoring_aspersion_templates_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedAspersionImportTemplateList"];
-                };
-            };
-        };
-    };
-    v1_monitoring_aspersion_templates_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AspersionImportTemplate"];
-                };
-            };
-        };
-    };
-    v1_monitoring_aspersion_templates_update_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AspersionImportTemplate"];
-                "application/x-www-form-urlencoded": components["schemas"]["AspersionImportTemplate"];
-                "multipart/form-data": components["schemas"]["AspersionImportTemplate"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AspersionImportTemplate"];
-                };
-            };
-        };
-    };
-    v1_monitoring_aspersion_templates_update_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedAspersionImportTemplate"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedAspersionImportTemplate"];
-                "multipart/form-data": components["schemas"]["PatchedAspersionImportTemplate"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AspersionImportTemplate"];
-                };
-            };
-        };
-    };
-    v1_monitoring_aspersion_templates_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AspersionImportTemplate"];
-                "application/x-www-form-urlencoded": components["schemas"]["AspersionImportTemplate"];
-                "multipart/form-data": components["schemas"]["AspersionImportTemplate"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AspersionImportTemplate"];
-                };
-            };
-        };
-    };
-    v1_monitoring_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MonitoringCatalog"];
-                "application/x-www-form-urlencoded": components["schemas"]["MonitoringCatalog"];
-                "multipart/form-data": components["schemas"]["MonitoringCatalog"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MonitoringCatalog"];
-                };
-            };
-        };
-    };
-    v1_monitoring_headers_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description UUID de la parcela. Filtra los headers que pertenecen a esa parcela. */
-                plot?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedMonitoringHeaderList"];
-                };
-            };
-        };
-    };
-    v1_monitoring_headers_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MonitoringHeader"];
-                };
-            };
-        };
-    };
-    v1_monitoring_headers_stats_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MonitoringSessionStats"][];
-                };
-            };
-        };
-    };
-    v1_monitoring_headers_update_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MonitoringHeader"];
-                "application/x-www-form-urlencoded": components["schemas"]["MonitoringHeader"];
-                "multipart/form-data": components["schemas"]["MonitoringHeader"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MonitoringHeader"];
-                };
-            };
-        };
-    };
-    v1_monitoring_headers_update_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedMonitoringHeader"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedMonitoringHeader"];
-                "multipart/form-data": components["schemas"]["PatchedMonitoringHeader"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MonitoringHeader"];
-                };
-            };
-        };
-    };
-    v1_monitoring_headers_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MonitoringHeader"];
-                "application/x-www-form-urlencoded": components["schemas"]["MonitoringHeader"];
-                "multipart/form-data": components["schemas"]["MonitoringHeader"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MonitoringHeader"];
-                };
-            };
-        };
-    };
-    v1_monitoring_headers_import_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["ImportCSVRequest"];
-            };
-        };
-        responses: {
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ImportCSVResponse"];
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    v1_monitoring_phyto_checkpoints_list: {
-        parameters: {
-            query?: {
-                /** @description Filtrar por UUID de sesión. */
-                header?: string;
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Filtrar por ID de problema fitosanitario. */
-                phyto_issue?: number;
-                /** @description Filtrar por UUID de parcela. */
-                plot?: string;
-                /** @description true = solo los que estuvieron en radio programado. */
-                program_check?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedPhytoCheckPointList"];
-                };
-            };
-        };
-    };
-    v1_monitoring_phyto_checkpoints_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PhytoCheckPoint"];
-                };
-            };
-        };
-    };
-    v1_monitoring_phyto_checkpoints_delete_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    v1_monitoring_phyto_checkpoints_update_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedPhytoCheckPoint"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedPhytoCheckPoint"];
-                "multipart/form-data": components["schemas"]["PatchedPhytoCheckPoint"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PhytoCheckPoint"];
-                };
-            };
-        };
-    };
-    v1_monitoring_phyto_checkpoints_bulk_create_create: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PhytoCheckPoint"][];
-                "application/x-www-form-urlencoded": components["schemas"]["PhytoCheckPoint"][];
-                "multipart/form-data": components["schemas"]["PhytoCheckPoint"][];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedPhytoCheckPointList"];
-                };
-            };
-        };
-    };
-    v1_monitoring_phyto_checkpoints_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PhytoCheckPoint"];
-                "application/x-www-form-urlencoded": components["schemas"]["PhytoCheckPoint"];
-                "multipart/form-data": components["schemas"]["PhytoCheckPoint"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PhytoCheckPoint"];
-                };
-            };
-        };
-    };
-    v1_monitoring_phyto_checkpoints_import_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["PhytoCheckPointImportRequest"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PhytoCheckPointImportResponse"];
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
     v1_monitoring_phyto_headers_list: {
         parameters: {
             query?: {
@@ -8322,6 +14171,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedPhytoMonitoringHeaderList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_phyto_headers_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhytoMonitoringHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["PhytoMonitoringHeader"];
+                "multipart/form-data": components["schemas"]["PhytoMonitoringHeader"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhytoMonitoringHeader"];
                 };
             };
         };
@@ -8401,31 +14275,6 @@ export interface operations {
             };
         };
     };
-    v1_monitoring_phyto_headers_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PhytoMonitoringHeader"];
-                "application/x-www-form-urlencoded": components["schemas"]["PhytoMonitoringHeader"];
-                "multipart/form-data": components["schemas"]["PhytoMonitoringHeader"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PhytoMonitoringHeader"];
-                };
-            };
-        };
-    };
     v1_monitoring_phyto_target_points_list: {
         parameters: {
             query?: {
@@ -8450,6 +14299,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedPhytoTargetPointList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_phyto_target_points_create_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhytoTargetPoint"];
+                "application/x-www-form-urlencoded": components["schemas"]["PhytoTargetPoint"];
+                "multipart/form-data": components["schemas"]["PhytoTargetPoint"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhytoTargetPoint"];
                 };
             };
         };
@@ -8508,50 +14382,19 @@ export interface operations {
             };
         };
     };
-    v1_monitoring_phyto_target_points_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PhytoTargetPoint"];
-                "application/x-www-form-urlencoded": components["schemas"]["PhytoTargetPoint"];
-                "multipart/form-data": components["schemas"]["PhytoTargetPoint"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PhytoTargetPoint"];
-                };
-            };
-        };
-    };
-    v1_monitoring_points_list: {
+    v1_monitoring_phyto_checkpoints_list: {
         parameters: {
             query?: {
-                /** @description Filtra por UUID del AgroUnit (productor). Incluye todos los ranchos y lotes del productor. */
-                agro_unit?: string;
-                /** @description Filtra puntos que contienen la clave JSONB indicada en `parameters` (ej: `?attribute=pH` retorna solo puntos que tienen la clave `pH`). Util para descartar puntos con datos incompletos antes de renderizar el mapa de calor. */
-                attribute?: string;
-                /** @description Filtra por codigo unico del DataLayer (ej: `SUELO-2024`, `NDVI-DRONE`). Ver GET /api/v1/monitoring/. */
-                datalayer?: string;
-                /** @description Filtra por UUID del DataLayerHeader (sesion de captura). */
+                /** @description Filtrar por UUID de sesión. */
                 header?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-                /** @description Filtra por UUID del Plot (lote/parcela). */
+                /** @description Filtrar por ID de problema fitosanitario. */
+                phyto_issue?: number;
+                /** @description Filtrar por UUID de parcela. */
                 plot?: string;
-                /** @description Filtra por UUID del Ranch. Incluye todos los lotes del rancho. */
-                ranch?: string;
+                /** @description true = solo los que estuvieron en radio programado. */
+                program_check?: boolean;
             };
             header?: never;
             path?: never;
@@ -8564,33 +14407,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedMonitoringPointsList"];
+                    "application/json": components["schemas"]["PaginatedPhytoCheckPointList"];
                 };
             };
         };
     };
-    v1_monitoring_points_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MonitoringPoints"];
-                };
-            };
-        };
-    };
-    v1_monitoring_points_create_create: {
+    v1_monitoring_phyto_checkpoints_create_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -8599,9 +14421,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MonitoringPoints"];
-                "application/x-www-form-urlencoded": components["schemas"]["MonitoringPoints"];
-                "multipart/form-data": components["schemas"]["MonitoringPoints"];
+                "application/json": components["schemas"]["PhytoCheckPoint"];
+                "application/x-www-form-urlencoded": components["schemas"]["PhytoCheckPoint"];
+                "multipart/form-data": components["schemas"]["PhytoCheckPoint"];
             };
         };
         responses: {
@@ -8610,57 +14432,58 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MonitoringPoints"];
+                    "application/json": components["schemas"]["PhytoCheckPoint"];
                 };
             };
         };
     };
-    v1_monitoring_points_export_retrieve: {
+    v1_monitoring_phyto_checkpoints_bulk_create_create: {
         parameters: {
             query?: {
-                agro_unit?: string;
-                attribute?: string;
-                datalayer?: string;
-                header?: string;
-                plot?: string;
-                ranch?: string;
+                /** @description A page number within the paginated result set. */
+                page?: number;
             };
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhytoCheckPoint"][];
+                "application/x-www-form-urlencoded": components["schemas"]["PhytoCheckPoint"][];
+                "multipart/form-data": components["schemas"]["PhytoCheckPoint"][];
+            };
+        };
         responses: {
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": string;
+                    "application/json": components["schemas"]["PaginatedPhytoCheckPointList"];
                 };
             };
         };
     };
-    v1_monitoring_points_heatmap_retrieve: {
+    v1_monitoring_phyto_checkpoints_import_create: {
         parameters: {
-            query: {
-                /** @description Nombre del campo en `parameters` a graficar (ej: `pH`, `NDVI`, `cant_prod`). */
-                attribute: string;
-                /** @description UUID de la sesión de monitoreo (MonitoringHeader). */
-                header: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["PhytoCheckPointImportRequest"];
+            };
+        };
         responses: {
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HeatmapResponse"];
+                    "application/json": components["schemas"]["PhytoCheckPointImportResponse"];
                 };
             };
             400: {
@@ -8668,7 +14491,52 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HeatmapError400"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_phyto_checkpoints_upload_photos_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["PhytoCheckPointUploadPhotosRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhytoCheckPointUploadPhotosResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             404: {
@@ -8676,939 +14544,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HeatmapError404"];
-                };
-            };
-        };
-    };
-    v1_organizations_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Filtra por tipo de unidad. Valores: `Productor`, `Acopiadora de grano`, `Asociación agrícola`, `Empaque`, `Laboratorio`, `Consultoria`, `Otro`. */
-                unit_type?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedAgroUnitList"];
-                };
-            };
-        };
-    };
-    v1_organizations_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgroUnit"];
-                };
-            };
-        };
-    };
-    v1_organizations_delete_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    v1_organizations_update_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AgroUnit"];
-                "application/x-www-form-urlencoded": components["schemas"]["AgroUnit"];
-                "multipart/form-data": components["schemas"]["AgroUnit"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgroUnit"];
-                };
-            };
-        };
-    };
-    v1_organizations_update_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedAgroUnit"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedAgroUnit"];
-                "multipart/form-data": components["schemas"]["PatchedAgroUnit"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgroUnit"];
-                };
-            };
-        };
-    };
-    v1_organizations_agro_sectors_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedAgroSectorList"];
-                };
-            };
-        };
-    };
-    v1_organizations_agro_sectors_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgroSector"];
-                };
-            };
-        };
-    };
-    v1_organizations_agro_sectors_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AgroSector"];
-                "application/x-www-form-urlencoded": components["schemas"]["AgroSector"];
-                "multipart/form-data": components["schemas"]["AgroSector"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgroSector"];
-                };
-            };
-        };
-    };
-    v1_organizations_agro_sectors_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    v1_organizations_agro_sectors_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedAgroSector"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedAgroSector"];
-                "multipart/form-data": components["schemas"]["PatchedAgroSector"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgroSector"];
-                };
-            };
-        };
-    };
-    v1_organizations_agro_sectors_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AgroSector"];
-                "application/x-www-form-urlencoded": components["schemas"]["AgroSector"];
-                "multipart/form-data": components["schemas"]["AgroSector"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgroSector"];
-                };
-            };
-        };
-    };
-    v1_organizations_contacts_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedContactList"];
-                };
-            };
-        };
-    };
-    v1_organizations_contacts_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Contact"];
-                };
-            };
-        };
-    };
-    v1_organizations_contacts_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Contact"];
-                "application/x-www-form-urlencoded": components["schemas"]["Contact"];
-                "multipart/form-data": components["schemas"]["Contact"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Contact"];
-                };
-            };
-        };
-    };
-    v1_organizations_contacts_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    v1_organizations_contacts_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedContact"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedContact"];
-                "multipart/form-data": components["schemas"]["PatchedContact"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Contact"];
-                };
-            };
-        };
-    };
-    v1_organizations_contacts_assign_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ContactAssignment"];
-                "application/x-www-form-urlencoded": components["schemas"]["ContactAssignment"];
-                "multipart/form-data": components["schemas"]["ContactAssignment"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContactAssignment"];
-                };
-            };
-        };
-    };
-    v1_organizations_contacts_assignments_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedContactAssignmentListList"];
-                };
-            };
-        };
-    };
-    v1_organizations_contacts_assignments_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    v1_organizations_contacts_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Contact"];
-                "application/x-www-form-urlencoded": components["schemas"]["Contact"];
-                "multipart/form-data": components["schemas"]["Contact"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Contact"];
-                };
-            };
-        };
-    };
-    v1_organizations_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AgroUnit"];
-                "application/x-www-form-urlencoded": components["schemas"]["AgroUnit"];
-                "multipart/form-data": components["schemas"]["AgroUnit"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgroUnit"];
-                };
-            };
-        };
-    };
-    v1_organizations_data_centrals_main_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedDataCentralMainDetailList"];
-                };
-            };
-        };
-    };
-    v1_organizations_data_centrals_main_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataCentralMainDetail"];
-                };
-            };
-        };
-    };
-    v1_organizations_data_centrals_main_update_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DataCentralMainWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["DataCentralMainWrite"];
-                "multipart/form-data": components["schemas"]["DataCentralMainWrite"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataCentralMainWrite"];
-                };
-            };
-        };
-    };
-    v1_organizations_data_centrals_main_update_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedDataCentralMainWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedDataCentralMainWrite"];
-                "multipart/form-data": components["schemas"]["PatchedDataCentralMainWrite"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataCentralMainWrite"];
-                };
-            };
-        };
-    };
-    v1_organizations_data_centrals_main_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DataCentralMainWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["DataCentralMainWrite"];
-                "multipart/form-data": components["schemas"]["DataCentralMainWrite"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataCentralMainWrite"];
-                };
-            };
-        };
-    };
-    v1_organizations_datacentrals_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedDataCentralDetailList"];
-                };
-            };
-        };
-    };
-    v1_organizations_datacentrals_assignments_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedDataCentralAssignmentList"];
-                };
-            };
-        };
-    };
-    v1_organizations_datacentrals_assignments_delete_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    v1_organizations_datacentrals_assignments_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DataCentralAssignment"];
-                "application/x-www-form-urlencoded": components["schemas"]["DataCentralAssignment"];
-                "multipart/form-data": components["schemas"]["DataCentralAssignment"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataCentralAssignment"];
-                };
-            };
-        };
-    };
-    v1_organizations_datacentrals_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataCentralDetail"];
-                };
-            };
-        };
-    };
-    v1_organizations_datacentrals_update_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DataCentralWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["DataCentralWrite"];
-                "multipart/form-data": components["schemas"]["DataCentralWrite"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataCentralWrite"];
-                };
-            };
-        };
-    };
-    v1_organizations_datacentrals_update_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedDataCentralWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedDataCentralWrite"];
-                "multipart/form-data": components["schemas"]["PatchedDataCentralWrite"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataCentralWrite"];
-                };
-            };
-        };
-    };
-    v1_organizations_datacentrals_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DataCentralWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["DataCentralWrite"];
-                "multipart/form-data": components["schemas"]["DataCentralWrite"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataCentralWrite"];
-                };
-            };
-        };
-    };
-    v1_organizations_onboarding_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Onboarding"];
-                "application/x-www-form-urlencoded": components["schemas"]["Onboarding"];
-                "multipart/form-data": components["schemas"]["Onboarding"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Onboarding"];
-                };
-            };
-        };
-    };
-    v1_users_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedUserDetailList"];
-                };
-            };
-        };
-    };
-    v1_users_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    v1_users_activate_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedActivateUser"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedActivateUser"];
-                "multipart/form-data": components["schemas"]["PatchedActivateUser"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserDetail"];
-                };
-            };
-        };
-    };
-    v1_users_set_password_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminSetPasswordRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["AdminSetPasswordRequest"];
-                "multipart/form-data": components["schemas"]["AdminSetPasswordRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
                     "application/json": {
                         [key: string]: unknown;
                     };
                 };
             };
-            400: {
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9620,7 +14561,28 @@ export interface operations {
             };
         };
     };
-    v1_users_update_partial_update: {
+    v1_monitoring_phyto_checkpoints_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhytoCheckPoint"];
+                };
+            };
+        };
+    };
+    v1_monitoring_phyto_checkpoints_update_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -9631,9 +14593,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedAdminUserUpdate"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedAdminUserUpdate"];
-                "multipart/form-data": components["schemas"]["PatchedAdminUserUpdate"];
+                "application/json": components["schemas"]["PatchedPhytoCheckPoint"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPhytoCheckPoint"];
+                "multipart/form-data": components["schemas"]["PatchedPhytoCheckPoint"];
             };
         };
         responses: {
@@ -9642,39 +14604,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserDetail"];
+                    "application/json": components["schemas"]["PhytoCheckPoint"];
                 };
             };
         };
     };
-    v1_users_assignments_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedUserAssignmentList"];
-                };
-            };
-        };
-    };
-    v1_users_assignments_delete_destroy: {
+    v1_monitoring_phyto_checkpoints_delete_destroy: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -9686,215 +14626,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-        };
-    };
-    v1_users_assignments_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UserAssignment"];
-                "application/x-www-form-urlencoded": components["schemas"]["UserAssignment"];
-                "multipart/form-data": components["schemas"]["UserAssignment"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserAssignment"];
-                };
-            };
-        };
-    };
-    v1_users_by_datacentral_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path: {
-                dc_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedUserMinimalList"];
-                };
-            };
-        };
-    };
-    v1_users_me_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserDetail"];
-                };
-            };
-        };
-    };
-    v1_users_me_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Individual"];
-                "application/x-www-form-urlencoded": components["schemas"]["Individual"];
-                "multipart/form-data": components["schemas"]["Individual"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Individual"];
-                };
-            };
-        };
-    };
-    v1_users_me_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedIndividual"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedIndividual"];
-                "multipart/form-data": components["schemas"]["PatchedIndividual"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Individual"];
-                };
-            };
-        };
-    };
-    v1_users_pending_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedUserDetailList"];
-                };
-            };
-        };
-    };
-    v1_users_roles_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedUserRoleList"];
-                };
-            };
-        };
-    };
-    v1_users_work_roles_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedWorkRoleList"];
-                };
-            };
-        };
-    };
-    v1_users_work_roles_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WorkRole"];
-                "application/x-www-form-urlencoded": components["schemas"]["WorkRole"];
-                "multipart/form-data": components["schemas"]["WorkRole"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkRole"];
-                };
             };
         };
     };

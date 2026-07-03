@@ -26,7 +26,7 @@ export function LoginForm({ onSubmit, isPending = false, error }: LoginFormProps
     return (
         <div className="flex w-full max-w-sm flex-col items-center gap-6">
             <img
-                src="/tierra_inteligente.svg"
+                src="/agroindustry.png"
                 alt="Tierra Inteligente"
                 className="w-72"
                 draggable={false}

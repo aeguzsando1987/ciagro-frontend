@@ -14,54 +14,70 @@ import type { RectangleProps } from './plotRectangles'
 
 // ─── Tipos de capa ────────────────────────────────────────────────────────────
 
-export type LayerKey = 'application' | 'liquid_flow' | 'boom_pressure' | 'production' | 'speed'
-export type LayerKind = 'category' | 'quartile'
+export type LayerKey =
+  | 'application'
+  | 'target_rate'
+  | 'rate_quality'
+  | 'liquid_flow'
+  | 'boom_pressure'
+  | 'production'
+  | 'speed'
+export type LayerKind = 'category' | 'quartile' | 'target' | 'quality'
 
 export interface LayerDef {
   key: LayerKey
   label: string
-  /** Campo numérico de RectangleProps que alimenta la capa. */
+  /** Campo de RectangleProps que alimenta la capa. */
   field: keyof RectangleProps
   kind: LayerKind
   unit: string
+  /** Unidad alterna opcional: convierte el valor para mostrarlo también (p. ej. bar→PSI). */
+  altUnit?: { label: string; factor: number }
 }
 
-/** Lista ordenada de las 5 capas (el índice 0 = Capa 1 = capa activa por defecto). */
+/**
+ * Lista ordenada de las capas (el índice 0 = capa activa por defecto).
+ * `boom_pressure` muestra además PSI (bar × 14.538) en el tooltip.
+ */
 export const ASPERSION_LAYERS: LayerDef[] = [
-  { key: 'application',   label: '% de aplicación', field: 'applied_rate_l', kind: 'category',  unit: '%'    },
-  { key: 'liquid_flow',   label: 'Flujo líquido',    field: 'liquid_flow_ls', kind: 'quartile',  unit: 'L/s'  },
-  { key: 'boom_pressure', label: 'Presión de brazo', field: 'boom_pressure_bar', kind: 'quartile', unit: 'bar' },
-  { key: 'production',    label: 'Producción',       field: 'production_hah', kind: 'quartile',  unit: 'ha/h' },
-  { key: 'speed',         label: 'Velocidad',        field: 'speed_kmh',      kind: 'quartile',  unit: 'km/h' },
+  { key: 'application',   label: 'Proporción volumen', field: 'applied_rate_l',    kind: 'category', unit: '%'    },
+  { key: 'liquid_flow',   label: 'Caudal',             field: 'liquid_flow_ls',    kind: 'quartile', unit: 'L/s'  },
+  { key: 'boom_pressure', label: 'Presión',            field: 'boom_pressure_bar', kind: 'quartile', unit: 'bar', altUnit: { label: 'PSI', factor: 14.538 } },
+  { key: 'production',    label: 'Productividad',      field: 'production_hah',    kind: 'quartile', unit: 'ha/h' },
+  { key: 'speed',         label: 'Velocidad',          field: 'speed_kmh',         kind: 'quartile', unit: 'km/h' },
+  { key: 'target_rate',   label: 'Proporción meta',    field: 'target_rate_l',     kind: 'target',   unit: 'L/ha' },
+  { key: 'rate_quality',  label: 'Rate Quality',       field: 'rate_quality',      kind: 'quality',  unit: ''     },
 ]
 
 // ─── Capa 1 · Semáforo de % de aplicación ────────────────────────────────────
 
 /**
- * Categorías exactas del caso de uso geodata_analysis_usecases.md.
- * Se definen 5 buckets; los dos últimos son ambos "Sobredosis" pero con rangos distintos.
+ * Semáforo de "Proporción volumen" (applied_rate_l / target_rate_l).
+ * Unificado con el semáforo del reporte: mismas keys, umbrales (75/90/100/115%) y colores.
+ * `sin_meta` es un fallback cuando falta applied/target (no aparece en la leyenda).
  */
 export type ApplicationCategoryKey =
   | 'deficiente'
-  | 'regular'
+  | 'baja'
+  | 'esperada'
   | 'excelente'
   | 'sobredosis'
-  | 'sobredosis_alta'
   | 'sin_meta'
 
 export interface CategoryDef {
-  key: ApplicationCategoryKey
+  key: string
   label: string
   color: string
-  range: string
+  /** Solo en el semáforo categórico (rango de %); ausente en capas por valor/calidad. */
+  range?: string
 }
 
 export const APPLICATION_CATEGORIES: CategoryDef[] = [
-  { key: 'deficiente',      label: 'Deficiente',      color: '#dc2626', range: '< 80%'     },
-  { key: 'regular',         label: 'Regular',         color: '#f59e0b', range: '80–95%'    },
-  { key: 'excelente',       label: 'Excelente',       color: '#16a34a', range: '95–105%'   },
-  { key: 'sobredosis',      label: 'Sobredosis',      color: '#f97316', range: '105–120%'  },
-  { key: 'sobredosis_alta', label: 'Sobredosis alta', color: '#7f1d1d', range: '> 120%'    },
+  { key: 'deficiente', label: 'Deficiente', color: '#dc2626', range: '< 75%'    },
+  { key: 'baja',       label: 'Baja',       color: '#eab308', range: '75–90%'   },
+  { key: 'esperada',   label: 'Esperada',   color: '#84cc16', range: '90–100%'  },
+  { key: 'excelente',  label: 'Excelente',  color: '#5bb304', range: '100–115%' },
+  { key: 'sobredosis', label: 'Sobredosis', color: '#4052D6', range: '> 115%'   },
 ]
 
 /** Calcula el % de aplicación de un punto. Devuelve null si falta target o target es 0. */
@@ -74,9 +90,9 @@ export function applicationPercent(
 }
 
 /**
- * Clasifica un punto según el semáforo de % de aplicación (Capa 1).
- * Umbrales del caso de uso: <80 Deficiente | 80–95 Regular | 95–105 Excelente |
- *   105–120 Sobredosis | >120 Sobredosis alta.
+ * Clasifica un punto según el semáforo de proporción de volumen.
+ * Umbrales (unificados con el reporte): <75 Deficiente | 75–90 Baja | 90–100 Esperada |
+ *   100–115 Excelente | >115 Sobredosis.
  * Si applied o target son nulos/cero, devuelve 'sin_meta'.
  */
 export function classifyApplication(
@@ -85,11 +101,11 @@ export function classifyApplication(
 ): ApplicationCategoryKey {
   const p = applicationPercent(applied, target)
   if (p == null) return 'sin_meta'
-  if (p < 80)  return 'deficiente'
-  if (p < 95)  return 'regular'
-  if (p < 105) return 'excelente'
-  if (p <= 120) return 'sobredosis'
-  return 'sobredosis_alta'
+  if (p < 75)  return 'deficiente'
+  if (p < 90)  return 'baja'
+  if (p < 100) return 'esperada'
+  if (p <= 115) return 'excelente'
+  return 'sobredosis'
 }
 
 // ─── Capas 2–5 · Cuartiles ───────────────────────────────────────────────────
@@ -111,8 +127,11 @@ export interface QuartileDef {
   color: string
 }
 
+/** Capas que se pintan por cuartiles (las demás usan category/target/quality). */
+export type QuartileLayerKey = 'liquid_flow' | 'boom_pressure' | 'production' | 'speed'
+
 /** Paletas de 4 tonos por capa (q1=más claro → q4=más oscuro). */
-export const QUARTILE_PALETTES: Record<Exclude<LayerKey, 'application'>, [string, string, string, string]> = {
+export const QUARTILE_PALETTES: Record<QuartileLayerKey, [string, string, string, string]> = {
   liquid_flow:   ['#bbf7d0', '#4ade80', '#16a34a', '#14532d'],
   boom_pressure: ['#bfdbfe', '#60a5fa', '#2563eb', '#1e3a8a'],
   production:    ['#e9d5ff', '#c084fc', '#9333ea', '#581c87'],
@@ -165,4 +184,51 @@ export function quartileOf(value: number | null, cuts: QuartileCuts): QuartileKe
   if (value < cuts.q2) return 'q2'
   if (value < cuts.q3) return 'q3'
   return 'q4'
+}
+
+// ─── Capa · Rate Quality (semáforo simple de 3 buckets) ──────────────────────
+
+/**
+ * Semáforo simple por `rate_quality` (texto que viene del CSV): Bajo objetivo → rojo,
+ * Bien → verde, Sobre objetivo → azul. `sin_dato` es el fallback (no se lista).
+ */
+export const RATE_QUALITY_CATEGORIES: CategoryDef[] = [
+  { key: 'bajo',  label: 'Bajo objetivo',  color: '#dc2626' },
+  { key: 'bien',  label: 'Bien',           color: '#16a34a' },
+  { key: 'sobre', label: 'Sobre objetivo', color: '#2563eb' },
+]
+
+/** Normaliza el texto de `rate_quality` a una key del semáforo simple. */
+export function classifyRateQuality(value: string | null | undefined): string {
+  if (!value) return 'sin_dato'
+  const s = value.trim().toLowerCase()
+  if (s.startsWith('bajo')) return 'bajo'
+  if (s.startsWith('bien')) return 'bien'
+  if (s.startsWith('sobre')) return 'sobre'
+  return 'sin_dato'
+}
+
+// ─── Capa · Proporción meta (categórica por valor distinto de target_rate_l) ──
+
+/** Paleta cualitativa para valores distintos de meta (se cicla si hay más de 10). */
+export const TARGET_PALETTE: string[] = [
+  '#2563eb', '#16a34a', '#f59e0b', '#9333ea', '#dc2626',
+  '#0891b2', '#c026d3', '#65a30d', '#ea580c', '#4f46e5',
+]
+
+/** Key de bucket para un valor de meta (string estable) o `sin_meta` si falta. */
+export function targetBucketOf(value: number | null): string {
+  return value == null || !Number.isFinite(value) ? 'sin_meta' : String(value)
+}
+
+/** Construye la leyenda de "Proporción meta" a partir de los valores distintos presentes. */
+export function buildTargetDefs(values: (number | null)[]): CategoryDef[] {
+  const distinct = Array.from(
+    new Set(values.filter((v): v is number => v != null && Number.isFinite(v))),
+  ).sort((a, b) => a - b)
+  return distinct.map((v, i) => ({
+    key: String(v),
+    label: `${v.toFixed(2)} L/ha`,
+    color: TARGET_PALETTE[i % TARGET_PALETTE.length]!,
+  }))
 }

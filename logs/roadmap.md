@@ -178,6 +178,71 @@ endpoints + 6 gaps abiertos (1 alta, 2 media, 3 baja).
 
 ---
 
+## FASE FRONTEND · REPORTEADOR DE SESIONES
+**Estado:** `[ ] Pendiente — sesión dedicada (contrato en .context/templates/session-template.json)`
+**Cubre:** use case `.context/usecases/use-case-report-session.md` (flujos 1–4).
+**Backend:** ✅ **Fase AC completa y validada** en rama `dev-session-report` (CIAgro_alpha_back): endpoints
+SessionReport/SessionIssue + sync, 13 tests, admin funcional.
+**Rama de este repo:** crear **`dev-reports`** (desde `dev`). Homologación DIFERIDA: `dev-reports` (front) y
+`dev-session-report` (back) se mergean **juntas** a `dev`→`master` solo cuando ambas estén validadas.
+
+> Reporte por SESIÓN, polimórfico. Se accede desde el Task Manager y desde el Visor de datos
+> (toggle a la derecha del visor de aspersión). Tarjeta con datos denormalizados + semáforo de
+> 5 buckets, observaciones, tabla de temas de atención (issues) y botón "Sincronizar datos de sesión".
+> Reutiliza `AspersionMapModal`, los hooks de sesión y el formulario de creación de sesión.
+
+### API real (Fase AC backend) a consumir
+- `GET/POST /field_ops/session-reports/` — list (scoped) / create. Filtro: `?session_type=aspersion&object_id=<uuid header>`.
+- `GET /field_ops/session-reports/<id>/` · `PATCH .../update/` · `DELETE .../delete/`
+- `POST /field_ops/session-reports/<id>/sync/` — "Sincronizar datos de sesión" (recalcula snapshots; **409** si publicado).
+- `GET/POST /field_ops/session-issues/` (`?report=<uuid>`) · `PATCH .../update/` · `DELETE .../delete/`
+- **Crear reporte:** body `{ session_type:"aspersion", object_id:<uuid>, resume_text, report_date?, day_temperature?, lead?, ranch_manager?, status? }`.
+- **`stats_snapshot`:** `points_count, area_cobertura_ha, dosis_promedio_l, media_meta_l, volumen_total_l, fecha_inicio, fecha_fin, variables{velocidad,flujo_liquido,presion → {avg,min,max,unit}}, proporcion_meta[], semaforo{sobredosis|excelente|esperada|baja|deficiente → {color,area_ha,pct_area_total}}`.
+- **`general_snapshot`:** `actividad, productor, rancho, parcela, superficie_parcela_ha, ubicacion, cultivo, fecha_aplicacion`.
+- **Permisos (D8):** lectura con scope; escritura `IsTechnician` (nivel ≥2); borrar reporte `IsSupervisor`.
+- **D3:** editar texto NO recalcula stats; solo "Sincronizar" lo hace; al publicar, congelado.
+
+> **Sesión 23 (2026-06-30/07-01) — Reporteador FRONTEND: ✅ IMPLEMENTADO en rama `dev-reports`.**
+> Homologación DIFERIDA: `dev-reports` (front) + `dev-session-report` (back) se mergean juntas a
+> `dev`→`master` solo tras validar ambas. 205/205 tests, typecheck sin errores propios (5 ajenos = GAP-FR-RS-001).
+
+### FR-RS.A — Acceso e infraestructura
+- [x] **FR-RS.A1** Toggle "Reportes" en el visor de aspersión (`AspersionMapModal` + `GeodataDashboard`) vía `SessionReportToggle` reutilizable + `SessionReportPanel` (Sheet ancho). Gate: `import_status==='done' && points_count>0 && role_level>=SUPERVISOR`.
+- [x] **FR-RS.A2** Mismo acceso desde Task Manager (`SesionModal`/AspersionView) reutilizando el panel.
+- [x] **FR-RS.A3** Hooks `useSessionReport` / `useSessionIssues` / `useSyncSessionReport` (+ create/update/delete) con `apiClient` tipado. Tipos OpenAPI regenerados (`npm run types:gen`) contra Fase AC.
+
+### FR-RS.B — Tarjeta + formulario de reporte
+- [x] **FR-RS.B1** `ReportCard` desde `general_snapshot`+`stats_snapshot` (Agricultor/Granja/Actividad/Área/Proporción meta/Área cobertura/Dosis/Volumen + variables velocidad/flujo/presión avg·min·max + Fecha inicio/fin).
+- [x] **FR-RS.B2** `SemaforoBadges` de 5 buckets con `pct_area_total` y `area_ha`. **CORRECCIÓN:** el `color` del backend es un NOMBRE (`azul_electrico|verde|verde_amarillento|amarillo|rojo`), no hex, y los buckets difieren de `APPLICATION_CATEGORIES` → se usa `resolveSemaforoColor` (F3/GAP-AC-004), NO se reutiliza `aspersionLayers`.
+- [x] **FR-RS.B3** "Generar reporte de actividad" (si el GET filtrado viene vacío) → `POST` con `session_type:"aspersion"` + `object_id` (`ReportForm` mode=create).
+- [x] **FR-RS.B4** Campos editables (`ReportForm`): `resume_text`(oblig), `report_date`(default hoy/no futura), `lead`, `ranch_manager`, `day_temperature`, `status`. `PATCH .../update/` (no recalcula stats — verificado por smoke). Errores DRF por campo con `applyDrfErrors`.
+- [x] **FR-RS.B5** `SyncReportButton` → `POST .../sync/`; oculto si `status==='publicado'` (maneja 409 → `ReportPublishedError`).
+
+### FR-RS.C — Tabla de temas de atención (issues)
+- [x] **FR-RS.C1** `SessionIssuesTable` + `IssueForm` (CRUD inline): título/`issue_type`/`relevancia`/`attention_status`/`registered_at`/`followed_up_at`/detalle/sugerencia/acción. Vía `session-issues/`.
+- [x] **FR-RS.C2** Responsable: interno `assigned_user` (Select `useDatacentralUsers` cuando hay `datacentralId`; muestra `assigned_user_name`) o externo `outer_assigned_user` (texto). Deep-link a perfil pendiente (no hay ruta per-ID; muestra nombre).
+- [ ] **FR-RS.C3** (DIFERIDO — F4, ver GAP-FR-RS-004) "Lanzar actividad relacionada": ligar una sesión (aspersión **o fitosanitaria**) al issue. **VIABLE**, desbloqueable reutilizando infra. Distinción clave: *enlazar* una sesión NO necesita el adapter de reporte (GAP-AC-001 no bloquea el enlace phyto). Ruta (5 pasos): **BACK** (1) alias write `related_session_type` en `SessionIssueSerializer` (espejo de `session_type`) → resuelve `content_type` vía `SESSION_TYPE_ALIASES`; (2) añadir `phyto` a `SESSION_TYPE_ALIASES` (solo para enlazar). **FRONT** (3) `CreateSessionDialog` (ya crea aspersión y phyto) devuelve el `id`; (4) selector de programa/master destino; (5) issue → elegir tipo → crear → `PATCH` `related_session_type`+`related_object_id`. La creación de sesiones ya existe; lo pendiente es el **enganche**.
+
+### FR-RS.E — Añadidos UX del panel (sesión 23, 2026-07-01)
+- [x] **FR-RS.E1** Encabezado + botón "Sincronizar" **fijos** arriba del panel (`SheetContent` a columna flex: cabecera con borde + cuerpo scrollable).
+- [x] **FR-RS.E2** `AspersionMap` gana prop **`locked`** (mapa estático acotado a la parcela: sin zoom/paneo/rotación/perspectiva, `maxBounds` a la parcela; conserva selector de capas). No afecta el visor.
+- [x] **FR-RS.E3** Botón vertical **"Ver mapa"** en el borde izquierdo del panel → drawer fijo a la izquierda con `<AspersionMap locked>` (referencia satelital de la parcela; montaje lazy; oculto en móvil).
+
+### FR-RS.F — (FASE FUTURA) Compartir reportes públicos por liga — ver GAP-FR-RS-006
+- [ ] **Dictamen: VIABLE (alta).** Compartir un reporte `publicado` con clientes (con o sin usuario) por liga pública.
+- [ ] **Enfoque SIMPLE (dev 2026-07-01):** **sin campo `share_token` ni migración** — se reutiliza el **UUID que el reporte ya tiene** (uuid4 = no adivinable). Liga = `/r/<report_uuid>`. **Revocar = despublicar** (status ≠ `publicado` → la liga deja de responder). v1 incluye **todo + el mapa**.
+- [ ] **Back:** endpoint público `AllowAny` `GET /field_ops/public/session-reports/<uuid>/` (solo `publicado`, sin scope, read-only) + serializer público (omite PII) + **endpoint público de puntos** para el mapa (ligado al reporte publicado). **Sin migración.**
+- [ ] **Front:** botón "Compartir/Copiar liga" (solo `publicado`, copia `/r/<uuid>`) + ruta pública `/r/<uuid>` fuera del shell autenticado + vista read-only (ReportCard/Semáforo/issues + `AspersionMap locked`).
+- [ ] **Coordinada back+front, homologación conjunta.** Seguridad: UUID no adivinable, solo publicado, revocar=despublicar, decisión de PII, rate-limit. Descartado: `share_token` dedicado (permitiría rotar sin despublicar, a cambio de migración).
+
+### FR-RS.D — Cierre
+- [x] **FR-RS.D1** Tests Vitest+RTL (18 nuevos: semáforo, fechas, schema, panel) + typecheck. Smoke autenticado contra Fase AC (create/update/sync 200+409/issues CRUD). Demo manual validada a ojo por el dev (steps 2–3).
+- [x] **FR-RS.D2** Logs frontend (dev_log/development/roadmap/gap_log) + memoria `.CLAUDE/`.
+- [ ] **FR-RS.D3** (Futuro) Botón "Generar reporte en PDF" (GAP-AC-003).
+- [ ] **Pendiente de cierre:** demo manual completa del dev (create→sync→issues) y homologación conjunta con `dev-session-report`.
+
+---
+
 ## FASES FRONTEND 3–10 · MÓDULOS RESTANTES
 **Estado:** `[ ] Pendientes — UX/UI por pulir`
 
