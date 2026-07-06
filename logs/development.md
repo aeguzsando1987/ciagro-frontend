@@ -1846,3 +1846,40 @@ Los modales aparecían/cerraban de golpe; las clases `animate-in/out` de `dialog
 - Gaps abiertos: GAP-FR-RS-001 (typecheck ajeno), 002 (roles sin seed), 003 (soft-delete bloquea recrear),
   004 (F4 actividad relacionada diferida). GAP-AC-003 (PDF) futuro.
 - **NO homologado** (homologación diferida y conjunta con `dev-session-report`). Pendiente: demo manual completa del dev.
+
+## Sesión 25 — Saneamiento de gaps pre-homologación (rama `dev-saneamiento-gaps`, 2026-07-06)
+
+Sesión dedicada de saneamiento (`session-saneamiento-gaps`), no features. Gaps GAP-FR-RS-001/005 de
+`logs/gap_log.csv`, afinados en `analyze` frente al código real antes de tocar nada.
+
+### GAP-FR-RS-001 — typecheck roto por `id` requerido en bodies de `create`
+
+El análisis mostró que el "fix de raíz en backend" propuesto originalmente ya estaba parcialmente
+hecho: `DataCentralWriteSerializer`/`DataCentralMainWriteSerializer` marcan `id` `read_only` desde el
+commit `a7af1b6` (ya en `dev` del back). El error de typecheck persistía porque
+`SPECTACULAR_SETTINGS["COMPONENT_SPLIT_REQUEST"]=False` es una decisión **deliberada** del backend
+(comentario en `config/settings/base.py`: activarlo rompe los `GeoFeatureModelSerializer` de otras
+apps) — drf-spectacular sigue listando `id` como requerido en el schema compartido request/response.
+Confirmado con el dev: workaround en front (no tocar ese ajuste global de riesgo alto). Cast `as never`
++ comentario explicando el porqué en los 4 call sites (`CreateDataCentralDialog.tsx`,
+`CreateDataCentralMainDialog.tsx`, `DataCentralMainPanel.tsx`, `FirstUseWizard.tsx` ×2).
+`npm run typecheck` → 0 errores.
+
+### GAP-FR-RS-005 — ESLint pre-existente en `AspersionMap.tsx`
+
+Ternario usado como *statement* (`no-unused-expressions`, toggle de buckets) convertido a `if/else`.
+Las constantes/funciones exportadas junto al componente (`ESRI_STYLE`, `sumAreaByBucket`,
+`areaShareByBucket`, `formatHa`) — causa de los warnings `react-refresh/only-export-components` — se
+movieron a `src/features/geodata-visor/lib/aspersionMap.helpers.ts`; `AspersionMap.tsx` ahora solo
+exporta el componente. Imports actualizados en `RanchPlotsMap.tsx`, `ProducerRanchesMap.tsx`,
+`CategoryStatsCard.tsx` y `AspersionMap.test.tsx`. `npx eslint` limpio en todos los archivos tocados;
+`npm run test` 210/210 (39/39 archivos) verde; `npm run typecheck` 0 errores.
+
+### GAP-FR-RS-007 (nota, fix en el back)
+
+El fix real vive en `CIAgro_alpha_back` (ver su `development.md`, FASE AD): `rate_quality` ya no se
+sobrescribe a `""` en `import_aspersion_csv`; el visor deja de perder el dato crudo del CSV en
+sesiones con evaluador asignado.
+
+**Cierre:** sin homologar (diferida y conjunta con `dev-reports`/`dev-session-report`, ver `.CLAUDE/`).
+Recomendado commit/push en `dev-saneamiento-gaps`.

@@ -168,13 +168,16 @@ function OrgStep({
     if (!name.trim()) { toast.error('El nombre de la organización es obligatorio.'); return }
     if (!userId) { toast.error('No se pudo identificar al usuario actual.'); return }
     try {
+      // GAP-FR-RS-001: `id` es readonly en el schema pero drf-spectacular lo marca
+      // requerido en el body (COMPONENT_SPLIT_REQUEST=False, decisión backend deliberada
+      // por incompatibilidad con GeoFeatureModelSerializer). El backend lo ignora si se envía.
       const created = await mutation.mutateAsync({
         name: name.trim(),
         description: description.trim(),
         country: null,
         status: 'active',
         owner_id: userId,
-      })
+      } as never)
       const org = created as unknown as { id: string; name: string }
       toast.success('Organización creada.')
       onCreated({ id: org.id, name: org.name })
@@ -237,11 +240,14 @@ function CiasStep({
   async function addCia() {
     if (!name.trim()) { toast.error('Escribe el nombre de la CIAgro.'); return }
     try {
+      // GAP-FR-RS-001: `id` es readonly en el schema pero drf-spectacular lo marca
+      // requerido en el body (COMPONENT_SPLIT_REQUEST=False, decisión backend deliberada
+      // por incompatibilidad con GeoFeatureModelSerializer). El backend lo ignora si se envía.
       const created = await mutation.mutateAsync({
         name: name.trim(),
         description: '',
         data_central_main_id: org.id,
-      })
+      } as never)
       const cia = created as unknown as { id: string; name: string }
       toast.success(`CIAgro "${cia.name}" creada.`)
       onCreatedCia({ id: cia.id, name: cia.name })
