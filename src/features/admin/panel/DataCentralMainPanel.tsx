@@ -81,6 +81,9 @@ export function DataCentralMainPanel({ dcm, onClose, onOpenDC }: Props) {
 
   async function onSubmit(values: FormValues) {
     try {
+      // GAP-FR-RS-001: `id` es readonly en el schema pero drf-spectacular lo marca
+      // requerido en el body (COMPONENT_SPLIT_REQUEST=False, decisión backend deliberada
+      // por incompatibilidad con GeoFeatureModelSerializer). El backend lo ignora si se envía.
       await mutation.mutateAsync({
         id: dcm.id,
         payload: {
@@ -90,7 +93,7 @@ export function DataCentralMainPanel({ dcm, onClose, onOpenDC }: Props) {
           status: values.status,
           owner_id: values.owner_id,
         },
-      })
+      } as never)
       toast.success('Organización actualizada.')
       setMode('view')
     } catch (err) {

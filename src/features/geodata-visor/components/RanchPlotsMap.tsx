@@ -12,7 +12,7 @@ import type { MapRef } from 'react-map-gl/maplibre'
 import { ArrowLeft } from 'lucide-react'
 import { MapModeSelector } from './MapModeSelector'
 import { useMapMode } from '../lib/mapModes'
-import { ESRI_STYLE } from './AspersionMap'
+import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import type { PlotFlat } from '@/features/admin/types'
 
 type Bounds = [number, number, number, number]
