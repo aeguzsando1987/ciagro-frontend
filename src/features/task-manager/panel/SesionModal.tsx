@@ -841,6 +841,11 @@ function AspersionEditForm({
                   </Select>
                 )}
               />
+              {dcUsers.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No hay técnicos asignados a esta CIA. Asigna usuarios en Administración para poder designar un responsable.
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -1007,6 +1012,11 @@ function PhytoEditForm({
                   </Select>
                 )}
               />
+              {dcUsers.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No hay técnicos asignados a esta CIA. Asigna usuarios en Administración para poder designar un responsable.
+                </p>
+              )}
             </div>
             <div className="space-y-1">
               <Label htmlFor="pe-notes">Notas adicionales</Label>
