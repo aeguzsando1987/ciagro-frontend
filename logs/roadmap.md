@@ -241,6 +241,23 @@ SessionReport/SessionIssue + sync, 13 tests, admin funcional.
 - [ ] **FR-RS.D3** (Futuro) Botón "Generar reporte en PDF" (GAP-AC-003).
 - [ ] **Pendiente de cierre:** demo manual completa del dev (create→sync→issues) y homologación conjunta con `dev-session-report`.
 
+### FR-RS.G — Saneamiento de gaps pre-homologación (rama `dev-saneamiento-gaps`, 2026-07-06)
+- [x] **GAP-FR-RS-001** typecheck roto por `id` requerido en bodies de `create`. Confirmado que el
+  backend ya marca `id` `read_only` (commit `a7af1b6`); el error persiste porque
+  `SPECTACULAR_SETTINGS["COMPONENT_SPLIT_REQUEST"]=False` es deliberado (rompería
+  `GeoFeatureModelSerializer` en otras apps). Fix: cast `as never` + comentario en los 4 call sites
+  (`CreateDataCentralDialog`, `CreateDataCentralMainDialog`, `DataCentralMainPanel`,
+  `FirstUseWizard` ×2). `npm run typecheck` → 0 errores.
+- [x] **GAP-FR-RS-005** ESLint en `AspersionMap.tsx`: ternario→`if/else` (línea del toggle de
+  buckets) + extracción de `ESRI_STYLE`/`sumAreaByBucket`/`areaShareByBucket`/`formatHa` a
+  `lib/aspersionMap.helpers.ts` (ya no exporta nada salvo el componente). Imports actualizados en
+  `RanchPlotsMap.tsx`, `ProducerRanchesMap.tsx`, `CategoryStatsCard.tsx`, `AspersionMap.test.tsx`.
+  ESLint limpio, `npm run test` 210/210 verde.
+- [x] **GAP-FR-RS-007** (nota, fix real en backend) — ver roadmap del back. `rate_quality` ya no se
+  sobrescribe a `""` en `import_aspersion_csv`; el visor deja de perder el dato crudo del CSV.
+- **No homologado.** Recomendado commit/push en `dev-saneamiento-gaps` (front); homologación diferida
+  y conjunta con el reporteador (ver `.CLAUDE/`).
+
 ---
 
 ## FASES FRONTEND 3–10 · MÓDULOS RESTANTES

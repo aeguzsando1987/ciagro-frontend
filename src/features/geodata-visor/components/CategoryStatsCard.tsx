@@ -11,7 +11,7 @@
  * porcentajes suman ~100%. Los puntos sin meta (`sin_meta`) no están en `legendDefs`, así
  * que quedan fuera por construcción.
  */
-import { areaShareByBucket, formatHa } from './AspersionMap'
+import { areaShareByBucket, formatHa } from '../lib/aspersionMap.helpers'
 
 export interface CategoryStatsEntry {
   key: string

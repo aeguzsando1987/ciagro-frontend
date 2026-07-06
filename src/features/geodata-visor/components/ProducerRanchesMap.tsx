@@ -8,7 +8,7 @@ import Map, { Marker } from 'react-map-gl/maplibre'
 import type { MapRef } from 'react-map-gl/maplibre'
 import { MapModeSelector } from './MapModeSelector'
 import { useMapMode } from '../lib/mapModes'
-import { ESRI_STYLE } from './AspersionMap'
+import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import type { RanchFlat, PlotFlat } from '@/features/admin/types'
 
 type Bounds = [number, number, number, number]

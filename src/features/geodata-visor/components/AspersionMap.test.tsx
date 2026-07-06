@@ -56,7 +56,8 @@ vi.mock('@/features/task-manager/hooks/useAspersionSessionStats', () => ({
   useAspersionSessionStats: () => ({ data: null }),
 }))
 
-import { AspersionMap, sumAreaByBucket, areaShareByBucket } from './AspersionMap'
+import { AspersionMap } from './AspersionMap'
+import { sumAreaByBucket, areaShareByBucket } from '../lib/aspersionMap.helpers'
 
 function renderMap() {
   const qc = createTestQueryClient()

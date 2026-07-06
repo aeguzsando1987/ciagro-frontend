@@ -44,11 +44,14 @@ export function CreateDataCentralDialog({ open, onOpenChange, dataCentralMainId 
 
   async function onSubmit(values: FormValues) {
     try {
+      // GAP-FR-RS-001: `id` es readonly en el schema pero drf-spectacular lo marca
+      // requerido en el body (COMPONENT_SPLIT_REQUEST=False, decisión backend deliberada
+      // por incompatibilidad con GeoFeatureModelSerializer). El backend lo ignora si se envía.
       await mutation.mutateAsync({
         name: values.name,
         description: values.description ?? '',
         data_central_main_id: dataCentralMainId,
-      })
+      } as never)
       toast.success('CIA creada correctamente.')
       onOpenChange(false)
     } catch (err) {
