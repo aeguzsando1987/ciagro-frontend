@@ -31,6 +31,7 @@ import type { MasterProgramTree } from '@/features/task-manager/types'
 import { PlotMiniMap } from './PlotMiniMap'
 import { AspersionImportDialog } from '../components/AspersionImportDialog'
 import { AspersionImportSummary } from '../components/AspersionImportSummary'
+import { PhytoStatsCard } from '../components/PhytoStatsCard'
 import { AspersionMapModal } from '../components/AspersionMapModal'
 import { FlushAspersionDialog } from '../components/FlushAspersionDialog'
 import { useAuthStore } from '@/features/auth/useAuthStore'
@@ -674,6 +675,8 @@ function PhytoView({
             statusError={statusError}
             onStatusChange={onStatusChange}
           />
+
+          <PhytoStatsCard headerId={detail.id} />
         </div>
 
         <div className="w-72 shrink-0">
