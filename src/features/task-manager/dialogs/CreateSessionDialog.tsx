@@ -43,7 +43,10 @@ const phytoSchema = z.object({
   field_task_id: z.string().uuid(),
   estimated_start_date: z.string().min(1, 'Requerido'),
   estimated_end_date: z.string().optional(),
-  assigned_to_id: z.string().uuid().optional(),
+  // Responsable OBLIGATORIO en fitosanitario: la app móvil filtra las sesiones del
+  // técnico por assigned_to (PhytoHeaderListView fuerza assigned_to=<técnico>), así que
+  // una sesión sin responsable queda huérfana/invisible en campo.
+  assigned_to_id: z.string().uuid('Selecciona un responsable'),
   strict_mode: z.boolean().default(true),
   radius_tolerance: z.coerce.number().int().min(1, 'Mínimo 1 m').default(5),
 })
@@ -252,6 +255,11 @@ function AspersionForm({
             </Select>
           )}
         />
+        {dcUsers.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            No hay técnicos asignados a esta CIA. Asigna usuarios en Administración para poder designar un responsable.
+          </p>
+        )}
       </div>
 
       {errors.root && (
@@ -380,17 +388,20 @@ function PhytoForm({
       </div>
 
       <div className="space-y-1">
-        <Label>Responsable</Label>
+        <Label>Responsable *</Label>
         <Controller
           name="assigned_to_id"
           control={control}
           render={({ field }) => (
-            <Select onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)} value={field.value || '__none__'}>
+            <Select
+              disabled={dcUsers.length === 0}
+              onValueChange={field.onChange}
+              value={field.value ?? ''}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Sin asignar (opcional)" />
+                <SelectValue placeholder="Selecciona un responsable" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">Sin asignar</SelectItem>
                 {dcUsers.map((u) => (
                   <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
                 ))}
@@ -398,6 +409,14 @@ function PhytoForm({
             </Select>
           )}
         />
+        {dcUsers.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            No hay técnicos asignados a esta CIA. Asigna usuarios en Administración antes de crear una sesión fitosanitaria.
+          </p>
+        )}
+        {errors.assigned_to_id && (
+          <p className="text-xs text-destructive">{errors.assigned_to_id.message}</p>
+        )}
       </div>
 
       {errors.root && (
