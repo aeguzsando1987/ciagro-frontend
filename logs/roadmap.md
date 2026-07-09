@@ -260,6 +260,31 @@ SessionReport/SessionIssue + sync, 13 tests, admin funcional.
 
 ---
 
+## FASE FT — Sesiones fitosanitarias: asignación, stats y mapa (Task Manager, 2026-07-06/09)
+
+Símil fitosanitario de lo que ya tenía aspersión, dentro del `SesionModal`/`PhytoView`. Backend en
+`CIAgro_alpha_back` (FASE AE). Ramas `dev-session-assign-guard`, `dev-phyto-stats`, `dev-phyto-map`.
+
+- [x] **FT.1 — Responsable obligatorio + estado vacío** (`dev-session-assign-guard`). Una sesión
+  fitosanitaria sin `assigned_to` queda huérfana/invisible en la app móvil (`PhytoHeaderListView`
+  fuerza `assigned_to=<técnico>`). Se hace **obligatorio** el Responsable al crear phyto (aspersión
+  queda opcional: su listado filtra por scope, no por `assigned_to`). Estado vacío en los 4 selects de
+  Responsable (crear/editar × aspersión/phyto) cuando la CIA no tiene técnicos asignados.
+- [x] **FT.2 — Tarjeta de estadísticas** (`dev-phyto-stats`). `PhytoStatsCard` + hook
+  `usePhytoSessionStats` (GET `/phyto/headers/<id>/stats/`): totales, semáforo de presencia y desglose
+  por problema. Montada en `PhytoView` cuando hay checkpoints. Análoga al resumen de aspersión.
+- [x] **FT.3 — Mapa fitosanitario** (`dev-phyto-map`). Botón "Ver mapa" (gateado a rol ≥ Supervisor y
+  con checkpoints) abre `PhytoMapModal`. `PhytoMap`: satelital ESRI + parcela en **verde** + **heatmap
+  rojo** ponderado (`critical`=1, `warning`=0.7, `low`=0; rampa translúcida sin halo blanco) +
+  **marcadores por punto** agrupados por coordenada (color = peor presencia; los puntos sin peligro no
+  se marcan). Clic → popup con **tablita** de todos los hallazgos del punto (problema/tipo/etapa/
+  cantidad/presencia + columna **Foto** miniatura→modal + columna **Nota** link→modal). Hook
+  `usePhytoCheckPoints` (GET `/phyto/headers/<id>/checkpoints-geojson/`). Reusa `ESRI_STYLE` y
+  `usePlotGeometry`.
+- **Verificación:** `npm run typecheck` 0 errores, ESLint limpio, `npm run test` 212/212, build OK.
+
+---
+
 ## FASES FRONTEND 3–10 · MÓDULOS RESTANTES
 **Estado:** `[ ] Pendientes — UX/UI por pulir`
 
