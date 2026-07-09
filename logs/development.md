@@ -1883,3 +1883,27 @@ sesiones con evaluador asignado.
 
 **Cierre:** sin homologar (diferida y conjunta con `dev-reports`/`dev-session-report`, ver `.CLAUDE/`).
 Recomendado commit/push en `dev-saneamiento-gaps`.
+
+## FASE FT — Sesiones fitosanitarias: asignación, stats y mapa (Task Manager, 2026-07-06/09)
+
+Símil fitosanitario de aspersión dentro de `SesionModal`/`PhytoView`. Backend en `CIAgro_alpha_back`
+(FASE AE). Ramas `dev-session-assign-guard`, `dev-phyto-stats`, `dev-phyto-map`.
+
+### FT.1 — Responsable obligatorio + estado vacío (`dev-session-assign-guard`)
+Una sesión fitosanitaria sin `assigned_to` queda huérfana/invisible en la app móvil
+(`PhytoHeaderListView` fuerza `assigned_to=<técnico>` para nivel < 3). Se hace **obligatorio** el
+Responsable en el form de creación phyto; aspersión se deja opcional (su listado filtra por scope, no
+por `assigned_to`). Estado vacío en los 4 selects de Responsable (crear/editar × aspersión/phyto)
+cuando la CIA no tiene técnicos asignados.
+
+### FT.2 — Tarjeta de estadísticas (`dev-phyto-stats`)
+`PhytoStatsCard` + hook `usePhytoSessionStats` (GET `/monitoring/phyto/headers/<id>/stats/`): totales,
+semáforo de presencia y desglose por problema. Montada en `PhytoView` cuando hay checkpoints.
+
+### FT.3 — Mapa fitosanitario (`dev-phyto-map`)
+Botón "Ver mapa" en `PhytoView` → `PhytoMapModal`. `PhytoMap`: satelital ESRI + parcela en verde +
+heatmap rojo ponderado (rampa translúcida sin halo blanco) + marcadores por punto agrupados por
+coordenada (los sanos no se marcan). Clic → popup con tablita de todos los hallazgos (problema/tipo/
+etapa/cantidad/presencia + Foto miniatura→modal + Nota link→modal). Hook `usePhytoCheckPoints`.
+
+**Verificación:** typecheck 0, ESLint limpio, test 212/212, build OK.
