@@ -32,6 +32,8 @@ import { PlotMiniMap } from './PlotMiniMap'
 import { AspersionImportDialog } from '../components/AspersionImportDialog'
 import { AspersionImportSummary } from '../components/AspersionImportSummary'
 import { PhytoStatsCard } from '../components/PhytoStatsCard'
+import { PhytoMapModal } from '../components/PhytoMapModal'
+import { usePhytoSessionStats } from '../hooks/usePhytoSessionStats'
 import { AspersionMapModal } from '../components/AspersionMapModal'
 import { FlushAspersionDialog } from '../components/FlushAspersionDialog'
 import { useAuthStore } from '@/features/auth/useAuthStore'
@@ -620,6 +622,11 @@ function PhytoView({
   onStatusChange,
   onEdit,
 }: PhytoViewProps) {
+  const [mapOpen, setMapOpen] = useState(false)
+  const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
+  const { data: stats } = usePhytoSessionStats(detail.id)
+  const canViewMap =
+    roleLevel >= ROLE_LEVELS.SUPERVISOR && (stats?.checkpoints_count ?? 0) > 0
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
@@ -684,11 +691,25 @@ function PhytoView({
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {canViewMap && (
+          <Button variant="outline" size="sm" onClick={() => setMapOpen(true)}>
+            Ver mapa
+          </Button>
+        )}
         <Button variant="outline" size="sm" onClick={onEdit}>
           Editar
         </Button>
       </div>
+
+      {canViewMap && (
+        <PhytoMapModal
+          open={mapOpen}
+          onClose={() => setMapOpen(false)}
+          sessionId={detail.id}
+          plotId={plotId}
+        />
+      )}
     </div>
   )
 }
