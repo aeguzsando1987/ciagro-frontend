@@ -6146,6 +6146,84 @@ export interface paths {
         patch: operations["v1_monitoring_phyto_headers_update_partial_update"];
         trace?: never;
     };
+    "/api/v1/monitoring/phyto/headers/{id}/stats/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Estadísticas de una sesión fitosanitaria
+         * @description Resumen agregado (al vuelo) de los checkpoints cargados de la sesión. Análogo categórico a las stats de aspersión: totales de puntos y objetivos, semáforo por estado de presencia (baja/advertencia/crítica) y desglose por problema fitosanitario (conteo, cantidad total y críticos por elemento). `checkpoints_count=0` si la sesión aún no tiene puntos cargados.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/phyto/headers/{id}/stats/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/phyto/headers/{id}/stats/")
+         *         suspend fun getPhytoStats(@Path("id") id: String): PhytoStats
+         *     }
+         *
+         *     val result = api.getPhytoStats(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_phyto_headers_stats_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/headers/{id}/checkpoints-geojson/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Checkpoints de una sesión como GeoJSON (para el mapa)
+         * @description FeatureCollection **sin paginar** de los checkpoints de la sesión, para alimentar el mapa fitosanitario (relleno verde de la parcela + mancha roja de calor en los puntos con problema). Cada feature lleva `presence_status`, `issue`/`issue_type`, `stage`/`stage_display`, `qty` y `notes` para el popup. FeatureCollection vacío si la sesión no tiene puntos.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/phyto/headers/{id}/checkpoints-geojson/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/phyto/headers/{id}/checkpoints-geojson/")
+         *         suspend fun getPhytoCheckpointsGeoJSON(@Path("id") id: String): FeatureCollection
+         *     }
+         *
+         *     val result = api.getPhytoCheckpointsGeoJSON(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_phyto_headers_checkpoints_geojson_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/monitoring/phyto/target-points/": {
         parameters: {
             query?: never;
@@ -8762,9 +8840,9 @@ export interface components {
          *     - geom: GeoJSON Point (longitud, latitud GPS real del técnico)
          *     - program_check: calculado automáticamente en save() — no escribible
          *     - plot: denormalizado desde header.plot — no escribible
-         *     - stage_display: label legible de la etapa (ej: "Larva / Joven")
+         *     - stage_display: label legible de la etapa
          *     - photo: URL absoluta usando request.build_absolute_uri()
-         *     - photo_ref: nombre de archivo de referencia (llave de vínculo con el ZIP) — no escribible
+         *     - photo_ref: nombre de archivo usado para relacionar la evidencia ZIP
          */
         PatchedPhytoCheckPoint: {
             /** Format: uuid */
@@ -8859,7 +8937,7 @@ export interface components {
              * Referencia de foto (app móvil)
              * @description Nombre de archivo de la foto tomada en la app móvil para este punto (ej. <ID_sesion>_<ID_punto>_<timestamp>.jpg). Llega en la columna 'photo' del CSV de importación y sirve de llave para vincular el archivo real, subido aparte en un ZIP vía el endpoint upload-photos/, con el campo 'photo'. Vacío si en ese punto no se tomó foto.
              */
-            readonly photo_ref?: string | null;
+            photo_ref?: string | null;
             /**
              * Notas adicionales
              * @description Observaciones libres sobre el punto de chequeo.
@@ -8964,6 +9042,7 @@ export interface components {
              */
             additional_notes?: string | null;
             readonly target_points?: components["schemas"]["PhytoTargetPoint"][];
+            readonly checkpoints_count?: string;
             /** Format: date-time */
             readonly created_at?: string;
         };
@@ -9325,9 +9404,9 @@ export interface components {
          *     - geom: GeoJSON Point (longitud, latitud GPS real del técnico)
          *     - program_check: calculado automáticamente en save() — no escribible
          *     - plot: denormalizado desde header.plot — no escribible
-         *     - stage_display: label legible de la etapa (ej: "Larva / Joven")
+         *     - stage_display: label legible de la etapa
          *     - photo: URL absoluta usando request.build_absolute_uri()
-         *     - photo_ref: nombre de archivo de referencia (llave de vínculo con el ZIP) — no escribible
+         *     - photo_ref: nombre de archivo usado para relacionar la evidencia ZIP
          */
         PhytoCheckPoint: {
             /** Format: uuid */
@@ -9422,7 +9501,7 @@ export interface components {
              * Referencia de foto (app móvil)
              * @description Nombre de archivo de la foto tomada en la app móvil para este punto (ej. <ID_sesion>_<ID_punto>_<timestamp>.jpg). Llega en la columna 'photo' del CSV de importación y sirve de llave para vincular el archivo real, subido aparte en un ZIP vía el endpoint upload-photos/, con el campo 'photo'. Vacío si en ese punto no se tomó foto.
              */
-            readonly photo_ref: string | null;
+            photo_ref?: string | null;
             /**
              * Notas adicionales
              * @description Observaciones libres sobre el punto de chequeo.
@@ -9565,6 +9644,7 @@ export interface components {
              */
             additional_notes?: string | null;
             readonly target_points: components["schemas"]["PhytoTargetPoint"][];
+            readonly checkpoints_count: string;
             /** Format: date-time */
             readonly created_at: string;
         };
@@ -14271,6 +14351,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PhytoMonitoringHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_phyto_headers_stats_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_phyto_headers_checkpoints_geojson_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

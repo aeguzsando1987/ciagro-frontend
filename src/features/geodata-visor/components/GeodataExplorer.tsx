@@ -10,7 +10,7 @@
  */
 import { useState } from 'react'
 import {
-  Building2, ChevronDown, ChevronRight, Factory, Layers,
+  Building2, Bug, ChevronDown, ChevronRight, Factory, Layers,
   MapPin, Sprout, Tractor, Loader2,
 } from 'lucide-react'
 import { useDataCentralMains, useDataCentrals } from '@/features/admin/hooks/useDataCentrals'
@@ -18,6 +18,7 @@ import { useProducers } from '@/features/admin/hooks/useProducers'
 import { useRanches } from '@/features/admin/hooks/useRanches'
 import { usePlots } from '@/features/admin/hooks/usePlots'
 import { useAspersionSessionHeaders } from '../hooks/useAspersionSessionHeaders'
+import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
 import { activeIdFor, type VisorSelection } from '../types'
 
 interface ExplorerProps {
@@ -94,9 +95,23 @@ function Empty({ depth, text }: { depth: number; text: string }) {
   return <StatusRow depth={depth}>{text}</StatusRow>
 }
 
-// ─── Nivel 6: Sesiones de aspersión ───────────────────────────────────────────
+// ─── Nivel 6: Sesiones (agrupadas por tipo: aspersión / fitosanitarias) ─────────
 
-function SessionList({ depth, plot, base, selection, onSelect }: {
+/** Encabezado de grupo dentro del árbol (no seleccionable). */
+function GroupLabel({ depth, icon, text }: { depth: number; icon: React.ReactNode; text: string }) {
+  return (
+    <div
+      className="flex items-center gap-1.5 px-1 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+      style={{ paddingLeft: depth * 14 + 22 }}
+    >
+      <span className="shrink-0">{icon}</span>
+      {text}
+    </div>
+  )
+}
+
+/** Lista de sesiones de aspersión de la parcela. */
+function AspersionSessionList({ depth, plot, base, selection, onSelect }: {
   depth: number
   plot: { id: string; name: string }
   base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
@@ -115,15 +130,69 @@ function SessionList({ depth, plot, base, selection, onSelect }: {
           depth={depth}
           icon={<Layers className="h-3.5 w-3.5" />}
           label={`${s.aspersion_date ?? 'Sin fecha'}${s.points_count ? ` · ${s.points_count} pts` : ''}`}
-          selected={selection?.level === 'session' && activeId === s.id}
+          selected={selection?.level === 'session' && selection.session?.kind === 'aspersion' && activeId === s.id}
           onSelect={() => onSelect({
             ...base,
             plot,
-            session: { id: s.id, date: s.aspersion_date ?? null },
+            session: { id: s.id, date: s.aspersion_date ?? null, kind: 'aspersion' },
             level: 'session',
           })}
         />
       ))}
+    </>
+  )
+}
+
+/** Lista de sesiones fitosanitarias de la parcela. */
+function PhytoSessionList({ depth, plot, base, selection, onSelect }: {
+  depth: number
+  plot: { id: string; name: string }
+  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+}) {
+  const { data, isLoading } = usePhytoSessionHeaders(plot.id)
+  if (isLoading) return <Loading depth={depth} />
+  if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones fitosanitarias." />
+  const activeId = activeIdFor(selection)
+  return (
+    <>
+      {data.map((s) => {
+        const count = Number(s.checkpoints_count ?? 0)
+        return (
+          <TreeRow
+            key={s.id}
+            depth={depth}
+            icon={<Bug className="h-3.5 w-3.5" />}
+            label={`${s.estimated_start_date ?? 'Sin fecha'}${count ? ` · ${count} pts` : ''}`}
+            selected={selection?.level === 'session' && selection.session?.kind === 'phyto' && activeId === s.id}
+            onSelect={() => onSelect({
+              ...base,
+              plot,
+              session: { id: s.id, date: s.estimated_start_date ?? null, kind: 'phyto' },
+              level: 'session',
+            })}
+          />
+        )
+      })}
+    </>
+  )
+}
+
+/** Ambos grupos de sesiones de la parcela, cada uno bajo su encabezado. */
+function SessionGroups({ depth, plot, base, selection, onSelect }: {
+  depth: number
+  plot: { id: string; name: string }
+  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+}) {
+  return (
+    <>
+      <GroupLabel depth={depth} icon={<Layers className="h-3 w-3" />} text="Aspersión" />
+      <AspersionSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
+      <GroupLabel depth={depth} icon={<Bug className="h-3 w-3" />} text="Fitosanitarias" />
+      <PhytoSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
     </>
   )
 }
@@ -151,7 +220,7 @@ function PlotNode({ depth, plotRef, base, selection, onSelect }: {
         onSelect={() => onSelect({ ...base, plot: plotRef, level: 'plot' })}
       />
       {expanded && (
-        <SessionList depth={depth + 1} plot={plotRef} base={base} selection={selection} onSelect={onSelect} />
+        <SessionGroups depth={depth + 1} plot={plotRef} base={base} selection={selection} onSelect={onSelect} />
       )}
     </>
   )

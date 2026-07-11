@@ -285,6 +285,42 @@ Símil fitosanitario de lo que ya tenía aspersión, dentro del `SesionModal`/`P
 
 ---
 
+## FASE FV — Sesiones fitosanitarias en el Visor de Datos (2026-07-11)
+
+Hasta ahora el Visor de Datos Agrícolas (`geodata-visor`) solo exponía sesiones de **aspersión**. Se
+extiende para que las sesiones **fitosanitarias** sean accesibles por las mismas dos vías, reutilizando
+el `PhytoMap`/`PhytoStatsCard` del Task Manager (FASE FT). Rama `dev-visor-fitosanitario`. Backend:
+`checkpoints_count` anotado en `PhytoHeaderListView` + serializer (sin migración).
+
+- [x] **FV.1 — Explorador agrupado por tipo.** Bajo cada parcela del árbol (`GeodataExplorer`) las
+  sesiones se muestran en dos grupos con encabezado propio: **Aspersión** (icono capas) y
+  **Fitosanitarias** (icono bug). Nuevo hook `usePhytoSessionHeaders` (GET `/phyto/headers/?plot=`,
+  scope por rol vía `PhytoScopeFilterMixin`). La selección lleva `kind: 'aspersion' | 'phyto'`.
+- [x] **FV.2 — Mapa por parcela.** Al explorar el mapa y seleccionar la parcela, la columna flotante
+  apila **ambos** paneles de sesiones (`SessionsPanel` + nuevo `PhytoSessionsPanel`, con filtro por
+  rango de fechas en cliente). Al elegir una sesión fitosanitaria el dashboard monta `PhytoMap`
+  (heatmap de checkpoints) con `PhytoStatsCard` arriba y el panel de sesiones en la columna; al elegir
+  una de aspersión sigue montando `AspersionMap` como antes. El nivel parcela suma la stat "Sesiones
+  fitosanitarias".
+- **Backend:** `PhytoMonitoringHeaderSerializer.checkpoints_count` (SerializerMethodField que lee la
+  anotación `checkpoints_count_annot` en lista y cae a COUNT en detalle) + `annotate` en
+  `PhytoHeaderListView`. Sin migración (solo anotación). `manage.py check` limpio.
+- [x] **FV.3 — Encuadre + mejoras visuales del `PhytoMap`.** (a) **Fix de encuadre**: `PhytoMap` solo
+  usaba `initialViewState`; si el polígono de la parcela llegaba tras montar el mapa quedaba en la
+  vista por defecto (zoom 6 sobre México). Se replicó el patrón de `AspersionMap` (`mapRef` +
+  `useEffect` que hace `fitBounds` al cambiar `mapBounds`). (b) **Leyenda**: entrada verde "Baja / Sin
+  monitorear" (estado base = relleno de parcela) + icono **(i)** con la interpretación de cada color.
+  (c) **Relleno de parcela** más sólido (verde `#15803d`, opacidad 0.95). (d) Toggle **"Visualización"**:
+  *Mapa de calor* (heatmap con `heatmap-radius` dependiente del zoom → la mancha escala como la
+  parcela) vs *Discos* (círculos geográficos reales en metros, sin dependencias). (e) **Radio de mancha
+  fijo 7.5 m** + **lector de superficie** en la leyenda: "Con problemas" vs "Baja / sin monitoreo" en
+  **ha** y % sobre el área de la parcela (menos ambiguo que el % por conteo). (f) En modo mapa de calor
+  las manchas se declaran **sobre** los puntos de datos.
+- **Verificación:** `npm run typecheck` 0 errores, ESLint limpio, `npm run test` 216/216 (nuevo
+  `PhytoSessionsPanel.test`), build OK.
+
+---
+
 ## FASES FRONTEND 3–10 · MÓDULOS RESTANTES
 **Estado:** `[ ] Pendientes — UX/UI por pulir`
 

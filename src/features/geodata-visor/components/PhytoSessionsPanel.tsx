@@ -1,30 +1,38 @@
 /**
- * Panel de sesiones de aspersión de una parcela (use case §2.3.2.5).
+ * Panel de sesiones de monitoreo fitosanitario de una parcela — símil de SessionsPanel
+ * (aspersión).
  *
- * Tarjeta semitransparente flotante sobre el mapa: lista las sesiones de la parcela
- * ordenadas por fecha desc (tal como las entrega el backend) con un control de rango de
- * fechas que filtra la lista EN CLIENTE. Al hacer clic en una sesión se emite la
- * selección a nivel 'session'. Solo lectura.
+ * Tarjeta semitransparente flotante sobre el mapa: lista las sesiones fitosanitarias de la
+ * parcela ordenadas por fecha desc (tal como las entrega el backend) con un control de rango
+ * de fechas que filtra la lista EN CLIENTE. Al hacer clic en una sesión se emite la selección
+ * a nivel 'session' con `kind: 'phyto'`. Solo lectura.
  */
 import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
-import { useAspersionSessionHeaders } from '../hooks/useAspersionSessionHeaders'
+import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
 import type { VisorSession } from '../types'
 
-interface SessionsPanelProps {
+interface PhytoSessionsPanelProps {
   plotId: string
   selectedSessionId: string | null
   onSelectSession: (session: VisorSession) => void
   /**
-   * `true` (default): tarjeta flotante absoluta arriba-derecha sobre el mapa.
-   * `false`: ítem de columna (sin posicionamiento absoluto) para convivir con otras
-   * tarjetas en una columna derecha (p. ej. la tarjeta de categorías a nivel sesión).
+   * `true` (default): tarjeta flotante absoluta sobre el mapa.
+   * `false`: ítem de columna (sin posicionamiento absoluto) para convivir con otras tarjetas.
    */
   floating?: boolean
 }
 
-export function SessionsPanel({ plotId, selectedSessionId, onSelectSession, floating = true }: SessionsPanelProps) {
-  const { data, isLoading } = useAspersionSessionHeaders(plotId)
+const STATUS_LABEL: Record<string, string> = {
+  pending: 'Pendiente',
+  in_progress: 'En progreso',
+  loaded: 'Cargado',
+  completed: 'Completado',
+  cancelled: 'Cancelado',
+}
+
+export function PhytoSessionsPanel({ plotId, selectedSessionId, onSelectSession, floating = true }: PhytoSessionsPanelProps) {
+  const { data, isLoading } = usePhytoSessionHeaders(plotId)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [collapsed, setCollapsed] = useState(false)
@@ -33,7 +41,7 @@ export function SessionsPanel({ plotId, selectedSessionId, onSelectSession, floa
   const sessions = useMemo(() => {
     const list = data ?? []
     return list.filter((s) => {
-      const d = s.aspersion_date ?? ''
+      const d = s.estimated_start_date ?? ''
       if (from && d && d < from) return false
       if (to && d && d > to) return false
       return true
@@ -50,7 +58,7 @@ export function SessionsPanel({ plotId, selectedSessionId, onSelectSession, floa
     >
       <div className="border-b px-2 py-1.5">
         <div className="flex items-center justify-between gap-1">
-          <h3 className="text-xs font-semibold">Sesiones de aspersión</h3>
+          <h3 className="text-xs font-semibold">Sesiones fitosanitarias</h3>
           <button
             type="button"
             aria-label={collapsed ? 'Expandir' : 'Minimizar'}
@@ -103,25 +111,26 @@ export function SessionsPanel({ plotId, selectedSessionId, onSelectSession, floa
           </div>
         ) : sessions.length === 0 ? (
           <p className="px-2 py-2 text-xs text-muted-foreground">
-            {data && data.length > 0 ? 'Sin sesiones en el rango.' : 'Esta parcela no tiene sesiones.'}
+            {data && data.length > 0 ? 'Sin sesiones en el rango.' : 'Esta parcela no tiene sesiones fitosanitarias.'}
           </p>
         ) : (
           <ul className="space-y-1">
             {sessions.map((s) => {
               const selected = s.id === selectedSessionId
+              const count = Number(s.checkpoints_count ?? 0)
               return (
                 <li key={s.id}>
                   <button
                     type="button"
-                    onClick={() => onSelectSession({ id: s.id, date: s.aspersion_date ?? null, kind: 'aspersion' })}
+                    onClick={() => onSelectSession({ id: s.id, date: s.estimated_start_date ?? null, kind: 'phyto' })}
                     className={`w-full rounded px-2 py-1.5 text-left text-xs hover:bg-accent ${
                       selected ? 'bg-accent font-medium' : ''
                     }`}
                   >
-                    <div>{s.aspersion_date ?? 'Sin fecha'}</div>
+                    <div>{s.estimated_start_date ?? 'Sin fecha'}</div>
                     <div className="text-[11px] text-muted-foreground">
-                      {s.points_count ? `${s.points_count} pts` : 'sin puntos'}
-                      {s.import_status && s.import_status !== 'done' ? ` · ${s.import_status}` : ''}
+                      {count ? `${count} pts` : 'sin puntos'}
+                      {s.status && s.status !== 'completed' ? ` · ${STATUS_LABEL[s.status] ?? s.status}` : ''}
                     </div>
                   </button>
                 </li>
