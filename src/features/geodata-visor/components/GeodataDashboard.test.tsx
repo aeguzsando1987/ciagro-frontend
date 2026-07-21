@@ -28,6 +28,9 @@ vi.mock('@/features/admin/hooks/usePlots', () => ({
 vi.mock('../hooks/useAspersionSessionHeaders', () => ({
   useAspersionSessionHeaders: () => ({ data: [{ id: 's1' }, { id: 's2' }, { id: 's3' }], isLoading: false }),
 }))
+vi.mock('../hooks/usePhytoSessionHeaders', () => ({
+  usePhytoSessionHeaders: () => ({ data: [{ id: 'ph1' }, { id: 'ph2' }], isLoading: false }),
+}))
 // SessionInfoCard tiene su propio test (resuelve hooks + Link de router); aquí se aísla.
 vi.mock('./SessionInfoCard', () => ({
   SessionInfoCard: () => <div data-testid="session-info-card" />,
@@ -83,7 +86,7 @@ describe('GeodataDashboard', () => {
       level: 'session', org,
       ranch: { id: 'r1', name: 'Rancho Norte' },
       plot: { id: 'p1', name: 'P-01' },
-      session: { id: 's1', date: '2026-03-23' },
+      session: { id: 's1', date: '2026-03-23', kind: 'aspersion' },
     }
     render(<GeodataDashboard selection={sel} onSelect={vi.fn()} />)
     expect(screen.getByRole('button', { name: 'Proporción volumen' })).toBeTruthy()
