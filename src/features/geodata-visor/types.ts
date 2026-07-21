@@ -7,9 +7,18 @@
  */
 export type VisorLevel = 'org' | 'datacentral' | 'producer' | 'ranch' | 'plot' | 'session'
 
+/** Tipo de sesión seleccionada a nivel 'session' — decide qué mapa/stats renderiza el dashboard. */
+export type SessionKind = 'aspersion' | 'phyto'
+
 export interface VisorRef {
   id: string
   name: string
+}
+
+export interface VisorSession {
+  id: string
+  date: string | null
+  kind: SessionKind
 }
 
 export interface VisorSelection {
@@ -19,7 +28,7 @@ export interface VisorSelection {
   producer?: VisorRef
   ranch?: VisorRef
   plot?: VisorRef
-  session?: { id: string; date: string | null }
+  session?: VisorSession
 }
 
 /** Id del nodo activo según su nivel — para resaltar la fila seleccionada en el árbol. */

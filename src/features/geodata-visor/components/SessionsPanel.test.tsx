@@ -39,7 +39,7 @@ describe('SessionsPanel', () => {
     const onSelectSession = vi.fn()
     render(<SessionsPanel plotId="p1" selectedSessionId={null} onSelectSession={onSelectSession} />)
     fireEvent.click(screen.getByText('2026-02-10'))
-    expect(onSelectSession).toHaveBeenCalledWith({ id: 's2', date: '2026-02-10' })
+    expect(onSelectSession).toHaveBeenCalledWith({ id: 's2', date: '2026-02-10', kind: 'aspersion' })
   })
 
   it('floating={false} usa variante de columna (sin posicionamiento absoluto)', () => {

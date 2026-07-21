@@ -13,6 +13,7 @@ import { useProducers } from '@/features/admin/hooks/useProducers'
 import { useRanches, ranchesQueryOptions } from '@/features/admin/hooks/useRanches'
 import { usePlots, usePlotDetail, plotsQueryOptions } from '@/features/admin/hooks/usePlots'
 import { useAspersionSessionHeaders } from '../hooks/useAspersionSessionHeaders'
+import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
 import {
   type StatEntry,
   sumArea, parseArea,
@@ -21,11 +22,14 @@ import {
 import { RanchPlotsMap } from './RanchPlotsMap'
 import { ProducerRanchesMap } from './ProducerRanchesMap'
 import { SessionsPanel } from './SessionsPanel'
+import { PhytoSessionsPanel } from './PhytoSessionsPanel'
 import { SessionInfoCard } from './SessionInfoCard'
 import { AspersionMap } from './AspersionMap'
+import { PhytoMap } from '@/features/task-manager/components/PhytoMap'
+import { PhytoStatsCard } from '@/features/task-manager/components/PhytoStatsCard'
 import { SessionReportToggle } from '@/features/session-report/components/SessionReportToggle'
 import { ArrowLeft } from 'lucide-react'
-import type { VisorSelection } from '../types'
+import type { VisorSelection, VisorSession } from '../types'
 
 const LEVEL_TITLE: Record<VisorSelection['level'], string> = {
   org: 'Organización',
@@ -33,7 +37,15 @@ const LEVEL_TITLE: Record<VisorSelection['level'], string> = {
   producer: 'Productor',
   ranch: 'Rancho',
   plot: 'Parcela',
-  session: 'Sesión de aspersión',
+  session: 'Sesión',
+}
+
+/** Etiqueta del nivel; a nivel sesión distingue el tipo (aspersión / fitosanitaria). */
+function levelTitle(selection: VisorSelection): string {
+  if (selection.level === 'session') {
+    return selection.session?.kind === 'phyto' ? 'Sesión fitosanitaria' : 'Sesión de aspersión'
+  }
+  return LEVEL_TITLE[selection.level]
 }
 
 interface DashboardProps {
@@ -159,7 +171,7 @@ function selectProducerLevel(selection: VisorSelection): VisorSelection {
 }
 
 /** Selecciona una sesión conservando la parcela y la ruta actual. */
-function selectSession(selection: VisorSelection, session: { id: string; date: string | null }): VisorSelection {
+function selectSession(selection: VisorSelection, session: VisorSession): VisorSelection {
   return {
     org: selection.org,
     datacentral: selection.datacentral,
@@ -191,48 +203,72 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
   const isSessionLevel = selection.level === 'session'
 
   const stats = isPlotLevel ? null : ranchStats(plots.data?.length ?? 0, areaHa)
+  const isPhytoSession = isSessionLevel && selection.session?.kind === 'phyto'
+
+  const backToPlotButton = (
+    <button
+      type="button"
+      onClick={() => onSelect(selectPlotLevel(selection))}
+      className="mr-2 flex h-7 items-center gap-1 rounded-md bg-black/55 px-2.5 text-xs font-medium text-white shadow hover:bg-black/70"
+    >
+      <ArrowLeft className="h-3.5 w-3.5" /> Parcela
+    </button>
+  )
 
   return (
     <div className="flex h-full flex-col gap-2.5">
       {!statsHidden && stats && <StatGrid loading={plots.isLoading} stats={stats} />}
       {!statsHidden && isPlotLevel && <PlotStats plotId={selection.plot!.id} />}
-      {!statsHidden && isSessionLevel && (
+      {!statsHidden && isSessionLevel && !isPhytoSession && (
         <SessionInfoCard sessionId={selection.session!.id} datacentralId={selection.datacentral?.id} />
       )}
+      {!statsHidden && isPhytoSession && <PhytoStatsCard headerId={selection.session!.id} />}
       <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-lg border">
         {isSessionLevel ? (
-          /* Sesión seleccionada: las 5 capas heatmap sobre la parcela (reuso Fase 6).
-             La lista de sesiones va en la columna derecha del mapa, y debajo de ella la
-             tarjeta de categorías de % de aplicación (renderizada por AspersionMap). */
-          <AspersionMap
-            sessionId={selection.session!.id}
-            plotId={selection.plot!.id}
-            floatingToolbar
-            sessionsSlot={
-              <SessionsPanel
-                floating={false}
-                plotId={selection.plot!.id}
-                selectedSessionId={selection.session?.id ?? null}
-                onSelectSession={(session) => onSelect(selectSession(selection, session))}
-              />
-            }
-            toolbarStart={
-              <button
-                type="button"
-                onClick={() => onSelect(selectPlotLevel(selection))}
-                className="mr-2 flex h-7 items-center gap-1 rounded-md bg-black/55 px-2.5 text-xs font-medium text-white shadow hover:bg-black/70"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" /> Parcela
-              </button>
-            }
-            toolbarEnd={
-              <SessionReportToggle
-                objectId={selection.session!.id}
-                plotId={selection.plot!.id}
-                datacentralId={selection.datacentral?.id ?? null}
-              />
-            }
-          />
+          isPhytoSession ? (
+            /* Sesión fitosanitaria: mapa de calor de checkpoints sobre la parcela (reuso
+               del PhytoMap del task-manager). La lista de sesiones fitosanitarias va en la
+               columna derecha del mapa. */
+            <PhytoMap
+              sessionId={selection.session!.id}
+              plotId={selection.plot!.id}
+              floatingToolbar
+              sessionsSlot={
+                <PhytoSessionsPanel
+                  floating={false}
+                  plotId={selection.plot!.id}
+                  selectedSessionId={selection.session?.id ?? null}
+                  onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                />
+              }
+              toolbarStart={backToPlotButton}
+            />
+          ) : (
+            /* Sesión de aspersión: las 5 capas heatmap sobre la parcela (reuso Fase 6).
+               La lista de sesiones va en la columna derecha del mapa, y debajo de ella la
+               tarjeta de categorías de % de aplicación (renderizada por AspersionMap). */
+            <AspersionMap
+              sessionId={selection.session!.id}
+              plotId={selection.plot!.id}
+              floatingToolbar
+              sessionsSlot={
+                <SessionsPanel
+                  floating={false}
+                  plotId={selection.plot!.id}
+                  selectedSessionId={selection.session?.id ?? null}
+                  onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                />
+              }
+              toolbarStart={backToPlotButton}
+              toolbarEnd={
+                <SessionReportToggle
+                  objectId={selection.session!.id}
+                  plotId={selection.plot!.id}
+                  datacentralId={selection.datacentral?.id ?? null}
+                />
+              }
+            />
+          )
         ) : (
           <RanchPlotsMap
             plots={plots.data ?? []}
@@ -244,14 +280,24 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
             onBackToProducer={selection.producer ? () => onSelect(selectProducerLevel(selection)) : undefined}
           />
         )}
-        {/* Nivel parcela (sin sesión): lista de sesiones flotante sobre el mapa de parcelas.
-            A nivel sesión la lista vive dentro de AspersionMap (sessionsSlot). */}
+        {/* Nivel parcela (sin sesión): ambas listas de sesiones (aspersión + fitosanitaria)
+            apiladas en una columna flotante sobre el mapa de parcelas. A nivel sesión la
+            lista vive dentro del mapa correspondiente (sessionsSlot). */}
         {isPlotLevel && !isSessionLevel && (
-          <SessionsPanel
-            plotId={selection.plot!.id}
-            selectedSessionId={selection.session?.id ?? null}
-            onSelectSession={(session) => onSelect(selectSession(selection, session))}
-          />
+          <div className="absolute right-2 top-2 bottom-2 z-10 flex w-52 flex-col gap-2 overflow-hidden">
+            <SessionsPanel
+              floating={false}
+              plotId={selection.plot!.id}
+              selectedSessionId={selection.session?.id ?? null}
+              onSelectSession={(session) => onSelect(selectSession(selection, session))}
+            />
+            <PhytoSessionsPanel
+              floating={false}
+              plotId={selection.plot!.id}
+              selectedSessionId={selection.session?.id ?? null}
+              onSelectSession={(session) => onSelect(selectSession(selection, session))}
+            />
+          </div>
         )}
       </div>
     </div>
@@ -261,9 +307,14 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
 function PlotStats({ plotId }: { plotId: string }) {
   const plot = usePlotDetail(plotId)
   const sessions = useAspersionSessionHeaders(plotId)
-  const loading = plot.isLoading || sessions.isLoading
+  const phytoSessions = usePhytoSessionHeaders(plotId)
+  const loading = plot.isLoading || sessions.isLoading || phytoSessions.isLoading
   const areaHa = parseArea(plot.data?.total_area)
-  return <StatGrid loading={loading} stats={plotStats(areaHa, sessions.data?.length ?? 0)} />
+  const stats = [
+    ...plotStats(areaHa, sessions.data?.length ?? 0),
+    { label: 'Sesiones fitosanitarias', value: String(phytoSessions.data?.length ?? 0) },
+  ]
+  return <StatGrid loading={loading} stats={stats} />
 }
 
 // ─── Cuerpo del dashboard ──────────────────────────────────────────────────────
@@ -309,7 +360,7 @@ export function GeodataDashboard({ selection, onSelect }: DashboardProps) {
         <div className="flex items-baseline gap-2">
           <h2 className="text-base font-semibold leading-tight">{selectionName(selection)}</h2>
           <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            {LEVEL_TITLE[selection.level]}
+            {levelTitle(selection)}
           </span>
         </div>
         {hasMap && (

@@ -1907,3 +1907,61 @@ coordenada (los sanos no se marcan). Clic → popup con tablita de todos los hal
 etapa/cantidad/presencia + Foto miniatura→modal + Nota link→modal). Hook `usePhytoCheckPoints`.
 
 **Verificación:** typecheck 0, ESLint limpio, test 212/212, build OK.
+
+---
+
+## FASE FV — Sesiones fitosanitarias en el Visor de Datos (2026-07-11)
+
+El Visor de Datos Agrícolas (`geodata-visor`) solo exponía sesiones de aspersión; se extiende para que
+las **fitosanitarias** sean accesibles por las mismas dos vías, reutilizando `PhytoMap`/`PhytoStatsCard`
+(FASE FT). Rama `dev-visor-fitosanitario`.
+
+### FV.0 — Backend: `checkpoints_count` en el header phyto
+`PhytoMonitoringHeaderSerializer` gana `checkpoints_count` (`SerializerMethodField`): en listas lee la
+anotación `checkpoints_count_annot` que agrega `PhytoHeaderListView.get_queryset` (`Count('checkpoints',
+filter=Q(is_deleted=False))`, evita N+1); en detalle (sin anotación) cae a un `COUNT` directo. Sin
+migración (solo anotación + campo de solo lectura). `manage.py check` limpio; se regeneró `api.d.ts`.
+
+### FV.1 — Explorador agrupado por tipo (`GeodataExplorer`)
+Bajo cada parcela del árbol las sesiones se muestran en dos grupos con encabezado propio (`GroupLabel`):
+**Aspersión** (icono `Layers`) y **Fitosanitarias** (icono `Bug`), renderizados por `SessionGroups` →
+`AspersionSessionList` / `PhytoSessionList`. Nuevo hook `usePhytoSessionHeaders` (GET
+`/monitoring/phyto/headers/?plot=`, scope por rol vía `PhytoScopeFilterMixin`). La `VisorSelection.session`
+ahora incluye `kind: 'aspersion' | 'phyto'` (nuevo tipo `VisorSession`), que decide qué mapa/stats monta
+el dashboard y evita resaltar la fila del tipo equivocado.
+
+### FV.2 — Mapa por parcela (`GeodataDashboard`)
+A nivel parcela (sin sesión) la columna flotante sobre el mapa apila **ambos** paneles de sesiones:
+`SessionsPanel` (aspersión) + nuevo `PhytoSessionsPanel` (mismo patrón: filtro por rango de fechas en
+cliente, variante flotante/columna). Al seleccionar una sesión el dashboard ramifica por `kind`: phyto →
+`PhytoMap` (con `PhytoStatsCard` arriba y `PhytoSessionsPanel` en el `sessionsSlot`), aspersión →
+`AspersionMap` como antes. `PhytoMap` gana props `floatingToolbar` + `sessionsSlot` (paridad con
+`AspersionMap`); la leyenda se reubica abajo-izquierda cuando hay columna de sesiones. El nivel parcela
+suma la stat "Sesiones fitosanitarias".
+
+### FV.3 — Encuadre + mejoras visuales del `PhytoMap`
+Ajustes sobre el `PhytoMap` (compartido por el visor-datos y el `PhytoMapModal` del task-manager):
+
+- **Fix de encuadre (bug grave).** `PhytoMap` solo fijaba `initialViewState` (aplica una vez, al
+  montar). Como `usePlotGeometry` es asíncrono, si el polígono llegaba después el mapa quedaba en la
+  vista por defecto (`zoom 6` sobre México) mostrando los puntos "muy alejados". Se replicó el patrón de
+  `AspersionMap`: `mapRef = useRef<MapRef>` + `ref={mapRef}` en `<Map>` + `useEffect` que hace
+  `mapRef.fitBounds(mapBounds)` cada vez que `mapBounds` cambia (el polígono llega async).
+- **Leyenda.** Entrada verde "Baja / Sin monitorear" (estado base, corresponde al relleno verde de la
+  parcela) + botón **(i)** que despliega un panel con la interpretación de cada color (`PRESENCE_HELP`:
+  Crítica = hallazgos por arriba de la tolerancia; Advertencia = cerca del umbral; Baja/Sin monitorear =
+  sin hallazgos relevantes o zona no monitoreada, se asume sanidad pero se recomienda 2ª revisión).
+- **Relleno de parcela.** Verde más intenso y menos transparente (`HEALTHY_GREEN` `#15803d`,
+  `fill-opacity 0.95`) para sesiones fitosanitarias, donde el verde es el estado base del mapa.
+- **Toggle "Visualización".** Dos modos comparables en vivo: **Mapa de calor** (capa `heatmap` con
+  `heatmap-radius` como expresión `interpolate` exponencial base 2 sobre `['zoom']` → la mancha
+  crece/encoge con el zoom, como la parcela) vs **Discos** (polígonos circulares geográficos reales en
+  metros — `circlePolygon`, conversión metros→grados corregida por latitud, sin librerías externas).
+- **Superficie inequívoca.** Radio de mancha **fijo a 7.5 m** (`PROBLEM_RADIUS_M`) para traducir nº de
+  puntos a superficie. Lector en la leyenda: "Con problemas" (nº puntos × π·7.5², acotado al área de la
+  parcela) vs "Baja / sin monitoreo" (resto), en **ha** y % sobre el área de la parcela
+  (`polygonAreaM2`, proyección planar local). Da porcentajes sobre superficie, no sobre conteo.
+- **Orden de capas.** En modo mapa de calor, `cp-heat` se declara **después** de `cp-circles` para que
+  las manchas queden superpuestas a los puntos de datos (el clic sigue en `cp-circles`, capa interactiva).
+
+**Verificación:** typecheck 0, ESLint limpio, test 216/216 (nuevo `PhytoSessionsPanel.test`), build OK.
