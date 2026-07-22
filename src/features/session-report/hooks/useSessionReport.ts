@@ -52,6 +52,7 @@ export interface CreateReportInput {
   day_temperature?: string | null
   lead?: string
   ranch_manager?: string
+  figure_description?: string
   status?: SessionReport['status']
 }
 
@@ -77,6 +78,7 @@ export type UpdateReportPatch = Partial<{
   resume_text: string
   report_date: string
   day_temperature: string | null
+  figure_description: string
   lead: string
   ranch_manager: string
   status: SessionReport['status']

@@ -4340,7 +4340,7 @@ export interface paths {
         get?: never;
         /**
          * Editar un reporte de sesión (IsTechnician)
-         * @description Edita resumen, fecha, status y campos manuales. Recalcula snapshots si no está publicado (D3).
+         * @description Edita resumen, fecha, status y campos manuales. Recalcula snapshots si no está publicado (D3). Acepta **multipart** para subir `map_snapshot` (captura del mapa) y `analyst_signature` (firma del analista). Pasar el status a `publicado` **exige** `map_snapshot`: si falta, responde **400**.
          *
          *     **Ejemplos**
          *
@@ -4368,7 +4368,7 @@ export interface paths {
         head?: never;
         /**
          * Editar un reporte de sesión (IsTechnician)
-         * @description Edita resumen, fecha, status y campos manuales. Recalcula snapshots si no está publicado (D3).
+         * @description Edita resumen, fecha, status y campos manuales. Recalcula snapshots si no está publicado (D3). Acepta **multipart** para subir `map_snapshot` (captura del mapa) y `analyst_signature` (firma del analista). Pasar el status a `publicado` **exige** `map_snapshot`: si falta, responde **400**.
          *
          *     **Ejemplos**
          *
@@ -4463,6 +4463,90 @@ export interface paths {
          *     ```
          */
         delete: operations["v1_field_ops_session_reports_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/session-reports/{id}/pdf/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Descargar el reporte de sesión en PDF
+         * @description Genera el PDF del reporte con el **mismo maquetado** que la vista pública (`/r/<uuid>`), renderizado server-side con WeasyPrint. Autenticado y sujeto al scope del usuario. Si el reporte no tiene `map_snapshot`, el PDF se genera de todas formas con un aviso en el lugar del mapa.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/session-reports/{id}/pdf/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         */
+        get: operations["v1_field_ops_session_reports_pdf_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/public/session-reports/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reporte de sesión publicado (PÚBLICO, sin autenticación)
+         * @description Devuelve un reporte en status `publicado` sin requerir sesión: es el contenido de la liga que se comparte con el cliente. Omite auditoría interna e IDs de entidades internas. **404** si el reporte no existe, fue borrado o no está publicado (despublicar revoca la liga). Con rate-limit.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/public/session-reports/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         */
+        get: operations["v1_field_ops_public_session_reports_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/public/session-reports/{id}/points/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Puntos de aspersión de un reporte publicado (PÚBLICO, sin autenticación)
+         * @description GeoJSON de los puntos de la sesión a la que pertenece un reporte `publicado`, para dibujar el mapa de la vista pública. Mismo gate que el reporte: **404** si no está publicado. Expone solo los campos que el mapa necesita para ubicar y clasificar cada punto, no la telemetría completa. Con rate-limit.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/public/session-reports/{id}/points/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         */
+        get: operations["v1_field_ops_public_session_reports_points_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -5945,6 +6029,337 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/soil-map/headers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar o crear sesiones de mapeo de suelo
+         * @description Lista los encabezados de mapeo de suelo visibles para el usuario. Permite filtrar por `program`, `plot` e `import_status`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/soil-map/headers/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/soil-map/headers/")
+         *         suspend fun listSoilMapHeaders(): Paginated<SoilMapHeader>
+         *     }
+         *
+         *     val result = api.listSoilMapHeaders()
+         *     ```
+         */
+        get: operations["v1_monitoring_soil_map_headers_list"];
+        put?: never;
+        /**
+         * Listar o crear sesiones de mapeo de suelo
+         * @description Lista los encabezados de mapeo de suelo visibles para el usuario. Permite filtrar por `program`, `plot` e `import_status`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/soil-map/headers/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/soil-map/headers/")
+         *         suspend fun listSoilMapHeaders(): Paginated<SoilMapHeader>
+         *     }
+         *
+         *     val result = api.listSoilMapHeaders()
+         *     ```
+         */
+        post: operations["v1_monitoring_soil_map_headers_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/soil-map/headers/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar una sesión de mapeo de suelo
+         * @description Actualiza sus metadatos. Requiere Supervisor o un rol superior.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/soil-map/headers/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "mapping_date": "2026-07-16"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/soil-map/headers/{id}/update/")
+         *         suspend fun updateSoilMapHeader(@Path("id") id: String, @Body body: SoilMapHeaderReq): SoilMapHeader
+         *     }
+         *
+         *     val result = api.updateSoilMapHeader(id)
+         *     ```
+         */
+        put: operations["v1_monitoring_soil_map_headers_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar una sesión de mapeo de suelo
+         * @description Actualiza sus metadatos. Requiere Supervisor o un rol superior.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/soil-map/headers/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "mapping_date": "2026-07-16"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/soil-map/headers/{id}/update/")
+         *         suspend fun updateSoilMapHeader(@Path("id") id: String, @Body body: SoilMapHeaderReq): SoilMapHeader
+         *     }
+         *
+         *     val result = api.updateSoilMapHeader(id)
+         *     ```
+         */
+        patch: operations["v1_monitoring_soil_map_headers_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/monitoring/soil-map/headers/{id}/import/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importar puntos de mapeo de suelo desde CSV
+         * @description Guarda el CSV recibido y encola `import_soil_map_csv`. Responde 202 mientras Celery procesa los puntos.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/soil-map/headers/{id}/import/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -F 'csv_file=@soil-map.csv'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @Multipart
+         *         @POST("monitoring/soil-map/headers/{id}/import/")
+         *         suspend fun importSoilMapCsv(@Path("id") id: String, @Part csv_file: MultipartBody.Part): ImportResponse
+         *     }
+         *
+         *     val result = api.importSoilMapCsv(id)
+         *     ```
+         */
+        post: operations["v1_monitoring_soil_map_headers_import_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/soil-map/headers/{id}/preview-columns/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vista previa de columnas del CSV de suelo
+         * @description Lee el encabezado del CSV y devuelve las columnas reconocidas, no reconocidas y su mapeo efectivo.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/soil-map/headers/{id}/preview-columns/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -F 'csv_file=@soil-map.csv'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @Multipart
+         *         @POST("monitoring/soil-map/headers/{id}/preview-columns/")
+         *         suspend fun previewSoilMapColumns(@Path("id") id: String, @Part csv_file: MultipartBody.Part): PreviewResult
+         *     }
+         *
+         *     val result = api.previewSoilMapColumns(id)
+         *     ```
+         */
+        post: operations["v1_monitoring_soil_map_headers_preview_columns_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/soil-map/headers/{id}/stats/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumen de una sesión de mapeo de suelo
+         * @description Devuelve el estado general y el conteo actual de puntos. No calcula estadísticas por variable.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/soil-map/headers/{id}/stats/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/soil-map/headers/{id}/stats/")
+         *         suspend fun getSoilMapStats(@Path("id") id: String): SoilMapStats
+         *     }
+         *
+         *     val result = api.getSoilMapStats(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_soil_map_headers_stats_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/soil-map/headers/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de una sesión de mapeo de suelo
+         * @description Devuelve un encabezado de mapeo de suelo dentro del alcance del usuario.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/soil-map/headers/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/soil-map/headers/{id}/")
+         *         suspend fun getSoilMapHeader(@Path("id") id: String): SoilMapHeader
+         *     }
+         *
+         *     val result = api.getSoilMapHeader(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_soil_map_headers_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/soil-map/points/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar puntos de mapeo de suelo
+         * @description Lista puntos georreferenciados. Filtros: `?smh_header=<uuid>` y `?plot=<uuid>`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/soil-map/points/?smh_header=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/soil-map/points/")
+         *         suspend fun listSoilMapPoints(): Paginated<SoilMapPoint>
+         *     }
+         *
+         *     val result = api.listSoilMapPoints()
+         *     ```
+         */
+        get: operations["v1_monitoring_soil_map_points_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/monitoring/phyto/headers/": {
         parameters: {
             query?: never;
@@ -6837,13 +7252,10 @@ export interface components {
             tax_type?: (components["schemas"]["TaxTypeEnum"] | components["schemas"]["BlankEnum"] | components["schemas"]["NullEnum"]) | null;
             headcount?: number | null;
             phone?: string;
-            /** Format: email */
             email?: string;
-            /** Format: uri */
             website?: string;
             address_line_1?: string;
             address_line_2?: string;
-            /** Format: uri */
             location_url?: string;
             country?: number | null;
             state?: number | null;
@@ -7305,7 +7717,6 @@ export interface components {
             address_line_1?: string;
             address_line_2?: string;
             phone?: string;
-            /** Format: email */
             email?: string;
             readonly slug: string;
             /** Format: date-time */
@@ -7515,11 +7926,8 @@ export interface components {
             conclusion?: string | null;
             /** @description Notas privadas para nivel gerencial. */
             internal_comments?: string | null;
-            /**
-             * Format: uri
-             * @description URL del snapshot del mapa de calor.
-             */
-            map_url?: string | null;
+            /** @description URL del snapshot del mapa de calor. */
+            map_url?: (string) | null;
             /** @description Array de URLs de fotos de evidencia. */
             attachments_url?: unknown;
             is_valid?: boolean;
@@ -7635,14 +8043,12 @@ export interface components {
             first_name: string;
             last_name: string;
             phone?: string | null;
-            /** Format: email */
-            personal_email?: string | null;
+            personal_email?: (string) | null;
             address_line_1?: string | null;
             address_line_2?: string | null;
             city?: string | null;
             postal_code?: string | null;
-            /** Format: uri */
-            photo_url?: string | null;
+            photo_url?: (string) | null;
             state?: number | null;
             country?: number | null;
             work_role?: number | null;
@@ -8329,6 +8735,36 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["SessionReport"][];
         };
+        PaginatedSoilMapHeaderList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["SoilMapHeader"][];
+        };
+        PaginatedSoilMapPointsList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["SoilMapPoints"][];
+        };
         PaginatedStateDetailList: {
             /** @example 123 */
             count: number;
@@ -8440,13 +8876,11 @@ export interface components {
             first_name?: string;
             last_name?: string;
             phone?: string;
-            /** Format: email */
             personal_email?: string;
             address_line_1?: string;
             address_line_2?: string;
             city?: string;
             postal_code?: string;
-            /** Format: uri */
             photo_url?: string;
             state?: number | null;
             country?: number | null;
@@ -8472,13 +8906,10 @@ export interface components {
             tax_type?: (components["schemas"]["TaxTypeEnum"] | components["schemas"]["BlankEnum"] | components["schemas"]["NullEnum"]) | null;
             headcount?: number | null;
             phone?: string;
-            /** Format: email */
             email?: string;
-            /** Format: uri */
             website?: string;
             address_line_1?: string;
             address_line_2?: string;
-            /** Format: uri */
             location_url?: string;
             country?: number | null;
             state?: number | null;
@@ -8638,7 +9069,6 @@ export interface components {
             address_line_1?: string;
             address_line_2?: string;
             phone?: string;
-            /** Format: email */
             email?: string;
             readonly slug?: string;
             /** Format: date-time */
@@ -8710,14 +9140,12 @@ export interface components {
             first_name?: string;
             last_name?: string;
             phone?: string | null;
-            /** Format: email */
-            personal_email?: string | null;
+            personal_email?: (string) | null;
             address_line_1?: string | null;
             address_line_2?: string | null;
             city?: string | null;
             postal_code?: string | null;
-            /** Format: uri */
-            photo_url?: string | null;
+            photo_url?: (string) | null;
             state?: number | null;
             country?: number | null;
             work_role?: number | null;
@@ -9234,8 +9662,7 @@ export interface components {
             actual_start_date?: string | null;
             /** Format: date-time */
             actual_finish_date?: string | null;
-            /** Format: uri */
-            location_url?: string | null;
+            location_url?: (string) | null;
             attachments_url?: unknown;
         };
         PatchedRanch: {
@@ -9260,7 +9687,6 @@ export interface components {
                 producer?: string | null;
                 address_line_1?: string;
                 address_line_2?: string;
-                /** Format: uri */
                 location_url?: string;
                 /** Format: decimal */
                 lat?: string | null;
@@ -9390,10 +9816,103 @@ export interface components {
             lead?: string;
             /** Encargado del rancho */
             ranch_manager?: string;
+            /**
+             * Snapshot del mapa
+             * Format: uri
+             * @description PNG del visor en la capa de % de aplicación, capturado por el frontend al publicar. Queda congelado: para actualizarlo hay que despublicar y republicar.
+             */
+            map_snapshot?: string | null;
+            /**
+             * Firma del analista agrícola
+             * Format: uri
+             * @description Imagen de la firma que valida el reporte. El nombre del firmante sale de created_by.
+             */
+            analyst_signature?: string | null;
+            /**
+             * Descripción de la Figura 1
+             * @description Pie de la figura del mapa en el reporte impreso: 'Figura 1. <descripción>'.
+             */
+            figure_description?: string;
             /** Status del reporte */
             status?: components["schemas"]["SessionReportStatusEnum"];
             readonly status_display?: string;
             readonly issues?: components["schemas"]["SessionIssue"][];
+            /** Format: date-time */
+            readonly created_at?: string;
+            /** Format: date-time */
+            readonly updated_at?: string;
+        };
+        /** @description Encabezado de una sesión de mapeo de suelo. */
+        PatchedSoilMapHeader: {
+            /** Format: uuid */
+            readonly id?: string;
+            /**
+             * Programa de la actividad
+             * Format: uuid
+             */
+            readonly program?: string;
+            /** Format: uuid */
+            program_id?: string;
+            /**
+             * Parcela
+             * Format: uuid
+             * @description Parcela del rancho a la que pertenece este mapeo de suelo.
+             */
+            readonly plot?: string | null;
+            /**
+             * Fecha del mapeo
+             * Format: date
+             */
+            mapping_date?: string;
+            /**
+             * Estado de la sesión
+             * @description Ciclo de vida: pending → in_progress → loaded → completed | cancelled.
+             *
+             *     * `pending` - Pendiente
+             *     * `in_progress` - En progreso
+             *     * `loaded` - Cargado
+             *     * `completed` - Completado
+             *     * `cancelled` - Cancelado
+             */
+            status?: components["schemas"]["Status5a4Enum"];
+            readonly assigned_to?: {
+                /** Format: uuid */
+                id?: string;
+                username?: string;
+            } | null;
+            /** Format: uuid */
+            assigned_to_id?: string | null;
+            /**
+             * Fecha estimada de inicio del mapeo
+             * Format: date
+             */
+            est_init_date?: string | null;
+            /**
+             * Fecha estimada de finalización
+             * Format: date
+             */
+            est_finish_date?: string | null;
+            /**
+             * Fecha real de inicio del mapeo
+             * Format: date
+             */
+            real_init_date?: string | null;
+            /**
+             * Fecha real de finalización
+             * Format: date
+             */
+            real_finish_date?: string | null;
+            /** Estado de importación */
+            readonly import_status?: components["schemas"]["ImportStatusEnum"];
+            /** Errores de importación */
+            readonly import_errors?: unknown;
+            /**
+             * Fecha de importación
+             * Format: date-time
+             * @description Fecha de finalización de la importación masiva exitosa.
+             */
+            readonly imported_at?: string | null;
+            readonly points_count?: string;
             /** Format: date-time */
             readonly created_at?: string;
             /** Format: date-time */
@@ -9913,8 +10432,7 @@ export interface components {
             actual_start_date?: string | null;
             /** Format: date-time */
             actual_finish_date?: string | null;
-            /** Format: uri */
-            location_url?: string | null;
+            location_url?: (string) | null;
             attachments_url?: unknown;
         };
         ProgramaTree: {
@@ -9960,7 +10478,6 @@ export interface components {
                 producer?: string | null;
                 address_line_1?: string;
                 address_line_2?: string;
-                /** Format: uri */
                 location_url?: string;
                 /** Format: decimal */
                 lat?: string | null;
@@ -10119,6 +10636,23 @@ export interface components {
             lead?: string;
             /** Encargado del rancho */
             ranch_manager?: string;
+            /**
+             * Snapshot del mapa
+             * Format: uri
+             * @description PNG del visor en la capa de % de aplicación, capturado por el frontend al publicar. Queda congelado: para actualizarlo hay que despublicar y republicar.
+             */
+            map_snapshot?: string | null;
+            /**
+             * Firma del analista agrícola
+             * Format: uri
+             * @description Imagen de la firma que valida el reporte. El nombre del firmante sale de created_by.
+             */
+            analyst_signature?: string | null;
+            /**
+             * Descripción de la Figura 1
+             * @description Pie de la figura del mapa en el reporte impreso: 'Figura 1. <descripción>'.
+             */
+            figure_description?: string;
             /** Status del reporte */
             status?: components["schemas"]["SessionReportStatusEnum"];
             readonly status_display: string;
@@ -10127,6 +10661,57 @@ export interface components {
             readonly created_at: string;
             /** Format: date-time */
             readonly updated_at: string;
+        };
+        /** @description Reporte publicado, tal como lo ve el cliente por la liga pública. */
+        SessionReportPublic: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly activity_label: string;
+            /**
+             * Fecha de reporte
+             * Format: date
+             * @description Por defecto fecha actual
+             */
+            report_date?: string;
+            /**
+             * Observaciones
+             * @description Resumen/diagnśtico del reporte
+             */
+            resume_text: string;
+            /**
+             * Temperatura de día
+             * Format: decimal
+             * @description Manual. Se difiere con API de clima para otro feature
+             */
+            day_temperature?: string | null;
+            /** Responsable de actividad */
+            lead?: string;
+            /** Encargado del rancho */
+            ranch_manager?: string;
+            /**
+             * Datos generales denormalizados
+             * @description Productor, rancho, parcela, superficie, ubicacion, cultivo
+             */
+            general_snapshot?: unknown;
+            /**
+             * Datos cuantitativos/estadísticos
+             * @description Área de cobertura, dosis, volumen, velocidad, fechas y semáforo de 5 buckets. Congelado al publicar.
+             */
+            stats_snapshot?: unknown;
+            /**
+             * Snapshot del mapa
+             * Format: uri
+             * @description PNG del visor en la capa de % de aplicación, capturado por el frontend al publicar. Queda congelado: para actualizarlo hay que despublicar y republicar.
+             */
+            map_snapshot?: string | null;
+            /**
+             * Firma del analista agrícola
+             * Format: uri
+             * @description Imagen de la firma que valida el reporte. El nombre del firmante sale de created_by.
+             */
+            analyst_signature?: string | null;
+            readonly analyst_name: string;
+            readonly issue_groups: string;
         };
         /**
          * @description * `en_proceso` - En proceso
@@ -10148,6 +10733,214 @@ export interface components {
          * @enum {string}
          */
         SeverityAlertEnum: "low" | "medium" | "high";
+        /** @description Encabezado de una sesión de mapeo de suelo. */
+        SoilMapHeader: {
+            /** Format: uuid */
+            readonly id: string;
+            /**
+             * Programa de la actividad
+             * Format: uuid
+             */
+            readonly program: string;
+            /** Format: uuid */
+            program_id: string;
+            /**
+             * Parcela
+             * Format: uuid
+             * @description Parcela del rancho a la que pertenece este mapeo de suelo.
+             */
+            readonly plot: string | null;
+            /**
+             * Fecha del mapeo
+             * Format: date
+             */
+            mapping_date: string;
+            /**
+             * Estado de la sesión
+             * @description Ciclo de vida: pending → in_progress → loaded → completed | cancelled.
+             *
+             *     * `pending` - Pendiente
+             *     * `in_progress` - En progreso
+             *     * `loaded` - Cargado
+             *     * `completed` - Completado
+             *     * `cancelled` - Cancelado
+             */
+            status?: components["schemas"]["Status5a4Enum"];
+            readonly assigned_to: {
+                /** Format: uuid */
+                id?: string;
+                username?: string;
+            } | null;
+            /** Format: uuid */
+            assigned_to_id?: string | null;
+            /**
+             * Fecha estimada de inicio del mapeo
+             * Format: date
+             */
+            est_init_date?: string | null;
+            /**
+             * Fecha estimada de finalización
+             * Format: date
+             */
+            est_finish_date?: string | null;
+            /**
+             * Fecha real de inicio del mapeo
+             * Format: date
+             */
+            real_init_date?: string | null;
+            /**
+             * Fecha real de finalización
+             * Format: date
+             */
+            real_finish_date?: string | null;
+            /** Estado de importación */
+            readonly import_status: components["schemas"]["ImportStatusEnum"];
+            /** Errores de importación */
+            readonly import_errors: unknown;
+            /**
+             * Fecha de importación
+             * Format: date-time
+             * @description Fecha de finalización de la importación masiva exitosa.
+             */
+            readonly imported_at: string | null;
+            readonly points_count: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        SoilMapImportRequest: {
+            /** Format: uri */
+            csv_file: string;
+        };
+        /** @description Punto de análisis de suelo con geometría GeoJSON. */
+        SoilMapPoints: {
+            /** Format: uuid */
+            readonly id: string;
+            /**
+             * Encabezado del mapeo de suelo
+             * Format: uuid
+             */
+            readonly smh_header: string;
+            /**
+             * Ubicación
+             * @description Coordenada construida a partir de la longitud y latitud del CSV.
+             */
+            geom: {
+                /** @enum {string} */
+                type?: "Point";
+                /**
+                 * @example [
+                 *       12.9721,
+                 *       77.5933
+                 *     ]
+                 */
+                coordinates?: number[];
+            };
+            /** Format: double */
+            Countrate?: number | null;
+            /** Format: double */
+            B?: number | null;
+            /** Format: double */
+            BulkDens?: number | null;
+            /** Format: double */
+            Ca?: number | null;
+            /** Format: double */
+            Ca_bse?: number | null;
+            /** Format: double */
+            Ca_Mg?: number | null;
+            /** Format: double */
+            CEC?: number | null;
+            /** Format: double */
+            Clay?: number | null;
+            /** Format: double */
+            Cond?: number | null;
+            /** Format: double */
+            Cu?: number | null;
+            /** Format: double */
+            Elevation?: number | null;
+            /** Format: double */
+            Fe?: number | null;
+            /** Format: double */
+            K?: number | null;
+            /** Format: double */
+            K_bse?: number | null;
+            /** Format: double */
+            K_Mg?: number | null;
+            /** Format: double */
+            Leak?: number | null;
+            /** Format: double */
+            Loam?: number | null;
+            /** Format: double */
+            Mg?: number | null;
+            /** Format: double */
+            Mg_bse?: number | null;
+            /** Format: double */
+            Mn?: number | null;
+            /** Format: double */
+            Na?: number | null;
+            /** Format: double */
+            NO3N?: number | null;
+            /** Format: double */
+            OM?: number | null;
+            /** Format: double */
+            P?: number | null;
+            /** Format: double */
+            PAWater?: number | null;
+            /** Format: double */
+            pH?: number | null;
+            /** Format: double */
+            S?: number | null;
+            /** Format: double */
+            Sand?: number | null;
+            /** Format: double */
+            Silt?: number | null;
+            /** Format: double */
+            Zn?: number | null;
+            /** Format: double */
+            CC?: number | null;
+            /** Format: double */
+            Na_bse?: number | null;
+            /** Format: double */
+            Ca_total?: number | null;
+            /** Format: double */
+            K_total?: number | null;
+            /** Format: double */
+            Mg_total?: number | null;
+            /** Format: double */
+            P_total?: number | null;
+            /** Format: double */
+            S_total?: number | null;
+            /** Format: double */
+            Ca_disp?: number | null;
+            /** Format: double */
+            K_disp?: number | null;
+            /** Format: double */
+            Mg_disp?: number | null;
+            /** Format: double */
+            P_disp?: number | null;
+            /** Format: double */
+            S_disp?: number | null;
+            /** Format: double */
+            Cu_disp?: number | null;
+            /** Format: double */
+            Fe_disp?: number | null;
+            /** Format: double */
+            Mn_disp?: number | null;
+            /** Format: double */
+            Zn_disp?: number | null;
+            /** Format: double */
+            N?: number | null;
+            classtexture?: string | null;
+            compfisic?: string | null;
+            compquim?: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        SoilMapPreviewColumnsRequest: {
+            /** Format: uri */
+            csv_file: string;
+        };
         /**
          * @description * `huevesillo` - Huevesillo
          *     * `larva` - Larva / Joven
@@ -13090,8 +13883,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["SessionReport"];
-                "application/x-www-form-urlencoded": components["schemas"]["SessionReport"];
                 "multipart/form-data": components["schemas"]["SessionReport"];
+                "application/x-www-form-urlencoded": components["schemas"]["SessionReport"];
             };
         };
         responses: {
@@ -13117,8 +13910,8 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": components["schemas"]["PatchedSessionReport"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedSessionReport"];
                 "multipart/form-data": components["schemas"]["PatchedSessionReport"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedSessionReport"];
             };
         };
         responses: {
@@ -13180,6 +13973,101 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    v1_field_ops_session_reports_pdf_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_field_ops_public_session_reports_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionReportPublic"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_field_ops_public_session_reports_points_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
             };
         };
     };
@@ -14219,6 +15107,273 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedAspersionSessionPointsList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_soil_map_headers_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedSoilMapHeaderList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_soil_map_headers_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SoilMapHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["SoilMapHeader"];
+                "multipart/form-data": components["schemas"]["SoilMapHeader"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoilMapHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_soil_map_headers_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SoilMapHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["SoilMapHeader"];
+                "multipart/form-data": components["schemas"]["SoilMapHeader"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoilMapHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_soil_map_headers_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedSoilMapHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedSoilMapHeader"];
+                "multipart/form-data": components["schemas"]["PatchedSoilMapHeader"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoilMapHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_soil_map_headers_import_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["SoilMapImportRequest"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_soil_map_headers_preview_columns_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["SoilMapPreviewColumnsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_soil_map_headers_stats_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_soil_map_headers_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoilMapHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_soil_map_points_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+                /** @description Filtrar por UUID de parcela. */
+                plot?: string;
+                /** @description Filtrar por UUID del encabezado. */
+                smh_header?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedSoilMapPointsList"];
                 };
             };
         };

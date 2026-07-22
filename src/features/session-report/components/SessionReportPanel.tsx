@@ -25,6 +25,7 @@ import { useSessionReport } from '../hooks/useSessionReport'
 import { ReportCard } from './ReportCard'
 import { ReportForm } from './ReportForm'
 import { SessionIssuesTable } from './SessionIssuesTable'
+import { ReportDeliverables } from './ReportDeliverables'
 import { SyncReportButton } from './SyncReportButton'
 import type { SessionType } from '../types'
 
@@ -126,6 +127,13 @@ export function SessionReportPanel({
                 reportId={report.id}
                 canWrite={canWrite}
                 datacentralId={datacentralId}
+              />
+              <ReportDeliverables
+                report={report}
+                sessionType={sessionType}
+                objectId={objectId}
+                plotId={plotId}
+                canWrite={canWrite}
               />
             </div>
           )}
