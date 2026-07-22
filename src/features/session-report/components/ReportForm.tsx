@@ -49,6 +49,7 @@ function defaultsFromReport(report: SessionReport): SessionReportFormValues {
     day_temperature: report.day_temperature ?? '',
     lead: report.lead ?? '',
     ranch_manager: report.ranch_manager ?? '',
+    figure_description: report.figure_description ?? '',
     status: report.status ?? 'en_proceso',
   }
 }
@@ -91,6 +92,7 @@ export function ReportForm({
       day_temperature: temp ? temp : null,
       lead: values.lead?.trim() ?? '',
       ranch_manager: values.ranch_manager?.trim() ?? '',
+      figure_description: values.figure_description?.trim() ?? '',
       status: values.status,
     }
 
@@ -163,6 +165,15 @@ export function ReportForm({
           <Label htmlFor="rf-manager">Encargado del rancho</Label>
           <Input id="rf-manager" {...register('ranch_manager')} />
         </div>
+      </div>
+
+      <div className="space-y-1">
+        <Label htmlFor="rf-figure">Descripción de la Figura 1</Label>
+        <Input
+          id="rf-figure"
+          placeholder="Pie del mapa en el reporte impreso"
+          {...register('figure_description')}
+        />
       </div>
 
       <div className="space-y-1">

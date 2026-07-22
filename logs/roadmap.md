@@ -1,7 +1,7 @@
 # ROADMAP — CIAgro Alpha Frontend
 
 > **Estado actual:** Sesión 18 — Tanda de mejoras de producto: wizard de primer uso convertido en mini-tutorial (org → CIAgros → productores → asignaciones → info usuarios) con animación; UX de Administración (banners de asignación, labels "Dueño de organización"/"Código o nombre", combobox inline + transición de tamaño); visor con mapa de ranchos por productor (pines) y toolbar flotante; fix Manager dueño de org sin CIAs (no más NoAccessScreen); organizaciones inactivas deshabilitadas en selector/visor con guard de expulsión en caliente. Apoyado en cambios de backend Sesión 18.
-> **Última actualización:** 2026-06-03
+> **Última actualización:** 2026-07-21 — Fase RP planeada (liga pública `/r/<uuid>` + PDF del reporte de aspersión, rama `dev-report-public-pdf`; maquetado server-side en el backend, el front aporta captura de mapa, firma y botones).
 > **Backend:** roadmap propio en `../../CIAgro_alpha_backend/logs/roadmap.md`
 > **Producto:** `../../.context/templates/product-doc.md`
 > **Convención:** los sprints son estimaciones de **dev-week** (1 dev senior full-time).
@@ -318,6 +318,42 @@ el `PhytoMap`/`PhytoStatsCard` del Task Manager (FASE FT). Rama `dev-visor-fitos
   las manchas se declaran **sobre** los puntos de datos.
 - **Verificación:** `npm run typecheck` 0 errores, ESLint limpio, `npm run test` 216/216 (nuevo
   `PhytoSessionsPanel.test`), build OK.
+
+---
+
+## FASE RP — Reporte de aspersión: liga pública + PDF (rama `dev-report-public-pdf`, 2026-07-21)
+
+**Estado:** `[✅] Implementada — rama dev-report-public-pdf.` Cierra `GAP-FR-RS-006` y el pendiente
+`FR-RS.D3` (PDF). Coordinada con el backend (misma rama allá). Pendiente: validación manual del dev.
+
+**Decisión que define el alcance del front:** el maquetado del reporte **no se rehace en React**.
+El layout A4 vive en **un template Django** que sirve tanto la vista pública `/r/<uuid>` como el
+PDF (WeasyPrint) — así no hay dos diseños que mantener sincronizados, y existe un endpoint real
+de PDF (que `window.print()` no podría dar). Esto reduce el trabajo de front a tres piezas:
+capturar el mapa, subir la firma y ofrecer los botones.
+
+- [x] **RP-F1 — Spike de captura del canvas.** ⏸ **Pausa, va primero.** `AspersionMap` con
+  `preserveDrawingBuffer: true` + `map.getCanvas().toDataURL('image/png')`. Si los tiles ESRI no
+  responden con CORS, el canvas queda "manchado" y `toDataURL()` lanza `SecurityError` — eso
+  tumbaría la captura en navegador (Opción A del prompt). **Resultado: descartado** — las tres
+  fuentes de tiles de ESRI responden con `Access-Control-Allow-Origin: *`, verificado por HTTP.
+- [x] **RP-F2 — Captura al publicar.** En `SessionReportPanel`, publicar implica: montar el mapa,
+  esperar `idle`, capturar el canvas, `PATCH` multipart de `map_snapshot`, y sólo entonces marcar
+  `publicado`. `preserveDrawingBuffer` se pasa **solo** en este contexto (degrada el rendimiento
+  del visor si se deja siempre activo). El snapshot queda **congelado**: re-capturar = despublicar
+  y volver a publicar.
+- [x] **RP-F3 — Compartir liga + firma.** Botón "Copiar liga" visible sólo si `status ===
+  'publicado'` (copia `${origin}/r/${report.id}`; revocar = despublicar) + entrada "Subir firma de
+  Analista Agrícola" (`PATCH` multipart de `analyst_signature`). El nombre del analista sale de
+  `created_by`, no es campo nuevo.
+- [x] **RP-F4 — Descargar PDF.** Botón en la misma sección de Reporte contra el endpoint
+  autenticado del backend.
+- [x] **RP-F5 — Deploy + tests.** `location /r/` hacia el backend en `nginx.default.conf.template`
+  (hoy sólo proxya `/api/` y `/media/`); Vitest sobre visibilidad del botón de compartir y la
+  lógica de captura/subida; `typecheck` + ESLint limpios.
+- **Nota de sincronía:** los colores del semáforo pasan a tener su fuente de verdad en el backend
+  (`SEMAFORO_COLORS` en `report_adapters.py`), porque el PDF se renderiza server-side.
+  `APPLICATION_CATEGORIES` en `aspersionLayers.ts` queda con un comentario cruzado apuntando allá.
 
 ---
 

@@ -1965,3 +1965,62 @@ Ajustes sobre el `PhytoMap` (compartido por el visor-datos y el `PhytoMapModal` 
   las manchas queden superpuestas a los puntos de datos (el clic sigue en `cp-circles`, capa interactiva).
 
 **Verificación:** typecheck 0, ESLint limpio, test 216/216 (nuevo `PhytoSessionsPanel.test`), build OK.
+
+---
+
+## FASE RP — Reporte de aspersión: liga pública + PDF (rama `dev-report-public-pdf`, 2026-07-21/22)
+
+Cierra `GAP-FR-RS-006` y el pendiente `FR-RS.D3` (PDF). Backend en la rama del mismo nombre.
+
+**Alcance del front, y por qué es pequeño.** El maquetado del reporte **no se rehace en React**: vive
+en un único template Django que sirve tanto la página pública `/r/<uuid>` como el PDF (WeasyPrint).
+Así no hay dos diseños que mantener sincronizados y existe un endpoint real de PDF, que
+`window.print()` no podría dar. El front aporta tres cosas: capturar el mapa, subir la firma y
+ofrecer los botones.
+
+### RP-F1 — Spike de captura del canvas
+Riesgo bloqueante evaluado **antes** de escribir nada: si los tiles satelitales no respondieran con
+cabecera CORS, el canvas quedaría "manchado" y `toDataURL()` lanzaría `SecurityError`, tumbando toda
+la Opción A del prompt. Verificado por HTTP que las **tres** fuentes de ESRI del estilo
+(`World_Imagery`, `World_Transportation`, `World_Boundaries_and_Places`) responden
+`Access-Control-Allow-Origin: *`. Descartado.
+
+### RP-F2 — Captura al publicar
+`AspersionMap` gana tres props opcionales: `preserveDrawingBuffer` (sin él el navegador puede
+descartar el buffer tras pintar y la captura sale vacía; degrada el rendimiento, así que **solo** se
+activa donde se captura), `onIdle` y `tightFrame` (baja el padding de `fitBounds` de 64 a 12 px y
+sube el `maxZoom` a 20, para que la parcela llene el cuadro en vez de quedar rodeada de terreno
+vecino).
+
+`ReportMapCapture` monta el mapa **fuera de pantalla** (`left: -10000px`, 1200×900): WebGL necesita un
+canvas con tamaño real, con `display:none` o alto 0 el mapa nunca dibuja y la captura saldría en
+blanco. Guard de captura única (el mapa emite `idle` varias veces) y timeout de 20 s si nunca llega.
+
+Publicar **siempre re-captura**, no solo la primera vez: el snapshot está congelado mientras el
+reporte está publicado, y despublicar + volver a publicar es el mecanismo para refrescarlo desde la
+propia app, sin tocar la base de datos.
+
+### RP-F3/F4 — Entregables
+`ReportDeliverables`: subir/reemplazar firma, publicar, copiar liga (solo si `publicado`; revocar =
+despublicar) y ver el PDF. `useReportAssets` sube por `FormData` con el Bearer puesto a mano —
+openapi-fetch serializa JSON y aquí hace falta multipart— y abre el PDF como blob en una pestaña; la
+pestaña se abre **en el manejador del clic**, porque hacerlo después del `await` la haría víctima del
+bloqueador de popups. El botón del PDF se deshabilita mientras no haya captura (el backend responde
+400). Campo `figure_description` agregado al schema y al formulario.
+
+### RP-F5 — Entorno y deploy
+`location /r/` en `nginx.default.conf.template` (la página pública la renderiza Django, no la SPA;
+sin el bloque el fallback `try_files` devolvería `index.html`). En desarrollo se replicó con
+`server.proxy` en `vite.config.ts` para `/r` y `/media`, de modo que la liga copiada funcione igual
+en ambos entornos.
+
+**Incidente de configuración:** el proxy no surtía efecto pese a reiniciar el dev server. Causa: un
+`vite.config.js` **compilado y obsoleto** (artefacto de correr `tsc` sin `--noEmit`, sin seguimiento
+en git) que Vite resuelve **antes** que `vite.config.ts`. Se apartó. Quedan artefactos equivalentes
+de `tailwind` y `playwright` con el mismo riesgo latente, y el repo no tiene `.gitignore` — ambos
+puntos, ajenos a esta fase, quedan señalados.
+
+**Verificación:** `npm run typecheck` 0 errores, ESLint limpio en lo tocado (persisten 2 errores
+preexistentes en `PlotVerticesImport.tsx`), `npm run test` 218/218 con 2 tests nuevos de visibilidad
+de la liga según status. Validación manual del dev: captura del canvas funcionando contra datos
+reales.
