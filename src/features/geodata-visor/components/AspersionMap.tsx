@@ -20,6 +20,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Map, { Layer, Marker, Source, Popup } from 'react-map-gl/maplibre'
 import type { MapRef } from 'react-map-gl/maplibre'
+import type { Map as MapLibreMap } from 'maplibre-gl'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { useAspersionPoints } from '@/features/task-manager/hooks/useAspersionPoints'
@@ -324,6 +325,21 @@ interface AspersionMapProps {
    * (p. ej. en el Reporteador de Sesiones). Default `false` (visor = interactivo).
    */
   locked?: boolean
+  /**
+   * Conserva el buffer de dibujo de WebGL para poder leer el canvas con
+   * `getCanvas().toDataURL()` (captura del snapshot del reporte, FASE RP).
+   * Degrada el rendimiento del mapa, así que **solo** se activa donde se va a
+   * capturar, nunca en el visor general. Default `false`.
+   */
+  preserveDrawingBuffer?: boolean
+  /** Se dispara cuando el mapa termina de renderizar. `e.target` es el mapa nativo. */
+  onIdle?: (event: { target: MapLibreMap }) => void
+  /**
+   * Encuadre cerrado: menos margen y más zoom, para que la parcela llene el cuadro.
+   * Se usa en la captura del reporte, donde el terreno vecino solo resta tamaño a lo
+   * que interesa. Default `false` (el visor deja aire alrededor).
+   */
+  tightFrame?: boolean
 }
 
 // ─── Componente principal ────────────────────────────────────────────────────
@@ -338,6 +354,9 @@ export function AspersionMap({
   sessionsSlot,
   className,
   locked = false,
+  preserveDrawingBuffer = false,
+  onIdle,
+  tightFrame = false,
 }: AspersionMapProps) {
   const [activeLayerIdx, setActiveLayerIdx] = useState(0)
   // null = sin inicializar (tratar como "todos activos"); Set vacío = usuario desmarcó todo
@@ -411,8 +430,12 @@ export function AspersionMap({
   // Cuando el bbox cambia (e.g. el polígono llega después que los puntos), volar al nuevo encuadre.
   useEffect(() => {
     if (!mapRef.current || !mapBounds) return
-    mapRef.current.fitBounds(mapBounds, { padding: 50, duration: 600, maxZoom: 18 })
-  }, [mapBounds])
+    mapRef.current.fitBounds(mapBounds, {
+      padding: tightFrame ? 12 : 50,
+      duration: 600,
+      maxZoom: tightFrame ? 20 : 18,
+    })
+  }, [mapBounds, tightFrame])
 
   const toggleBucket = (key: string) => {
     setCheckedBuckets((prev) => {
@@ -502,12 +525,16 @@ export function AspersionMap({
                   bounds: mapBounds,
                   // En modo bloqueado (referencia) damos un poco más de margen para que el
                   // polígono no toque los bordes; el visor mantiene su encuadre cercano.
-                  fitBoundsOptions: { padding: locked ? 64 : 50, maxZoom: locked ? 17 : 18 },
+                  fitBoundsOptions: tightFrame
+                    ? { padding: 12, maxZoom: 20 }
+                    : { padding: locked ? 64 : 50, maxZoom: locked ? 17 : 18 },
                 }
               : { longitude: -101, latitude: 20.5, zoom: 6 }
           }
           maxZoom={20}
           mapStyle={ESRI_STYLE}
+          preserveDrawingBuffer={preserveDrawingBuffer}
+          onIdle={onIdle}
           cooperativeGestures={!locked}
           interactive={!locked}
           dragRotate={!locked}

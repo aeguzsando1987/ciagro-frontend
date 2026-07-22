@@ -21,6 +21,11 @@ vi.mock('../hooks/useSessionReport', async () => {
     useSyncSessionReport: () => ({ mutate: vi.fn(), isPending: false }),
   }
 })
+// Los entregables (FASE RP) usan mutaciones propias; se mockean por lo mismo.
+vi.mock('../hooks/useReportAssets', () => ({
+  useUploadReportAssets: () => ({ mutate: vi.fn(), isPending: false }),
+  useOpenReportPdf: () => ({ mutate: vi.fn(), isPending: false }),
+}))
 vi.mock('../hooks/useSessionIssues', () => ({
   useSessionIssues: () => ({ data: [], isLoading: false }),
   useCreateSessionIssue: () => ({ mutate: vi.fn(), isPending: false }),
@@ -83,6 +88,27 @@ describe('SessionReportPanel', () => {
     expect(screen.getByText('Productor X')).toBeTruthy()
     expect(screen.getByText('Excelente')).toBeTruthy()
     expect(screen.getByText('Temas de atención y observaciones')).toBeTruthy()
+  })
+
+  it('reporte NO publicado: ofrece Publicar y no muestra la liga pública', () => {
+    setRole(3)
+    mockReport.mockReturnValue({ data: REPORT, isLoading: false, isError: false, refetch: vi.fn() })
+    renderPanel()
+    expect(screen.getByRole('button', { name: /Publicar reporte/i })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Copiar liga p/i })).toBeNull()
+  })
+
+  it('reporte publicado: muestra la liga pública y ya no ofrece Publicar', () => {
+    setRole(3)
+    mockReport.mockReturnValue({
+      data: { ...REPORT, status: 'publicado', map_snapshot: '/media/x.png' },
+      isLoading: false, isError: false, refetch: vi.fn(),
+    })
+    renderPanel()
+    expect(screen.getByRole('button', { name: /Copiar liga p/i })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Publicar reporte/i })).toBeNull()
+    // La liga es el UUID que el reporte ya tiene: revocar = despublicar.
+    expect(screen.getByText(new RegExp(`/r/${REPORT.id}/`))).toBeTruthy()
   })
 
   it('con reporte: al pulsar Generar en estado vacío aparece el formulario de creación', () => {

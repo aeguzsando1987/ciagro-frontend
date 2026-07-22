@@ -27,6 +27,7 @@ export const sessionReportSchema = z.object({
     .optional(),
   lead: z.string().trim().optional(),
   ranch_manager: z.string().trim().optional(),
+  figure_description: z.string().trim().optional(),
   status: z.enum(['en_proceso', 'finalizado', 'cancelado', 'publicado']),
 })
 
@@ -38,6 +39,7 @@ export const SESSION_REPORT_FORM_FIELDS = [
   'day_temperature',
   'lead',
   'ranch_manager',
+  'figure_description',
   'status',
 ] as const
 
@@ -48,6 +50,7 @@ export function emptyReportForm(): SessionReportFormValues {
     day_temperature: '',
     lead: '',
     ranch_manager: '',
+    figure_description: '',
     status: 'en_proceso',
   }
 }

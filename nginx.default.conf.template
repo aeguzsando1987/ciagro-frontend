@@ -33,6 +33,18 @@ server {
         client_max_body_size 100m;    # subida de CSV de aspersión
     }
 
+    # Liga pública del reporte de sesión (/r/<uuid>/). La página la renderiza Django
+    # server-side (mismo maquetado que el PDF), NO la SPA: sin este bloque, el fallback
+    # de abajo devolvería index.html y la liga no funcionaría.
+    location /r/ {
+        proxy_pass ${BACKEND_ORIGIN};
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     # Archivos subidos (fotos de catálogo, adjuntos). Django los sirve bajo /media/.
     # NOTA PRODUCCIÓN: con DEBUG=False Django NO sirve /media/. En el servidor el backend
     # debe servirlos (whitenoise o un volumen) o cambiar este bloque a servir desde disco.

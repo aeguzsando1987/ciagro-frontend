@@ -72,6 +72,13 @@ export interface CategoryDef {
   range?: string
 }
 
+/**
+ * FUENTE DE VERDAD DE LOS COLORES: el backend (FASE RP).
+ * Desde que el reporte público y el PDF se renderizan server-side, la paleta vive en
+ * `SEMAFORO_COLORS` (apps/datalayers/report_adapters.py) y el template del reporte la
+ * consume de ahí. Estos hex deben coincidir con esa constante: si cambias uno, cambia
+ * el otro, o el mapa del visor y el PDF mostrarán colores distintos para el mismo bucket.
+ */
 export const APPLICATION_CATEGORIES: CategoryDef[] = [
   { key: 'deficiente', label: 'Deficiente', color: '#dc2626', range: '< 75%'    },
   { key: 'baja',       label: 'Baja',       color: '#eab308', range: '75–90%'   },
