@@ -1,6 +1,12 @@
 {
   "compilerOptions": {
     "composite": true,
+    // `composite` obliga a emitir, y sin outDir tsc deja los .js/.d.ts JUNTO a los
+    // .ts fuente en la raíz del repo. Eso es peligroso, no solo sucio: Vite y
+    // Tailwind resuelven `config.js` ANTES que `config.ts`, así que un artefacto
+    // viejo gana sobre el fuente editado y los cambios de configuración se ignoran
+    // en silencio (ya ocurrió con vite.config.js). Se manda el emit a node_modules.
+    "outDir": "./node_modules/.tmp/tsconfig-node",
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",

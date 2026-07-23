@@ -1,0 +1,38 @@
+# Dependencias
+node_modules/
+
+# Build
+dist/
+dist-ssr/
+
+# Variables de entorno (VITE_API_BASE_URL, llaves): nunca se versionan
+.env
+.env.local
+.env.*.local
+
+# Artefactos de TypeScript.
+# tsconfig.node.json usa `composite`, que obliga a emitir; su `outDir` manda la
+# salida a node_modules/.tmp, pero estos patrones cubren cualquier .js/.d.ts que
+# se genere junto a un config .ts. IMPORTA: Vite y Tailwind resuelven `config.js`
+# ANTES que `config.ts`, así que un artefacto versionado por error gana sobre el
+# fuente y los cambios de configuración se ignoran en silencio.
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+tailwind.config.js
+tailwind.config.d.ts
+playwright.config.js
+playwright.config.d.ts
+
+# Resultados de test
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# Editor / SO
+.DS_Store
+*.local
+.idea/
+*.swp
