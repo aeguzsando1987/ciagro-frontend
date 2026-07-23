@@ -35,6 +35,7 @@ const mockTree = {
       est_finish_date: '2026-07-31',
       aspersion_sessions: [],
       phyto_monitoring_headers: [],
+      soil_map_headers: [],
     },
   ],
 }

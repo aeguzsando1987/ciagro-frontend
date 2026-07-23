@@ -4477,7 +4477,7 @@ export interface paths {
         };
         /**
          * Descargar el reporte de sesión en PDF
-         * @description Genera el PDF del reporte con el **mismo maquetado** que la vista pública (`/r/<uuid>`), renderizado server-side con WeasyPrint. Autenticado y sujeto al scope del usuario. Si el reporte no tiene `map_snapshot`, el PDF se genera de todas formas con un aviso en el lugar del mapa.
+         * @description Genera el PDF del reporte con el **mismo maquetado** que la vista pública (`/r/<uuid>`), renderizado server-side con WeasyPrint. Autenticado y sujeto al scope del usuario. **400** si el reporte no tiene `map_snapshot`: el mapa es parte del entregable, así que no se emiten PDFs incompletos. La captura se toma al publicar el reporte.
          *
          *     **Ejemplos**
          *
@@ -10455,6 +10455,7 @@ export interface components {
             est_finish_date?: string | null;
             readonly aspersion_sessions: components["schemas"]["AspersionSessionSummary"][];
             readonly phyto_monitoring_headers: components["schemas"]["PhytoSessionSummary"][];
+            readonly soil_map_headers: components["schemas"]["SoilMapSessionSummary"][];
         };
         Ranch: {
             type?: components["schemas"]["GisFeatureEnum"];
@@ -10940,6 +10941,15 @@ export interface components {
         SoilMapPreviewColumnsRequest: {
             /** Format: uri */
             csv_file: string;
+        };
+        SoilMapSessionSummary: {
+            /** Format: uuid */
+            id: string;
+            readonly type: string;
+            /** Format: date */
+            mapping_date: string;
+            import_status: string;
+            status: string;
         };
         /**
          * @description * `huevesillo` - Huevesillo
@@ -13993,6 +14003,16 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             404: {
