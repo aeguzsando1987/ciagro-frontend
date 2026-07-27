@@ -6360,6 +6360,415 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/ndvi/headers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar o crear sesiones de NDVI
+         * @description Lista los encabezados de NDVI visibles para el usuario. Permite filtrar por `program`, `plot` e `import_status`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/ndvi/headers/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/ndvi/headers/")
+         *         suspend fun listNdviSessions(): Paginated<NdviSessionHeader>
+         *     }
+         *
+         *     val result = api.listNdviSessions()
+         *     ```
+         */
+        get: operations["v1_monitoring_ndvi_headers_list"];
+        put?: never;
+        /**
+         * Listar o crear sesiones de NDVI
+         * @description Lista los encabezados de NDVI visibles para el usuario. Permite filtrar por `program`, `plot` e `import_status`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/ndvi/headers/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/ndvi/headers/")
+         *         suspend fun listNdviSessions(): Paginated<NdviSessionHeader>
+         *     }
+         *
+         *     val result = api.listNdviSessions()
+         *     ```
+         */
+        post: operations["v1_monitoring_ndvi_headers_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/ndvi/headers/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar una sesion de NDVI
+         * @description Actualiza sus metadatos. Requiere Supervisor o un rol superior.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/ndvi/headers/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "session_date": "2024-10-25"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/ndvi/headers/{id}/update/")
+         *         suspend fun updateNdviSession(@Path("id") id: String, @Body body: NdviSessionHeaderReq): NdviSessionHeader
+         *     }
+         *
+         *     val result = api.updateNdviSession(id)
+         *     ```
+         */
+        put: operations["v1_monitoring_ndvi_headers_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar una sesion de NDVI
+         * @description Actualiza sus metadatos. Requiere Supervisor o un rol superior.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PATCH http://localhost:8500/api/v1/monitoring/ndvi/headers/{id}/update/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "session_date": "2024-10-25"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @PATCH("monitoring/ndvi/headers/{id}/update/")
+         *         suspend fun updateNdviSession(@Path("id") id: String, @Body body: NdviSessionHeaderReq): NdviSessionHeader
+         *     }
+         *
+         *     val result = api.updateNdviSession(id)
+         *     ```
+         */
+        patch: operations["v1_monitoring_ndvi_headers_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/monitoring/ndvi/headers/{id}/import/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importar puntos de NDVI desde CSV
+         * @description Guarda el CSV recibido y encola `import_ndvi_csv`. Responde 202 mientras Celery procesa los puntos.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/ndvi/headers/{id}/import/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -F 'csv_file=@ndvi.csv'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @Multipart
+         *         @POST("monitoring/ndvi/headers/{id}/import/")
+         *         suspend fun importNdviCsv(@Path("id") id: String, @Part csv_file: MultipartBody.Part): ImportResponse
+         *     }
+         *
+         *     val result = api.importNdviCsv(id)
+         *     ```
+         */
+        post: operations["v1_monitoring_ndvi_headers_import_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/ndvi/headers/{id}/preview-columns/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vista previa de columnas del CSV de NDVI
+         * @description Lee el encabezado del CSV y devuelve las columnas reconocidas, no reconocidas y su mapeo efectivo.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/ndvi/headers/{id}/preview-columns/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -F 'csv_file=@ndvi.csv'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @Multipart
+         *         @POST("monitoring/ndvi/headers/{id}/preview-columns/")
+         *         suspend fun previewNdviColumns(@Path("id") id: String, @Part csv_file: MultipartBody.Part): PreviewResult
+         *     }
+         *
+         *     val result = api.previewNdviColumns(id)
+         *     ```
+         */
+        post: operations["v1_monitoring_ndvi_headers_preview_columns_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/ndvi/headers/{id}/stats/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumen de una sesion de NDVI
+         * @description Devuelve el estado general y el conteo actual de puntos. Calculo en vivo, sin vista materializada.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/ndvi/headers/{id}/stats/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/ndvi/headers/{id}/stats/")
+         *         suspend fun getNdviStats(@Path("id") id: String): NdviStats
+         *     }
+         *
+         *     val result = api.getNdviStats(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_ndvi_headers_stats_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/ndvi/headers/{id}/contours/indices/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Indices con contornos disponibles
+         * @description Lista las claves de indice que ya tienen contornos generados para la sesion.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/ndvi/headers/{id}/contours/indices/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/ndvi/headers/{id}/contours/indices/")
+         *         suspend fun getNdviContourIndices(@Path("id") id: String): ContourIndices
+         *     }
+         *
+         *     val result = api.getNdviContourIndices(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_ndvi_headers_contours_indices_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/ndvi/headers/{id}/contours/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Contornos (coropleta) de una sesion NDVI
+         * @description Devuelve las bandas de contorno precomputadas como GeoJSON. Filtra por `?index=<clave>` (ej. `ndvi`). Cada feature trae `color`, `label` y el rango `band_min`/`band_max` para pintar y armar la leyenda.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/ndvi/headers/{id}/contours/?index=ndvi \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/ndvi/headers/{id}/contours/")
+         *         suspend fun getNdviContours(@Path("id") id: String): FeatureCollection
+         *     }
+         *
+         *     val result = api.getNdviContours(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_ndvi_headers_contours_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/ndvi/headers/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de una sesion de NDVI
+         * @description Devuelve un encabezado de NDVI dentro del alcance del usuario.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/ndvi/headers/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/ndvi/headers/{id}/")
+         *         suspend fun getNdviSession(@Path("id") id: String): NdviSessionHeader
+         *     }
+         *
+         *     val result = api.getNdviSession(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_ndvi_headers_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/ndvi/points/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar puntos de NDVI
+         * @description Lista puntos georreferenciados. Filtros: `?session_header=<uuid>` y `?plot=<uuid>`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/ndvi/points/?session_header=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/ndvi/points/")
+         *         suspend fun listNdviPoints(): Paginated<NdviPoint>
+         *     }
+         *
+         *     val result = api.listNdviPoints()
+         *     ```
+         */
+        get: operations["v1_monitoring_ndvi_points_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/monitoring/phyto/headers/": {
         parameters: {
             query?: never;
@@ -7211,6 +7620,54 @@ export interface paths {
          *     ```
          */
         delete: operations["v1_monitoring_phyto_checkpoints_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics-config/ndvi/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Config de variables NDVI de la organizacion
+         * @description Devuelve (GET) o actualiza (PATCH) la configuracion de bandas de los 15 indices NDVI del tenant. Si el tenant no tenia config, se crea con la estrategia por defecto (quartile) en todas las variables.
+         */
+        get: operations["v1_analytics_config_ndvi_retrieve"];
+        /**
+         * Config de variables NDVI de la organizacion
+         * @description Devuelve (GET) o actualiza (PATCH) la configuracion de bandas de los 15 indices NDVI del tenant. Si el tenant no tenia config, se crea con la estrategia por defecto (quartile) en todas las variables.
+         */
+        put: operations["v1_analytics_config_ndvi_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Config de variables NDVI de la organizacion
+         * @description Devuelve (GET) o actualiza (PATCH) la configuracion de bandas de los 15 indices NDVI del tenant. Si el tenant no tenia config, se crea con la estrategia por defecto (quartile) en todas las variables.
+         */
+        patch: operations["v1_analytics_config_ndvi_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/analytics-config/ndvi/variables/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Variables NDVI disponibles
+         * @description Lista las 15 variables NDVI (clave + etiqueta) para armar el form del visor.
+         */
+        get: operations["v1_analytics_config_ndvi_variables_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -8295,6 +8752,264 @@ export interface components {
              */
             stddev?: number | null;
         };
+        NdviImportRequest: {
+            /** Format: uri */
+            csv_file: string;
+        };
+        /**
+         * @description Banda de contorno NDVI como Feature GeoJSON: geometria + color + rango.
+         *
+         *     Al ser GeoFeatureModelSerializer, con many=True produce un FeatureCollection
+         *     listo para MapLibre (una feature por banda, con sus properties).
+         */
+        NdviIndexContour: {
+            type?: components["schemas"]["GisFeatureEnum"];
+            /** Format: uuid */
+            readonly id?: string;
+            geometry?: {
+                /** @enum {string} */
+                type?: "MultiPolygon";
+                coordinates?: number[][][][];
+            };
+            properties?: {
+                /**
+                 * Indice
+                 * @description Clave del indice contorneado. Ej: 'ndvi', 'osavi'.
+                 */
+                index_key?: string;
+                /** Orden de la banda */
+                band_order?: number;
+                /**
+                 * Limite inferior
+                 * Format: double
+                 */
+                band_min?: number | null;
+                /**
+                 * Limite superior
+                 * Format: double
+                 */
+                band_max?: number | null;
+                /** Etiqueta */
+                label?: string | null;
+                /** Color hex */
+                color?: string | null;
+                /**
+                 * Origen de los limites
+                 * @description absolute | normalized | quartile, segun la estrategia de la config.
+                 */
+                value_mode?: string;
+            };
+        };
+        NdviIndexContourList: {
+            type?: components["schemas"]["GisFeatureCollectionEnum"];
+            features?: components["schemas"]["NdviIndexContour"][];
+        };
+        NdviPreviewColumnsRequest: {
+            /** Format: uri */
+            csv_file: string;
+        };
+        /** @description Encabezado de una sesion de analisis NDVI. */
+        NdviSessionHeader: {
+            /** Format: uuid */
+            readonly id: string;
+            /**
+             * Programa de la actividad
+             * Format: uuid
+             */
+            readonly program: string;
+            /** Format: uuid */
+            program_id: string;
+            /**
+             * Parcela
+             * Format: uuid
+             * @description Parcela del rancho a la que pertenece el analisis NDVI
+             */
+            readonly plot: string | null;
+            /**
+             * Fecha de la imagen NDVI
+             * Format: date
+             */
+            session_date?: string | null;
+            /**
+             * Fecha estimada de inicio
+             * Format: date
+             */
+            est_start_date?: string | null;
+            /**
+             * Fecha estimada de finalizacion
+             * Format: date
+             */
+            est_finish_date?: string | null;
+            /**
+             * Fecha real de inicio
+             * Format: date
+             */
+            act_start_date?: string | null;
+            /**
+             * Fecha real de finalizacion
+             * Format: date
+             */
+            act_finish_date?: string | null;
+            /**
+             * Estado de la sesión
+             * @description Ciclo de vida: pending > in_progress > loaded > completed | cancelled
+             *
+             *     * `pending` - Pendiente
+             *     * `in_progress` - En progreso
+             *     * `loaded` - Cargado
+             *     * `completed` - Completado
+             *     * `cancelled` - Cancelado
+             */
+            status?: components["schemas"]["Status5a4Enum"];
+            readonly assigned_to: {
+                /** Format: uuid */
+                id?: string;
+                username?: string;
+            } | null;
+            /** Format: uuid */
+            assigned_to_id?: string | null;
+            /** Estatus de importación */
+            readonly import_status: components["schemas"]["ImportStatusEnum"];
+            /** Errores de importación */
+            readonly import_errors: unknown;
+            /**
+             * Fecha de importación
+             * Format: date-time
+             * @description Fecha de finalización de importación masiva exitosa
+             */
+            readonly imported_at: string | null;
+            readonly points_count: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /** @description Punto NDVI con geometria GeoJSON. */
+        NdviSessionPoints: {
+            /** Format: uuid */
+            readonly id: string;
+            /**
+             * Sesion de NDVI
+             * Format: uuid
+             */
+            readonly session_header: string;
+            /**
+             * Ubicacion
+             * @description Coordenada construida a partir de la longitud y latitud del CSV.
+             */
+            geom: {
+                /** @enum {string} */
+                type?: "Point";
+                /**
+                 * @example [
+                 *       12.9721,
+                 *       77.5933
+                 *     ]
+                 */
+                coordinates?: number[];
+            };
+            /** Id de objeto del proveedor */
+            obj_id?: number | null;
+            /** Lote */
+            lot_label?: string | null;
+            /**
+             * Conjunto de datos (fecha)
+             * Format: date
+             */
+            dataset_date?: string | null;
+            /** Producto */
+            product?: string | null;
+            /** Format: double */
+            ndvi?: number | null;
+            /** Format: double */
+            nir_vigor?: number | null;
+            /** Format: double */
+            osavi?: number | null;
+            /** Format: double */
+            vari?: number | null;
+            /** Format: double */
+            bare_soil_index?: number | null;
+            /** Format: double */
+            image_red?: number | null;
+            /** Format: double */
+            image_green?: number | null;
+            /** Format: double */
+            image_blue?: number | null;
+            /** Format: double */
+            red_edge?: number | null;
+            /** Format: double */
+            swir?: number | null;
+            /** Format: double */
+            ndre?: number | null;
+            /** Format: double */
+            msavi2?: number | null;
+            /** Format: double */
+            gndvi?: number | null;
+            /** Format: double */
+            ndmi?: number | null;
+            /** Format: double */
+            psri?: number | null;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        NdviSessionSummary: {
+            /** Format: uuid */
+            id: string;
+            readonly type: string;
+            /** Format: date */
+            session_date: string;
+            import_status: string;
+            status: string;
+        };
+        /**
+         * @description Config de bandas de los 15 indices NDVI de un tenant.
+         *
+         *     Cada columna de indice es un JSON con la config de bandas; se valida con el
+         *     mismo `validate_band_config` que usa el modelo, para que el API devuelva un
+         *     400 por variable al guardar desde el selector de color de la web.
+         */
+        NdviVariableConfig: {
+            /** Format: uuid */
+            readonly id: string;
+            /**
+             * Organizacion (tenant)
+             * Format: uuid
+             * @description Los umbrales aplican a todas las parcelas de esta organizacion.
+             */
+            readonly tenant: string;
+            /** Activo */
+            is_active?: boolean;
+            ndvi?: unknown;
+            /** Vigor NIR */
+            nir_vigor?: unknown;
+            osavi?: unknown;
+            vari?: unknown;
+            /** Indice de suelo desnudo */
+            bare_soil_index?: unknown;
+            /** Imagen rojo */
+            image_red?: unknown;
+            /** Imagen verde */
+            image_green?: unknown;
+            /** Imagen azul */
+            image_blue?: unknown;
+            /** Limite rojo */
+            red_edge?: unknown;
+            swir?: unknown;
+            ndre?: unknown;
+            msavi2?: unknown;
+            gndvi?: unknown;
+            ndmi?: unknown;
+            psri?: unknown;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /** @description Metadato de una variable NDVI para que el front arme las pestañas/campos. */
+        NdviVariableMeta: {
+            key: string;
+            label: string;
+        };
         /** @enum {unknown} */
         NullEnum: null;
         Onboarding: {
@@ -8584,6 +9299,36 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["MonitoringPoints"][];
+        };
+        PaginatedNdviSessionHeaderList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["NdviSessionHeader"][];
+        };
+        PaginatedNdviSessionPointsList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["NdviSessionPoints"][];
         };
         PaginatedPhytoCheckPointList: {
             /** @example 123 */
@@ -9262,6 +10007,126 @@ export interface components {
              * Format: date-time
              */
             readonly created_at?: string;
+        };
+        /** @description Encabezado de una sesion de analisis NDVI. */
+        PatchedNdviSessionHeader: {
+            /** Format: uuid */
+            readonly id?: string;
+            /**
+             * Programa de la actividad
+             * Format: uuid
+             */
+            readonly program?: string;
+            /** Format: uuid */
+            program_id?: string;
+            /**
+             * Parcela
+             * Format: uuid
+             * @description Parcela del rancho a la que pertenece el analisis NDVI
+             */
+            readonly plot?: string | null;
+            /**
+             * Fecha de la imagen NDVI
+             * Format: date
+             */
+            session_date?: string | null;
+            /**
+             * Fecha estimada de inicio
+             * Format: date
+             */
+            est_start_date?: string | null;
+            /**
+             * Fecha estimada de finalizacion
+             * Format: date
+             */
+            est_finish_date?: string | null;
+            /**
+             * Fecha real de inicio
+             * Format: date
+             */
+            act_start_date?: string | null;
+            /**
+             * Fecha real de finalizacion
+             * Format: date
+             */
+            act_finish_date?: string | null;
+            /**
+             * Estado de la sesión
+             * @description Ciclo de vida: pending > in_progress > loaded > completed | cancelled
+             *
+             *     * `pending` - Pendiente
+             *     * `in_progress` - En progreso
+             *     * `loaded` - Cargado
+             *     * `completed` - Completado
+             *     * `cancelled` - Cancelado
+             */
+            status?: components["schemas"]["Status5a4Enum"];
+            readonly assigned_to?: {
+                /** Format: uuid */
+                id?: string;
+                username?: string;
+            } | null;
+            /** Format: uuid */
+            assigned_to_id?: string | null;
+            /** Estatus de importación */
+            readonly import_status?: components["schemas"]["ImportStatusEnum"];
+            /** Errores de importación */
+            readonly import_errors?: unknown;
+            /**
+             * Fecha de importación
+             * Format: date-time
+             * @description Fecha de finalización de importación masiva exitosa
+             */
+            readonly imported_at?: string | null;
+            readonly points_count?: string;
+            /** Format: date-time */
+            readonly created_at?: string;
+            /** Format: date-time */
+            readonly updated_at?: string;
+        };
+        /**
+         * @description Config de bandas de los 15 indices NDVI de un tenant.
+         *
+         *     Cada columna de indice es un JSON con la config de bandas; se valida con el
+         *     mismo `validate_band_config` que usa el modelo, para que el API devuelva un
+         *     400 por variable al guardar desde el selector de color de la web.
+         */
+        PatchedNdviVariableConfig: {
+            /** Format: uuid */
+            readonly id?: string;
+            /**
+             * Organizacion (tenant)
+             * Format: uuid
+             * @description Los umbrales aplican a todas las parcelas de esta organizacion.
+             */
+            readonly tenant?: string;
+            /** Activo */
+            is_active?: boolean;
+            ndvi?: unknown;
+            /** Vigor NIR */
+            nir_vigor?: unknown;
+            osavi?: unknown;
+            vari?: unknown;
+            /** Indice de suelo desnudo */
+            bare_soil_index?: unknown;
+            /** Imagen rojo */
+            image_red?: unknown;
+            /** Imagen verde */
+            image_green?: unknown;
+            /** Imagen azul */
+            image_blue?: unknown;
+            /** Limite rojo */
+            red_edge?: unknown;
+            swir?: unknown;
+            ndre?: unknown;
+            msavi2?: unknown;
+            gndvi?: unknown;
+            ndmi?: unknown;
+            psri?: unknown;
+            /** Format: date-time */
+            readonly created_at?: string;
+            /** Format: date-time */
+            readonly updated_at?: string;
         };
         /**
          * @description Punto capturado por el técnico en campo.
@@ -10456,6 +11321,7 @@ export interface components {
             readonly aspersion_sessions: components["schemas"]["AspersionSessionSummary"][];
             readonly phyto_monitoring_headers: components["schemas"]["PhytoSessionSummary"][];
             readonly soil_map_headers: components["schemas"]["SoilMapSessionSummary"][];
+            readonly ndvi_sessions: components["schemas"]["NdviSessionSummary"][];
         };
         Ranch: {
             type?: components["schemas"]["GisFeatureEnum"];
@@ -15398,6 +16264,320 @@ export interface operations {
             };
         };
     };
+    v1_monitoring_ndvi_headers_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedNdviSessionHeaderList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NdviSessionHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["NdviSessionHeader"];
+                "multipart/form-data": components["schemas"]["NdviSessionHeader"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NdviSessionHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NdviSessionHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["NdviSessionHeader"];
+                "multipart/form-data": components["schemas"]["NdviSessionHeader"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NdviSessionHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedNdviSessionHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedNdviSessionHeader"];
+                "multipart/form-data": components["schemas"]["PatchedNdviSessionHeader"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NdviSessionHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_import_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["NdviImportRequest"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_preview_columns_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["NdviPreviewColumnsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_stats_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_contours_indices_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_contours_list: {
+        parameters: {
+            query?: {
+                /** @description Clave del indice a filtrar. Ej: ndvi, osavi. */
+                index?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NdviIndexContourList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NdviSessionHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_points_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+                /** @description Filtrar por UUID de parcela. */
+                plot?: string;
+                /** @description Filtrar por UUID del encabezado. */
+                session_header?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedNdviSessionPointsList"];
+                };
+            };
+        };
+    };
     v1_monitoring_phyto_headers_list: {
         parameters: {
             query?: {
@@ -15947,6 +17127,103 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    v1_analytics_config_ndvi_retrieve: {
+        parameters: {
+            query?: {
+                /** @description UUID del DataCentralMain. Requerido para SuperAdmin o si el gerente posee varias organizaciones. */
+                tenant?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NdviVariableConfig"];
+                };
+            };
+        };
+    };
+    v1_analytics_config_ndvi_update: {
+        parameters: {
+            query?: {
+                /** @description UUID del DataCentralMain. Requerido para SuperAdmin o si el gerente posee varias organizaciones. */
+                tenant?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["NdviVariableConfig"];
+                "application/x-www-form-urlencoded": components["schemas"]["NdviVariableConfig"];
+                "multipart/form-data": components["schemas"]["NdviVariableConfig"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NdviVariableConfig"];
+                };
+            };
+        };
+    };
+    v1_analytics_config_ndvi_partial_update: {
+        parameters: {
+            query?: {
+                /** @description UUID del DataCentralMain. Requerido para SuperAdmin o si el gerente posee varias organizaciones. */
+                tenant?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedNdviVariableConfig"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedNdviVariableConfig"];
+                "multipart/form-data": components["schemas"]["PatchedNdviVariableConfig"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NdviVariableConfig"];
+                };
+            };
+        };
+    };
+    v1_analytics_config_ndvi_variables_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NdviVariableMeta"][];
+                };
             };
         };
     };

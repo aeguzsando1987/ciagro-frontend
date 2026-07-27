@@ -121,6 +121,7 @@ const EDIT_FIELDS = [
 type SessionRef =
   | { sesionId: string; sesionType: 'aspersion' }
   | { sesionId: string; sesionType: 'phyto' }
+  | { sesionId: string; sesionType: 'ndvi' }
 
 interface HijoModalProps {
   hijo: ProgramaTree
@@ -253,10 +254,12 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
   const allSessions = [
     ...hijo.aspersion_sessions.map((s) => ({ ...s, kind: 'aspersion' as const })),
     ...hijo.phyto_monitoring_headers.map((s) => ({ ...s, kind: 'phyto' as const })),
+    ...hijo.ndvi_sessions.map((s) => ({ ...s, kind: 'ndvi' as const })),
   ].sort((a, b) => {
     const dateA = 'aspersion_date' in a ? a.aspersion_date : a.session_date
     const dateB = 'aspersion_date' in b ? b.aspersion_date : b.session_date
-    return dateA.localeCompare(dateB)
+    // session_date puede ser null en NDVI (se rellena del CSV): orden nulo-seguro.
+    return (dateA ?? '').localeCompare(dateB ?? '')
   })
 
   return (
@@ -530,14 +533,14 @@ function ViewMode({
   cropText: string | null
   actualStart: string | null
   actualFinish: string | null
-  allSessions: Array<{ id: string; kind: 'aspersion' | 'phyto'; import_status: string } & Record<string, unknown>>
+  allSessions: Array<{ id: string; kind: 'aspersion' | 'phyto' | 'ndvi'; import_status: string } & Record<string, unknown>>
   isManager: boolean
   canCreateSession: boolean
   isMutating: boolean
   canEdit: boolean
   onEdit: () => void
   onStatusChange: (s: ProgramaStatus) => void
-  onNavigateSesion: (ref: { sesionId: string; sesionType: 'aspersion' | 'phyto' }) => void
+  onNavigateSesion: (ref: { sesionId: string; sesionType: 'aspersion' | 'phyto' | 'ndvi' }) => void
   onCreateSesion: () => void
 }) {
   return (
@@ -621,7 +624,7 @@ function ViewMode({
                       onClick={() => onNavigateSesion({ sesionId: s.id, sesionType: s.kind })}
                     >
                       <span className="text-sm">
-                        {s.kind === 'aspersion' ? '💧 Aspersión' : '🌿 Fitosanitario'} — {fecha}
+                        {s.kind === 'aspersion' ? '💧 Aspersión' : s.kind === 'phyto' ? '🌿 Fitosanitario' : '🍃 Índices vegetativos'} — {fecha ?? 'Sin fecha'}
                       </span>
                       <Badge className="text-xs">
                         {IMPORT_STATUS_LABELS[s.import_status] ?? s.import_status}

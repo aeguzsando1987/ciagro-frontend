@@ -36,6 +36,7 @@ const mockTree = {
       aspersion_sessions: [],
       phyto_monitoring_headers: [],
       soil_map_headers: [],
+      ndvi_sessions: [],
     },
   ],
 }

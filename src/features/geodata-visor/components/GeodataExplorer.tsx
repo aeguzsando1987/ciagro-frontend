@@ -10,7 +10,7 @@
  */
 import { useState } from 'react'
 import {
-  Building2, Bug, ChevronDown, ChevronRight, Factory, Layers,
+  Building2, Bug, ChevronDown, ChevronRight, Factory, Layers, Leaf,
   MapPin, Sprout, Tractor, Loader2,
 } from 'lucide-react'
 import { useDataCentralMains, useDataCentrals } from '@/features/admin/hooks/useDataCentrals'
@@ -19,6 +19,7 @@ import { useRanches } from '@/features/admin/hooks/useRanches'
 import { usePlots } from '@/features/admin/hooks/usePlots'
 import { useAspersionSessionHeaders } from '../hooks/useAspersionSessionHeaders'
 import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
+import { useNdviSessionHeaders } from '../hooks/useNdviSessionHeaders'
 import { activeIdFor, type VisorSelection } from '../types'
 
 interface ExplorerProps {
@@ -179,7 +180,40 @@ function PhytoSessionList({ depth, plot, base, selection, onSelect }: {
   )
 }
 
-/** Ambos grupos de sesiones de la parcela, cada uno bajo su encabezado. */
+/** Lista de sesiones de NDVI de la parcela. */
+function NdviSessionList({ depth, plot, base, selection, onSelect }: {
+  depth: number
+  plot: { id: string; name: string }
+  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+}) {
+  const { data, isLoading } = useNdviSessionHeaders(plot.id)
+  if (isLoading) return <Loading depth={depth} />
+  if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones de NDVI." />
+  const activeId = activeIdFor(selection)
+  return (
+    <>
+      {data.map((s) => (
+        <TreeRow
+          key={s.id}
+          depth={depth}
+          icon={<Leaf className="h-3.5 w-3.5" />}
+          label={`${s.session_date ?? 'Sin fecha'}${s.points_count ? ` · ${s.points_count} pts` : ''}`}
+          selected={selection?.level === 'session' && selection.session?.kind === 'ndvi' && activeId === s.id}
+          onSelect={() => onSelect({
+            ...base,
+            plot,
+            session: { id: s.id, date: s.session_date ?? null, kind: 'ndvi' },
+            level: 'session',
+          })}
+        />
+      ))}
+    </>
+  )
+}
+
+/** Los tres grupos de sesiones de la parcela, cada uno bajo su encabezado. */
 function SessionGroups({ depth, plot, base, selection, onSelect }: {
   depth: number
   plot: { id: string; name: string }
@@ -193,6 +227,8 @@ function SessionGroups({ depth, plot, base, selection, onSelect }: {
       <AspersionSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
       <GroupLabel depth={depth} icon={<Bug className="h-3 w-3" />} text="Fitosanitarias" />
       <PhytoSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
+      <GroupLabel depth={depth} icon={<Leaf className="h-3 w-3" />} text="NDVI" />
+      <NdviSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
     </>
   )
 }
