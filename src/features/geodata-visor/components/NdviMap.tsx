@@ -18,7 +18,7 @@ import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import { useMapMode } from '../lib/mapModes'
 import { MapModeSelector } from './MapModeSelector'
 import { useNdviPoints, type NdviPoint } from '../hooks/useNdviPoints'
-import { buildInterpolatedImage, type InterpPoint } from '../lib/ndviInterpolation'
+import { buildInterpolatedImage, type InterpPoint, type InterpMethod } from '../lib/ndviInterpolation'
 
 const INDICES: { key: keyof NdviPoint; label: string }[] = [
   { key: 'ndvi', label: 'NDVI' },
@@ -58,6 +58,7 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
   const { data: points, isLoading } = useNdviPoints(sessionId)
 
   const [indexKey, setIndexKey] = useState<keyof NdviPoint>('ndvi')
+  const [method, setMethod] = useState<InterpMethod>('kriging')
 
   const ring = useMemo<number[][] | null>(() => {
     const r = plot?.geometry?.coordinates?.[0]
@@ -75,8 +76,8 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
       }
     }
     if (interp.length < 3) return null
-    return buildInterpolatedImage(interp)
-  }, [ring, points, indexKey])
+    return buildInterpolatedImage(interp, method)
+  }, [ring, points, indexKey, method])
 
   const plotGeojson = useMemo(() => {
     if (!plot?.geometry) return null
@@ -140,8 +141,8 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
         <MapModeSelector active={mapMode} onChange={setMapMode} />
       </div>
 
-      <div className="absolute left-3 top-3 z-10 rounded-md bg-white/90 p-2 shadow">
-        <label className="mr-2 text-xs font-medium text-gray-600">Índice</label>
+      <div className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-md bg-white/90 p-2 shadow">
+        <label className="text-xs font-medium text-gray-600">Índice</label>
         <select
           className="rounded border px-2 py-1 text-sm"
           value={indexKey as string}
@@ -153,6 +154,19 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
             </option>
           ))}
         </select>
+        {/* Toggle de motor de interpolacion, para comparar. */}
+        <div className="flex overflow-hidden rounded border text-xs">
+          {(['kriging', 'idw'] as InterpMethod[]).map((mth) => (
+            <button
+              key={mth}
+              type="button"
+              onClick={() => setMethod(mth)}
+              className={`px-2 py-1 ${method === mth ? 'bg-gray-800 text-white' : 'bg-white text-gray-600'}`}
+            >
+              {mth === 'kriging' ? 'Kriging' : 'IDW'}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="absolute bottom-3 left-3 z-10 w-56 rounded-md bg-white/90 p-3 shadow">

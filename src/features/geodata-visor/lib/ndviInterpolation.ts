@@ -11,6 +11,13 @@
  * función sin tocar el resto.
  */
 
+import { krigingTrain, krigingPredict } from './kriging'
+
+export type InterpMethod = 'idw' | 'kriging'
+
+// Kriging invierte una matriz n x n (O(n^3)); se submuestrea para acotar tiempo/memoria.
+const MAX_KRIGING_POINTS = 700
+
 export interface InterpPoint {
   lon: number
   lat: number
@@ -121,11 +128,40 @@ function idwValue(x: number, y: number, pts: InterpPoint[], power = 1.2): number
   return den === 0 ? NaN : num / den
 }
 
-export function buildInterpolatedImage(pts: InterpPoint[], gridSize = 260): InterpolatedImage | null {
+/** Submuestrea uniformemente (por paso) a un maximo de puntos. */
+function subsample(pts: InterpPoint[], max: number): InterpPoint[] {
+  if (pts.length <= max) return pts
+  const step = Math.ceil(pts.length / max)
+  const out: InterpPoint[] = []
+  for (let i = 0; i < pts.length; i += step) out.push(pts[i]!)
+  return out
+}
+
+export function buildInterpolatedImage(
+  pts: InterpPoint[],
+  method: InterpMethod = 'idw',
+  gridSize = 260,
+): InterpolatedImage | null {
   if (pts.length < 3) return null
 
   const hull = convexHull(pts)
   if (hull.length < 3) return null
+
+  // Motor de interpolacion: kriging (con fallback a IDW si el ajuste no converge) o IDW.
+  let predictAt: (lon: number, lat: number) => number
+  if (method === 'kriging') {
+    const sub = subsample(pts, MAX_KRIGING_POINTS)
+    const variogram = krigingTrain(
+      sub.map((p) => p.value),
+      sub.map((p) => p.lon),
+      sub.map((p) => p.lat),
+    )
+    predictAt = variogram
+      ? (lon, lat) => krigingPredict(lon, lat, variogram)
+      : (lon, lat) => idwValue(lon, lat, pts)
+  } else {
+    predictAt = (lon, lat) => idwValue(lon, lat, pts)
+  }
 
   const xs = hull.map((c) => c[0]!)
   const ys = hull.map((c) => c[1]!)
@@ -160,7 +196,7 @@ export function buildInterpolatedImage(pts: InterpPoint[], gridSize = 260): Inte
         img.data[idx + 3] = 0
         continue
       }
-      const v = idwValue(lon, lat, pts)
+      const v = predictAt(lon, lat)
       if (Number.isNaN(v)) {
         img.data[idx + 3] = 0
         continue
