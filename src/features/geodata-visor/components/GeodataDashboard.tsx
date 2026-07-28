@@ -322,6 +322,12 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
               selectedSessionId={selection.session?.id ?? null}
               onSelectSession={(session) => onSelect(selectSession(selection, session))}
             />
+            <NdviSessionsPanel
+              floating={false}
+              plotId={selection.plot!.id}
+              selectedSessionId={selection.session?.id ?? null}
+              onSelectSession={(session) => onSelect(selectSession(selection, session))}
+            />
           </div>
         )}
       </div>
