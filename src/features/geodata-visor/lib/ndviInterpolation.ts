@@ -82,8 +82,26 @@ function pointInRing(x: number, y: number, ring: number[][]): boolean {
   return inside
 }
 
-/** Motor de interpolación (intercambiable). IDW; potencia baja = más suave. */
-function idwValue(x: number, y: number, pts: InterpPoint[], power = 1.5): number {
+/**
+ * Fracción de rango percentil de `v` dentro de `sorted` (ascendente) -> [0,1].
+ * Ecualiza el histograma: reparte el color parejo sobre la distribución de los datos, de
+ * modo que un rango de valores estrecho use TODA la rampa (máximo contraste).
+ */
+function rankFraction(v: number, sorted: number[]): number {
+  const n = sorted.length
+  if (n <= 1) return 0.5
+  let lo = 0
+  let hi = n
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (sorted[mid]! < v) lo = mid + 1
+    else hi = mid
+  }
+  return lo / (n - 1)
+}
+
+/** Motor de interpolación (intercambiable). IDW; potencia alta = transiciones más marcadas. */
+function idwValue(x: number, y: number, pts: InterpPoint[], power = 2.5): number {
   let num = 0
   let den = 0
   for (const p of pts) {
@@ -115,7 +133,8 @@ export function buildInterpolatedImage(pts: InterpPoint[], gridSize = 260): Inte
   const values = pts.map((p) => p.value)
   const vmin = Math.min(...values)
   const vmax = Math.max(...values)
-  const range = vmax - vmin || 1
+  // Arreglo ordenado para el mapeo de color por percentiles (ecualizacion).
+  const sorted = [...values].sort((a, b) => a - b)
 
   const w = gridSize
   const h = Math.max(1, Math.round((gridSize * (ymax - ymin)) / (xmax - xmin)))
@@ -141,7 +160,7 @@ export function buildInterpolatedImage(pts: InterpPoint[], gridSize = 260): Inte
         img.data[idx + 3] = 0
         continue
       }
-      const [r, g, b] = rampColor((v - vmin) / range)
+      const [r, g, b] = rampColor(rankFraction(v, sorted))
       img.data[idx] = r
       img.data[idx + 1] = g
       img.data[idx + 2] = b
