@@ -38,6 +38,24 @@ const INDICES: { key: keyof NdviPoint; label: string }[] = [
 // Paleta de 4 clases rojo -> azul (RdYlBu): rojo = valor bajo, azul = valor alto.
 const PALETTE = ['#d7191c', '#fdae61', '#abd9e9', '#2c7bb6']
 
+// Pintura de la capa de puntos. El radio crece con el zoom para que los puntos vecinos se
+// traslapen y, con el blur, se fundan en un campo continuo (aspecto de heatmap/kriging) al
+// acercarse — sin interpolar en el servidor. El color por clase se toma de cada feature.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const CIRCLE_PAINT: any = {
+  'circle-color': ['get', 'color'],
+  'circle-radius': [
+    'interpolate', ['exponential', 2], ['zoom'],
+    12, 3,
+    15, 8,
+    17, 20,
+    19, 48,
+    21, 110,
+  ],
+  'circle-blur': 1,
+  'circle-opacity': 0.5,
+}
+
 function bboxFromRing(ring: number[][]): [number, number, number, number] {
   const lngs = ring.map((c) => c[0] as number)
   const lats = ring.map((c) => c[1] as number)
@@ -160,18 +178,7 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
 
         {fc.features.length > 0 && (
           <Source id="ndvi-points" type="geojson" data={fc}>
-            <Layer
-              id="ndvi-points-circle"
-              type="circle"
-              paint={{
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                'circle-color': ['get', 'color'] as unknown as any,
-                'circle-radius': 4,
-                'circle-opacity': 0.85,
-                'circle-stroke-width': 0.5,
-                'circle-stroke-color': 'rgba(0,0,0,0.25)',
-              }}
-            />
+            <Layer id="ndvi-points-circle" type="circle" paint={CIRCLE_PAINT} />
           </Source>
         )}
       </Map>
