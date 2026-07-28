@@ -36,7 +36,8 @@ const INDICES: { key: keyof NdviPoint; label: string }[] = [
 ]
 
 // Rampa de la leyenda (misma que ndviInterpolation): bajo -> alto.
-const LEGEND_GRADIENT = 'linear-gradient(to right, #d7191c, #fdae61, #abd9e9, #2c7bb6)'
+const LEGEND_GRADIENT =
+  'linear-gradient(to right, #d32f2f, #f57c00, #388e3c, #00acc1, #1565c0)'
 
 function bboxFromRing(ring: number[][]): [number, number, number, number] {
   const lngs = ring.map((c) => c[0] as number)
@@ -74,7 +75,7 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
       }
     }
     if (interp.length < 3) return null
-    return buildInterpolatedImage(interp, ring)
+    return buildInterpolatedImage(interp)
   }, [ring, points, indexKey])
 
   const plotGeojson = useMemo(() => {
@@ -122,7 +123,7 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
             <Layer
               id="ndvi-surface-raster"
               type="raster"
-              paint={{ 'raster-opacity': 0.75, 'raster-resampling': 'linear', 'raster-fade-duration': 0 }}
+              paint={{ 'raster-opacity': 0.9, 'raster-resampling': 'linear', 'raster-fade-duration': 0 }}
             />
           </Source>
         )}

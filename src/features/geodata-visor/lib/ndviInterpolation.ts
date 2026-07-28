@@ -1,16 +1,14 @@
 /**
  * Interpolación de una superficie continua a partir de puntos, en el CLIENTE.
  *
- * Genera una malla sobre el bounding box de la parcela, interpola cada celda desde los
- * puntos (IDW: distancia inversa ponderada, potencia 2), la colorea con una rampa continua
- * y devuelve una imagen (dataURL) + las coordenadas geográficas de sus esquinas para usarla
- * como `image source` en MapLibre. Las celdas fuera del polígono quedan transparentes, de
- * modo que la superficie se recorta exactamente a la parcela.
+ * Genera una malla sobre el CASCO CONVEXO de los puntos (su footprint real, no el polígono
+ * de la parcela: los puntos suelen cubrir solo una sub-zona), interpola cada celda con IDW y
+ * la colorea con una rampa vívida. Devuelve una imagen (dataURL) + las coordenadas de sus
+ * esquinas para usarla como `image source` en MapLibre; las celdas fuera del casco quedan
+ * transparentes, de modo que el gradiente se recorta al área con datos.
  *
- * El motor de interpolación (idwValue) está AISLADO: si se quiere Kriging real, se sustituye
- * esa función sin tocar el resto. IDW da el mismo aspecto de gradiente suave y escala a
- * cualquier número de puntos (O(celdas x puntos)); Kriging es O(n^3) y solo conviene con
- * pocos puntos.
+ * El motor de interpolación (idwValue) está AISLADO: para Kriging real se sustituye esa
+ * función sin tocar el resto.
  */
 
 export interface InterpPoint {
@@ -21,18 +19,19 @@ export interface InterpPoint {
 
 export interface InterpolatedImage {
   dataUrl: string
-  /** Esquinas [TL, TR, BR, BL] en [lng, lat] para el image source de MapLibre. */
   coordinates: [[number, number], [number, number], [number, number], [number, number]]
   min: number
   max: number
 }
 
-// Rampa continua rojo -> naranja -> azul claro -> azul (RdYlBu, bajo -> alto).
+// Rampa vívida (saturada) bajo -> alto: rojo -> naranja -> verde -> cian -> azul.
+// Se evitan los tonos pálidos para que el gradiente no se vea lavado.
 const RAMP: [number, number, number][] = [
-  [215, 25, 28],   // #d7191c rojo
-  [253, 174, 97],  // #fdae61 naranja
-  [171, 217, 233], // #abd9e9 azul claro
-  [44, 123, 182],  // #2c7bb6 azul
+  [211, 47, 47],   // rojo
+  [245, 124, 0],   // naranja
+  [56, 142, 60],   // verde
+  [0, 172, 193],   // cian
+  [21, 101, 192],  // azul
 ]
 
 function rampColor(t: number): [number, number, number] {
@@ -49,7 +48,29 @@ function rampColor(t: number): [number, number, number] {
   ]
 }
 
-/** Punto dentro del polígono (ray casting sobre el anillo exterior). */
+/** Casco convexo (Andrew monotone chain). Devuelve el anillo [ [lon,lat], ... ]. */
+function convexHull(pts: InterpPoint[]): number[][] {
+  const p = pts.map((q) => [q.lon, q.lat] as [number, number])
+    .sort((u, v) => (u[0] - v[0]) || (u[1] - v[1]))
+  if (p.length < 3) return p
+  const cross = (o: number[], a: number[], b: number[]) =>
+    (a[0]! - o[0]!) * (b[1]! - o[1]!) - (a[1]! - o[1]!) * (b[0]! - o[0]!)
+  const lower: number[][] = []
+  for (const pt of p) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2]!, lower[lower.length - 1]!, pt) <= 0) lower.pop()
+    lower.push(pt)
+  }
+  const upper: number[][] = []
+  for (let i = p.length - 1; i >= 0; i--) {
+    const pt = p[i]!
+    while (upper.length >= 2 && cross(upper[upper.length - 2]!, upper[upper.length - 1]!, pt) <= 0) upper.pop()
+    upper.push(pt)
+  }
+  lower.pop()
+  upper.pop()
+  return lower.concat(upper)
+}
+
 function pointInRing(x: number, y: number, ring: number[][]): boolean {
   let inside = false
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -61,15 +82,15 @@ function pointInRing(x: number, y: number, ring: number[][]): boolean {
   return inside
 }
 
-/** Motor de interpolación (intercambiable). IDW potencia 2. */
-function idwValue(x: number, y: number, pts: InterpPoint[], power = 2): number {
+/** Motor de interpolación (intercambiable). IDW; potencia baja = más suave. */
+function idwValue(x: number, y: number, pts: InterpPoint[], power = 1.5): number {
   let num = 0
   let den = 0
   for (const p of pts) {
     const dx = x - p.lon
     const dy = y - p.lat
     const d2 = dx * dx + dy * dy
-    if (d2 === 0) return p.value // coincide con un punto de muestreo
+    if (d2 === 0) return p.value
     const w = 1 / Math.pow(d2, power / 2)
     num += w * p.value
     den += w
@@ -77,15 +98,14 @@ function idwValue(x: number, y: number, pts: InterpPoint[], power = 2): number {
   return den === 0 ? NaN : num / den
 }
 
-export function buildInterpolatedImage(
-  pts: InterpPoint[],
-  ring: number[][],
-  gridSize = 220,
-): InterpolatedImage | null {
-  if (pts.length < 3 || ring.length < 3) return null
+export function buildInterpolatedImage(pts: InterpPoint[], gridSize = 260): InterpolatedImage | null {
+  if (pts.length < 3) return null
 
-  const xs = ring.map((c) => c[0]!)
-  const ys = ring.map((c) => c[1]!)
+  const hull = convexHull(pts)
+  if (hull.length < 3) return null
+
+  const xs = hull.map((c) => c[0]!)
+  const ys = hull.map((c) => c[1]!)
   const xmin = Math.min(...xs)
   const xmax = Math.max(...xs)
   const ymin = Math.min(...ys)
@@ -97,7 +117,6 @@ export function buildInterpolatedImage(
   const vmax = Math.max(...values)
   const range = vmax - vmin || 1
 
-  // Malla con relación de aspecto del bbox.
   const w = gridSize
   const h = Math.max(1, Math.round((gridSize * (ymax - ymin)) / (xmax - xmin)))
 
@@ -109,13 +128,12 @@ export function buildInterpolatedImage(
   const img = ctx.createImageData(w, h)
 
   for (let row = 0; row < h; row++) {
-    // row 0 = arriba = ymax.
     const lat = ymax - (row / (h - 1)) * (ymax - ymin)
     for (let col = 0; col < w; col++) {
       const lon = xmin + (col / (w - 1)) * (xmax - xmin)
       const idx = (row * w + col) * 4
-      if (!pointInRing(lon, lat, ring)) {
-        img.data[idx + 3] = 0 // transparente fuera de la parcela
+      if (!pointInRing(lon, lat, hull)) {
+        img.data[idx + 3] = 0
         continue
       }
       const v = idwValue(lon, lat, pts)
@@ -136,10 +154,10 @@ export function buildInterpolatedImage(
   return {
     dataUrl: canvas.toDataURL('image/png'),
     coordinates: [
-      [xmin, ymax], // top-left
-      [xmax, ymax], // top-right
-      [xmax, ymin], // bottom-right
-      [xmin, ymin], // bottom-left
+      [xmin, ymax],
+      [xmax, ymax],
+      [xmax, ymin],
+      [xmin, ymin],
     ],
     min: vmin,
     max: vmax,
