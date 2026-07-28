@@ -100,8 +100,13 @@ function rankFraction(v: number, sorted: number[]): number {
   return lo / (n - 1)
 }
 
-/** Motor de interpolación (intercambiable). IDW; potencia alta = transiciones más marcadas. */
-function idwValue(x: number, y: number, pts: InterpPoint[], power = 2.5): number {
+/**
+ * Motor de interpolación (intercambiable). IDW con potencia BAJA para suavizar: potencia
+ * alta crea el artefacto 'bullseye' (discos uniformes de color alrededor de cada punto)
+ * cuando los puntos están separados. El contraste ya lo aporta la ecualización por
+ * percentiles, así que aquí se prioriza suavidad.
+ */
+function idwValue(x: number, y: number, pts: InterpPoint[], power = 1.2): number {
   let num = 0
   let den = 0
   for (const p of pts) {
