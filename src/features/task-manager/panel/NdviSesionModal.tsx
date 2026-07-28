@@ -13,6 +13,7 @@ import type { MasterProgramTree } from '@/features/task-manager/types'
 import { useNdviSessionDetail } from '../hooks/useNdviSessionDetail'
 import { NdviImportDialog } from '../components/NdviImportDialog'
 import { NdviMapModal } from '../components/NdviMapModal'
+import { PlotMiniMap } from './PlotMiniMap'
 
 const IMPORT_STATUS_LABELS: Record<string, string> = {
   pending: 'Sin importar',
@@ -71,18 +72,25 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
           <p className="text-sm text-muted-foreground">Cargando…</p>
         ) : (
           <div className="space-y-4">
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              <dt className="text-muted-foreground">Fecha de la imagen</dt>
-              <dd>{detail?.session_date ?? '— (se toma del CSV)'}</dd>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Polígono de la parcela, como en las sesiones de aspersión/fito. */}
+              <div className="h-44 overflow-hidden rounded-md border">
+                <PlotMiniMap plotId={plotId} />
+              </div>
 
-              <dt className="text-muted-foreground">Estado de importación</dt>
-              <dd>
-                <Badge>{IMPORT_STATUS_LABELS[importStatus] ?? importStatus}</Badge>
-              </dd>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 self-start text-sm">
+                <dt className="text-muted-foreground">Fecha de la imagen</dt>
+                <dd>{detail?.session_date ?? '— (se toma del CSV)'}</dd>
 
-              <dt className="text-muted-foreground">Puntos cargados</dt>
-              <dd>{points.toLocaleString()}</dd>
-            </dl>
+                <dt className="text-muted-foreground">Estado de importación</dt>
+                <dd>
+                  <Badge>{IMPORT_STATUS_LABELS[importStatus] ?? importStatus}</Badge>
+                </dd>
+
+                <dt className="text-muted-foreground">Puntos cargados</dt>
+                <dd>{points.toLocaleString()}</dd>
+              </dl>
+            </div>
 
             {importStatus === 'pending_mapping' && (
               <p className="rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">

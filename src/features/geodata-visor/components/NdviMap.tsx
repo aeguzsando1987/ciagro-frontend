@@ -1,15 +1,14 @@
 /**
- * Mapa de contornos NDVI (coropleta) de una sesión — componente presentacional
- * auto-contenido, embebible en el dashboard del Visor de Datos Agrícolas.
+ * Mapa de una sesión NDVI — enfoque simple de PUNTOS COLOREADOS por clase.
  *
- * A diferencia de AspersionMap, aquí NO se clasifica en cliente: el backend ya entrega el
- * FeatureCollection con una banda por clase y su `color` (#hex) en las properties. El mapa
- * solo lo pinta (`fill-color = ['get','color']`) y arma la leyenda con `label` + rango.
+ * En vez de interpolar/contornear en el backend (resultaba errático), se grafican los
+ * propios puntos de muestreo coloreados según el valor del índice seleccionado, en 4
+ * clases por cuartiles calculados EN CLIENTE. Emula visualmente el mapa de calor/kriging
+ * sin artefactos de interpolación, y es fiel al dato real.
  *
- * Recibe `sessionId` + `plotId` y carga sus propios datos:
- *   GET /monitoring/ndvi/headers/<id>/contours/indices/   (índices disponibles + estado)
- *   GET /monitoring/ndvi/headers/<id>/contours/?index=<k> (bandas del índice, GeoJSON)
- *   GET /geo_assets/plots/<id>/                            (polígono de la parcela)
+ * Datos:
+ *   GET /geo_assets/plots/<id>/                        (polígono de la parcela)
+ *   GET /monitoring/ndvi/points/?session_header=<id>   (puntos con los 15 índices)
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Map, { Layer, Source } from 'react-map-gl/maplibre'
@@ -18,27 +17,26 @@ import { usePlotGeometry } from '@/features/task-manager/hooks/usePlotGeometry'
 import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import { useMapMode } from '../lib/mapModes'
 import { MapModeSelector } from './MapModeSelector'
-import { useNdviContourIndices } from '../hooks/useNdviContourIndices'
-import { useNdviContours, type NdviBandProps } from '../hooks/useNdviContours'
+import { useNdviPoints, type NdviPoint } from '../hooks/useNdviPoints'
 
-// Etiquetas legibles de los índices más comunes (fallback: la propia clave).
-const INDEX_LABELS: Record<string, string> = {
-  ndvi: 'NDVI',
-  nir_vigor: 'Vigor NIR',
-  osavi: 'OSAVI',
-  vari: 'VARI',
-  bare_soil_index: 'Suelo desnudo',
-  image_red: 'Imagen rojo',
-  image_green: 'Imagen verde',
-  image_blue: 'Imagen azul',
-  red_edge: 'Límite rojo',
-  swir: 'SWIR',
-  ndre: 'NDRE',
-  msavi2: 'MSAVI2',
-  gndvi: 'GNDVI',
-  ndmi: 'NDMI',
-  psri: 'PSRI',
-}
+// Índices disponibles (columnas del punto) con su etiqueta legible.
+const INDICES: { key: keyof NdviPoint; label: string }[] = [
+  { key: 'ndvi', label: 'NDVI' },
+  { key: 'nir_vigor', label: 'Vigor NIR' },
+  { key: 'osavi', label: 'OSAVI' },
+  { key: 'vari', label: 'VARI' },
+  { key: 'bare_soil_index', label: 'Suelo desnudo' },
+  { key: 'red_edge', label: 'Límite rojo' },
+  { key: 'swir', label: 'SWIR' },
+  { key: 'ndre', label: 'NDRE' },
+  { key: 'msavi2', label: 'MSAVI2' },
+  { key: 'gndvi', label: 'GNDVI' },
+  { key: 'ndmi', label: 'NDMI' },
+  { key: 'psri', label: 'PSRI' },
+]
+
+// Paleta de 4 clases rojo -> azul (RdYlBu): rojo = valor bajo, azul = valor alto.
+const PALETTE = ['#d7191c', '#fdae61', '#abd9e9', '#2c7bb6']
 
 function bboxFromRing(ring: number[][]): [number, number, number, number] {
   const lngs = ring.map((c) => c[0] as number)
@@ -46,8 +44,26 @@ function bboxFromRing(ring: number[][]): [number, number, number, number] {
   return [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)]
 }
 
-function fmt(v: number | null): string {
-  return v === null || v === undefined ? '∞' : v.toFixed(3)
+/** Cortes por cuartiles (Q1, Q2/mediana, Q3) sobre valores ordenados. */
+function quartileCuts(values: number[]): [number, number, number] | null {
+  if (values.length < 4) return null
+  const s = [...values].sort((a, b) => a - b)
+  const at = (q: number) => s[Math.floor(q * (s.length - 1))]!
+  const c = [at(0.25), at(0.5), at(0.75)] as [number, number, number]
+  // Si hay demasiados empates los cortes colapsan: no sirve clasificar.
+  if (c[0] === c[2]) return null
+  return c
+}
+
+function classOf(v: number, cuts: [number, number, number]): number {
+  if (v < cuts[0]) return 0
+  if (v < cuts[1]) return 1
+  if (v < cuts[2]) return 2
+  return 3
+}
+
+function fmt(v: number): string {
+  return v.toFixed(3)
 }
 
 interface NdviMapProps {
@@ -60,30 +76,45 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
   const { mapMode, setMapMode } = useMapMode(mapRef)
 
   const { data: plot } = usePlotGeometry(plotId ?? null)
-  const { data: indexData, isLoading: loadingIndices } = useNdviContourIndices(sessionId)
+  const { data: points, isLoading } = useNdviPoints(sessionId)
 
-  const indices = useMemo(() => indexData?.indices ?? [], [indexData])
-  const contourStatus = indexData?.contour_status ?? null
+  const [indexKey, setIndexKey] = useState<keyof NdviPoint>('ndvi')
 
-  // Índice activo: NDVI si está, si no el primero disponible.
-  const [activeIndex, setActiveIndex] = useState<string | null>(null)
-  useEffect(() => {
-    if (indices.length === 0) {
-      setActiveIndex(null)
-    } else if (!activeIndex || !indices.includes(activeIndex)) {
-      setActiveIndex(indices.includes('ndvi') ? 'ndvi' : indices[0]!)
-    }
-  }, [indices, activeIndex])
+  // FeatureCollection de puntos con su clase + color, según el índice activo.
+  const { fc, legend } = useMemo(() => {
+    const empty = { type: 'FeatureCollection', features: [] } as GeoJSON.FeatureCollection
+    if (!points || points.length === 0) return { fc: empty, legend: [] as { color: string; label: string }[] }
 
-  const { data: contours, isLoading: loadingContours } = useNdviContours(sessionId, activeIndex)
+    const values = points
+      .map((p) => p[indexKey])
+      .filter((v): v is number => typeof v === 'number')
+    const cuts = quartileCuts(values)
 
-  // Leyenda: una entrada por banda, ordenada por band_order.
-  const legend = useMemo(() => {
-    const feats = contours?.features ?? []
-    return feats
-      .map((f) => f.properties as NdviBandProps)
-      .sort((a, b) => a.band_order - b.band_order)
-  }, [contours])
+    const features: GeoJSON.Feature[] = points
+      .filter((p) => typeof p[indexKey] === 'number' && p.geom)
+      .map((p) => {
+        const v = p[indexKey] as number
+        const cls = cuts ? classOf(v, cuts) : 0
+        return {
+          type: 'Feature' as const,
+          geometry: p.geom,
+          properties: { value: v, color: PALETTE[cls] },
+        }
+      })
+
+    const legend = cuts
+      ? [
+          { color: PALETTE[0]!, label: `< ${fmt(cuts[0])}` },
+          { color: PALETTE[1]!, label: `${fmt(cuts[0])} – ${fmt(cuts[1])}` },
+          { color: PALETTE[2]!, label: `${fmt(cuts[1])} – ${fmt(cuts[2])}` },
+          { color: PALETTE[3]!, label: `≥ ${fmt(cuts[2])}` },
+        ]
+      : values.length > 0
+        ? [{ color: PALETTE[0]!, label: `${fmt(Math.min(...values))} – ${fmt(Math.max(...values))}` }]
+        : []
+
+    return { fc: { type: 'FeatureCollection', features } as GeoJSON.FeatureCollection, legend }
+  }, [points, indexKey])
 
   const plotGeojson = useMemo(() => {
     if (!plot?.geometry) return null
@@ -93,16 +124,19 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
   const mapBounds = useMemo<[number, number, number, number] | null>(() => {
     const ring = plot?.geometry?.coordinates?.[0]
     if (ring && ring.length > 0) return bboxFromRing(ring as number[][])
+    // Fallback: bbox de los puntos.
+    if (points && points.length > 0) {
+      const lons = points.map((p) => p.geom.coordinates[0]!)
+      const lats = points.map((p) => p.geom.coordinates[1]!)
+      return [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)]
+    }
     return null
-  }, [plot])
+  }, [plot, points])
 
   useEffect(() => {
     if (!mapRef.current || !mapBounds) return
     mapRef.current.fitBounds(mapBounds, { padding: 40, duration: 600, maxZoom: 18 })
   }, [mapBounds])
-
-  const generating = contourStatus === 'processing' || contourStatus === null
-  const errored = contourStatus === 'error'
 
   return (
     <div className="relative h-full w-full">
@@ -124,17 +158,18 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
           </Source>
         )}
 
-        {contours && contours.features.length > 0 && (
-          <Source id="ndvi-contours" type="geojson" data={contours}>
+        {fc.features.length > 0 && (
+          <Source id="ndvi-points" type="geojson" data={fc}>
             <Layer
-              id="ndvi-contours-fill"
-              type="fill"
+              id="ndvi-points-circle"
+              type="circle"
               paint={{
-                // El color viene por feature desde el backend (banda ya clasificada).
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                'fill-color': ['get', 'color'] as unknown as any,
-                'fill-opacity': 0.6,
-                'fill-outline-color': 'rgba(0,0,0,0.15)',
+                'circle-color': ['get', 'color'] as unknown as any,
+                'circle-radius': 4,
+                'circle-opacity': 0.85,
+                'circle-stroke-width': 0.5,
+                'circle-stroke-color': 'rgba(0,0,0,0.25)',
               }}
             />
           </Source>
@@ -151,48 +186,36 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
         <label className="mr-2 text-xs font-medium text-gray-600">Índice</label>
         <select
           className="rounded border px-2 py-1 text-sm"
-          value={activeIndex ?? ''}
-          disabled={indices.length === 0}
-          onChange={(e) => setActiveIndex(e.target.value)}
+          value={indexKey as string}
+          onChange={(e) => setIndexKey(e.target.value as keyof NdviPoint)}
         >
-          {indices.length === 0 && <option value="">—</option>}
-          {indices.map((k) => (
-            <option key={k} value={k}>
-              {INDEX_LABELS[k] ?? k}
+          {INDICES.map((it) => (
+            <option key={it.key as string} value={it.key as string}>
+              {it.label}
             </option>
           ))}
         </select>
       </div>
 
-      {/* Estado / leyenda */}
+      {/* Leyenda / estado */}
       <div className="absolute bottom-3 left-3 z-10 max-w-xs rounded-md bg-white/90 p-3 shadow">
-        {generating && (
-          <p className="text-sm text-amber-600">
-            <span className="mr-1 animate-spin">⏳</span> Generando contornos…
-          </p>
-        )}
-        {errored && <p className="text-sm text-red-600">Error al generar los contornos.</p>}
-        {!generating && !errored && (loadingIndices || loadingContours) && (
-          <p className="text-sm text-gray-500">Cargando…</p>
-        )}
-        {!generating && !errored && legend.length > 0 && (
+        {isLoading ? (
+          <p className="text-sm text-gray-500">Cargando puntos…</p>
+        ) : fc.features.length === 0 ? (
+          <p className="text-sm text-gray-500">Sin datos para este índice.</p>
+        ) : (
           <div>
             <p className="mb-2 text-xs font-semibold text-gray-700">
-              {INDEX_LABELS[activeIndex ?? ''] ?? activeIndex}
+              {INDICES.find((i) => i.key === indexKey)?.label} · {fc.features.length} puntos
             </p>
             <ul className="space-y-1">
-              {legend.map((b) => (
-                <li key={b.band_order} className="flex items-center gap-2 text-xs">
+              {legend.map((b, i) => (
+                <li key={i} className="flex items-center gap-2 text-xs">
                   <span
-                    className="inline-block h-3 w-4 rounded-sm border border-black/10"
-                    style={{ backgroundColor: b.color ?? '#ccc' }}
+                    className="inline-block h-3 w-3 rounded-full border border-black/10"
+                    style={{ backgroundColor: b.color }}
                   />
-                  <span className="text-gray-700">
-                    {b.label ?? `Banda ${b.band_order + 1}`}
-                  </span>
-                  <span className="ml-auto tabular-nums text-gray-500">
-                    {fmt(b.band_min)} – {fmt(b.band_max)}
-                  </span>
+                  <span className="text-gray-700">{b.label}</span>
                 </li>
               ))}
             </ul>

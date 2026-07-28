@@ -26,6 +26,7 @@ import { PhytoSessionsPanel } from './PhytoSessionsPanel'
 import { SessionInfoCard } from './SessionInfoCard'
 import { AspersionMap } from './AspersionMap'
 import { NdviMap } from './NdviMap'
+import { NdviSessionsPanel } from './NdviSessionsPanel'
 import { PhytoMap } from '@/features/task-manager/components/PhytoMap'
 import { PhytoStatsCard } from '@/features/task-manager/components/PhytoStatsCard'
 import { SessionReportToggle } from '@/features/session-report/components/SessionReportToggle'
@@ -231,12 +232,24 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
       <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-lg border">
         {isSessionLevel ? (
           isNdviSession ? (
-            /* Sesión NDVI: coropleta de contornos precomputados sobre la parcela.
-               El backend entrega las bandas ya coloreadas; NdviMap solo las pinta. */
-            <NdviMap
-              sessionId={selection.session!.id}
-              plotId={selection.plot!.id}
-            />
+            /* Sesión NDVI: puntos de muestreo coloreados por clase (cuartiles) sobre la
+               parcela. La lista de sesiones NDVI va en la columna derecha. */
+            <div className="flex h-full">
+              <div className="relative flex-1">
+                <NdviMap
+                  sessionId={selection.session!.id}
+                  plotId={selection.plot!.id}
+                />
+              </div>
+              <div className="w-56 shrink-0 border-l bg-background/60 p-2">
+                <NdviSessionsPanel
+                  floating={false}
+                  plotId={selection.plot!.id}
+                  selectedSessionId={selection.session?.id ?? null}
+                  onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                />
+              </div>
+            </div>
           ) : isPhytoSession ? (
             /* Sesión fitosanitaria: mapa de calor de checkpoints sobre la parcela (reuso
                del PhytoMap del task-manager). La lista de sesiones fitosanitarias va en la
