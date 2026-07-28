@@ -17,6 +17,7 @@ import {
   adminAgroUnitsRoute,
   adminCatalogsRoute,
   adminAssetsRoute,
+  adminAnalysisVariablesRoute,
 } from './routes/admin'
 
 /**
@@ -39,6 +40,7 @@ const routeTree = rootRoute.addChildren([
       adminAgroUnitsRoute,
       adminCatalogsRoute,
       adminAssetsRoute,
+      adminAnalysisVariablesRoute,
     ]),
     workspaceDcRoute.addChildren([workspaceDashboardRoute, workspaceTaskManagerRoute]),
   ]),

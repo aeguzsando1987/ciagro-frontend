@@ -31,6 +31,30 @@ export interface InterpolatedImage {
   max: number
 }
 
+/** Banda de color para el modo manual (config del tenant). min/max null = ±∞. */
+export interface ColorBand {
+  min: number | null
+  max: number | null
+  color: string
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '')
+  return [
+    parseInt(h.substring(0, 2), 16) || 0,
+    parseInt(h.substring(2, 4), 16) || 0,
+    parseInt(h.substring(4, 6), 16) || 0,
+  ]
+}
+
+/** Color de la banda cuyo intervalo contiene v, o null si ninguna. */
+function bandColor(v: number, bands: ColorBand[]): [number, number, number] | null {
+  for (const b of bands) {
+    if ((b.min === null || v >= b.min) && (b.max === null || v < b.max)) return hexToRgb(b.color)
+  }
+  return null
+}
+
 // Rampa vívida (saturada) bajo -> alto: rojo -> naranja -> verde -> cian -> azul.
 // Se evitan los tonos pálidos para que el gradiente no se vea lavado.
 const RAMP: [number, number, number][] = [
@@ -140,6 +164,7 @@ function subsample(pts: InterpPoint[], max: number): InterpPoint[] {
 export function buildInterpolatedImage(
   pts: InterpPoint[],
   method: InterpMethod = 'idw',
+  bands: ColorBand[] | null = null,
   gridSize = 260,
 ): InterpolatedImage | null {
   if (pts.length < 3) return null
@@ -201,10 +226,15 @@ export function buildInterpolatedImage(
         img.data[idx + 3] = 0
         continue
       }
-      const [r, g, b] = rampColor(rankFraction(v, sorted))
-      img.data[idx] = r
-      img.data[idx + 1] = g
-      img.data[idx + 2] = b
+      // Manual: color por banda de la config; automatico: gradiente ecualizado.
+      const rgb = bands ? bandColor(v, bands) : rampColor(rankFraction(v, sorted))
+      if (!rgb) {
+        img.data[idx + 3] = 0
+        continue
+      }
+      img.data[idx] = rgb[0]
+      img.data[idx + 1] = rgb[1]
+      img.data[idx + 2] = rgb[2]
       img.data[idx + 3] = 255
     }
   }

@@ -18,7 +18,8 @@ import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import { useMapMode } from '../lib/mapModes'
 import { MapModeSelector } from './MapModeSelector'
 import { useNdviPoints, type NdviPoint } from '../hooks/useNdviPoints'
-import { buildInterpolatedImage, type InterpPoint } from '../lib/ndviInterpolation'
+import { buildInterpolatedImage, type InterpPoint, type ColorBand } from '../lib/ndviInterpolation'
+import { useNdviVariableConfig, readVariableConfig } from '../hooks/useNdviVariableConfig'
 
 const INDICES: { key: keyof NdviPoint; label: string }[] = [
   { key: 'ndvi', label: 'NDVI' },
@@ -56,8 +57,26 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
 
   const { data: plot } = usePlotGeometry(plotId ?? null)
   const { data: points, isLoading } = useNdviPoints(sessionId)
+  // Config de umbrales del tenant (si el usuario puede leerla; si no, gradiente por defecto).
+  const { data: varConfig } = useNdviVariableConfig()
 
   const [indexKey, setIndexKey] = useState<keyof NdviPoint>('ndvi')
+
+  // Bandas manuales de la variable activa, si el manager las configuro.
+  const manualBands = useMemo<ColorBand[] | null>(() => {
+    const cfg = readVariableConfig(varConfig, indexKey as string)
+    if (cfg.strategy !== 'manual' || !cfg.bands || cfg.bands.length === 0) return null
+    return cfg.bands
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map((b) => ({ min: b.min, max: b.max, color: b.color }))
+  }, [varConfig, indexKey])
+
+  const manualLegend = useMemo(() => {
+    const cfg = readVariableConfig(varConfig, indexKey as string)
+    if (cfg.strategy !== 'manual' || !cfg.bands) return null
+    return cfg.bands.slice().sort((a, b) => a.order - b.order)
+  }, [varConfig, indexKey])
 
   const ring = useMemo<number[][] | null>(() => {
     const r = plot?.geometry?.coordinates?.[0]
@@ -75,8 +94,8 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
       }
     }
     if (interp.length < 3) return null
-    return buildInterpolatedImage(interp, 'kriging')
-  }, [ring, points, indexKey])
+    return buildInterpolatedImage(interp, 'kriging', manualBands)
+  }, [ring, points, indexKey, manualBands])
 
   const plotGeojson = useMemo(() => {
     if (!plot?.geometry) return null
@@ -167,11 +186,32 @@ export function NdviMap({ sessionId, plotId }: NdviMapProps) {
             <p className="mb-2 text-xs font-semibold text-gray-700">
               {INDICES.find((i) => i.key === indexKey)?.label} · {points?.length ?? 0} puntos
             </p>
-            <div className="h-3 w-full rounded" style={{ background: LEGEND_GRADIENT }} />
-            <div className="mt-1 flex justify-between text-[11px] tabular-nums text-gray-600">
-              <span>{surface.min.toFixed(3)}</span>
-              <span>{surface.max.toFixed(3)}</span>
-            </div>
+            {manualLegend ? (
+              /* Modo manual: clases de la config del tenant. */
+              <ul className="space-y-1">
+                {manualLegend.map((b, i) => (
+                  <li key={i} className="flex items-center gap-2 text-xs">
+                    <span
+                      className="inline-block h-3 w-4 rounded-sm border border-black/10"
+                      style={{ backgroundColor: b.color }}
+                    />
+                    <span className="text-gray-700">{b.label}</span>
+                    <span className="ml-auto tabular-nums text-gray-500">
+                      {b.min ?? '−∞'} – {b.max ?? '+∞'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              /* Modo automático: gradiente continuo ecualizado. */
+              <>
+                <div className="h-3 w-full rounded" style={{ background: LEGEND_GRADIENT }} />
+                <div className="mt-1 flex justify-between text-[11px] tabular-nums text-gray-600">
+                  <span>{surface.min.toFixed(3)}</span>
+                  <span>{surface.max.toFixed(3)}</span>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
