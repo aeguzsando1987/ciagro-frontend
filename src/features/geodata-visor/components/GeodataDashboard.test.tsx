@@ -31,6 +31,9 @@ vi.mock('../hooks/useAspersionSessionHeaders', () => ({
 vi.mock('../hooks/usePhytoSessionHeaders', () => ({
   usePhytoSessionHeaders: () => ({ data: [{ id: 'ph1' }, { id: 'ph2' }], isLoading: false }),
 }))
+vi.mock('../hooks/useNdviSessionHeaders', () => ({
+  useNdviSessionHeaders: () => ({ data: [{ id: 'nd1' }], isLoading: false }),
+}))
 // SessionInfoCard tiene su propio test (resuelve hooks + Link de router); aquí se aísla.
 vi.mock('./SessionInfoCard', () => ({
   SessionInfoCard: () => <div data-testid="session-info-card" />,
