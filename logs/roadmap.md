@@ -357,6 +357,56 @@ capturar el mapa, subir la firma y ofrecer los botones.
 
 ---
 
+## FASE V1F — Sesiones NDVI en el frontend: gestión + visor + catálogo de configuración (rama `dev-visor-ndvi`, 2026-07-28/29)
+
+**Estado:** `[✅] Implementada — rama dev-visor-ndvi.` Replica el patrón de aspersión/fitosanitario
+para el tipo de sesión NDVI que el backend expuso en su propia fase (V1 backend: header/points,
+import CSV, catálogo `analytics_config`). Cubre el flujo pedido por el dev: crear sesión en un
+subprograma → cargar CSV → abrir visor desde la sesión o desde "Visor de datos" → configurar cómo
+se pintan las variables. Pendiente: validación manual del dev sobre datos reales en el entorno
+final y homologación a `dev`/`master`.
+
+- [x] **V1F-1 — Tipos + gestión de sesiones.** Tipos OpenAPI regenerados. `CreateSessionDialog`
+  gana tercer tipo "Índices vegetativos" (`NdviForm`, sin evaluación). `NdviImportDialog` sin
+  plantillas (mapeo automático en backend, incluye acentos). `NdviSesionModal` **dedicado**, no una
+  rama dentro de `SesionModal` (1077 líneas acopladas a aspersión/fito) — NDVI no usa evaluación,
+  variable-stats ni reporteador.
+- [x] **V1F-2 — Visibilidad en árbol y visor (bugs cerrados en vivo).** Las sesiones NDVI no
+  aparecían en el árbol Gantt del task-manager (`GanttHierarchy` tenía el agregado de
+  aspersión/fito hardcodeado) ni en la tarjeta de sesiones del visor a nivel parcela (faltaba
+  `NdviSessionsPanel`). Ambos corregidos.
+- [x] **V1F-3 — Visor: superficie interpolada (4 iteraciones con el dev sobre resultados reales).**
+  Descartados en orden: contornos precomputados del backend (erráticos) → puntos con blur/radio por
+  zoom (seguían viéndose separados) → superficie IDW recortada al polígono completo de la parcela
+  (manchas por extrapolación fuera del área con datos). Solución: recorte al **casco convexo de los
+  puntos** + mapeo de color por **rango percentil** (ecualización de histograma, no lineal) +
+  **kriging ordinario** (`lib/kriging.ts`, variograma exponencial) como motor final. Medido con
+  toggle Kriging/IDW: diferencia visual **nula** con los datos reales — se investigó y se confirmó
+  que el CSV es una rejilla regular de ~10 m rotada, no un muestreo disperso; a esa densidad ambos
+  motores convergen. Se fijó kriging, IDW queda de fallback interno. Motor aislado (`predictAt`)
+  para no repetir el costo de re-evaluar.
+- [x] **V1F-4 — Catálogo de definición de variables.** `NdviVariablesSection`
+  (`/admin/config-variables`, rol Gerente): por cada una de las 15 variables, modo Automático
+  (cuartiles) o Manual (editor de intervalos Vmin–x1..xn–Vmax, etiqueta, color hex). El visor
+  consume la config: bandas del especialista en modo manual, gradiente ecualizado en automático,
+  fallback silencioso si el usuario no tiene permiso de lectura (403).
+
+**Gap conocido (para la siguiente fase, ver `gap_log.csv`):** el visor lee la config del **tenant
+del usuario logueado**, no del **tenant dueño de la parcela** que se está viendo. Un técnico en una
+parcela ajena no hereda los umbrales de esa organización. Requiere ajuste backend: resolver tenant
+por parcela (no por usuario) + relajar el permiso de lectura de la config.
+
+**Nota técnica para retomar si la resolución visual se vuelve limitante:** el techo real de detalle
+es la separación de la rejilla de puntos del CSV origen (~10 m); ninguna interpolación —incluido
+kriging— recupera variación más fina que eso. El salto de fidelidad, si hiciera falta, vendría de
+ingerir a mayor resolución (o el GeoTIFF original), no de cambiar de algoritmo.
+
+**Verificación:** `npm run typecheck` 0 errores; ESLint limpio en archivos NDVI (persisten warnings
+preexistentes de `react-refresh` ajenos a esta fase); `npm run test` 218/218 (el único "error" de
+vitest es `maplibre-gl` en jsdom dentro de `SessionReportPanel.test.tsx`, preexistente).
+
+---
+
 ## FASES FRONTEND 3–10 · MÓDULOS RESTANTES
 **Estado:** `[ ] Pendientes — UX/UI por pulir`
 

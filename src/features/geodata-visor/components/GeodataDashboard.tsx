@@ -25,6 +25,8 @@ import { SessionsPanel } from './SessionsPanel'
 import { PhytoSessionsPanel } from './PhytoSessionsPanel'
 import { SessionInfoCard } from './SessionInfoCard'
 import { AspersionMap } from './AspersionMap'
+import { NdviMap } from './NdviMap'
+import { NdviSessionsPanel } from './NdviSessionsPanel'
 import { PhytoMap } from '@/features/task-manager/components/PhytoMap'
 import { PhytoStatsCard } from '@/features/task-manager/components/PhytoStatsCard'
 import { SessionReportToggle } from '@/features/session-report/components/SessionReportToggle'
@@ -43,7 +45,10 @@ const LEVEL_TITLE: Record<VisorSelection['level'], string> = {
 /** Etiqueta del nivel; a nivel sesión distingue el tipo (aspersión / fitosanitaria). */
 function levelTitle(selection: VisorSelection): string {
   if (selection.level === 'session') {
-    return selection.session?.kind === 'phyto' ? 'Sesión fitosanitaria' : 'Sesión de aspersión'
+    const kind = selection.session?.kind
+    if (kind === 'phyto') return 'Sesión fitosanitaria'
+    if (kind === 'ndvi') return 'Sesión NDVI'
+    return 'Sesión de aspersión'
   }
   return LEVEL_TITLE[selection.level]
 }
@@ -204,6 +209,7 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
 
   const stats = isPlotLevel ? null : ranchStats(plots.data?.length ?? 0, areaHa)
   const isPhytoSession = isSessionLevel && selection.session?.kind === 'phyto'
+  const isNdviSession = isSessionLevel && selection.session?.kind === 'ndvi'
 
   const backToPlotButton = (
     <button
@@ -219,13 +225,32 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
     <div className="flex h-full flex-col gap-2.5">
       {!statsHidden && stats && <StatGrid loading={plots.isLoading} stats={stats} />}
       {!statsHidden && isPlotLevel && <PlotStats plotId={selection.plot!.id} />}
-      {!statsHidden && isSessionLevel && !isPhytoSession && (
+      {!statsHidden && isSessionLevel && !isPhytoSession && !isNdviSession && (
         <SessionInfoCard sessionId={selection.session!.id} datacentralId={selection.datacentral?.id} />
       )}
       {!statsHidden && isPhytoSession && <PhytoStatsCard headerId={selection.session!.id} />}
       <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-lg border">
         {isSessionLevel ? (
-          isPhytoSession ? (
+          isNdviSession ? (
+            /* Sesión NDVI: puntos de muestreo coloreados por clase (cuartiles) sobre la
+               parcela. La lista de sesiones NDVI va en la columna derecha. */
+            <div className="flex h-full">
+              <div className="relative flex-1">
+                <NdviMap
+                  sessionId={selection.session!.id}
+                  plotId={selection.plot!.id}
+                />
+              </div>
+              <div className="w-56 shrink-0 border-l bg-background/60 p-2">
+                <NdviSessionsPanel
+                  floating={false}
+                  plotId={selection.plot!.id}
+                  selectedSessionId={selection.session?.id ?? null}
+                  onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                />
+              </div>
+            </div>
+          ) : isPhytoSession ? (
             /* Sesión fitosanitaria: mapa de calor de checkpoints sobre la parcela (reuso
                del PhytoMap del task-manager). La lista de sesiones fitosanitarias va en la
                columna derecha del mapa. */
@@ -292,6 +317,12 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
               onSelectSession={(session) => onSelect(selectSession(selection, session))}
             />
             <PhytoSessionsPanel
+              floating={false}
+              plotId={selection.plot!.id}
+              selectedSessionId={selection.session?.id ?? null}
+              onSelectSession={(session) => onSelect(selectSession(selection, session))}
+            />
+            <NdviSessionsPanel
               floating={false}
               plotId={selection.plot!.id}
               selectedSessionId={selection.session?.id ?? null}

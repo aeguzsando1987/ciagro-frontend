@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Building2, BookOpen, MapPinned, Sprout, Users } from 'lucide-react'
+import { Building2, BookOpen, MapPinned, SlidersHorizontal, Sprout, Users } from 'lucide-react'
 import type { FC } from 'react'
 import { cn } from '@/lib/utils'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
@@ -9,7 +9,7 @@ interface AdminSection {
   label: string
   icon: FC<{ className?: string }>
   minRole: number
-  to: '/admin/organizaciones' | '/admin/usuarios' | '/admin/agrounidades' | '/admin/catalogos' | '/admin/activos'
+  to: '/admin/organizaciones' | '/admin/usuarios' | '/admin/agrounidades' | '/admin/catalogos' | '/admin/activos' | '/admin/config-variables'
 }
 
 /**
@@ -22,6 +22,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { label: 'Agrounidades', icon: Sprout, minRole: ROLE_LEVELS.SUPERVISOR, to: '/admin/agrounidades' },
   { label: 'Catálogos', icon: BookOpen, minRole: ROLE_LEVELS.SUPERVISOR, to: '/admin/catalogos' },
   { label: 'Activos Agrícolas', icon: MapPinned, minRole: ROLE_LEVELS.SUPER_ADMIN, to: '/admin/activos' },
+  { label: 'Config. de variables', icon: SlidersHorizontal, minRole: ROLE_LEVELS.MANAGER, to: '/admin/config-variables' },
 ]
 
 const BASE = 'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors'

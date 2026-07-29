@@ -6,6 +6,7 @@ import { OrganizationsSection } from '@/features/admin/sections/OrganizationsSec
 import { AgroUnitsSection } from '@/features/admin/sections/AgroUnitsSection'
 import { CatalogsSection } from '@/features/admin/sections/CatalogsSection'
 import { AssetsSection } from '@/features/admin/sections/AssetsSection'
+import { NdviVariablesSection } from '@/features/admin/sections/NdviVariablesSection'
 
 /**
  * Panel global de administración (caso de uso admin_control_usecases.md §1-§7).
@@ -55,6 +56,12 @@ export const adminAssetsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/activos',
   component: AssetsSection,
+})
+
+export const adminAnalysisVariablesRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/config-variables',
+  component: NdviVariablesSection,
 })
 
 function AdminHome() {

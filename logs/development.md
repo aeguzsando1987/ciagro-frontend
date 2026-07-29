@@ -2024,3 +2024,124 @@ puntos, ajenos a esta fase, quedan señalados.
 preexistentes en `PlotVerticesImport.tsx`), `npm run test` 218/218 con 2 tests nuevos de visibilidad
 de la liga según status. Validación manual del dev: captura del canvas funcionando contra datos
 reales.
+
+---
+
+## Sesión — 2026-07-28/29 (rama `dev-visor-ndvi`, desde `master`)
+
+### FASE V1F — Sesiones NDVI en el frontend: gestión + visor + catálogo de configuración
+
+Replica en frontend el patrón ya existente de aspersión/fitosanitario para el nuevo tipo de sesión
+NDVI (índice vegetativo), que el backend expuso en su propia fase (V1 backend). Cubre el flujo
+completo pedido por el dev: crear la sesión en un subprograma → cargar CSV → abrir el visor desde la
+sesión o desde "Visor de datos" → configurar cómo se pintan las variables.
+
+**Tipos OpenAPI regenerados** contra el backend de dev, que ya exponía NDVI/contours/analytics-config.
+
+**Gestión (task-manager):** `CreateSessionDialog` gana un tercer tipo, "Índices vegetativos"
+(`NdviForm`, sin campo de evaluación — NDVI no lo usa). `NdviImportDialog` es más simple que el de
+aspersión: sin plantillas de columnas, porque el backend resuelve el mapeo automáticamente (incluye
+acentos). La pieza de diseño más consciente: `NdviSesionModal` es un modal **dedicado**, no una rama
+dentro de `SesionModal` (1077 líneas muy acoplado a aspersión/fito) — NDVI no tiene evaluación,
+variable-stats ni reporteador, y forzarlo dentro habría significado arrastrar esa maquinaria o
+llenarla de condicionales. Costó dos bugs de integración que solo aparecieron al probar en vivo: las
+sesiones NDVI no llegaban a listarse ni en el árbol Gantt (`GanttHierarchy` tenía el agregado de
+aspersión/fito hardcodeado, faltaba el bloque NDVI) ni en la tarjeta de sesiones del visor a nivel
+parcela (`NdviSessionsPanel` faltaba junto a `SessionsPanel`/`PhytoSessionsPanel`) — quedaba visible
+solo dentro de una sesión ya seleccionada. Ambos corregidos; quedan como recordatorio de que un tipo
+de sesión nuevo toca **más lugares de los que su propio flujo sugiere**.
+
+### El visor: cuatro iteraciones sobre "que se vea como un mapa de calor"
+
+Esta fue la parte que más iteración directa tuvo con el dev, en vivo, sobre resultados reales:
+
+1. **Intento 1 — contornos precomputados del backend** (polígonos por banda, pipeline PostGIS
+   `ST_InterpolateRaster`). Resultado: errático. Se abandonó a favor de un enfoque en cliente.
+2. **Intento 2 — puntos con `circle-radius`/`circle-blur` por zoom**, para simular densidad. Seguían
+   viéndose separados al acercar: son discos, nunca un gradiente real por mucho blur que lleven.
+3. **Intento 3 — superficie interpolada real** (`lib/ndviInterpolation.ts`): IDW sobre una malla,
+   pintada como `image source` con `raster-resampling: linear`. Dos correcciones sobre la primera
+   versión: (a) recortar al **casco convexo de los puntos**, no al polígono completo de la parcela
+   — el polígono se extendía más allá del área con datos y esa zona extrapolada se leía como "manchas
+   aisladas"; (b) mapear el color por **rango percentil** (ecualización de histograma) en vez de
+   lineal min–max, porque los valores NDVI reales se concentran en un rango estrecho y el mapeo
+   lineal dejaba casi todo en una sola franja de color ("se ve plano").
+4. **Intento 4 — kriging real**, a pedido explícito del dev tras ver que el IDW seguía sin convencer
+   del todo (`lib/kriging.ts`, kriging ordinario con variograma exponencial, port tipado de
+   kriging.js). Con toggle Kriging/IDW para comparar lado a lado. **Resultado medido, no supuesto:
+   diferencia visual nula** entre ambos motores con los datos reales de la sesión de prueba.
+
+Investigado el porqué del punto 4: se analizó el CSV origen (1024 puntos sobre ~277×417 m). Resultado
+— **no es un muestreo disperso, es una rejilla regular de ~10 m rotada respecto a los ejes lon/lat**
+(por eso lon/lat tienen casi tantos valores únicos como puntos, pero la distancia al vecino más
+cercano es uniforme). Con esa densidad y regularidad, kriging e IDW convergen a superficies casi
+idénticas — es un resultado esperable, no una falla de kriging. Conclusión práctica: **se fijó
+kriging como único motor** (es el más riguroso y el costo ya está pagado) y se quitó el toggle; IDW
+se conserva como fallback interno si el ajuste de kriging no converge. El motor de interpolación
+quedó deliberadamente aislado (`predictAt`) para no repetir este costo si se vuelve a evaluar.
+
+Nota para retomar si la resolución se vuelve limitante: el techo real de detalle visible en el mapa
+es la separación de la rejilla (~10 m); ninguna interpolación —incluido kriging— puede recuperar
+variación más fina que eso. El salto de fidelidad, si hiciera falta, vendría de ingerir el dato a
+mayor resolución (o el GeoTIFF original), no de cambiar de algoritmo.
+
+### Catálogo de definición de variables (cierre de la fase)
+
+`NdviVariablesSection` en Administración (`/admin/config-variables`, rol mínimo Gerente): por cada
+una de las 15 variables NDVI, el especialista elige modo Automático (cuartiles, N clases) o Manual
+(editor de intervalos Vmin–x1..xn–Vmax con etiqueta y color hex, continuos, modo absoluto/
+normalizado). Persiste vía `PATCH /analytics-config/ndvi/`, que el backend valida por variable
+(continuidad de intervalos, formato de color, sin huecos).
+
+El visor consume esa config: en modo manual pinta la superficie con las bandas/colores que el
+especialista definió y muestra su leyenda; en automático sigue con el gradiente continuo ecualizado;
+si el usuario no tiene permiso de lectura sobre la config (403, no es el gerente dueño del tenant) cae
+al gradiente sin romper — el visor nunca depende de que la config exista.
+
+**Gap conocido, dejado explícito para la siguiente fase:** la config que el visor lee es la del
+**tenant del usuario logueado**, no la del **tenant dueño de la parcela** que se está viendo. Un
+técnico consultando una parcela de una organización que no es la suya no hereda los umbrales que esa
+organización configuró — sigue viendo el gradiente por defecto. Corregirlo requiere un ajuste en
+backend: resolver el tenant a partir de la parcela (no del usuario) y relajar el permiso de lectura
+de la config para cualquier visor autorizado sobre esa parcela, no solo el dueño.
+
+**Verificación:** `npm run typecheck` 0 errores, ESLint limpio en los archivos NDVI (persisten
+warnings preexistentes de `react-refresh` ajenos a esta fase), `npm run test` 218/218 (el único
+"error" reportado por vitest es `maplibre-gl` cargando en jsdom dentro de
+`SessionReportPanel.test.tsx`, preexistente y no relacionado). Validación manual del dev sobre datos
+reales fue lo que disparó las cuatro iteraciones del visor arriba descritas.
+
+---
+
+## Sesión visor-config-tenant — 2026-07-29
+
+### Config del visor por parcela, colores por cuantil, leyenda como escala y tooltips de puntos
+
+**Contexto:** los colores/umbrales que un Gerente guardaba en el catálogo de variables no se veían en
+el visor. Se corrigió la resolución del tenant (cierre de `GAP-NDVI-CONFIG-001` del lado del front) y
+se sumaron mejoras de la config y del visor pedidas durante la validación con el dev.
+
+- **Panel de configuración (`NdviVariablesSection`):** ahora selecciona la **organización (tenant)** y
+  envía `?tenant=` en GET/PATCH. Con una sola organización se autoselecciona; con varias (o SuperAdmin)
+  muestra un selector. El mensaje de error dejó de ser fijo: muestra el `detail`/`tenant` real del
+  backend, distinguiendo 400 (tenant ausente/ambiguo) de 403 (sin permiso).
+- **Colores por cuantil (modo Automático):** selectores de color por clase Q1..Qn con paleta por
+  defecto (RdYlBu); persiste `colors`. Helpers nuevos en `useNdviVariableConfig`:
+  `QUARTILE_DEFAULT_PALETTE`, `defaultQuartileColors`, `resolveQuartileColors`.
+- **El visor lee la config por sesión:** nuevo hook `useNdviSessionVariableConfig(sessionId)` contra
+  `GET /monitoring/ndvi/headers/{id}/variable-config/` (resuelto por la **parcela**, no por el usuario)
+  — cierra el gap del lado del front. El hook owner-only (`useNdviVariableConfig`) queda para el panel
+  de administración.
+- **Render discreto por cuantil:** `buildInterpolatedImage` acepta `quartileColors`; si el tenant
+  configuró colores pinta clases discretas por percentil (rank empírico), si no mantiene el gradiente
+  continuo. Nuevo helper `quantileBreaks`.
+- **Leyenda como escala:** la tarjeta de cuantiles pasó de 4 filas de categoría a una **barra de color
+  bajo -> alto** con líneas (ticks) en los valores de corte de cada cuantil.
+- **Tooltips de puntos:** capa de puntos **casi transparente pero interactiva**; al pasar el cursor
+  muestra un `Popup` con el `obj_id`, el valor del índice activo y el resto de índices del punto. Pista
+  en letra pequeña "Deslice para ver datos puntual".
+- **Tipos OpenAPI regenerados** contra el backend (nuevo endpoint `variable-config`).
+
+**Verificación:** `npm run typecheck` 0 errores, ESLint limpio en los archivos NDVI, `npm run test`
+218/218 (persiste el "error" de `maplibre-gl` en jsdom dentro de `SessionReportPanel.test.tsx`,
+preexistente y ajeno).

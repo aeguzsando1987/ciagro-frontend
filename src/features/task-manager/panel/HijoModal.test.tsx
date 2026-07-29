@@ -71,6 +71,7 @@ const mockHijo: ProgramaTree = {
     { id: 'phyto-1', type: 'phyto', session_date: '2026-06-20', import_status: 'done', status: 'completed' },
   ],
   soil_map_headers: [],
+  ndvi_sessions: [],
 }
 
 function setRole(role_level: number) {

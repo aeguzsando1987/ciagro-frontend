@@ -61,6 +61,7 @@ describe('mapMastersToTasks', () => {
         aspersion_sessions: [],
         phyto_monitoring_headers: [],
         soil_map_headers: [],
+        ndvi_sessions: [],
       },
     ])
 
@@ -92,6 +93,7 @@ describe('mapMastersToTasks', () => {
           { id: 'sp-1', type: 'phyto', session_date: '2026-07-05', import_status: 'pending', status: 'pending' },
         ],
         soil_map_headers: [],
+        ndvi_sessions: [],
       },
     ])
 
@@ -124,6 +126,7 @@ describe('mapMastersToTasks', () => {
         aspersion_sessions: [],
         phyto_monitoring_headers: [],
         soil_map_headers: [],
+        ndvi_sessions: [],
       },
     ])
 
@@ -151,6 +154,7 @@ describe('mapMastersToTasks', () => {
         ],
         phyto_monitoring_headers: [],
         soil_map_headers: [],
+        ndvi_sessions: [],
       },
     ])
 
@@ -177,6 +181,7 @@ describe('mapMastersToTasks', () => {
         aspersion_sessions: [],
         phyto_monitoring_headers: [],
         soil_map_headers: [],
+        ndvi_sessions: [],
       },
     ])
 
@@ -204,6 +209,7 @@ describe('mapMastersToTasks', () => {
           { id: 'sp-1', type: 'phyto', session_date: '2026-07-05', import_status: 'pending', status: 'pending' },
         ],
         soil_map_headers: [],
+        ndvi_sessions: [],
       },
     ])
 
@@ -234,6 +240,7 @@ describe('mapMastersToTasks', () => {
         aspersion_sessions: [],
         phyto_monitoring_headers: [],
         soil_map_headers: [],
+        ndvi_sessions: [],
       },
     ])
 

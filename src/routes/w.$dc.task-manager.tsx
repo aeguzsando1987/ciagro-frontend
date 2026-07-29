@@ -15,6 +15,7 @@ import { CreateMasterDialog } from '@/features/task-manager/dialogs/CreateMaster
 import { MaestroModal } from '@/features/task-manager/panel/MaestroModal'
 import { HijoModal } from '@/features/task-manager/panel/HijoModal'
 import { SesionModal } from '@/features/task-manager/panel/SesionModal'
+import { NdviSesionModal } from '@/features/task-manager/panel/NdviSesionModal'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -27,7 +28,7 @@ import type { MasterProgram, ProgramaStatus } from '@/features/task-manager/type
 type ModalFrame =
   | { type: 'master'; masterId: string }
   | { type: 'hijo'; hijoId: string; masterId: string }
-  | { type: 'sesion'; sesionId: string; sesionType: 'aspersion' | 'phyto'; hijoId: string; masterId: string }
+  | { type: 'sesion'; sesionId: string; sesionType: 'aspersion' | 'phyto' | 'ndvi'; hijoId: string; masterId: string }
 
 /**
  * Search params del Gantt (paso 2.5).
@@ -46,7 +47,7 @@ const taskManagerSearchSchema = z.object({
   openMaster: z.string().optional().catch(undefined),
   openHijo: z.string().optional().catch(undefined),
   openSesion: z.string().optional().catch(undefined),
-  openSesionType: z.enum(['aspersion', 'phyto']).optional().catch(undefined),
+  openSesionType: z.enum(['aspersion', 'phyto', 'ndvi']).optional().catch(undefined),
 })
 
 /**
@@ -137,7 +138,7 @@ function TaskManagerPage() {
     id: string,
     level: 'master' | 'hijo' | 'sesion',
     masterId: string,
-    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' } | null,
+    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' | 'ndvi' } | null,
   ) {
     if (level === 'master') {
       pushModal({ type: 'master', masterId: id })
@@ -265,10 +266,19 @@ function TaskManagerPage() {
           }
         />
       )}
-      {topFrame?.type === 'sesion' && (
+      {topFrame?.type === 'sesion' && topFrame.sesionType === 'ndvi' && (
+        <NdviSesionModal
+          sesionId={topFrame.sesionId}
+          hijoId={topFrame.hijoId}
+          masterId={topFrame.masterId}
+          onClose={clearModal}
+          onBack={popModal}
+        />
+      )}
+      {topFrame?.type === 'sesion' && topFrame.sesionType !== 'ndvi' && (
         <SesionModal
           sesionId={topFrame.sesionId}
-          sesionType={topFrame.sesionType}
+          sesionType={topFrame.sesionType as 'aspersion' | 'phyto'}
           hijoId={topFrame.hijoId}
           masterId={topFrame.masterId}
           datacentralId={dc}
@@ -302,7 +312,7 @@ function HijoModalWrapper({
   datacentralId: string
   onClose: () => void
   onBack: () => void
-  onNavigateSesion: (ref: { sesionId: string; sesionType: 'aspersion' | 'phyto' }) => void
+  onNavigateSesion: (ref: { sesionId: string; sesionType: 'aspersion' | 'phyto' | 'ndvi' }) => void
 }) {
   const { data: tree, isLoading } = useMasterTree(masterId, true)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
