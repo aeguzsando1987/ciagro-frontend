@@ -161,10 +161,32 @@ function subsample(pts: InterpPoint[], max: number): InterpPoint[] {
   return out
 }
 
+/**
+ * Cortes de cuantiles de `values` en `n` clases: devuelve n+1 límites
+ * [min, q1, ..., q(n-1), max]. La clase i cubre [breaks[i], breaks[i+1]).
+ */
+export function quantileBreaks(values: number[], n: number): number[] {
+  const sorted = [...values].sort((a, b) => a - b)
+  if (sorted.length === 0) return []
+  const count = Math.max(2, n)
+  const at = (frac: number): number => {
+    if (sorted.length === 1) return sorted[0]!
+    const pos = frac * (sorted.length - 1)
+    const lo = Math.floor(pos)
+    const hi = Math.min(sorted.length - 1, lo + 1)
+    return sorted[lo]! + (sorted[hi]! - sorted[lo]!) * (pos - lo)
+  }
+  const breaks = [sorted[0]!]
+  for (let i = 1; i < count; i++) breaks.push(at(i / count))
+  breaks.push(sorted[sorted.length - 1]!)
+  return breaks
+}
+
 export function buildInterpolatedImage(
   pts: InterpPoint[],
   method: InterpMethod = 'idw',
   bands: ColorBand[] | null = null,
+  quartileColors: string[] | null = null,
   gridSize = 260,
 ): InterpolatedImage | null {
   if (pts.length < 3) return null
@@ -226,8 +248,17 @@ export function buildInterpolatedImage(
         img.data[idx + 3] = 0
         continue
       }
-      // Manual: color por banda de la config; automatico: gradiente ecualizado.
-      const rgb = bands ? bandColor(v, bands) : rampColor(rankFraction(v, sorted))
+      // Manual: color por banda de la config. Quartile con colores: clase discreta
+      // por percentil. Sin colores: gradiente continuo ecualizado.
+      let rgb: [number, number, number] | null
+      if (bands) {
+        rgb = bandColor(v, bands)
+      } else if (quartileColors && quartileColors.length > 0) {
+        const cls = Math.min(quartileColors.length - 1, Math.floor(rankFraction(v, sorted) * quartileColors.length))
+        rgb = hexToRgb(quartileColors[cls]!)
+      } else {
+        rgb = rampColor(rankFraction(v, sorted))
+      }
       if (!rgb) {
         img.data[idx + 3] = 0
         continue

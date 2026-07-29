@@ -2110,3 +2110,38 @@ warnings preexistentes de `react-refresh` ajenos a esta fase), `npm run test` 21
 "error" reportado por vitest es `maplibre-gl` cargando en jsdom dentro de
 `SessionReportPanel.test.tsx`, preexistente y no relacionado). Validación manual del dev sobre datos
 reales fue lo que disparó las cuatro iteraciones del visor arriba descritas.
+
+---
+
+## Sesión visor-config-tenant — 2026-07-29
+
+### Config del visor por parcela, colores por cuantil, leyenda como escala y tooltips de puntos
+
+**Contexto:** los colores/umbrales que un Gerente guardaba en el catálogo de variables no se veían en
+el visor. Se corrigió la resolución del tenant (cierre de `GAP-NDVI-CONFIG-001` del lado del front) y
+se sumaron mejoras de la config y del visor pedidas durante la validación con el dev.
+
+- **Panel de configuración (`NdviVariablesSection`):** ahora selecciona la **organización (tenant)** y
+  envía `?tenant=` en GET/PATCH. Con una sola organización se autoselecciona; con varias (o SuperAdmin)
+  muestra un selector. El mensaje de error dejó de ser fijo: muestra el `detail`/`tenant` real del
+  backend, distinguiendo 400 (tenant ausente/ambiguo) de 403 (sin permiso).
+- **Colores por cuantil (modo Automático):** selectores de color por clase Q1..Qn con paleta por
+  defecto (RdYlBu); persiste `colors`. Helpers nuevos en `useNdviVariableConfig`:
+  `QUARTILE_DEFAULT_PALETTE`, `defaultQuartileColors`, `resolveQuartileColors`.
+- **El visor lee la config por sesión:** nuevo hook `useNdviSessionVariableConfig(sessionId)` contra
+  `GET /monitoring/ndvi/headers/{id}/variable-config/` (resuelto por la **parcela**, no por el usuario)
+  — cierra el gap del lado del front. El hook owner-only (`useNdviVariableConfig`) queda para el panel
+  de administración.
+- **Render discreto por cuantil:** `buildInterpolatedImage` acepta `quartileColors`; si el tenant
+  configuró colores pinta clases discretas por percentil (rank empírico), si no mantiene el gradiente
+  continuo. Nuevo helper `quantileBreaks`.
+- **Leyenda como escala:** la tarjeta de cuantiles pasó de 4 filas de categoría a una **barra de color
+  bajo -> alto** con líneas (ticks) en los valores de corte de cada cuantil.
+- **Tooltips de puntos:** capa de puntos **casi transparente pero interactiva**; al pasar el cursor
+  muestra un `Popup` con el `obj_id`, el valor del índice activo y el resto de índices del punto. Pista
+  en letra pequeña "Deslice para ver datos puntual".
+- **Tipos OpenAPI regenerados** contra el backend (nuevo endpoint `variable-config`).
+
+**Verificación:** `npm run typecheck` 0 errores, ESLint limpio en los archivos NDVI, `npm run test`
+218/218 (persiste el "error" de `maplibre-gl` en jsdom dentro de `SessionReportPanel.test.tsx`,
+preexistente y ajeno).

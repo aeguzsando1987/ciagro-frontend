@@ -12,11 +12,16 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useAuthStore } from '@/features/auth/useAuthStore'
+import { ROLE_LEVELS } from '@/lib/auth/roles'
+import { useDataCentralMains } from '@/features/admin/hooks/useDataCentrals'
 import {
   useNdviVariableConfig,
   useNdviVariables,
   useUpdateNdviVariableConfig,
   readVariableConfig,
+  resolveQuartileColors,
   type Band,
   type VariableBandConfig,
 } from '@/features/geodata-visor/hooks/useNdviVariableConfig'
@@ -27,10 +32,46 @@ function newBand(order: number): Band {
   return { order, min: 0, max: 1, label: `Clase ${order + 1}`, color: DEFAULT_COLORS[order % DEFAULT_COLORS.length]! }
 }
 
+/** Extrae el mensaje de error que manda el backend (400 por tenant ambiguo, 403 sin permiso, etc). */
+function extractErrorDetail(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object') return undefined
+  const obj = error as Record<string, unknown>
+  const raw = obj.detail ?? obj.tenant
+  return typeof raw === 'string' ? raw : undefined
+}
+
 export function NdviVariablesSection() {
+  const user = useAuthStore((s) => s.user)
+  const roleLevel = user?.role_level ?? 0
+  const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
+
+  // Organizaciones que el usuario puede configurar: las que posee (Gerente dueño), o
+  // todas si es SuperAdmin (puede operar sobre cualquier tenant indicándolo).
+  const { data: allOrgs = [], isLoading: loadingOrgs } = useDataCentralMains()
+  const configurableOrgs = useMemo(
+    () => (isSuperAdmin ? allOrgs : allOrgs.filter((o) => o.is_owner)),
+    [allOrgs, isSuperAdmin],
+  )
+
+  const [tenantId, setTenantId] = useState<string>('')
+
+  // Con una sola organización configurable, se selecciona sola; si hay varias (o es
+  // SuperAdmin), el usuario debe elegir explícitamente.
+  useEffect(() => {
+    if (!tenantId && configurableOrgs.length === 1) setTenantId(configurableOrgs[0]!.id)
+  }, [configurableOrgs, tenantId])
+
+  const needsTenantChoice = configurableOrgs.length !== 1
+  const tenantReady = !needsTenantChoice || !!tenantId
+
   const { data: variables = [], isLoading: loadingVars } = useNdviVariables()
-  const { data: config, isLoading: loadingConfig, isError, error } = useNdviVariableConfig()
-  const update = useUpdateNdviVariableConfig()
+  const {
+    data: config,
+    isLoading: loadingConfig,
+    isError,
+    error,
+  } = useNdviVariableConfig(tenantId || undefined, { enabled: tenantReady })
+  const update = useUpdateNdviVariableConfig(tenantId || undefined)
 
   const [selected, setSelected] = useState<string>('')
   const [draft, setDraft] = useState<VariableBandConfig>({ strategy: 'quartile', n_bands: 4 })
@@ -49,19 +90,74 @@ export function NdviVariablesSection() {
     [variables, selected],
   )
 
-  if (isError) {
+  const orgPicker = needsTenantChoice && !loadingOrgs && (
+    <div className="max-w-xs space-y-1">
+      <Label>Organización</Label>
+      <Select value={tenantId} onValueChange={setTenantId}>
+        <SelectTrigger>
+          <SelectValue placeholder="Elige una organización…" />
+        </SelectTrigger>
+        <SelectContent>
+          {configurableOrgs.map((o) => (
+            <SelectItem key={o.id} value={o.id}>
+              {o.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+
+  if (!loadingOrgs && configurableOrgs.length === 0) {
     return (
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold">Configuración de variables de análisis</h1>
         <p className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Solo un Gerente dueño de la organización puede configurar estos umbrales.
-          {error instanceof Error ? ` (${error.message})` : ''}
+          Solo un Gerente dueño de la organización puede configurar estos umbrales. Tu usuario no
+          es dueño de ninguna organización.
+        </p>
+      </div>
+    )
+  }
+
+  if (needsTenantChoice && !tenantId) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Configuración de variables de análisis</h1>
+          <p className="text-sm text-muted-foreground">
+            Posees más de una organización: elige sobre cuál configurar los umbrales.
+          </p>
+        </div>
+        {orgPicker}
+      </div>
+    )
+  }
+
+  if (isError) {
+    const detail = extractErrorDetail(error)
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-semibold">Configuración de variables de análisis</h1>
+        {orgPicker}
+        <p className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {detail ?? 'Solo un Gerente dueño de la organización puede configurar estos umbrales.'}
         </p>
       </div>
     )
   }
 
   const bands = draft.bands ?? []
+  const nBands = draft.n_bands ?? 4
+  const quartileColors = resolveQuartileColors(draft, nBands)
+
+  const setQuartileColor = (i: number, color: string) => {
+    setDraft((d) => {
+      const next = resolveQuartileColors(d, d.n_bands ?? 4).slice()
+      next[i] = color
+      return { ...d, colors: next }
+    })
+  }
 
   const setBand = (i: number, patch: Partial<Band>) => {
     setDraft((d) => {
@@ -78,7 +174,7 @@ export function NdviVariablesSection() {
     const payload: VariableBandConfig =
       draft.strategy === 'manual'
         ? { strategy: 'manual', mode: draft.mode ?? 'absolute', bands }
-        : { strategy: 'quartile', n_bands: draft.n_bands ?? 4 }
+        : { strategy: 'quartile', n_bands: nBands, colors: quartileColors }
     update.mutate(
       { [selected]: payload },
       {
@@ -103,6 +199,8 @@ export function NdviVariablesSection() {
           Define cómo se clasifican y colorean las variables en el visor. Aplica a toda la organización.
         </p>
       </div>
+
+      {orgPicker}
 
       {/* Pestaña única por ahora: NDVI. */}
       <div className="flex gap-2 border-b">
@@ -162,20 +260,46 @@ export function NdviVariablesSection() {
             </div>
 
             {draft.strategy === 'quartile' ? (
-              <div className="space-y-1">
-                <Label htmlFor="nbands">Número de clases</Label>
-                <Input
-                  id="nbands"
-                  type="number"
-                  min={2}
-                  max={8}
-                  className="w-24"
-                  value={draft.n_bands ?? 4}
-                  onChange={(e) => setDraft((d) => ({ ...d, n_bands: Number(e.target.value) }))}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Los cortes se calculan de los datos de cada sesión (sin definir umbrales fijos).
-                </p>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label htmlFor="nbands">Número de clases</Label>
+                  <Input
+                    id="nbands"
+                    type="number"
+                    min={2}
+                    max={6}
+                    className="w-24"
+                    value={nBands}
+                    onChange={(e) => {
+                      const n = Math.max(2, Math.min(6, Number(e.target.value) || 2))
+                      setDraft((d) => ({ ...d, n_bands: n, colors: resolveQuartileColors(d, n) }))
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Los cortes se calculan de los datos de cada sesión (sin definir umbrales fijos).
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <Label>Colores de los cuantiles (de menor a mayor)</Label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {quartileColors.map((c, i) => (
+                      <div key={i} className="flex flex-col items-center gap-1">
+                        <input
+                          type="color"
+                          className="h-8 w-10 cursor-pointer rounded border"
+                          value={c}
+                          onChange={(e) => setQuartileColor(i, e.target.value)}
+                          aria-label={`Color del cuantil ${i + 1}`}
+                        />
+                        <span className="text-[10px] text-muted-foreground">Q{i + 1}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    El visor pinta cada cuantil con su color; los umbrales siguen saliendo de los datos.
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="space-y-3">

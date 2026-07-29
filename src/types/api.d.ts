@@ -6691,6 +6691,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/ndvi/headers/{id}/variable-config/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Config de variables NDVI del tenant dueno de la sesion
+         * @description Devuelve la configuracion de bandas/colores de las variables NDVI del tenant (organizacion) DUENO de la parcela de esta sesion, resuelta en el servidor a partir de la parcela (no del usuario). La puede leer cualquier usuario con alcance sobre la sesion, para que el visor aplique los umbrales/colores del especialista sin importar quien consulta. Si el tenant no tiene config, se responde con defaults quartile por variable; si no se resuelve tenant, se responde un objeto vacio y el visor cae al gradiente.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/ndvi/headers/{id}/variable-config/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/ndvi/headers/{id}/variable-config/")
+         *         suspend fun getNdviSessionVariableConfig(@Path("id") id: String): NdviVariableConfig
+         *     }
+         *
+         *     val result = api.getNdviSessionVariableConfig(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_ndvi_headers_variable_config_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/monitoring/ndvi/headers/{id}/": {
         parameters: {
             query?: never;
@@ -7634,12 +7673,12 @@ export interface paths {
         };
         /**
          * Config de variables NDVI de la organizacion
-         * @description Devuelve (GET) o actualiza (PATCH) la configuracion de bandas de los 15 indices NDVI del tenant. Si el tenant no tenia config, se crea con la estrategia por defecto (quartile) en todas las variables.
+         * @description Devuelve la configuracion de bandas de los 15 indices NDVI del tenant. Si el tenant no tenia config, se crea con la estrategia por defecto (quartile) en todas las variables.
          */
         get: operations["v1_analytics_config_ndvi_retrieve"];
         /**
-         * Config de variables NDVI de la organizacion
-         * @description Devuelve (GET) o actualiza (PATCH) la configuracion de bandas de los 15 indices NDVI del tenant. Si el tenant no tenia config, se crea con la estrategia por defecto (quartile) en todas las variables.
+         * Reemplazar config de variables NDVI de la organizacion
+         * @description Actualiza (completa) la configuracion de bandas de los 15 indices NDVI del tenant.
          */
         put: operations["v1_analytics_config_ndvi_update"];
         post?: never;
@@ -7647,8 +7686,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Config de variables NDVI de la organizacion
-         * @description Devuelve (GET) o actualiza (PATCH) la configuracion de bandas de los 15 indices NDVI del tenant. Si el tenant no tenia config, se crea con la estrategia por defecto (quartile) en todas las variables.
+         * Actualizar config de variables NDVI de la organizacion
+         * @description Actualiza (parcial) la configuracion de bandas de los 15 indices NDVI del tenant.
          */
         patch: operations["v1_analytics_config_ndvi_partial_update"];
         trace?: never;
@@ -16525,6 +16564,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NdviIndexContourList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_variable_config_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
