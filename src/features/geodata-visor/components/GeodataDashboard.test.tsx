@@ -7,9 +7,12 @@ import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('react-map-gl/maplibre', () => ({
-  default: ({ children }: { children?: React.ReactNode }) => <div data-testid="mock-map">{children}</div>,
+  default: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="mock-map">{children}</div>
+  ),
   Source: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   Layer: () => null,
+  Popup: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   Marker: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 }))
 
@@ -21,38 +24,79 @@ vi.mock('@/features/admin/hooks/useRanches', () => ({
   ranchesQueryOptions: () => ({ queryKey: ['x'], queryFn: async () => [] }),
 }))
 vi.mock('@/features/admin/hooks/usePlots', () => ({
-  usePlots: () => ({ data: [{ id: 'p1', total_area: '3' }, { id: 'p2', total_area: '2' }], isLoading: false }),
+  usePlots: () => ({
+    data: [
+      { id: 'p1', total_area: '3' },
+      { id: 'p2', total_area: '2' },
+    ],
+    isLoading: false,
+  }),
   usePlotDetail: () => ({ data: { id: 'p1', total_area: '4.5' }, isLoading: false }),
   plotsQueryOptions: () => ({ queryKey: ['y'], queryFn: async () => [] }),
 }))
 vi.mock('../hooks/useAspersionSessionHeaders', () => ({
-  useAspersionSessionHeaders: () => ({ data: [{ id: 's1' }, { id: 's2' }, { id: 's3' }], isLoading: false }),
+  useAspersionSessionHeaders: () => ({
+    data: [{ id: 's1' }, { id: 's2' }, { id: 's3' }],
+    isLoading: false,
+  }),
 }))
 vi.mock('../hooks/usePhytoSessionHeaders', () => ({
   usePhytoSessionHeaders: () => ({ data: [{ id: 'ph1' }, { id: 'ph2' }], isLoading: false }),
+}))
+vi.mock('../hooks/useSoilMapSessionHeaders', () => ({
+  useSoilMapSessionHeaders: () => ({
+    data: [{ id: 'sm1', mapping_date: '2026-04-15', points_count: '3' }],
+    isLoading: false,
+  }),
 }))
 // SessionInfoCard tiene su propio test (resuelve hooks + Link de router); aquí se aísla.
 vi.mock('./SessionInfoCard', () => ({
   SessionInfoCard: () => <div data-testid="session-info-card" />,
 }))
+vi.mock('./SoilMapSessionInfoCard', () => ({
+  SoilMapSessionInfoCard: () => <div data-testid="soil-map-session-info-card" />,
+}))
 // Hooks del visor de aspersión (usados por AspersionMap en nivel sesión).
 // La referencia del array DEBE ser estable: si cambia en cada render, el useMemo/effect
 // de AspersionMap entra en bucle infinito (recalcula capas y resetea checkboxes sin fin).
-const mockAspersionPoints = [{
-  id: 'pt-1', geom: { type: 'Point', coordinates: [-101, 20.5] },
-  course_deg: '0', boom_width_m: '14', distance_m: '1.5',
-  applied_rate_l: '380', target_rate_l: '400', area_ha: '0.5',
-}]
+const mockAspersionPoints = [
+  {
+    id: 'pt-1',
+    geom: { type: 'Point', coordinates: [-101, 20.5] },
+    course_deg: '0',
+    boom_width_m: '14',
+    distance_m: '1.5',
+    applied_rate_l: '380',
+    target_rate_l: '400',
+    area_ha: '0.5',
+  },
+]
 const mockPointsResult = { data: mockAspersionPoints, isLoading: false, error: null }
 vi.mock('@/features/task-manager/hooks/useAspersionPoints', () => ({
   useAspersionPoints: () => mockPointsResult,
 }))
-vi.mock('@/features/task-manager/hooks/usePlotGeometry', () => ({ usePlotGeometry: () => ({ data: null }) }))
-vi.mock('@/features/task-manager/hooks/useAspersionVariableStats', () => ({ useAspersionVariableStats: () => ({ data: null }) }))
-vi.mock('@/features/task-manager/hooks/useAspersionSessionStats', () => ({ useAspersionSessionStats: () => ({ data: null }) }))
+vi.mock('@/features/task-manager/hooks/usePlotGeometry', () => ({
+  usePlotGeometry: () => ({ data: null }),
+}))
+vi.mock('@/features/task-manager/hooks/useAspersionVariableStats', () => ({
+  useAspersionVariableStats: () => ({ data: null }),
+}))
+vi.mock('@/features/task-manager/hooks/useAspersionSessionStats', () => ({
+  useAspersionSessionStats: () => ({ data: null }),
+}))
 // SessionReportToggle (toolbarEnd del visor a nivel sesión) consulta el detalle de la sesión;
 // se mockea para no requerir QueryClientProvider (sin datos → el toggle no renderiza).
-vi.mock('@/features/task-manager/hooks/useAspersionSessionDetail', () => ({ useAspersionSessionDetail: () => ({ data: null }) }))
+vi.mock('@/features/task-manager/hooks/useAspersionSessionDetail', () => ({
+  useAspersionSessionDetail: () => ({ data: null }),
+}))
+const mockSoilMapPoints = [
+  { id: 'smp-1', geom: { type: 'Point', coordinates: [-101, 20.5] }, pH: 5.5 },
+  { id: 'smp-2', geom: { type: 'Point', coordinates: [-101.01, 20.51] }, pH: 6.5 },
+  { id: 'smp-3', geom: { type: 'Point', coordinates: [-101.02, 20.52] }, pH: 7.5 },
+]
+vi.mock('@/features/task-manager/hooks/useSoilMapPoints', () => ({
+  useSoilMapPoints: () => ({ data: mockSoilMapPoints, isLoading: false, error: null }),
+}))
 
 import { GeodataDashboard } from './GeodataDashboard'
 import type { VisorSelection } from '../types'
@@ -73,17 +117,25 @@ describe('GeodataDashboard', () => {
   })
 
   it('nivel parcela: muestra superficie y número de sesiones', () => {
-    const sel: VisorSelection = { level: 'plot', org, ranch: { id: 'r1', name: 'Rancho Norte' }, plot: { id: 'p1', name: 'P-01' } }
+    const sel: VisorSelection = {
+      level: 'plot',
+      org,
+      ranch: { id: 'r1', name: 'Rancho Norte' },
+      plot: { id: 'p1', name: 'P-01' },
+    }
     render(<GeodataDashboard selection={sel} onSelect={vi.fn()} />)
     // "Sesiones de aspersión" aparece como tarjeta de stat y como título del panel
     expect(screen.getAllByText('Sesiones de aspersión').length).toBeGreaterThan(0)
     expect(screen.getByText('3')).toBeTruthy() // 3 sesiones (stat)
     expect(screen.getByText(/4.5 ha/)).toBeTruthy()
+    expect(screen.getAllByText('Sesiones de mapeo de suelo').length).toBeGreaterThan(0)
+    expect(screen.getByText('1')).toBeTruthy()
   })
 
   it('nivel sesión: monta el visor de capas (AspersionMap) con el botón Parcela', () => {
     const sel: VisorSelection = {
-      level: 'session', org,
+      level: 'session',
+      org,
       ranch: { id: 'r1', name: 'Rancho Norte' },
       plot: { id: 'p1', name: 'P-01' },
       session: { id: 's1', date: '2026-03-23', kind: 'aspersion' },
@@ -91,5 +143,24 @@ describe('GeodataDashboard', () => {
     render(<GeodataDashboard selection={sel} onSelect={vi.fn()} />)
     expect(screen.getByRole('button', { name: 'Proporción volumen' })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Parcela/ })).toBeTruthy()
+  })
+
+  it('nivel sesión de suelo: monta SoilMap con su panel y etiqueta', () => {
+    const sel: VisorSelection = {
+      level: 'session',
+      org,
+      ranch: { id: 'r1', name: 'Rancho Norte' },
+      plot: { id: 'p1', name: 'P-01' },
+      session: { id: 'sm1', date: '2026-04-15', kind: 'soil_map' },
+    }
+
+    render(<GeodataDashboard selection={sel} onSelect={vi.fn()} />)
+
+    expect(screen.getByText('Sesión de mapeo de suelo')).toBeTruthy()
+    expect(screen.getByRole('combobox', { name: 'Variable del mapa' })).toBeTruthy()
+    expect(screen.getAllByText('Sesiones de mapeo de suelo').length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: /Parcela/ })).toBeTruthy()
+    expect(screen.queryByTestId('session-info-card')).toBeNull()
+    expect(screen.getByTestId('soil-map-session-info-card')).toBeInTheDocument()
   })
 })

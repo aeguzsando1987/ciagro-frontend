@@ -36,6 +36,21 @@ vi.mock('../hooks/useAspersionSessionHeaders', () => ({
     isLoading: false,
   }),
 }))
+vi.mock('../hooks/usePhytoSessionHeaders', () => ({
+  usePhytoSessionHeaders: () => ({ data: [], isLoading: false }),
+}))
+vi.mock('../hooks/useSoilMapSessionHeaders', () => ({
+  useSoilMapSessionHeaders: () => ({
+    data: [
+      {
+        id: 'soil-session-1',
+        mapping_date: '2026-04-15',
+        points_count: '8',
+      },
+    ],
+    isLoading: false,
+  }),
+}))
 
 import { GeodataExplorer } from './GeodataExplorer'
 
@@ -86,6 +101,37 @@ describe('GeodataExplorer', () => {
       org: { id: 'org-1', name: 'Organización Uno' },
       datacentral: { id: 'dc-1', name: 'CIAgro Hija A' },
       level: 'datacentral',
+    })
+  })
+
+  it('agrupa las sesiones de suelo y conserva la ruta completa al seleccionarlas', async () => {
+    const onSelect = vi.fn()
+    render(<GeodataExplorer selection={null} onSelect={onSelect} />)
+
+    fireEvent.doubleClick(screen.getByText('Organización Uno'))
+    await waitFor(() => screen.getByText('CIAgro Hija A'))
+    fireEvent.doubleClick(screen.getByText('CIAgro Hija A'))
+    await waitFor(() => screen.getByText('Productor X'))
+    fireEvent.doubleClick(screen.getByText('Productor X'))
+    await waitFor(() => screen.getByText('Rancho Norte'))
+    fireEvent.doubleClick(screen.getByText('Rancho Norte'))
+    await waitFor(() => screen.getByText('P-01'))
+    fireEvent.doubleClick(screen.getByText('P-01'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Mapeo de suelo')).toBeInTheDocument()
+      expect(screen.getByText('2026-04-15 · 8 pts')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('2026-04-15 · 8 pts'))
+    expect(onSelect).toHaveBeenLastCalledWith({
+      org: { id: 'org-1', name: 'Organización Uno' },
+      datacentral: { id: 'dc-1', name: 'CIAgro Hija A' },
+      producer: { id: 'prod-1', name: 'Productor X' },
+      ranch: { id: 'ranch-1', name: 'Rancho Norte' },
+      plot: { id: 'plot-1', name: 'P-01' },
+      session: { id: 'soil-session-1', date: '2026-04-15', kind: 'soil_map' },
+      level: 'session',
     })
   })
 })

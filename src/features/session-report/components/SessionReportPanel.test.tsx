@@ -32,6 +32,9 @@ vi.mock('../hooks/useSessionIssues', () => ({
   useUpdateSessionIssue: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteSessionIssue: () => ({ mutate: vi.fn(), isPending: false }),
 }))
+vi.mock('@/features/geodata-visor/components/AspersionMap', () => ({
+  AspersionMap: () => <div data-testid="aspersion-map" />,
+}))
 
 import { SessionReportPanel } from './SessionReportPanel'
 

@@ -72,7 +72,7 @@ describe('mapMastersToTasks', () => {
     expect(tasks[1]!.type).toBe('project')
   })
 
-  it('agrega sesiones de aspersion y phyto como milestones bajo el Hijo', () => {
+  it('agrega sesiones de aspersion, phyto y suelo como milestones bajo el Hijo', () => {
     const masters = [makeMaster()]
     const tree = makeTree({}, [
       {
@@ -91,13 +91,15 @@ describe('mapMastersToTasks', () => {
         phyto_monitoring_headers: [
           { id: 'sp-1', type: 'phyto', session_date: '2026-07-05', import_status: 'pending', status: 'pending' },
         ],
-        soil_map_headers: [],
+        soil_map_headers: [
+          { id: 'sm-1', type: 'soil_map', mapping_date: '2026-07-10', import_status: 'done', status: 'loaded' },
+        ],
       },
     ])
 
     const { tasks } = mapMastersToTasks(masters, [tree], new Set(['master-1']))
 
-    expect(tasks).toHaveLength(4) // master + hijo + aspersion + phyto
+    expect(tasks).toHaveLength(5) // master + hijo + aspersion + phyto + suelo
 
     const aspersion = tasks.find((t) => t.id === 's:sa-1')
     expect(aspersion?.type).toBe('milestone')
@@ -106,6 +108,12 @@ describe('mapMastersToTasks', () => {
     const phyto = tasks.find((t) => t.id === 's:sp-1')
     expect(phyto?.type).toBe('milestone')
     expect(phyto?.project).toBe('h:hijo-1')
+
+    const soilMap = tasks.find((t) => t.id === 's:sm-1')
+    expect(soilMap?.type).toBe('milestone')
+    expect(soilMap?.name).toBe('Mapa de suelo 2026-07-10')
+    expect(soilMap?.project).toBe('h:hijo-1')
+    expect(soilMap?.styles?.backgroundColor).toBe('#f59e0b')
   })
 
   it('marca en rojo el Hijo si sus fechas caen fuera del rango del Maestro', () => {
@@ -184,7 +192,7 @@ describe('mapMastersToTasks', () => {
     expect(taskMeta['h:hijo-fuera']?.statusDisplay).toBe('Fuera de rango')
   })
 
-  it('popula hijoIdByTask y sesionTypeByTask para aspersion y phyto', () => {
+  it('popula hijoIdByTask y sesionTypeByTask para aspersion, phyto y suelo', () => {
     const masters = [makeMaster()]
     const tree = makeTree({}, [
       {
@@ -203,7 +211,9 @@ describe('mapMastersToTasks', () => {
         phyto_monitoring_headers: [
           { id: 'sp-1', type: 'phyto', session_date: '2026-07-05', import_status: 'pending', status: 'pending' },
         ],
-        soil_map_headers: [],
+        soil_map_headers: [
+          { id: 'sm-1', type: 'soil_map', mapping_date: '2026-07-10', import_status: 'pending', status: 'pending' },
+        ],
       },
     ])
 
@@ -213,6 +223,8 @@ describe('mapMastersToTasks', () => {
     expect(sesionTypeByTask['s:sa-1']).toBe('aspersion')
     expect(hijoIdByTask['s:sp-1']).toBe('hijo-1')
     expect(sesionTypeByTask['s:sp-1']).toBe('phyto')
+    expect(hijoIdByTask['s:sm-1']).toBe('hijo-1')
+    expect(sesionTypeByTask['s:sm-1']).toBe('soil_map')
     // Master y Hijo no deben estar en estos mapas
     expect(hijoIdByTask['m:master-1']).toBeUndefined()
     expect(hijoIdByTask['h:hijo-1']).toBeUndefined()

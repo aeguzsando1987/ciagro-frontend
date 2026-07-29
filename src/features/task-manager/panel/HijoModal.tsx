@@ -121,6 +121,27 @@ const EDIT_FIELDS = [
 type SessionRef =
   | { sesionId: string; sesionType: 'aspersion' }
   | { sesionId: string; sesionType: 'phyto' }
+  | { sesionId: string; sesionType: 'soil_map' }
+
+type HijoSession =
+  | {
+      id: string
+      kind: 'aspersion'
+      import_status: string
+      aspersion_date: string
+    }
+  | {
+      id: string
+      kind: 'phyto'
+      import_status: string
+      session_date: string
+    }
+  | {
+      id: string
+      kind: 'soil_map'
+      import_status: string
+      mapping_date: string
+    }
 
 interface HijoModalProps {
   hijo: ProgramaTree
@@ -250,12 +271,21 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
     })
   }
 
-  const allSessions = [
+  const allSessions: HijoSession[] = [
     ...hijo.aspersion_sessions.map((s) => ({ ...s, kind: 'aspersion' as const })),
     ...hijo.phyto_monitoring_headers.map((s) => ({ ...s, kind: 'phyto' as const })),
+    ...hijo.soil_map_headers.map((s) => ({ ...s, kind: 'soil_map' as const })),
   ].sort((a, b) => {
-    const dateA = 'aspersion_date' in a ? a.aspersion_date : a.session_date
-    const dateB = 'aspersion_date' in b ? b.aspersion_date : b.session_date
+    const dateA = a.kind === 'aspersion'
+      ? a.aspersion_date
+      : a.kind === 'phyto'
+        ? a.session_date
+        : a.mapping_date
+    const dateB = b.kind === 'aspersion'
+      ? b.aspersion_date
+      : b.kind === 'phyto'
+        ? b.session_date
+        : b.mapping_date
     return dateA.localeCompare(dateB)
   })
 
@@ -530,14 +560,17 @@ function ViewMode({
   cropText: string | null
   actualStart: string | null
   actualFinish: string | null
-  allSessions: Array<{ id: string; kind: 'aspersion' | 'phyto'; import_status: string } & Record<string, unknown>>
+  allSessions: HijoSession[]
   isManager: boolean
   canCreateSession: boolean
   isMutating: boolean
   canEdit: boolean
   onEdit: () => void
   onStatusChange: (s: ProgramaStatus) => void
-  onNavigateSesion: (ref: { sesionId: string; sesionType: 'aspersion' | 'phyto' }) => void
+  onNavigateSesion: (ref: {
+    sesionId: string
+    sesionType: 'aspersion' | 'phyto' | 'soil_map'
+  }) => void
   onCreateSesion: () => void
 }) {
   return (
@@ -611,8 +644,15 @@ function ViewMode({
             <ul className="divide-y rounded border">
               {allSessions.map((s) => {
                 const fecha = s.kind === 'aspersion'
-                  ? (s as unknown as { aspersion_date: string }).aspersion_date
-                  : (s as unknown as { session_date: string }).session_date
+                  ? s.aspersion_date
+                  : s.kind === 'phyto'
+                    ? s.session_date
+                    : s.mapping_date
+                const label = s.kind === 'aspersion'
+                  ? '💧 Aspersión'
+                  : s.kind === 'phyto'
+                    ? '🌿 Fitosanitario'
+                    : '🧪 Mapeo de suelo'
                 return (
                   <li key={`${s.kind}-${s.id}`}>
                     <button
@@ -621,7 +661,7 @@ function ViewMode({
                       onClick={() => onNavigateSesion({ sesionId: s.id, sesionType: s.kind })}
                     >
                       <span className="text-sm">
-                        {s.kind === 'aspersion' ? '💧 Aspersión' : '🌿 Fitosanitario'} — {fecha}
+                        {label} — {fecha}
                       </span>
                       <Badge className="text-xs">
                         {IMPORT_STATUS_LABELS[s.import_status] ?? s.import_status}

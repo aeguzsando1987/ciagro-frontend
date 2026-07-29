@@ -3,12 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -23,13 +18,17 @@ import { Label } from '@/components/ui/label'
 import { applyDrfErrors } from '../hooks/useDrfErrorMap'
 import { useAspersionSessionDetail } from '../hooks/useAspersionSessionDetail'
 import { usePhytoSessionDetail } from '../hooks/usePhytoSessionDetail'
+import { useSoilMapSessionDetail } from '../hooks/useSoilMapSessionDetail'
 import { useUpdateAspersionSession } from '../hooks/useUpdateAspersionSession'
 import { useUpdatePhytoSession } from '../hooks/useUpdatePhytoSession'
+import { useUpdateSoilMapSession } from '../hooks/useUpdateSoilMapSession'
 import { useEvaluations } from '../hooks/useEvaluations'
 import { useDatacentralUsers } from '../hooks/useDatacentralUsers'
 import type { MasterProgramTree } from '@/features/task-manager/types'
 import { PlotMiniMap } from './PlotMiniMap'
 import { AspersionImportDialog } from '../components/AspersionImportDialog'
+import { SoilMapImportDialog } from '../components/SoilMapImportDialog'
+import { SoilMapMapModal } from '../components/SoilMapMapModal'
 import { AspersionImportSummary } from '../components/AspersionImportSummary'
 import { PhytoStatsCard } from '../components/PhytoStatsCard'
 import { PhytoMapModal } from '../components/PhytoMapModal'
@@ -95,20 +94,29 @@ const aspersionEditSchema = z.object({
   assigned_to_id: z.string().uuid().optional().or(z.literal('')),
 })
 
-const phytoEditSchema = z
-  .object({
-    estimated_start_date: z.string().min(1, 'Requerido'),
-    estimated_end_date: z.string().optional().or(z.literal('')),
-    started_at: z.string().optional().or(z.literal('')),
-    finished_at: z.string().optional().or(z.literal('')),
-    strict_mode: z.boolean(),
-    radius_tolerance: z.coerce.number().int().min(1, 'Mínimo 1 m'),
-    assigned_to_id: z.string().uuid().optional().or(z.literal('')),
-    additional_notes: z.string().optional().or(z.literal('')),
-  })
+const phytoEditSchema = z.object({
+  estimated_start_date: z.string().min(1, 'Requerido'),
+  estimated_end_date: z.string().optional().or(z.literal('')),
+  started_at: z.string().optional().or(z.literal('')),
+  finished_at: z.string().optional().or(z.literal('')),
+  strict_mode: z.boolean(),
+  radius_tolerance: z.coerce.number().int().min(1, 'Mínimo 1 m'),
+  assigned_to_id: z.string().uuid().optional().or(z.literal('')),
+  additional_notes: z.string().optional().or(z.literal('')),
+})
+
+const soilMapEditSchema = z.object({
+  mapping_date: z.string().min(1, 'Requerido'),
+  real_init_date: z.string().optional().or(z.literal('')),
+  real_finish_date: z.string().optional().or(z.literal('')),
+  est_init_date: z.string().optional().or(z.literal('')),
+  est_finish_date: z.string().optional().or(z.literal('')),
+  assigned_to_id: z.string().uuid().optional().or(z.literal('')),
+})
 
 type AspersionEditValues = z.infer<typeof aspersionEditSchema>
 type PhytoEditValues = z.infer<typeof phytoEditSchema>
+type SoilMapEditValues = z.infer<typeof soilMapEditSchema>
 
 /* ─── Helpers ─────────────────────────────────────────────────────── */
 
@@ -128,7 +136,7 @@ function fromDatetimeLocal(value: string | undefined): string | undefined {
 
 interface SesionModalProps {
   sesionId: string
-  sesionType: 'aspersion' | 'phyto'
+  sesionType: 'aspersion' | 'phyto' | 'soil_map'
   hijoId: string
   masterId: string
   datacentralId: string
@@ -157,28 +165,40 @@ export function SesionModal({
 
   const aspersionQuery = useAspersionSessionDetail(sesionType === 'aspersion' ? sesionId : null)
   const phytoQuery = usePhytoSessionDetail(sesionType === 'phyto' ? sesionId : null)
+  const soilMapQuery = useSoilMapSessionDetail(sesionType === 'soil_map' ? sesionId : null)
 
   const aspersionMutation = useUpdateAspersionSession(sesionId, masterId)
   const phytoMutation = useUpdatePhytoSession(sesionId, masterId)
+  const soilMapMutation = useUpdateSoilMapSession(sesionId, masterId)
 
-  const isLoading = sesionType === 'aspersion' ? aspersionQuery.isLoading : phytoQuery.isLoading
+  const isLoading =
+    sesionType === 'aspersion'
+      ? aspersionQuery.isLoading
+      : sesionType === 'phyto'
+        ? phytoQuery.isLoading
+        : soilMapQuery.isLoading
   const aspersionDetail = aspersionQuery.data
   const phytoDetail = phytoQuery.data
+  const soilMapDetail = soilMapQuery.data
 
   const plotId =
     sesionType === 'aspersion'
       ? (aspersionDetail?.plot ?? hijo?.plot ?? null)
-      : (phytoDetail?.plot ?? hijo?.plot ?? null)
+      : sesionType === 'phyto'
+        ? (phytoDetail?.plot ?? hijo?.plot ?? null)
+        : (soilMapDetail?.plot ?? hijo?.plot ?? null)
 
   const currentStatus =
     sesionType === 'aspersion'
       ? (aspersionDetail?.status ?? 'pending')
-      : (phytoDetail?.status ?? 'pending')
+      : sesionType === 'phyto'
+        ? (phytoDetail?.status ?? 'pending')
+        : (soilMapDetail?.status ?? 'pending')
 
   const transitions =
-    sesionType === 'aspersion'
-      ? ASPERSION_TRANSITIONS[currentStatus] ?? []
-      : PHYTO_TRANSITIONS[currentStatus] ?? []
+    sesionType === 'phyto'
+      ? (PHYTO_TRANSITIONS[currentStatus] ?? [])
+      : (ASPERSION_TRANSITIONS[currentStatus] ?? [])
 
   function handleStatusChange(newStatus: string) {
     setStatusError(null)
@@ -192,8 +212,13 @@ export function SesionModal({
         { status: newStatus as never },
         { onError: (e: unknown) => setStatusError(String(e)) }
       )
-    } else {
+    } else if (sesionType === 'phyto') {
       phytoMutation.mutate(
+        { status: newStatus as never },
+        { onError: (e: unknown) => setStatusError(String(e)) }
+      )
+    } else {
+      soilMapMutation.mutate(
         { status: newStatus as never },
         { onError: (e: unknown) => setStatusError(String(e)) }
       )
@@ -214,16 +239,24 @@ export function SesionModal({
   }
 
   const isMutatingStatus =
-    (aspersionMutation.isPending || phytoMutation.isPending) && !isEditing
+    (aspersionMutation.isPending || phytoMutation.isPending || soilMapMutation.isPending) &&
+    !isEditing
 
   const title = sesionType === 'aspersion' ? 'Sesión de Aspersión' : 'Sesión Fitosanitaria'
   const fecha =
     sesionType === 'aspersion'
       ? aspersionDetail?.aspersion_date
-      : phytoDetail?.estimated_start_date
+      : sesionType === 'phyto'
+        ? phytoDetail?.estimated_start_date
+        : soilMapDetail?.mapping_date
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+    >
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -234,10 +267,8 @@ export function SesionModal({
             >
               ← Volver
             </button>
-            {title}
-            {fecha && (
-              <span className="text-sm font-normal text-muted-foreground">— {fecha}</span>
-            )}
+            {sesionType === 'soil_map' ? 'Sesión de Mapeo de Suelo' : title}
+            {fecha && <span className="text-sm font-normal text-muted-foreground">— {fecha}</span>}
           </DialogTitle>
         </DialogHeader>
 
@@ -256,7 +287,10 @@ export function SesionModal({
             cancelNotes={cancelNotes}
             onCancelNotesChange={setCancelNotes}
             onCancelConfirm={handleCancelConfirm}
-            onCancelDismiss={() => { setCancelPromptOpen(false); setCancelNotes('') }}
+            onCancelDismiss={() => {
+              setCancelPromptOpen(false)
+              setCancelNotes('')
+            }}
             statusError={statusError}
             onStatusChange={handleStatusChange}
             onEdit={() => setIsEditing(true)}
@@ -273,7 +307,22 @@ export function SesionModal({
             cancelNotes={cancelNotes}
             onCancelNotesChange={setCancelNotes}
             onCancelConfirm={handleCancelConfirm}
-            onCancelDismiss={() => { setCancelPromptOpen(false); setCancelNotes('') }}
+            onCancelDismiss={() => {
+              setCancelPromptOpen(false)
+              setCancelNotes('')
+            }}
+            statusError={statusError}
+            onStatusChange={handleStatusChange}
+            onEdit={() => setIsEditing(true)}
+          />
+        )}
+
+        {!isLoading && !isEditing && sesionType === 'soil_map' && soilMapDetail && (
+          <SoilMapView
+            detail={soilMapDetail}
+            plotId={plotId}
+            transitions={transitions}
+            isMutatingStatus={isMutatingStatus}
             statusError={statusError}
             onStatusChange={handleStatusChange}
             onEdit={() => setIsEditing(true)}
@@ -294,6 +343,17 @@ export function SesionModal({
         {!isLoading && isEditing && sesionType === 'phyto' && phytoDetail && (
           <PhytoEditForm
             detail={phytoDetail}
+            sesionId={sesionId}
+            masterId={masterId}
+            datacentralId={datacentralId}
+            onCancel={() => setIsEditing(false)}
+            onSaved={() => setIsEditing(false)}
+          />
+        )}
+
+        {!isLoading && isEditing && sesionType === 'soil_map' && soilMapDetail && (
+          <SoilMapEditForm
+            detail={soilMapDetail}
             sesionId={sesionId}
             masterId={masterId}
             datacentralId={datacentralId}
@@ -358,7 +418,7 @@ function StatusBar({
       </div>
 
       {cancelPromptOpen && (
-        <div className="rounded border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+        <div className="space-y-2 rounded border border-destructive/30 bg-destructive/5 p-3">
           <p className="text-xs font-medium text-destructive">
             Cancelar sesión — indica la razón (requerido)
           </p>
@@ -385,9 +445,7 @@ function StatusBar({
         </div>
       )}
 
-      {statusError && (
-        <p className="text-xs text-destructive">{statusError}</p>
-      )}
+      {statusError && <p className="text-xs text-destructive">{statusError}</p>}
     </div>
   )
 }
@@ -508,11 +566,7 @@ function AspersionView({
             </p>
             {isSuperAdmin && (
               <div className="mt-3 border-t border-dashed pt-3">
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setFlushOpen(true)}
-                >
+                <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
                   🗑 Eliminar los datos de esta sesión
                 </Button>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -533,19 +587,18 @@ function AspersionView({
           />
 
           {isSuperAdmin && (
-            <FlushAspersionDialog open={flushOpen} onClose={() => setFlushOpen(false)} sessionId={detail.id} />
+            <FlushAspersionDialog
+              open={flushOpen}
+              onClose={() => setFlushOpen(false)}
+              sessionId={detail.id}
+            />
           )}
         </div>
 
         <div className="w-72 shrink-0 space-y-2">
           <PlotMiniMap plotId={plotId} />
           {canViewMap && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full"
-              onClick={() => setMapOpen(true)}
-            >
+            <Button size="sm" variant="outline" className="w-full" onClick={() => setMapOpen(true)}>
               📍 Abrir visor de datos de aspersión
             </Button>
           )}
@@ -591,6 +644,157 @@ function AspersionView({
   )
 }
 
+/* ─── Soil map view ───────────────────────────────────────────────── */
+
+interface SoilMapViewProps {
+  detail: import('../hooks/useSoilMapSessionDetail').SoilMapSessionDetail
+  plotId: string | null
+  transitions: string[]
+  isMutatingStatus: boolean
+  statusError: string | null
+  onStatusChange: (s: string) => void
+  onEdit: () => void
+}
+
+function canViewSoilMap(
+  roleLevel: number,
+  importStatus: string,
+  pointsCount: string | number | null | undefined
+) {
+  return (
+    roleLevel >= ROLE_LEVELS.SUPERVISOR &&
+    importStatus === 'done' &&
+    parseInt(String(pointsCount ?? '0'), 10) > 0
+  )
+}
+
+export function SoilMapView({
+  detail,
+  plotId,
+  transitions,
+  isMutatingStatus,
+  statusError,
+  onStatusChange,
+  onEdit,
+}: SoilMapViewProps) {
+  const [importOpen, setImportOpen] = useState(false)
+  const [mapOpen, setMapOpen] = useState(false)
+  const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
+  const canViewMap = canViewSoilMap(roleLevel, detail.import_status, detail.points_count)
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-4">
+        <div className="min-w-0 flex-1 space-y-4">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <div>
+              <dt className="text-xs text-muted-foreground">Fecha del mapeo</dt>
+              <dd>{detail.mapping_date}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Responsable</dt>
+              <dd>
+                {typeof detail.assigned_to === 'object' && detail.assigned_to !== null
+                  ? (detail.assigned_to.username ?? '—')
+                  : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Inicio estimado</dt>
+              <dd>{detail.est_init_date ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Fin estimado</dt>
+              <dd>{detail.est_finish_date ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Inicio real</dt>
+              <dd>{detail.real_init_date ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Fin real</dt>
+              <dd>{detail.real_finish_date ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Importación</dt>
+              <dd>
+                <Badge variant="outline">
+                  {IMPORT_STATUS_LABELS[detail.import_status] ?? detail.import_status}
+                </Badge>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Puntos importados</dt>
+              <dd>{detail.points_count ?? '0'}</dd>
+            </div>
+          </dl>
+
+          <StatusBar
+            currentStatus={detail.status ?? 'pending'}
+            transitions={transitions}
+            isMutating={isMutatingStatus}
+            cancelPromptOpen={false}
+            cancelNotes=""
+            onCancelNotesChange={() => undefined}
+            onCancelConfirm={() => undefined}
+            onCancelDismiss={() => undefined}
+            statusError={statusError}
+            onStatusChange={onStatusChange}
+          />
+
+          <div className="rounded border border-dashed p-3">
+            <p className="mb-1 text-sm font-medium">Importar muestras georreferenciadas</p>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Carga un archivo CSV con las coordenadas y variables de análisis de suelo.
+            </p>
+            <Button size="sm" onClick={() => setImportOpen(true)}>
+              {detail.import_status === 'done' ? 'Reimportar datos' : 'Importar datos'}
+            </Button>
+          </div>
+
+          <SoilMapImportDialog
+            headerId={detail.id}
+            importStatus={detail.import_status}
+            importErrors={detail.import_errors}
+            open={importOpen}
+            onOpenChange={setImportOpen}
+          />
+        </div>
+
+        <div className="w-72 shrink-0 space-y-2">
+          <PlotMiniMap plotId={plotId} />
+          {canViewMap && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={() => setMapOpen(true)}
+              data-testid="soil-map-ready"
+            >
+              Abrir visor de datos de suelo
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={onEdit}>
+          Editar
+        </Button>
+      </div>
+
+      {canViewMap && (
+        <SoilMapMapModal
+          open={mapOpen}
+          onClose={() => setMapOpen(false)}
+          sessionId={detail.id}
+          plotId={plotId}
+        />
+      )}
+    </div>
+  )
+}
+
 /* ─── Phyto view ──────────────────────────────────────────────────── */
 
 interface PhytoViewProps {
@@ -625,8 +829,7 @@ function PhytoView({
   const [mapOpen, setMapOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const { data: stats } = usePhytoSessionStats(detail.id)
-  const canViewMap =
-    roleLevel >= ROLE_LEVELS.SUPERVISOR && (stats?.checkpoints_count ?? 0) > 0
+  const canViewMap = roleLevel >= ROLE_LEVELS.SUPERVISOR && (stats?.checkpoints_count ?? 0) > 0
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
@@ -646,7 +849,9 @@ function PhytoView({
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">Fin en campo</dt>
-              <dd>{detail.finished_at ? detail.finished_at.replace('T', ' ').slice(0, 16) : '—'}</dd>
+              <dd>
+                {detail.finished_at ? detail.finished_at.replace('T', ' ').slice(0, 16) : '—'}
+              </dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">Modo estricto</dt>
@@ -717,8 +922,13 @@ function PhytoView({
 /* ─── Aspersión edit form ─────────────────────────────────────────── */
 
 const ASPERSION_EDIT_FIELDS = [
-  'aspersion_date', 'act_start_date', 'act_finish_date',
-  'est_start_date', 'est_finish_date', 'evaluation_id', 'assigned_to_id',
+  'aspersion_date',
+  'act_start_date',
+  'act_finish_date',
+  'est_start_date',
+  'est_finish_date',
+  'evaluation_id',
+  'assigned_to_id',
 ] as const
 
 function AspersionEditForm({
@@ -741,25 +951,34 @@ function AspersionEditForm({
   const { data: dcUsers = [] } = useDatacentralUsers(datacentralId)
   const mutation = useUpdateAspersionSession(sesionId, masterId)
 
-  const { register, handleSubmit, control, setError, formState: { errors, isSubmitting } } =
-    useForm<AspersionEditValues>({
-      resolver: zodResolver(aspersionEditSchema),
-      defaultValues: {
-        aspersion_date: detail.aspersion_date ?? '',
-        act_start_date: detail.act_start_date ?? '',
-        act_finish_date: detail.act_finish_date ?? '',
-        est_start_date: detail.est_start_date ?? '',
-        est_finish_date: detail.est_finish_date ?? '',
-        evaluation_id: (detail.evaluation as string | null) ?? '',
-        assigned_to_id: '',
-      },
-    })
+  const {
+    register,
+    handleSubmit,
+    control,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<AspersionEditValues>({
+    resolver: zodResolver(aspersionEditSchema),
+    defaultValues: {
+      aspersion_date: detail.aspersion_date ?? '',
+      act_start_date: detail.act_start_date ?? '',
+      act_finish_date: detail.act_finish_date ?? '',
+      est_start_date: detail.est_start_date ?? '',
+      est_finish_date: detail.est_finish_date ?? '',
+      evaluation_id: (detail.evaluation as string | null) ?? '',
+      assigned_to_id: '',
+    },
+  })
 
   function onSubmit(values: AspersionEditValues) {
     const patch = {
       aspersion_date: values.aspersion_date,
-      ...(values.act_start_date ? { act_start_date: values.act_start_date } : { act_start_date: null }),
-      ...(values.act_finish_date ? { act_finish_date: values.act_finish_date } : { act_finish_date: null }),
+      ...(values.act_start_date
+        ? { act_start_date: values.act_start_date }
+        : { act_start_date: null }),
+      ...(values.act_finish_date
+        ? { act_finish_date: values.act_finish_date }
+        : { act_finish_date: null }),
       ...(values.est_start_date ? { est_start_date: values.est_start_date } : {}),
       ...(values.est_finish_date ? { est_finish_date: values.est_finish_date } : {}),
       ...(values.evaluation_id ? { evaluation_id: values.evaluation_id } : {}),
@@ -832,14 +1051,19 @@ function AspersionEditForm({
                 name="evaluation_id"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)} value={field.value || '__none__'}>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)}
+                    value={field.value || '__none__'}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Sin evaluación" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">Sin evaluación</SelectItem>
                       {evaluations.map((e) => (
-                        <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -852,14 +1076,19 @@ function AspersionEditForm({
                 name="assigned_to_id"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)} value={field.value || '__none__'}>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)}
+                    value={field.value || '__none__'}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Sin cambio" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">Sin cambio</SelectItem>
                       {dcUsers.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.full_name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -867,7 +1096,8 @@ function AspersionEditForm({
               />
               {dcUsers.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  No hay técnicos asignados a esta CIA. Asigna usuarios en Administración para poder designar un responsable.
+                  No hay técnicos asignados a esta CIA. Asigna usuarios en Administración para poder
+                  designar un responsable.
                 </p>
               )}
             </div>
@@ -886,7 +1116,173 @@ function AspersionEditForm({
           Cancelar
         </Button>
         <Button type="submit" disabled={isSubmitting || mutation.isPending}>
-          {(isSubmitting || mutation.isPending) ? 'Guardando...' : 'Guardar'}
+          {isSubmitting || mutation.isPending ? 'Guardando...' : 'Guardar'}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+/* ─── Soil map edit form ──────────────────────────────────────────── */
+
+const SOIL_MAP_EDIT_FIELDS = [
+  'mapping_date',
+  'real_init_date',
+  'real_finish_date',
+  'est_init_date',
+  'est_finish_date',
+  'assigned_to_id',
+] as const
+
+function SoilMapEditForm({
+  detail,
+  sesionId,
+  masterId,
+  datacentralId,
+  onCancel,
+  onSaved,
+}: {
+  detail: import('../hooks/useSoilMapSessionDetail').SoilMapSessionDetail
+  sesionId: string
+  masterId: string
+  datacentralId: string
+  onCancel: () => void
+  onSaved: () => void
+}) {
+  const [showMeta, setShowMeta] = useState(false)
+  const { data: dcUsers = [] } = useDatacentralUsers(datacentralId)
+  const mutation = useUpdateSoilMapSession(sesionId, masterId)
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<SoilMapEditValues>({
+    resolver: zodResolver(soilMapEditSchema),
+    defaultValues: {
+      mapping_date: detail.mapping_date ?? '',
+      real_init_date: detail.real_init_date ?? '',
+      real_finish_date: detail.real_finish_date ?? '',
+      est_init_date: detail.est_init_date ?? '',
+      est_finish_date: detail.est_finish_date ?? '',
+      assigned_to_id: '',
+    },
+  })
+
+  function onSubmit(values: SoilMapEditValues) {
+    const patch = {
+      mapping_date: values.mapping_date,
+      real_init_date: values.real_init_date || null,
+      real_finish_date: values.real_finish_date || null,
+      est_init_date: values.est_init_date || null,
+      est_finish_date: values.est_finish_date || null,
+      ...(values.assigned_to_id ? { assigned_to_id: values.assigned_to_id } : {}),
+    }
+
+    mutation.mutate(patch, {
+      onSuccess: () => onSaved(),
+      onError: (error: unknown) => {
+        if (typeof error === 'object' && error !== null) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          applyDrfErrors(error as any, setError, SOIL_MAP_EDIT_FIELDS)
+        }
+      },
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div>
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Fechas reales
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="sme-real-start">Inicio real</Label>
+            <Input id="sme-real-start" type="date" {...register('real_init_date')} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="sme-real-end">Fin real</Label>
+            <Input id="sme-real-end" type="date" {...register('real_finish_date')} />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <button
+          type="button"
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          onClick={() => setShowMeta((value) => !value)}
+        >
+          {showMeta ? '▾' : '▸'} Editar metadatos
+        </button>
+        {showMeta && (
+          <div className="mt-2 space-y-3 rounded border border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-950">
+            <p className="text-xs text-amber-800 dark:text-amber-200">
+              Cambiar estos campos puede crear inconsistencia con lo planificado originalmente.
+            </p>
+            <div className="space-y-1">
+              <Label htmlFor="sme-date">Fecha del mapeo *</Label>
+              <Input id="sme-date" type="date" {...register('mapping_date')} />
+              {errors.mapping_date && (
+                <p className="text-xs text-destructive">{errors.mapping_date.message}</p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="sme-est-start">Inicio estimado</Label>
+                <Input id="sme-est-start" type="date" {...register('est_init_date')} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="sme-est-end">Fin estimado</Label>
+                <Input id="sme-est-end" type="date" {...register('est_finish_date')} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Responsable</Label>
+              <Controller
+                name="assigned_to_id"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    onValueChange={(value) =>
+                      field.onChange(value === '__none__' ? undefined : value)
+                    }
+                    value={field.value || '__none__'}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sin cambio" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Sin cambio</SelectItem>
+                      {dcUsers.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {errors.root && (
+        <p className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {errors.root.message}
+        </p>
+      )}
+
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={isSubmitting || mutation.isPending}>
+          {isSubmitting || mutation.isPending ? 'Guardando...' : 'Guardar'}
         </Button>
       </div>
     </form>
@@ -896,8 +1292,14 @@ function AspersionEditForm({
 /* ─── Phyto edit form ─────────────────────────────────────────────── */
 
 const PHYTO_EDIT_FIELDS = [
-  'estimated_start_date', 'estimated_end_date', 'started_at', 'finished_at',
-  'strict_mode', 'radius_tolerance', 'assigned_to_id', 'additional_notes',
+  'estimated_start_date',
+  'estimated_end_date',
+  'started_at',
+  'finished_at',
+  'strict_mode',
+  'radius_tolerance',
+  'assigned_to_id',
+  'additional_notes',
 ] as const
 
 function PhytoEditForm({
@@ -919,20 +1321,25 @@ function PhytoEditForm({
   const { data: dcUsers = [] } = useDatacentralUsers(datacentralId)
   const mutation = useUpdatePhytoSession(sesionId, masterId)
 
-  const { register, handleSubmit, control, setError, formState: { errors, isSubmitting } } =
-    useForm<PhytoEditValues>({
-      resolver: zodResolver(phytoEditSchema),
-      defaultValues: {
-        estimated_start_date: detail.estimated_start_date ?? '',
-        estimated_end_date: detail.estimated_end_date ?? '',
-        started_at: toDatetimeLocal(detail.started_at),
-        finished_at: toDatetimeLocal(detail.finished_at),
-        strict_mode: detail.strict_mode ?? true,
-        radius_tolerance: detail.radius_tolerance ?? 5,
-        assigned_to_id: '',
-        additional_notes: detail.additional_notes ?? '',
-      },
-    })
+  const {
+    register,
+    handleSubmit,
+    control,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<PhytoEditValues>({
+    resolver: zodResolver(phytoEditSchema),
+    defaultValues: {
+      estimated_start_date: detail.estimated_start_date ?? '',
+      estimated_end_date: detail.estimated_end_date ?? '',
+      started_at: toDatetimeLocal(detail.started_at),
+      finished_at: toDatetimeLocal(detail.finished_at),
+      strict_mode: detail.strict_mode ?? true,
+      radius_tolerance: detail.radius_tolerance ?? 5,
+      assigned_to_id: '',
+      additional_notes: detail.additional_notes ?? '',
+    },
+  })
 
   function onSubmit(values: PhytoEditValues) {
     const patch = {
@@ -940,8 +1347,12 @@ function PhytoEditForm({
       strict_mode: values.strict_mode,
       radius_tolerance: values.radius_tolerance,
       ...(values.estimated_end_date ? { estimated_end_date: values.estimated_end_date } : {}),
-      ...(values.started_at ? { started_at: fromDatetimeLocal(values.started_at) } : { started_at: null }),
-      ...(values.finished_at ? { finished_at: fromDatetimeLocal(values.finished_at) } : { finished_at: null }),
+      ...(values.started_at
+        ? { started_at: fromDatetimeLocal(values.started_at) }
+        : { started_at: null }),
+      ...(values.finished_at
+        ? { finished_at: fromDatetimeLocal(values.finished_at) }
+        : { finished_at: null }),
       ...(values.assigned_to_id ? { assigned_to_id: values.assigned_to_id } : {}),
       ...(values.additional_notes ? { additional_notes: values.additional_notes } : {}),
     }
@@ -1023,14 +1434,19 @@ function PhytoEditForm({
                 name="assigned_to_id"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)} value={field.value || '__none__'}>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)}
+                    value={field.value || '__none__'}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Sin cambio" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">Sin cambio</SelectItem>
                       {dcUsers.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.full_name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1038,7 +1454,8 @@ function PhytoEditForm({
               />
               {dcUsers.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  No hay técnicos asignados a esta CIA. Asigna usuarios en Administración para poder designar un responsable.
+                  No hay técnicos asignados a esta CIA. Asigna usuarios en Administración para poder
+                  designar un responsable.
                 </p>
               )}
             </div>
@@ -1069,7 +1486,7 @@ function PhytoEditForm({
           Cancelar
         </Button>
         <Button type="submit" disabled={isSubmitting || mutation.isPending}>
-          {(isSubmitting || mutation.isPending) ? 'Guardando...' : 'Guardar'}
+          {isSubmitting || mutation.isPending ? 'Guardando...' : 'Guardar'}
         </Button>
       </div>
     </form>

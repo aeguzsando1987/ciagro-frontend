@@ -27,7 +27,7 @@ import type { MasterProgram, ProgramaStatus } from '@/features/task-manager/type
 type ModalFrame =
   | { type: 'master'; masterId: string }
   | { type: 'hijo'; hijoId: string; masterId: string }
-  | { type: 'sesion'; sesionId: string; sesionType: 'aspersion' | 'phyto'; hijoId: string; masterId: string }
+  | { type: 'sesion'; sesionId: string; sesionType: 'aspersion' | 'phyto' | 'soil_map'; hijoId: string; masterId: string }
 
 /**
  * Search params del Gantt (paso 2.5).
@@ -46,7 +46,7 @@ const taskManagerSearchSchema = z.object({
   openMaster: z.string().optional().catch(undefined),
   openHijo: z.string().optional().catch(undefined),
   openSesion: z.string().optional().catch(undefined),
-  openSesionType: z.enum(['aspersion', 'phyto']).optional().catch(undefined),
+  openSesionType: z.enum(['aspersion', 'phyto', 'soil_map']).optional().catch(undefined),
 })
 
 /**
@@ -137,7 +137,7 @@ function TaskManagerPage() {
     id: string,
     level: 'master' | 'hijo' | 'sesion',
     masterId: string,
-    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' } | null,
+    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' | 'soil_map' } | null,
   ) {
     if (level === 'master') {
       pushModal({ type: 'master', masterId: id })
@@ -302,7 +302,7 @@ function HijoModalWrapper({
   datacentralId: string
   onClose: () => void
   onBack: () => void
-  onNavigateSesion: (ref: { sesionId: string; sesionType: 'aspersion' | 'phyto' }) => void
+  onNavigateSesion: (ref: { sesionId: string; sesionType: 'aspersion' | 'phyto' | 'soil_map' }) => void
 }) {
   const { data: tree, isLoading } = useMasterTree(masterId, true)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

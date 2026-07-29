@@ -10932,6 +10932,12 @@ export interface components {
             Zn_disp?: number | null;
             /** Format: double */
             N?: number | null;
+            /** Format: double */
+            lim_inf_CC?: number | null;
+            /** Format: double */
+            Cap_efi_fert?: number | null;
+            /** Format: double */
+            C_de_MO?: number | null;
             classtexture?: string | null;
             compfisic?: string | null;
             compquim?: string | null;

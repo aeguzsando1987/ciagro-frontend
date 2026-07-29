@@ -14,17 +14,25 @@ import { useRanches, ranchesQueryOptions } from '@/features/admin/hooks/useRanch
 import { usePlots, usePlotDetail, plotsQueryOptions } from '@/features/admin/hooks/usePlots'
 import { useAspersionSessionHeaders } from '../hooks/useAspersionSessionHeaders'
 import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
+import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
 import {
   type StatEntry,
-  sumArea, parseArea,
-  datacentralStats, producerStats, ranchStats, plotStats,
+  sumArea,
+  parseArea,
+  datacentralStats,
+  producerStats,
+  ranchStats,
+  plotStats,
 } from '../lib/visorStats'
 import { RanchPlotsMap } from './RanchPlotsMap'
 import { ProducerRanchesMap } from './ProducerRanchesMap'
 import { SessionsPanel } from './SessionsPanel'
 import { PhytoSessionsPanel } from './PhytoSessionsPanel'
+import { SoilMapSessionsPanel } from './SoilMapSessionsPanel'
 import { SessionInfoCard } from './SessionInfoCard'
+import { SoilMapSessionInfoCard } from './SoilMapSessionInfoCard'
 import { AspersionMap } from './AspersionMap'
+import { SoilMap as SoilMapMap } from './SoilMap'
 import { PhytoMap } from '@/features/task-manager/components/PhytoMap'
 import { PhytoStatsCard } from '@/features/task-manager/components/PhytoStatsCard'
 import { SessionReportToggle } from '@/features/session-report/components/SessionReportToggle'
@@ -40,10 +48,12 @@ const LEVEL_TITLE: Record<VisorSelection['level'], string> = {
   session: 'Sesión',
 }
 
-/** Etiqueta del nivel; a nivel sesión distingue el tipo (aspersión / fitosanitaria). */
+/** Etiqueta del nivel; a nivel sesión distingue el tipo de monitoreo. */
 function levelTitle(selection: VisorSelection): string {
   if (selection.level === 'session') {
-    return selection.session?.kind === 'phyto' ? 'Sesión fitosanitaria' : 'Sesión de aspersión'
+    if (selection.session?.kind === 'phyto') return 'Sesión fitosanitaria'
+    if (selection.session?.kind === 'soil_map') return 'Sesión de mapeo de suelo'
+    return 'Sesión de aspersión'
   }
   return LEVEL_TITLE[selection.level]
 }
@@ -74,7 +84,9 @@ function StatGrid({ stats, loading }: { stats: StatEntry[]; loading?: boolean })
   }
   return (
     <div className="flex flex-wrap gap-2">
-      {stats.map((s) => <StatCard key={s.label} {...s} />)}
+      {stats.map((s) => (
+        <StatCard key={s.label} {...s} />
+      ))}
     </div>
   )
 }
@@ -86,7 +98,9 @@ function DataCentralStats({ dcId }: { dcId: string }) {
   const producerIds = producers.data?.map((p) => p.id) ?? []
 
   const ranchQueries = useQueries({ queries: producerIds.map((id) => ranchesQueryOptions(id)) })
-  const plotQueries = useQueries({ queries: producerIds.map((id) => plotsQueryOptions({ producerId: id })) })
+  const plotQueries = useQueries({
+    queries: producerIds.map((id) => plotsQueryOptions({ producerId: id })),
+  })
 
   const loading =
     producers.isLoading ||
@@ -100,7 +114,11 @@ function DataCentralStats({ dcId }: { dcId: string }) {
 }
 
 /** Vista de productor: tarjetas de stats + mapa con un pin por rancho. */
-function ProducerView({ selection, onSelect, statsHidden }: DashboardProps & { statsHidden: boolean }) {
+function ProducerView({
+  selection,
+  onSelect,
+  statsHidden,
+}: DashboardProps & { statsHidden: boolean }) {
   const producerId = selection.producer!.id
   const ranches = useRanches(producerId)
   const plots = usePlots({ producerId })
@@ -110,7 +128,10 @@ function ProducerView({ selection, onSelect, statsHidden }: DashboardProps & { s
   return (
     <div className="flex h-full flex-col gap-2.5">
       {!statsHidden && (
-        <StatGrid loading={loading} stats={producerStats(ranches.data?.length ?? 0, plots.data?.length ?? 0, areaHa)} />
+        <StatGrid
+          loading={loading}
+          stats={producerStats(ranches.data?.length ?? 0, plots.data?.length ?? 0, areaHa)}
+        />
       )}
       <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-lg border">
         <ProducerRanchesMap
@@ -125,7 +146,10 @@ function ProducerView({ selection, onSelect, statsHidden }: DashboardProps & { s
 }
 
 /** Selección de rancho a partir de la ruta del productor (clic en un pin). */
-function selectRanchFromMap(selection: VisorSelection, ranch: { id: string; name: string }): VisorSelection {
+function selectRanchFromMap(
+  selection: VisorSelection,
+  ranch: { id: string; name: string }
+): VisorSelection {
   return {
     org: selection.org,
     datacentral: selection.datacentral,
@@ -138,7 +162,10 @@ function selectRanchFromMap(selection: VisorSelection, ranch: { id: string; name
 // ─── Vistas con mapa (rancho / parcela / sesión) ──────────────────────────────
 
 /** Selección de parcela a partir de la ruta actual (al hacer clic en el mapa). */
-function selectPlotFromMap(selection: VisorSelection, plot: { id: string; name: string }): VisorSelection {
+function selectPlotFromMap(
+  selection: VisorSelection,
+  plot: { id: string; name: string }
+): VisorSelection {
   return {
     org: selection.org,
     datacentral: selection.datacentral,
@@ -195,7 +222,11 @@ function selectPlotLevel(selection: VisorSelection): VisorSelection {
   }
 }
 
-function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { statsHidden: boolean }) {
+function RanchView({
+  selection,
+  onSelect,
+  statsHidden,
+}: DashboardProps & { statsHidden: boolean }) {
   const ranchId = selection.ranch!.id
   const plots = usePlots({ ranchId })
   const areaHa = sumArea(plots.data ?? [])
@@ -204,6 +235,7 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
 
   const stats = isPlotLevel ? null : ranchStats(plots.data?.length ?? 0, areaHa)
   const isPhytoSession = isSessionLevel && selection.session?.kind === 'phyto'
+  const isSoilMapSession = isSessionLevel && selection.session?.kind === 'soil_map'
 
   const backToPlotButton = (
     <button
@@ -219,10 +251,19 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
     <div className="flex h-full flex-col gap-2.5">
       {!statsHidden && stats && <StatGrid loading={plots.isLoading} stats={stats} />}
       {!statsHidden && isPlotLevel && <PlotStats plotId={selection.plot!.id} />}
-      {!statsHidden && isSessionLevel && !isPhytoSession && (
-        <SessionInfoCard sessionId={selection.session!.id} datacentralId={selection.datacentral?.id} />
+      {!statsHidden && isSessionLevel && !isPhytoSession && !isSoilMapSession && (
+        <SessionInfoCard
+          sessionId={selection.session!.id}
+          datacentralId={selection.datacentral?.id}
+        />
       )}
       {!statsHidden && isPhytoSession && <PhytoStatsCard headerId={selection.session!.id} />}
+      {!statsHidden && isSoilMapSession && (
+        <SoilMapSessionInfoCard
+          sessionId={selection.session!.id}
+          datacentralId={selection.datacentral?.id}
+        />
+      )}
       <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-lg border">
         {isSessionLevel ? (
           isPhytoSession ? (
@@ -235,6 +276,23 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
               floatingToolbar
               sessionsSlot={
                 <PhytoSessionsPanel
+                  floating={false}
+                  plotId={selection.plot!.id}
+                  selectedSessionId={selection.session?.id ?? null}
+                  onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                />
+              }
+              toolbarStart={backToPlotButton}
+            />
+          ) : isSoilMapSession ? (
+            /* Sesión de mapeo de suelo: rangos espaciales dentro de la parcela.
+               La lista de sesiones comparte la columna derecha del visor. */
+            <SoilMapMap
+              sessionId={selection.session!.id}
+              plotId={selection.plot!.id}
+              floatingToolbar
+              sessionsSlot={
+                <SoilMapSessionsPanel
                   floating={false}
                   plotId={selection.plot!.id}
                   selectedSessionId={selection.session?.id ?? null}
@@ -277,14 +335,16 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
             producerName={selection.producer?.name}
             ranchName={selection.ranch?.name}
             onBackToRanch={() => onSelect(selectRanchLevel(selection))}
-            onBackToProducer={selection.producer ? () => onSelect(selectProducerLevel(selection)) : undefined}
+            onBackToProducer={
+              selection.producer ? () => onSelect(selectProducerLevel(selection)) : undefined
+            }
           />
         )}
-        {/* Nivel parcela (sin sesión): ambas listas de sesiones (aspersión + fitosanitaria)
+        {/* Nivel parcela (sin sesión): las listas de sesiones por tipo
             apiladas en una columna flotante sobre el mapa de parcelas. A nivel sesión la
             lista vive dentro del mapa correspondiente (sessionsSlot). */}
         {isPlotLevel && !isSessionLevel && (
-          <div className="absolute right-2 top-2 bottom-2 z-10 flex w-52 flex-col gap-2 overflow-hidden">
+          <div className="absolute bottom-2 right-2 top-2 z-10 flex w-52 flex-col gap-2 overflow-hidden">
             <SessionsPanel
               floating={false}
               plotId={selection.plot!.id}
@@ -292,6 +352,12 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
               onSelectSession={(session) => onSelect(selectSession(selection, session))}
             />
             <PhytoSessionsPanel
+              floating={false}
+              plotId={selection.plot!.id}
+              selectedSessionId={selection.session?.id ?? null}
+              onSelectSession={(session) => onSelect(selectSession(selection, session))}
+            />
+            <SoilMapSessionsPanel
               floating={false}
               plotId={selection.plot!.id}
               selectedSessionId={selection.session?.id ?? null}
@@ -308,18 +374,25 @@ function PlotStats({ plotId }: { plotId: string }) {
   const plot = usePlotDetail(plotId)
   const sessions = useAspersionSessionHeaders(plotId)
   const phytoSessions = usePhytoSessionHeaders(plotId)
-  const loading = plot.isLoading || sessions.isLoading || phytoSessions.isLoading
-  const areaHa = parseArea(plot.data?.total_area)
+  const soilMapSessions = useSoilMapSessionHeaders(plotId)
+  const loading =
+    plot.isLoading || sessions.isLoading || phytoSessions.isLoading || soilMapSessions.isLoading
+  const officialAreaHa = parseArea(plot.data?.total_area)
   const stats = [
-    ...plotStats(areaHa, sessions.data?.length ?? 0),
+    ...plotStats(officialAreaHa, sessions.data?.length ?? 0),
     { label: 'Sesiones fitosanitarias', value: String(phytoSessions.data?.length ?? 0) },
+    { label: 'Sesiones de mapeo de suelo', value: String(soilMapSessions.data?.length ?? 0) },
   ]
   return <StatGrid loading={loading} stats={stats} />
 }
 
 // ─── Cuerpo del dashboard ──────────────────────────────────────────────────────
 
-function LevelBody({ selection, onSelect, statsHidden }: DashboardProps & { statsHidden: boolean }) {
+function LevelBody({
+  selection,
+  onSelect,
+  statsHidden,
+}: DashboardProps & { statsHidden: boolean }) {
   switch (selection.level) {
     case 'org':
       return (
@@ -340,19 +413,29 @@ function LevelBody({ selection, onSelect, statsHidden }: DashboardProps & { stat
 
 function selectionName(selection: VisorSelection): string {
   switch (selection.level) {
-    case 'org': return selection.org.name
-    case 'datacentral': return selection.datacentral!.name
-    case 'producer': return selection.producer!.name
-    case 'ranch': return selection.ranch!.name
-    case 'plot': return selection.plot!.name
-    case 'session': return selection.session!.date ?? 'Sesión'
+    case 'org':
+      return selection.org.name
+    case 'datacentral':
+      return selection.datacentral!.name
+    case 'producer':
+      return selection.producer!.name
+    case 'ranch':
+      return selection.ranch!.name
+    case 'plot':
+      return selection.plot!.name
+    case 'session':
+      return selection.session!.date ?? 'Sesión'
   }
 }
 
 export function GeodataDashboard({ selection, onSelect }: DashboardProps) {
   const [statsHidden, setStatsHidden] = useState(false)
   // El toggle de estadísticas solo aplica en niveles con mapa (gana alto el mapa).
-  const hasMap = selection.level === 'producer' || selection.level === 'ranch' || selection.level === 'plot' || selection.level === 'session'
+  const hasMap =
+    selection.level === 'producer' ||
+    selection.level === 'ranch' ||
+    selection.level === 'plot' ||
+    selection.level === 'session'
 
   return (
     <div className="flex h-full flex-col gap-2.5">
@@ -369,7 +452,11 @@ export function GeodataDashboard({ selection, onSelect }: DashboardProps) {
             onClick={() => setStatsHidden((h) => !h)}
             className="flex shrink-0 items-center gap-1 self-center rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-accent"
           >
-            {statsHidden ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+            {statsHidden ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronUp className="h-3.5 w-3.5" />
+            )}
             {statsHidden ? 'Mostrar estadísticas' : 'Ocultar estadísticas'}
           </button>
         )}

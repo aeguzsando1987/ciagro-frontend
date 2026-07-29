@@ -25,7 +25,7 @@ interface GanttHierarchyProps {
     taskId: string,
     level: 'master' | 'hijo' | 'sesion',
     masterId: string,
-    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' } | null
+    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' | 'soil_map' } | null
   ) => void
 }
 
@@ -118,13 +118,13 @@ export function mapMastersToTasks(
   taskMeta: Record<string, TaskMeta>
   masterIdByTask: Record<string, string>
   hijoIdByTask: Record<string, string>
-  sesionTypeByTask: Record<string, 'aspersion' | 'phyto'>
+  sesionTypeByTask: Record<string, 'aspersion' | 'phyto' | 'soil_map'>
 } {
   const tasks: Task[] = []
   const taskMeta: Record<string, TaskMeta> = {}
   const masterIdByTask: Record<string, string> = {}
   const hijoIdByTask: Record<string, string> = {}
-  const sesionTypeByTask: Record<string, 'aspersion' | 'phyto'> = {}
+  const sesionTypeByTask: Record<string, 'aspersion' | 'phyto' | 'soil_map'> = {}
 
   const treeById = Object.fromEntries(
     masters.map((m, i) => [m.id, trees[i]])
@@ -239,6 +239,33 @@ export function mapMastersToTasks(
         masterIdByTask[sTaskId] = master.id
         hijoIdByTask[sTaskId] = hijo.id
         sesionTypeByTask[sTaskId] = 'phyto'
+      })
+
+      const sortedSoilMaps = [...hijo.soil_map_headers].sort(
+        (a, b) => (a.mapping_date ?? '').localeCompare(b.mapping_date ?? '')
+      )
+      sortedSoilMaps.forEach((s) => {
+        const sRange = pointRange(s.mapping_date)
+        const sOut = isOutOfRange(sRange, hijoRange)
+        const sTaskId = `s:${s.id}`
+        tasks.push({
+          id: sTaskId,
+          type: 'milestone',
+          name: `Mapa de suelo ${s.mapping_date}`,
+          start: sRange.start,
+          end: sRange.end,
+          progress: 0,
+          project: `h:${hijo.id}`,
+          styles: sOut
+            ? { backgroundColor: OUT_OF_RANGE_RED.bg }
+            : { backgroundColor: '#f59e0b' }, // amber-500
+        })
+        taskMeta[sTaskId] = {
+          statusDisplay: sOut ? 'Fuera de rango' : (IMPORT_STATUS_DISPLAY[s.import_status] ?? s.import_status),
+        }
+        masterIdByTask[sTaskId] = master.id
+        hijoIdByTask[sTaskId] = hijo.id
+        sesionTypeByTask[sTaskId] = 'soil_map'
       })
     })
   })
