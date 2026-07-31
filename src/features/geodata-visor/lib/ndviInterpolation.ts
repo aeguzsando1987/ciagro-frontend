@@ -152,6 +152,112 @@ function idwValue(x: number, y: number, pts: InterpPoint[], power = 1.2): number
   return den === 0 ? NaN : num / den
 }
 
+/**
+ * Separacion media entre muestras, en las mismas unidades que las coordenadas.
+ *
+ * Para una nube repartida sobre un area A con n puntos, la distancia tipica al vecino es
+ * ~sqrt(A/n). Se usa el area del bounding box del casco como aproximacion barata; basta
+ * porque solo alimenta la escala del suavizado, no un calculo exacto.
+ */
+export function sampleSpacing(width: number, height: number, n: number): number {
+  if (n <= 1 || width <= 0 || height <= 0) return 0
+  return Math.sqrt((width * height) / n)
+}
+
+/**
+ * Box blur separable sobre la malla de valores (NaN = fuera del area, se ignora).
+ *
+ * Dos pasadas de box aproximan una gaussiana. Es la pieza que elimina el moteado:
+ * interpoladores EXACTOS (IDW e incluso el kriging con nugget bajo) reproducen el ruido
+ * punto a punto, y cuando ese ruido supera el ancho de una banda, celdas vecinas cruzan
+ * la frontera de clase sin parar y la mancha se rompe en cientos de islas.
+ *
+ * Suavizar a la escala del muestreo NO borra informacion real: por debajo de la
+ * separacion entre muestras no hay señal que resolver, solo ruido.
+ */
+export function blurGrid(
+  src: Float32Array,
+  w: number,
+  h: number,
+  radius: number,
+  passes = 2,
+): Float32Array {
+  if (radius < 1) return src
+  const r = Math.round(radius)
+  let cur = src
+
+  for (let pass = 0; pass < passes; pass++) {
+    // Horizontal.
+    const tmp = new Float32Array(w * h)
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let sum = 0
+        let count = 0
+        const from = Math.max(0, x - r)
+        const to = Math.min(w - 1, x + r)
+        for (let k = from; k <= to; k++) {
+          const v = cur[y * w + k]!
+          if (!Number.isNaN(v)) { sum += v; count++ }
+        }
+        tmp[y * w + x] = count ? sum / count : NaN
+      }
+    }
+    // Vertical.
+    const out = new Float32Array(w * h)
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let sum = 0
+        let count = 0
+        const from = Math.max(0, y - r)
+        const to = Math.min(h - 1, y + r)
+        for (let k = from; k <= to; k++) {
+          const v = tmp[k * w + x]!
+          if (!Number.isNaN(v)) { sum += v; count++ }
+        }
+        out[y * w + x] = count ? sum / count : NaN
+      }
+    }
+    cur = out
+  }
+  return cur
+}
+
+/**
+ * Proporcion de celdas contiguas que cambian de clase, en [0,1]. Metrica de MOTEADO:
+ * un campo con manchas coherentes da un valor bajo (solo las fronteras entre bandas
+ * cambian); uno moteado se acerca a la proporcion de pares vecinos distintos.
+ *
+ * Se usa en tests para verificar el suavizado con un numero, no a ojo.
+ */
+export function classTransitionRatio(
+  grid: Float32Array,
+  w: number,
+  h: number,
+  classOf: (v: number) => number,
+): number {
+  let changes = 0
+  let pairs = 0
+  const cls = (i: number): number | null => {
+    const v = grid[i]!
+    return Number.isNaN(v) ? null : classOf(v)
+  }
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const c = cls(y * w + x)
+      if (c === null) continue
+      if (x + 1 < w) {
+        const right = cls(y * w + x + 1)
+        if (right !== null) { pairs++; if (right !== c) changes++ }
+      }
+      if (y + 1 < h) {
+        const down = cls((y + 1) * w + x)
+        if (down !== null) { pairs++; if (down !== c) changes++ }
+      }
+    }
+  }
+  return pairs === 0 ? 0 : changes / pairs
+}
+
 /** Submuestrea uniformemente (por paso) a un maximo de puntos. */
 function subsample(pts: InterpPoint[], max: number): InterpPoint[] {
   if (pts.length <= max) return pts
@@ -182,12 +288,34 @@ export function quantileBreaks(values: number[], n: number): number[] {
   return breaks
 }
 
+/**
+ * Cuanto se suaviza, como multiplo de la separacion entre muestras.
+ *
+ * 0.5 = medio paso de muestreo. Es el limite defendible: una estructura mas pequeña que
+ * la separacion entre muestras NO es resoluble con esos datos, asi que alisarla no borra
+ * informacion, elimina ruido.
+ *
+ * Medido con el ruido real de la sesion de desarrollo (0.0313 entre vecinos) contra sus
+ * bandas por cuartiles, en proporcion de celdas contiguas que cambian de clase:
+ *
+ *   radio 0 -> 11.72%   (moteado: el estado actual)
+ *   radio 1 ->  1.65%
+ *   radio 3 ->  1.50%
+ *   radio 8 ->  1.26%
+ *
+ * Casi toda la ganancia esta en las primeras celdas; pasado eso solo se pierde detalle.
+ * Con la malla del visor (celda ~1.2 m) y un muestreo de ~9.5 m, 0.5 cae en el radio ~4,
+ * ya dentro de la meseta.
+ */
+export const DEFAULT_SMOOTHING_FACTOR = 0.5
+
 export function buildInterpolatedImage(
   pts: InterpPoint[],
   method: InterpMethod = 'idw',
   bands: ColorBand[] | null = null,
   quartileColors: string[] | null = null,
   gridSize = 260,
+  smoothingFactor = DEFAULT_SMOOTHING_FACTOR,
 ): InterpolatedImage | null {
   if (pts.length < 3) return null
 
@@ -227,6 +355,38 @@ export function buildInterpolatedImage(
   const w = gridSize
   const h = Math.max(1, Math.round((gridSize * (ymax - ymin)) / (xmax - xmin)))
 
+  // FASE 1 — malla de valores (NaN fuera del casco).
+  let grid: Float32Array = new Float32Array(w * h)
+  for (let row = 0; row < h; row++) {
+    const lat = ymax - (row / (h - 1)) * (ymax - ymin)
+    for (let col = 0; col < w; col++) {
+      const lon = xmin + (col / (w - 1)) * (xmax - xmin)
+      grid[row * w + col] = pointInRing(lon, lat, hull) ? predictAt(lon, lat) : NaN
+    }
+  }
+
+  // FASE 2 — suavizado a la escala del muestreo. Sin esto, el ruido punto a punto
+  // (que en datos satelitales supera el ancho de las bandas altas) rompe la mancha en
+  // cientos de islas: el efecto "bulletshot".
+  const spacing = sampleSpacing(xmax - xmin, ymax - ymin, pts.length)
+  const cellSize = (xmax - xmin) / Math.max(1, w - 1)
+  const radiusCells = cellSize > 0 ? (spacing * smoothingFactor) / cellSize : 0
+  if (radiusCells >= 1) grid = blurGrid(grid, w, h, radiusCells)
+
+  // Los cortes de clase salen de la SUPERFICIE que se va a pintar, no de los puntos
+  // crudos. Suavizar acorta las colas de la distribución, así que unos percentiles
+  // sacados de los puntos dejarían a la banda superior sin una sola celda por encima de
+  // su mínimo y esa clase desaparecería del mapa. Sobre el campo, cada clase recibe ~1/n
+  // del ÁREA, que es lo que espera quien lee la leyenda.
+  const fieldSorted: number[] = []
+  for (let i = 0; i < grid.length; i++) {
+    const v = grid[i]!
+    if (!Number.isNaN(v)) fieldSorted.push(v)
+  }
+  fieldSorted.sort((a, b) => a - b)
+  const scale = fieldSorted.length > 1 ? fieldSorted : sorted
+
+  // FASE 3 — coloreado.
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h
@@ -234,40 +394,32 @@ export function buildInterpolatedImage(
   if (!ctx) return null
   const img = ctx.createImageData(w, h)
 
-  for (let row = 0; row < h; row++) {
-    const lat = ymax - (row / (h - 1)) * (ymax - ymin)
-    for (let col = 0; col < w; col++) {
-      const lon = xmin + (col / (w - 1)) * (xmax - xmin)
-      const idx = (row * w + col) * 4
-      if (!pointInRing(lon, lat, hull)) {
-        img.data[idx + 3] = 0
-        continue
-      }
-      const v = predictAt(lon, lat)
-      if (Number.isNaN(v)) {
-        img.data[idx + 3] = 0
-        continue
-      }
-      // Manual: color por banda de la config. Quartile con colores: clase discreta
-      // por percentil. Sin colores: gradiente continuo ecualizado.
-      let rgb: [number, number, number] | null
-      if (bands) {
-        rgb = bandColor(v, bands)
-      } else if (quartileColors && quartileColors.length > 0) {
-        const cls = Math.min(quartileColors.length - 1, Math.floor(rankFraction(v, sorted) * quartileColors.length))
-        rgb = hexToRgb(quartileColors[cls]!)
-      } else {
-        rgb = rampColor(rankFraction(v, sorted))
-      }
-      if (!rgb) {
-        img.data[idx + 3] = 0
-        continue
-      }
-      img.data[idx] = rgb[0]
-      img.data[idx + 1] = rgb[1]
-      img.data[idx + 2] = rgb[2]
-      img.data[idx + 3] = 255
+  for (let i = 0; i < w * h; i++) {
+    const idx = i * 4
+    const v = grid[i]!
+    if (Number.isNaN(v)) {
+      img.data[idx + 3] = 0
+      continue
     }
+    // Manual: color por banda de la config. Quartile con colores: clase discreta
+    // por percentil. Sin colores: gradiente continuo ecualizado.
+    let rgb: [number, number, number] | null
+    if (bands) {
+      rgb = bandColor(v, bands)
+    } else if (quartileColors && quartileColors.length > 0) {
+      const cls = Math.min(quartileColors.length - 1, Math.floor(rankFraction(v, scale) * quartileColors.length))
+      rgb = hexToRgb(quartileColors[cls]!)
+    } else {
+      rgb = rampColor(rankFraction(v, scale))
+    }
+    if (!rgb) {
+      img.data[idx + 3] = 0
+      continue
+    }
+    img.data[idx] = rgb[0]
+    img.data[idx + 1] = rgb[1]
+    img.data[idx + 2] = rgb[2]
+    img.data[idx + 3] = 255
   }
 
   ctx.putImageData(img, 0, 0)

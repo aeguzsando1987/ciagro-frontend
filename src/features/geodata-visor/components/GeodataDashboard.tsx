@@ -239,6 +239,9 @@ function RanchView({ selection, onSelect, statsHidden }: DashboardProps & { stat
                 <NdviMap
                   sessionId={selection.session!.id}
                   plotId={selection.plot!.id}
+                  /* La organización del árbol define de quién son los umbrales: el
+                     productor puede estar compartido con otra organización. */
+                  tenantId={selection.org.id}
                 />
               </div>
               <div className="w-56 shrink-0 border-l bg-background/60 p-2">

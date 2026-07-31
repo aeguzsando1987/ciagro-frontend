@@ -89,20 +89,51 @@ export function useNdviVariableConfig(tenant?: string, options?: { enabled?: boo
 }
 
 /**
- * Config de variables NDVI resuelta por el TENANT DUEÑO de la parcela de la sesión
- * (no por el usuario logueado). La puede leer cualquier usuario con alcance sobre la
- * sesión, así el visor aplica los umbrales/colores del especialista sin importar quién
- * consulta. Usar esta en el visor; `useNdviVariableConfig` (owner-only) es para el panel
- * de administración donde el gerente edita SU config.
+ * Ámbito desde el que se consulta una sesión: define QUÉ organización aplica sus
+ * umbrales. Se acepta cualquiera de los dos porque los consumidores viven en contextos
+ * distintos y no todos tienen el mismo id a la mano.
  */
-export function useNdviSessionVariableConfig(sessionId: string | undefined) {
+export interface NdviConfigScope {
+  /** DataCentralMain. Lo manda el visor, que navega por organización (`VisorSelection.org`). */
+  tenantId?: string
+  /** DataCentral del workspace `w/$dc/...`; el backend deriva su organización. */
+  dcId?: string
+}
+
+/**
+ * Config de variables NDVI aplicable a una sesión, según la ORGANIZACIÓN desde la que se
+ * consulta. La puede leer cualquier usuario con alcance sobre la sesión, así se aplican
+ * los umbrales/colores que definió el especialista de esa organización.
+ *
+ * El ámbito es necesario porque un mismo productor puede estar asignado a CIAgros de
+ * organizaciones distintas: sin él, el backend cae a la asignación más antigua y dos
+ * organizaciones verían la misma configuración.
+ *
+ * Usar esta en el visor; `useNdviVariableConfig` (owner-only) es para el panel de
+ * administración donde el gerente edita SU config.
+ */
+export function useNdviSessionVariableConfig(
+  sessionId: string | undefined,
+  scope: NdviConfigScope = {},
+) {
+  const { tenantId, dcId } = scope
+  // `tenant` gana si vienen ambos, igual que en el backend.
+  const query = tenantId ? { tenant: tenantId } : dcId ? { dc: dcId } : null
+
   return useQuery({
-    queryKey: ['ndvi-session-variable-config', sessionId] as const,
+    // El ámbito entra en la key: al cambiar de organización no debe reutilizarse la
+    // config cacheada de la anterior sobre la misma sesión.
+    queryKey: ['ndvi-session-variable-config', sessionId, query] as const,
     enabled: !!sessionId,
     queryFn: async (): Promise<Record<string, unknown>> => {
       const { data, error } = await apiClient.GET(
         '/api/v1/monitoring/ndvi/headers/{id}/variable-config/',
-        { params: { path: { id: sessionId! } } },
+        {
+          params: {
+            path: { id: sessionId! },
+            ...(query ? { query: query as never } : {}),
+          },
+        },
       )
       if (error) throw error
       return (data ?? {}) as Record<string, unknown>
