@@ -52,6 +52,20 @@ function bboxFromRing(ring: number[][]): [number, number, number, number] {
 interface NdviMapProps {
   sessionId: string
   plotId: string | null | undefined
+  /**
+   * Organización (DataCentralMain) cuyos umbrales/colores se aplican. La manda el visor,
+   * que navega por organización y conoce el id directamente (`VisorSelection.org`).
+   */
+  tenantId?: string
+  /**
+   * CIAgro hija (DataCentral) del workspace; el backend deriva su organización. La manda
+   * el task-manager, que vive en `w/$dc/...` y no tiene el id del tenant a la mano.
+   *
+   * Se acepta uno u otro porque los dos puntos de render tienen ámbitos distintos: el
+   * visor está FUERA de `/w/$dc` (arranca en nivel Organización) y el modal del
+   * task-manager está dentro. Sin ninguno, el backend cae a la asignación más antigua.
+   */
+  dcId?: string
 }
 
 /** Propiedades que viajan en cada feature de punto (obj_id + índices). */
@@ -65,15 +79,17 @@ interface PointHover {
 
 const POINTS_LAYER_ID = 'ndvi-points'
 
-export function NdviMap({ sessionId, plotId }: NdviMapProps) {
+export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
   const mapRef = useRef<MapRef>(null)
   const { mapMode, setMapMode } = useMapMode(mapRef)
 
   const { data: plot } = usePlotGeometry(plotId ?? null)
   const { data: points, isLoading } = useNdviPoints(sessionId)
-  // Config de umbrales del tenant DUEÑO de la parcela (resuelta en el servidor por la
-  // sesión, no por el usuario). Si no hay alcance/config, el visor usa el gradiente.
-  const { data: varConfig } = useNdviSessionVariableConfig(sessionId)
+  // Config de umbrales de la organización desde la que se consulta (resuelta en el
+  // servidor). Un mismo productor puede estar asignado a CIAgros de organizaciones
+  // distintas, así que sin ámbito el backend caería a la asignación más antigua y ambas
+  // verían la misma config. Si no hay alcance/config, el visor usa el gradiente.
+  const { data: varConfig } = useNdviSessionVariableConfig(sessionId, { tenantId, dcId })
 
   const [indexKey, setIndexKey] = useState<keyof NdviPoint>('ndvi')
   const [hover, setHover] = useState<PointHover | null>(null)

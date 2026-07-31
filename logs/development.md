@@ -2145,3 +2145,106 @@ se sumaron mejoras de la config y del visor pedidas durante la validación con e
 **Verificación:** `npm run typecheck` 0 errores, ESLint limpio en los archivos NDVI, `npm run test`
 218/218 (persiste el "error" de `maplibre-gl` en jsdom dentro de `SessionReportPanel.test.tsx`,
 preexistente y ajeno).
+
+---
+
+## Sesión visor-contours-tenant — Config de variables NDVI por organización (2026-07-30)
+
+**Rama:** `dev-visor-contours-tenant` (también en el backend). Sin homologar.
+
+### Contexto
+
+El desarrollador reportó que las configuraciones de variables NDVI *"nuevamente no surten efecto"*
+en el visor, después de dar de alta una organización-CIA hija con acceso al rancho de la parcela de
+pruebas. El diagnóstico completo está en el backend; del lado del front la causa es que
+`useNdviSessionVariableConfig` pedía `/variable-config/` **sin indicar organización**, así que el
+servidor la resolvía por heurística. Con un productor asignado a dos CIAgros de organizaciones
+distintas, devolvía la config de la equivocada (ganaba por orden alfabético del nombre).
+
+### Cambios
+
+**`useNdviVariableConfig.ts`** — `useNdviSessionVariableConfig(sessionId, scope)` acepta
+`{ tenantId }` o `{ dcId }`, y **el ámbito entra en la query key**. Sin eso, al cambiar de
+organización React Query reutilizaría la config cacheada de la anterior sobre la misma sesión.
+
+**`NdviMap.tsx`** — recibe el ámbito por **prop**, no de la ruta. Un primer intento leyó el `dc`
+con `useParams({ from: '/_authenticated/w/$dc' })`; **habría reventado en el visor**, porque
+`/visor-datos` está deliberadamente **fuera** de `/w/$dc` ("no requiere una CIAgro seleccionada:
+el explorador arranca en el nivel Organización"). Los dos puntos de render de `NdviMap` viven en
+árboles de ruta distintos, así que el ámbito tiene que venir de quien lo monta. Se detectó al
+preparar las pruebas manuales, antes de que llegara al navegador.
+
+- **`GeodataDashboard`** (visor) pasa `tenantId={selection.org.id}`: el explorador navega
+  Organización → CIAgro → … y esa organización es exactamente el `DataCentralMain` cuyos umbrales
+  deben aplicarse. Es el dato más directo y no necesita que el backend derive nada.
+- **`NdviMapModal`** (task-manager) pasa `dcId` de la ruta `w/$dc`, y el backend deriva la
+  organización, porque `/users/me/` devuelve `WorkspaceDataCentral` (`id`/`name`/`slug`/`is_owner`)
+  **sin `data_central_main`**: ahí no se tiene el id del tenant sin un fetch extra.
+
+**`useNdviContours.ts`** — acepta `dcId`, lo incluye en la query key y maneja el **202** de la
+generación perezosa del backend (reintenta hasta 10 veces cada 2 s; ante cualquier otro error se
+rinde). **Este hook no lo consume ningún componente todavía:** `NdviMap` interpola y colorea en el
+cliente (`ndviInterpolation.ts`) y la coropleta del servidor está hoy sin consumidor real. Se dejó
+correcto para que no sea una trampa si el visor migra a consumirla.
+
+### Verificación
+
+- `tsc --noEmit` → **0 errores**. `vitest run` → **223/223** (42 archivos).
+- 5 tests nuevos de `useNdviSessionVariableConfig` con `vi.mock` de `apiClient`: manda `?dc` cuando
+  el ámbito es un workspace, `?tenant` cuando el visor indica la organización, el tenant gana si
+  vienen ambos (igual que en el backend), omite el parámetro sin ámbito, y no reutiliza la entrada
+  de cache al cambiar de organización sobre la misma sesión.
+- Verificado contra el backend real: el workspace de *Test DC* recibe los colores del especialista,
+  el de *rancherita gogo* los valores por defecto, y una CIAgro sin acceso a la parcela recibe 404.
+
+### Deuda
+
+- `api.d.ts` no regenerado: los parámetros `tenant`/`dc` se mandan con la aserción puntual `as never`, igual que
+  el `index` ya existente en `useNdviContours`. Conviene correr `npm run types:gen` al homologar.
+
+### Anexo — Moteado ("bulletshots") en el visor NDVI (2026-07-30, misma rama)
+
+El desarrollador reportó que los mapas seguían viéndose mal: "muchas manchas aisladas, sin formarse
+la mancha de forma correcta". Como `NdviMap` **interpola y colorea en el cliente** y no consume la
+coropleta del backend, el arreglo tenía que hacerse aquí para que se viera.
+
+**El motor no era el culpable.** `buildInterpolatedImage` ya se llamaba con `method: 'kriging'` y
+moteaba igual: el kriging es un interpolador **exacto** y reproduce el ruido punto a punto. Medido
+sobre la sesión real (1024 puntos en 9.50 ha, malla de ~9.5 m): la diferencia media entre vecinos es
+**0.0313** y el ancho de la banda alta por cuartiles **0.0247**. El ruido supera al ancho de banda,
+así que celdas contiguas cruzan la frontera de clase continuamente.
+
+**Cambios en `ndviInterpolation.ts`:**
+
+- `buildInterpolatedImage` se partió en tres fases: **malla de valores → suavizado → coloreado**.
+- Nuevo `blurGrid`: box blur separable de dos pasadas (≈ gaussiana) que ignora los `NaN` de fuera del
+  casco para no contaminar los bordes. El radio se escala a la separación entre muestras
+  (`sampleSpacing = sqrt(área/n)`), con `DEFAULT_SMOOTHING_FACTOR = 0.5` — medio paso de muestreo.
+  Por debajo de la separación entre muestras no hay señal resoluble, solo ruido: alisar ahí no borra
+  información.
+- Nuevo `classTransitionRatio`, métrica de moteado (proporción de celdas contiguas que cambian de
+  clase), para verificar el efecto con un número y no a ojo:
+
+  | radio (celdas) | transiciones de clase |
+  |---|---|
+  | 0 (estado anterior) | **11.72 %** |
+  | 1 | 1.65 % |
+  | 3 | 1.50 % |
+  | 8 | 1.26 % |
+
+  Casi toda la ganancia está en las primeras celdas; más allá solo se pierde detalle. Por eso el
+  factor se quedó en 0.5 y no en 1.0.
+
+**Escala de color desde el campo, no desde los puntos.** Al suavizar apareció el mismo efecto
+secundario que en el backend: los cortes salían de `rankFraction` sobre los valores de los puntos
+crudos pero se aplicaban al campo ya suavizado, de colas más cortas, así que la banda superior se
+quedaba sin área y desaparecía. Ahora la escala se arma ordenando los valores de la malla suavizada:
+cada clase recibe ~1/n del **área** por construcción, coincide con los cortes por `ST_Quantile` del
+backend, y cae a los valores de los puntos si la malla queda vacía.
+
+### Verificación
+
+- `tsc --noEmit` → **0 errores**. `vitest run` → **230/230** (43 archivos).
+- 7 tests nuevos en `ndviInterpolation.test.ts`: `sampleSpacing` recupera los 9.5 m reales, el blur
+  reduce el moteado a menos de un cuarto con bandas más estrechas que el ruido, conserva la señal y
+  la media, ignora los `NaN` sin contaminar vecinas, y no hace nada con radio menor a una celda.
