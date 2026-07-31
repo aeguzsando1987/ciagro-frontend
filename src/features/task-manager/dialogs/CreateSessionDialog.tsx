@@ -6,6 +6,7 @@ import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -26,7 +27,7 @@ import { useEvaluations } from '../hooks/useEvaluations'
 import { useDatacentralUsers } from '../hooks/useDatacentralUsers'
 import type { MasterProgram } from '../types'
 
-type SessionType = 'aspersion' | 'phyto' | 'ndvi'
+type SessionType = 'aspersion' | 'phyto' | 'ndvi' | 'soil_map'
 
 /* ─── Schemas ─────────────────────────────────────────────────────── */
 
@@ -51,8 +52,17 @@ const phytoSchema = z.object({
   radius_tolerance: z.coerce.number().int().min(1, 'Mínimo 1 m').default(5),
 })
 
+const soilMapSchema = z.object({
+  program_id: z.string().uuid(),
+  mapping_date: z.string().min(1, 'Requerido'),
+  est_init_date: z.string().optional(),
+  est_finish_date: z.string().optional(),
+  assigned_to_id: z.string().uuid().optional(),
+})
+
 type AspersionValues = z.infer<typeof aspersionSchema>
 type PhytoValues = z.infer<typeof phytoSchema>
+type SoilMapValues = z.infer<typeof soilMapSchema>
 
 const ndviSchema = z.object({
   program_id: z.string().uuid(),
@@ -68,6 +78,7 @@ type NdviValues = z.infer<typeof ndviSchema>
 const ASPERSION_FIELDS = ['program_id', 'aspersion_date', 'evaluation_id', 'est_start_date', 'est_finish_date'] as const
 const PHYTO_FIELDS = ['field_task_id', 'estimated_start_date', 'estimated_end_date', 'strict_mode', 'radius_tolerance'] as const
 const NDVI_FIELDS = ['program_id', 'session_date', 'est_start_date', 'est_finish_date'] as const
+const SOIL_MAP_FIELDS = ['program_id', 'mapping_date', 'est_init_date', 'est_finish_date', 'assigned_to_id'] as const
 
 /* ─── Component ────────────────────────────────────────────────────── */
 
@@ -96,6 +107,9 @@ export function CreateSessionDialog({ open, onOpenChange, programa, master, data
               → {programa.title ?? programa.id}
             </span>
           </DialogTitle>
+          <DialogDescription>
+            Selecciona el tipo de sesión y captura sus datos iniciales.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="mb-2 flex gap-2">
@@ -123,6 +137,14 @@ export function CreateSessionDialog({ open, onOpenChange, programa, master, data
           >
             Índices vegetativos
           </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={sessionType === 'soil_map' ? 'default' : 'outline'}
+            onClick={() => setSessionType('soil_map')}
+          >
+            Mapeo de suelo
+          </Button>
         </div>
 
         {sessionType === 'aspersion' ? (
@@ -142,8 +164,17 @@ export function CreateSessionDialog({ open, onOpenChange, programa, master, data
             queryClient={queryClient}
             onClose={() => onOpenChange(false)}
           />
-        ) : (
+        ) : sessionType === 'ndvi' ? (
           <NdviForm
+            programaId={programa.id}
+            masterId={master.id}
+            hasParcela={!!programa.plot}
+            datacentralId={datacentralId}
+            queryClient={queryClient}
+            onClose={() => onOpenChange(false)}
+          />
+        ) : (
+          <SoilMapForm
             programaId={programa.id}
             masterId={master.id}
             hasParcela={!!programa.plot}
@@ -572,6 +603,137 @@ function NdviForm({
             </Select>
           )}
         />
+      </div>
+
+      {errors.root && (
+        <p className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {errors.root.message}
+        </p>
+      )}
+
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Guardando...' : 'Crear Sesión'}
+        </Button>
+      </DialogFooter>
+    </form>
+  )
+}
+
+/* ─── Mapeo de suelo form ────────────────────────────────────────── */
+
+function SoilMapForm({
+  programaId,
+  masterId,
+  hasParcela,
+  datacentralId,
+  queryClient,
+  onClose,
+}: {
+  programaId: string
+  masterId: string
+  hasParcela: boolean
+  datacentralId: string
+  queryClient: ReturnType<typeof useQueryClient>
+  onClose: () => void
+}) {
+  const { data: dcUsers = [] } = useDatacentralUsers(datacentralId)
+  const {
+    register,
+    handleSubmit,
+    control,
+    setError,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<SoilMapValues>({
+    resolver: zodResolver(soilMapSchema),
+    defaultValues: { program_id: programaId },
+  })
+
+  const mutation = useMutation({
+    mutationFn: async (values: SoilMapValues) => {
+      const body = {
+        program_id: values.program_id,
+        mapping_date: values.mapping_date,
+        ...(values.est_init_date ? { est_init_date: values.est_init_date } : {}),
+        ...(values.est_finish_date ? { est_finish_date: values.est_finish_date } : {}),
+        ...(values.assigned_to_id ? { assigned_to_id: values.assigned_to_id } : {}),
+      }
+      const { data, error } = await apiClient.POST(
+        '/api/v1/monitoring/soil-map/headers/',
+        { body: body as never }
+      )
+      if (error) {
+        if (typeof error === 'object' && error !== null) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          applyDrfErrors(error as any, setError, SOIL_MAP_FIELDS)
+          throw new Error('Corrige los errores del formulario')
+        }
+        throw new Error('No se pudo crear la sesión de mapeo de suelo')
+      }
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['master-tree', masterId] })
+      reset()
+      onClose()
+    },
+  })
+
+  return (
+    <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-4">
+      {!hasParcela && (
+        <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+          Este subprograma no tiene parcela asignada. El backend intentará heredarla al crear la sesión; si no existe, el mapeo no tendrá una parcela para encuadrar sus datos. Asigna una parcela al subprograma antes de crear la sesión.
+        </div>
+      )}
+
+      <div className="space-y-1">
+        <Label htmlFor="sm-date">Fecha del mapeo *</Label>
+        <Input id="sm-date" type="date" {...register('mapping_date')} />
+        {errors.mapping_date && (
+          <p className="text-xs text-destructive">{errors.mapping_date.message}</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label htmlFor="sm-start">Inicio estimado</Label>
+          <Input id="sm-start" type="date" {...register('est_init_date')} />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="sm-end">Fin estimado</Label>
+          <Input id="sm-end" type="date" {...register('est_finish_date')} />
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <Label>Responsable</Label>
+        <Controller
+          name="assigned_to_id"
+          control={control}
+          render={({ field }) => (
+            <Select onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)} value={field.value || '__none__'}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sin asignar (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Sin asignar</SelectItem>
+                {dcUsers.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {dcUsers.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            No hay técnicos asignados a esta CIA. Asigna usuarios en Administración para poder designar un responsable.
+          </p>
+        )}
       </div>
 
       {errors.root && (

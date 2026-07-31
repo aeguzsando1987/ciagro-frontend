@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('./PlotMiniMap', () => ({ PlotMiniMap: () => null }))
@@ -70,7 +71,15 @@ const mockHijo: ProgramaTree = {
   phyto_monitoring_headers: [
     { id: 'phyto-1', type: 'phyto', session_date: '2026-06-20', import_status: 'done', status: 'completed' },
   ],
-  soil_map_headers: [],
+  soil_map_headers: [
+    {
+      id: 'soil-1',
+      type: 'soil_map',
+      mapping_date: '2026-06-25',
+      import_status: 'pending',
+      status: 'pending',
+    },
+  ],
   ndvi_sessions: [],
 }
 
@@ -139,6 +148,7 @@ beforeEach(() => {
 function renderModal(role_level: number) {
   setRole(role_level)
   const qc = createTestQueryClient()
+  const onNavigateSesion = vi.fn()
   render(
     <QueryClientProvider client={qc}>
       <HijoModal
@@ -147,10 +157,11 @@ function renderModal(role_level: number) {
         datacentralId="dc-1"
         onClose={vi.fn()}
         onBack={vi.fn()}
-        onNavigateSesion={vi.fn()}
+        onNavigateSesion={onNavigateSesion}
       />
     </QueryClientProvider>
   )
+  return { onNavigateSesion }
 }
 
 describe('HijoModal', () => {
@@ -161,11 +172,25 @@ describe('HijoModal', () => {
     expect(screen.getByText('Primavera-2026')).toBeInTheDocument()
   })
 
-  it('lista de sesiones renderiza aspersión y fitosanitario mezclados', async () => {
+  it('lista las sesiones de aspersión, fitosanitario y mapeo de suelo', async () => {
     renderModal(3)
     await waitFor(() => screen.getByRole('dialog'))
     expect(screen.getByText(/Aspersión.*2026-06-10/i)).toBeInTheDocument()
     expect(screen.getByText(/Fitosanitario.*2026-06-20/i)).toBeInTheDocument()
+    expect(screen.getByText(/Mapeo de suelo.*2026-06-25/i)).toBeInTheDocument()
+  })
+
+  it('navega a la sesión de suelo con el tipo soil_map', async () => {
+    const user = userEvent.setup()
+    const { onNavigateSesion } = renderModal(3)
+    await waitFor(() => screen.getByRole('dialog'))
+
+    await user.click(screen.getByText(/Mapeo de suelo.*2026-06-25/i))
+
+    expect(onNavigateSesion).toHaveBeenCalledWith({
+      sesionId: 'soil-1',
+      sesionType: 'soil_map',
+    })
   })
 
   it('Técnico (level 2) ve botón "+ Nueva Sesión"', async () => {

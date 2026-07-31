@@ -8,7 +8,7 @@
 export type VisorLevel = 'org' | 'datacentral' | 'producer' | 'ranch' | 'plot' | 'session'
 
 /** Tipo de sesión seleccionada a nivel 'session' — decide qué mapa/stats renderiza el dashboard. */
-export type SessionKind = 'aspersion' | 'phyto' | 'ndvi'
+export type SessionKind = 'aspersion' | 'phyto' | 'ndvi' | 'soil_map'
 
 export interface VisorRef {
   id: string

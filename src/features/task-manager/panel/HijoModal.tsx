@@ -122,6 +122,51 @@ type SessionRef =
   | { sesionId: string; sesionType: 'aspersion' }
   | { sesionId: string; sesionType: 'phyto' }
   | { sesionId: string; sesionType: 'ndvi' }
+  | { sesionId: string; sesionType: 'soil_map' }
+
+type HijoSession =
+  | {
+      id: string
+      kind: 'aspersion'
+      import_status: string
+      aspersion_date: string
+    }
+  | {
+      id: string
+      kind: 'phyto'
+      import_status: string
+      session_date: string
+    }
+  | {
+      id: string
+      kind: 'ndvi'
+      import_status: string
+      // La fecha se rellena al importar el CSV, asi que puede venir nula.
+      session_date: string | null
+    }
+  | {
+      id: string
+      kind: 'soil_map'
+      import_status: string
+      mapping_date: string
+    }
+
+/** Cada tipo de sesion nombra su fecha distinto; esto la normaliza para ordenar y mostrar. */
+function sessionDate(s: HijoSession): string | null {
+  switch (s.kind) {
+    case 'aspersion': return s.aspersion_date
+    case 'phyto': return s.session_date
+    case 'ndvi': return s.session_date
+    case 'soil_map': return s.mapping_date
+  }
+}
+
+const SESSION_LABEL: Record<HijoSession['kind'], string> = {
+  aspersion: '💧 Aspersión',
+  phyto: '🌿 Fitosanitario',
+  ndvi: '🍃 Índices vegetativos',
+  soil_map: '🧪 Mapeo de suelo',
+}
 
 interface HijoModalProps {
   hijo: ProgramaTree
@@ -251,15 +296,14 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
     })
   }
 
-  const allSessions = [
+  const allSessions: HijoSession[] = [
     ...hijo.aspersion_sessions.map((s) => ({ ...s, kind: 'aspersion' as const })),
     ...hijo.phyto_monitoring_headers.map((s) => ({ ...s, kind: 'phyto' as const })),
     ...hijo.ndvi_sessions.map((s) => ({ ...s, kind: 'ndvi' as const })),
+    ...hijo.soil_map_headers.map((s) => ({ ...s, kind: 'soil_map' as const })),
   ].sort((a, b) => {
-    const dateA = 'aspersion_date' in a ? a.aspersion_date : a.session_date
-    const dateB = 'aspersion_date' in b ? b.aspersion_date : b.session_date
-    // session_date puede ser null en NDVI (se rellena del CSV): orden nulo-seguro.
-    return (dateA ?? '').localeCompare(dateB ?? '')
+    // sessionDate puede ser null en NDVI (se rellena del CSV): orden nulo-seguro.
+    return (sessionDate(a) ?? '').localeCompare(sessionDate(b) ?? '')
   })
 
   return (
@@ -533,14 +577,17 @@ function ViewMode({
   cropText: string | null
   actualStart: string | null
   actualFinish: string | null
-  allSessions: Array<{ id: string; kind: 'aspersion' | 'phyto' | 'ndvi'; import_status: string } & Record<string, unknown>>
+  allSessions: HijoSession[]
   isManager: boolean
   canCreateSession: boolean
   isMutating: boolean
   canEdit: boolean
   onEdit: () => void
   onStatusChange: (s: ProgramaStatus) => void
-  onNavigateSesion: (ref: { sesionId: string; sesionType: 'aspersion' | 'phyto' | 'ndvi' }) => void
+  onNavigateSesion: (ref: {
+    sesionId: string
+    sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map'
+  }) => void
   onCreateSesion: () => void
 }) {
   return (
@@ -613,9 +660,8 @@ function ViewMode({
           {allSessions.length > 0 && (
             <ul className="divide-y rounded border">
               {allSessions.map((s) => {
-                const fecha = s.kind === 'aspersion'
-                  ? (s as unknown as { aspersion_date: string }).aspersion_date
-                  : (s as unknown as { session_date: string }).session_date
+                const fecha = sessionDate(s)
+                const label = SESSION_LABEL[s.kind]
                 return (
                   <li key={`${s.kind}-${s.id}`}>
                     <button
@@ -624,7 +670,7 @@ function ViewMode({
                       onClick={() => onNavigateSesion({ sesionId: s.id, sesionType: s.kind })}
                     >
                       <span className="text-sm">
-                        {s.kind === 'aspersion' ? '💧 Aspersión' : s.kind === 'phyto' ? '🌿 Fitosanitario' : '🍃 Índices vegetativos'} — {fecha ?? 'Sin fecha'}
+                        {label} — {fecha ?? 'Sin fecha'}
                       </span>
                       <Badge className="text-xs">
                         {IMPORT_STATUS_LABELS[s.import_status] ?? s.import_status}

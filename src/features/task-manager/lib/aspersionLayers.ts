@@ -41,12 +41,12 @@ export interface LayerDef {
  */
 export const ASPERSION_LAYERS: LayerDef[] = [
   { key: 'application',   label: 'Proporción volumen', field: 'applied_rate_l',    kind: 'category', unit: '%'    },
-  { key: 'liquid_flow',   label: 'Caudal',             field: 'liquid_flow_ls',    kind: 'quartile', unit: 'L/s'  },
-  { key: 'boom_pressure', label: 'Presión',            field: 'boom_pressure_bar', kind: 'quartile', unit: 'bar', altUnit: { label: 'PSI', factor: 14.538 } },
-  { key: 'production',    label: 'Productividad',      field: 'production_hah',    kind: 'quartile', unit: 'ha/h' },
   { key: 'speed',         label: 'Velocidad',          field: 'speed_kmh',         kind: 'quartile', unit: 'km/h' },
   { key: 'target_rate',   label: 'Proporción meta',    field: 'target_rate_l',     kind: 'target',   unit: 'L/ha' },
+  { key: 'boom_pressure', label: 'Presión',            field: 'boom_pressure_bar', kind: 'quartile', unit: 'bar', altUnit: { label: 'PSI', factor: 14.538 } },
+  { key: 'liquid_flow',   label: 'Caudal',             field: 'liquid_flow_ls',    kind: 'quartile', unit: 'L/s'  },
   { key: 'rate_quality',  label: 'Rate Quality',       field: 'rate_quality',      kind: 'quality',  unit: ''     },
+  { key: 'production',    label: 'Productividad',      field: 'production_hah',    kind: 'quartile', unit: 'ha/h' },
 ]
 
 // ─── Capa 1 · Semáforo de % de aplicación ────────────────────────────────────
