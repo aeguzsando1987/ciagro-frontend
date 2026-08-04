@@ -29,6 +29,26 @@ import type { MasterProgram } from '../types'
 
 type SessionType = 'aspersion' | 'phyto' | 'ndvi' | 'soil_map'
 
+/**
+ * Tipos de sesión disponibles. Van en un select y no en una fila de botones:
+ * con cuatro o más tipos la fila desbordaba el ancho del diálogo, y añadir uno
+ * nuevo no debe obligar a rediseñar el encabezado.
+ */
+const SESSION_TYPES: { value: SessionType; label: string }[] = [
+  { value: 'aspersion', label: 'Aspersión' },
+  { value: 'phyto', label: 'Fitosanitario' },
+  { value: 'ndvi', label: 'Índices vegetativos' },
+  { value: 'soil_map', label: 'Mapeo de suelo' },
+]
+
+/**
+ * Pie de formulario fijado al borde inferior del área desplazable, para que
+ * "Crear Sesión" siga accesible aunque el formulario no quepa en la pantalla.
+ * Los margenes negativos cancelan el padding del contenedor para que la barra
+ * ocupe todo el ancho del diálogo.
+ */
+const FOOTER_CLASS = 'sticky bottom-0 -mx-4 -mb-4 mt-2 gap-2 border-t bg-background px-4 py-3 sm:-mx-6 sm:-mb-6 sm:px-6 sm:py-4'
+
 /* ─── Schemas ─────────────────────────────────────────────────────── */
 
 const aspersionSchema = z.object({
@@ -99,8 +119,8 @@ export function CreateSessionDialog({ open, onOpenChange, programa, master, data
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] flex-col gap-0 overflow-hidden p-0 sm:w-full sm:max-w-md">
+        <DialogHeader className="shrink-0 space-y-1.5 px-4 pb-3 pr-10 pt-4 text-left sm:px-6 sm:pb-4 sm:pr-12 sm:pt-6">
           <DialogTitle>
             Nueva Sesión
             <span className="ml-2 text-sm font-normal text-muted-foreground">
@@ -112,77 +132,60 @@ export function CreateSessionDialog({ open, onOpenChange, programa, master, data
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mb-2 flex gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={sessionType === 'aspersion' ? 'default' : 'outline'}
-            onClick={() => setSessionType('aspersion')}
-          >
-            Aspersión
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={sessionType === 'phyto' ? 'default' : 'outline'}
-            onClick={() => setSessionType('phyto')}
-          >
-            Fitosanitario
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={sessionType === 'ndvi' ? 'default' : 'outline'}
-            onClick={() => setSessionType('ndvi')}
-          >
-            Índices vegetativos
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={sessionType === 'soil_map' ? 'default' : 'outline'}
-            onClick={() => setSessionType('soil_map')}
-          >
-            Mapeo de suelo
-          </Button>
+        <div className="shrink-0 space-y-1 px-4 pb-3 sm:px-6 sm:pb-4">
+          <Label htmlFor="session-type">Tipo de sesión</Label>
+          <Select value={sessionType} onValueChange={(v) => setSessionType(v as SessionType)}>
+            <SelectTrigger id="session-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SESSION_TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {sessionType === 'aspersion' ? (
-          <AspersionForm
-            programaId={programa.id}
-            masterId={master.id}
-            datacentralId={datacentralId}
-            queryClient={queryClient}
-            onClose={() => onOpenChange(false)}
-          />
-        ) : sessionType === 'phyto' ? (
-          <PhytoForm
-            programaId={programa.id}
-            masterId={master.id}
-            hasParcela={!!programa.plot}
-            datacentralId={datacentralId}
-            queryClient={queryClient}
-            onClose={() => onOpenChange(false)}
-          />
-        ) : sessionType === 'ndvi' ? (
-          <NdviForm
-            programaId={programa.id}
-            masterId={master.id}
-            hasParcela={!!programa.plot}
-            datacentralId={datacentralId}
-            queryClient={queryClient}
-            onClose={() => onOpenChange(false)}
-          />
-        ) : (
-          <SoilMapForm
-            programaId={programa.id}
-            masterId={master.id}
-            hasParcela={!!programa.plot}
-            datacentralId={datacentralId}
-            queryClient={queryClient}
-            onClose={() => onOpenChange(false)}
-          />
-        )}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
+          {sessionType === 'aspersion' ? (
+            <AspersionForm
+              programaId={programa.id}
+              masterId={master.id}
+              datacentralId={datacentralId}
+              queryClient={queryClient}
+              onClose={() => onOpenChange(false)}
+            />
+          ) : sessionType === 'phyto' ? (
+            <PhytoForm
+              programaId={programa.id}
+              masterId={master.id}
+              hasParcela={!!programa.plot}
+              datacentralId={datacentralId}
+              queryClient={queryClient}
+              onClose={() => onOpenChange(false)}
+            />
+          ) : sessionType === 'ndvi' ? (
+            <NdviForm
+              programaId={programa.id}
+              masterId={master.id}
+              hasParcela={!!programa.plot}
+              datacentralId={datacentralId}
+              queryClient={queryClient}
+              onClose={() => onOpenChange(false)}
+            />
+          ) : (
+            <SoilMapForm
+              programaId={programa.id}
+              masterId={master.id}
+              hasParcela={!!programa.plot}
+              datacentralId={datacentralId}
+              queryClient={queryClient}
+              onClose={() => onOpenChange(false)}
+            />
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )
@@ -285,7 +288,7 @@ function AspersionForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <Label htmlFor="as-start">Inicio estimado</Label>
           <Input id="as-start" type="date" {...register('est_start_date')} />
@@ -328,7 +331,7 @@ function AspersionForm({
         </p>
       )}
 
-      <DialogFooter>
+      <DialogFooter className={FOOTER_CLASS}>
         <Button type="button" variant="outline" onClick={onClose}>
           Cancelar
         </Button>
@@ -422,7 +425,7 @@ function PhytoForm({
         <Input id="ph-end" type="date" {...register('estimated_end_date')} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <Label htmlFor="ph-radius">Radio de tolerancia (m)</Label>
           <Input
@@ -485,7 +488,7 @@ function PhytoForm({
         </p>
       )}
 
-      <DialogFooter>
+      <DialogFooter className={FOOTER_CLASS}>
         <Button type="button" variant="outline" onClick={onClose}>
           Cancelar
         </Button>
@@ -573,7 +576,7 @@ function NdviForm({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <Label htmlFor="nd-start">Inicio estimado</Label>
           <Input id="nd-start" type="date" {...register('est_start_date')} />
@@ -611,7 +614,7 @@ function NdviForm({
         </p>
       )}
 
-      <DialogFooter>
+      <DialogFooter className={FOOTER_CLASS}>
         <Button type="button" variant="outline" onClick={onClose}>
           Cancelar
         </Button>
@@ -699,7 +702,7 @@ function SoilMapForm({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <Label htmlFor="sm-start">Inicio estimado</Label>
           <Input id="sm-start" type="date" {...register('est_init_date')} />
@@ -742,7 +745,7 @@ function SoilMapForm({
         </p>
       )}
 
-      <DialogFooter>
+      <DialogFooter className={FOOTER_CLASS}>
         <Button type="button" variant="outline" onClick={onClose}>
           Cancelar
         </Button>

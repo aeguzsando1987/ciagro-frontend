@@ -67,6 +67,15 @@ function renderDialog(plot: string | null = PLOT_ID) {
   return { onOpenChange, invalidateQueries }
 }
 
+/** Elige un tipo de sesión en el select del encabezado del diálogo. */
+async function selectSessionType(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+) {
+  await user.click(screen.getByRole('combobox', { name: /Tipo de sesión/i }))
+  await user.click(await screen.findByRole('option', { name: label }))
+}
+
 beforeEach(() => {
   mocks.post.mockReset()
   mocks.post.mockResolvedValue({ data: { id: 'soil-map-1' }, error: undefined })
@@ -77,7 +86,7 @@ describe('CreateSessionDialog — mapeo de suelo', () => {
     const user = userEvent.setup()
     renderDialog()
 
-    await user.click(screen.getByRole('button', { name: 'Mapeo de suelo' }))
+    await selectSessionType(user, 'Mapeo de suelo')
 
     expect(screen.getByLabelText('Fecha del mapeo *')).toBeInTheDocument()
     expect(screen.getByLabelText('Inicio estimado')).toBeInTheDocument()
@@ -90,7 +99,7 @@ describe('CreateSessionDialog — mapeo de suelo', () => {
     const user = userEvent.setup()
     const { onOpenChange, invalidateQueries } = renderDialog()
 
-    await user.click(screen.getByRole('button', { name: 'Mapeo de suelo' }))
+    await selectSessionType(user, 'Mapeo de suelo')
     await user.type(screen.getByLabelText('Fecha del mapeo *'), '2026-07-23')
     await user.type(screen.getByLabelText('Inicio estimado'), '2026-07-24')
     await user.type(screen.getByLabelText('Fin estimado'), '2026-07-30')
@@ -115,7 +124,7 @@ describe('CreateSessionDialog — mapeo de suelo', () => {
     const user = userEvent.setup()
     renderDialog(null)
 
-    await user.click(screen.getByRole('button', { name: 'Mapeo de suelo' }))
+    await selectSessionType(user, 'Mapeo de suelo')
 
     expect(screen.getByText(/no tiene parcela asignada/i)).toBeInTheDocument()
   })

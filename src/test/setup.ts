@@ -14,6 +14,22 @@ vi.stubGlobal(
   },
 )
 
+// jsdom tampoco implementa la API de pointer capture ni scrollIntoView, que Radix
+// usa en Select para posicionar el listado y seguir el puntero. Sin estos stubs
+// abrir un Select desde un test revienta.
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false
+}
+if (!Element.prototype.setPointerCapture) {
+  Element.prototype.setPointerCapture = () => {}
+}
+if (!Element.prototype.releasePointerCapture) {
+  Element.prototype.releasePointerCapture = () => {}
+}
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {}
+}
+
 // Setup compartido de Vitest. Se ejecuta antes de cualquier test (configurado
 // en vite.config.ts → test.setupFiles).
 //

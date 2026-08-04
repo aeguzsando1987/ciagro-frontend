@@ -228,8 +228,10 @@ export function NdviVariablesSection() {
             ))}
           </ul>
 
-          {/* Editor de la variable seleccionada */}
-          <div className="space-y-4">
+          {/* Editor de la variable seleccionada.
+              min-w-0 es necesario: sin él la pista 1fr del grid no baja de su
+              min-content y las filas de intervalos empujan el ancho de la página. */}
+          <div className="min-w-0 space-y-4">
             <h2 className="text-lg font-medium">{selectedLabel}</h2>
 
             {/* Estrategia */}
@@ -315,45 +317,57 @@ export function NdviVariablesSection() {
                   </select>
                 </div>
 
-                <div className="space-y-2">
+                {/* max-w acota la fila: sin tope, en una ventana maximizada la etiqueta
+                    estira la fila hasta el borde derecho y el selector de color queda
+                    pegado a él, con lo que el picker nativo del navegador (que se ancla
+                    al input) abre fuera de la ventana y no se puede usar. El color va al
+                    inicio de la fila por el mismo motivo: nunca cerca del borde. */}
+                <div className="max-w-2xl space-y-2">
                   {bands.map((b, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="w-6 text-xs text-muted-foreground">{i + 1}</span>
+                    <div
+                      key={i}
+                      className="flex flex-wrap items-center gap-2 rounded border p-2 sm:flex-nowrap sm:rounded-none sm:border-0 sm:p-0"
+                    >
+                      <span className="w-6 shrink-0 text-xs text-muted-foreground">{i + 1}</span>
+                      <input
+                        type="color"
+                        className="h-8 w-10 shrink-0 cursor-pointer rounded border"
+                        value={b.color}
+                        onChange={(e) => setBand(i, { color: e.target.value })}
+                        aria-label={`Color del intervalo ${i + 1}`}
+                      />
                       <Input
                         type="number"
                         step="any"
                         placeholder={i === 0 ? '−∞' : 'min'}
-                        className="w-24"
+                        className="w-20 shrink-0 sm:w-24"
                         value={b.min ?? ''}
                         onChange={(e) => setBand(i, { min: e.target.value === '' ? null : Number(e.target.value) })}
+                        aria-label={`Mínimo del intervalo ${i + 1}`}
                       />
-                      <span className="text-muted-foreground">–</span>
+                      <span className="shrink-0 text-muted-foreground">–</span>
                       <Input
                         type="number"
                         step="any"
                         placeholder={i === bands.length - 1 ? '+∞' : 'max'}
-                        className="w-24"
+                        className="w-20 shrink-0 sm:w-24"
                         value={b.max ?? ''}
                         onChange={(e) => setBand(i, { max: e.target.value === '' ? null : Number(e.target.value) })}
+                        aria-label={`Máximo del intervalo ${i + 1}`}
                       />
                       <Input
                         type="text"
                         placeholder="Etiqueta"
-                        className="flex-1"
+                        className="order-last w-full min-w-0 flex-1 sm:order-none sm:w-auto"
                         value={b.label}
                         onChange={(e) => setBand(i, { label: e.target.value })}
-                      />
-                      <input
-                        type="color"
-                        className="h-8 w-10 cursor-pointer rounded border"
-                        value={b.color}
-                        onChange={(e) => setBand(i, { color: e.target.value })}
+                        aria-label={`Etiqueta del intervalo ${i + 1}`}
                       />
                       <button
                         type="button"
                         onClick={() => removeBand(i)}
-                        className="px-1 text-muted-foreground hover:text-destructive"
-                        aria-label="Quitar intervalo"
+                        className="shrink-0 px-1 text-muted-foreground hover:text-destructive"
+                        aria-label={`Quitar intervalo ${i + 1}`}
                       >
                         ✕
                       </button>
