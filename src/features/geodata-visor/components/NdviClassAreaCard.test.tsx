@@ -2,13 +2,28 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NdviClassAreaCard } from './NdviClassAreaCard'
-import type { NdviClassAreaSummary } from '../lib/ndviClassArea'
+import type { NdviClassArea, NdviClassAreaSummary } from '../lib/ndviClassArea'
+
+function clase(over: Partial<NdviClassArea> & { order: number }): NdviClassArea {
+  return {
+    label: `Clase ${over.order + 1}`,
+    color: '#ffc800',
+    min: null,
+    max: null,
+    areaHa: 0,
+    pctArea: 0,
+    cells: 0,
+    pointCount: 0,
+    pctPoints: 0,
+    ...over,
+  }
+}
 
 function summary(overrides: Partial<NdviClassAreaSummary> = {}): NdviClassAreaSummary {
   return {
     classes: [
-      { order: 0, label: 'Media', color: '#ffc800', min: 0.6, max: 0.7, areaHa: 1.65, pctArea: 17.4, cells: 174, pointCount: 180, pctPoints: 17.6 },
-      { order: 1, label: 'Alta', color: '#ff7b00', min: 0.7, max: 0.8, areaHa: 4.37, pctArea: 46, cells: 460, pointCount: 430, pctPoints: 42 },
+      clase({ order: 0, min: 0.6, max: 0.7, color: '#ffc800', areaHa: 1.66, pctArea: 17.4, pointCount: 180 }),
+      clase({ order: 1, min: 0.7, max: 0.8, color: '#ff7b00', areaHa: 4.39, pctArea: 46, pointCount: 430 }),
     ],
     outsideCells: 0,
     outsideAreaHa: 0,
@@ -32,38 +47,94 @@ function renderCard(props: Partial<React.ComponentProps<typeof NdviClassAreaCard
 }
 
 describe('NdviClassAreaCard', () => {
-  it('muestra el rango y las hectareas de cada clase', () => {
+  it('rotula el eje x con el límite inferior de cada clase', () => {
     renderCard()
 
-    expect(screen.getByText('0.60 – 0.70')).toBeInTheDocument()
+    expect(screen.getByText('0.6')).toBeInTheDocument()
+    expect(screen.getByText('0.7')).toBeInTheDocument()
+    expect(screen.getByText('rango del índice')).toBeInTheDocument()
+  })
+
+  it('el eje y llega hasta la clase de mayor área', () => {
+    renderCard()
+
+    expect(screen.getByText('4.39')).toBeInTheDocument()
+    expect(screen.getByText('0')).toBeInTheDocument()
+  })
+
+  it('dibuja cada columna con el color de su clase y altura proporcional al área', () => {
+    const { container } = renderCard()
+    const barras = container.querySelectorAll('[style*="background-color"]')
+
+    expect(barras).toHaveLength(2)
+    // 1.66 sobre un maximo de 4.39 = 37.8%
+    expect((barras[0] as HTMLElement).style.height).toMatch(/^37\.8/)
+    expect((barras[1] as HTMLElement).style.height).toBe('100%')
+  })
+
+  it('usa dos decimales en el eje cuando las clases no son múltiplos de 0.1', () => {
+    renderCard({
+      summary: summary({
+        classes: [
+          clase({ order: 0, min: 0.65, max: 0.7, areaHa: 1 }),
+          clase({ order: 1, min: 0.7, max: 0.75, areaHa: 2 }),
+        ],
+      }),
+    })
+
+    expect(screen.getByText('0.65')).toBeInTheDocument()
+  })
+
+  it('al apuntar una columna detalla su rango, área, porcentaje y puntos', async () => {
+    const user = userEvent.setup()
+    renderCard()
+
+    expect(screen.getByText(/Pasa el cursor por una columna/)).toBeInTheDocument()
+
+    const columna = screen.getByTitle(/0.70 – 0.80/)
+    await user.hover(columna)
+
     expect(screen.getByText('0.70 – 0.80')).toBeInTheDocument()
-    expect(screen.getByText('1.65 ha')).toBeInTheDocument()
-    expect(screen.getByText('4.37 ha')).toBeInTheDocument()
+    expect(screen.getByText('4.39 ha')).toBeInTheDocument()
+    expect(screen.getByText('430 pts')).toBeInTheDocument()
   })
 
-  it('encabeza con el indice activo y el area realmente medida', () => {
-    renderCard()
-    expect(screen.getByText(/NDVI · 9.5 ha medidas/)).toBeInTheDocument()
+  it('no mete "Sin clase" como columna: va en el desglose', () => {
+    renderCard({ summary: summary({ outsideAreaHa: 2, pctOutside: 21 }) })
+
+    expect(screen.getByText('Sin clase')).toBeInTheDocument()
+    // Solo hay columnas de las clases configuradas, no una extra.
+    expect(screen.getAllByTitle(/ha ·/)).toHaveLength(2)
   })
 
-  it('no muestra la fila "Sin clase" cuando todo el area esta clasificada', () => {
+  it('omite "Sin clase" cuando toda el área está clasificada', () => {
     renderCard()
     expect(screen.queryByText('Sin clase')).not.toBeInTheDocument()
   })
 
-  it('muestra "Sin clase" cuando hay area fuera de las bandas configuradas', () => {
-    renderCard({ summary: summary({ outsideAreaHa: 9.5, pctOutside: 100, outsideCells: 950 }) })
+  it('desglosa parcela, medido y lo que quedó sin medir', () => {
+    renderCard({ plotAreaHa: 10.03 })
 
-    expect(screen.getByText('Sin clase')).toBeInTheDocument()
+    expect(screen.getByText('10.03 ha')).toBeInTheDocument()
     expect(screen.getByText('9.5 ha')).toBeInTheDocument()
+    // 10.03 - 9.5 = 0.53 ha, el 5.3% de la parcela.
+    expect(screen.getByText('0.53 ha (5.3%)')).toBeInTheDocument()
+    expect(screen.getByText('Sin medir')).toBeInTheDocument()
   })
 
-  it('contrasta el area de la parcela con la medida', () => {
-    renderCard({ plotAreaHa: 12.4 })
-    expect(screen.getByText(/Parcela: 12.4 ha · medido 9.5 ha/)).toBeInTheDocument()
+  it('avisa en vez de restar cuando lo medido excede el área declarada', () => {
+    renderCard({ plotAreaHa: 8 })
+
+    expect(screen.queryByText('Sin medir')).not.toBeInTheDocument()
+    expect(screen.getByText(/excede el área declarada/i)).toBeInTheDocument()
   })
 
-  it('avisa que en modo automatico las clases reparten el area por construccion', () => {
+  it('omite el bloque de parcela cuando no se conoce su superficie', () => {
+    renderCard()
+    expect(screen.queryByText('Parcela')).not.toBeInTheDocument()
+  })
+
+  it('avisa que en modo automático las clases reparten el área por construcción', () => {
     renderCard({ equalAreaByConstruction: true })
     expect(screen.getByText(/por construcción/i)).toBeInTheDocument()
   })
@@ -73,14 +144,14 @@ describe('NdviClassAreaCard', () => {
     expect(screen.queryByText(/por construcción/i)).not.toBeInTheDocument()
   })
 
-  it('colapsado oculta las clases y deja el encabezado', () => {
+  it('colapsado oculta el gráfico y deja el encabezado', () => {
     renderCard({ open: false })
 
-    expect(screen.queryByText('0.60 – 0.70')).not.toBeInTheDocument()
+    expect(screen.queryByText('rango del índice')).not.toBeInTheDocument()
     expect(screen.getByText('Superficie por clase')).toBeInTheDocument()
   })
 
-  it('el boton alterna y anuncia su estado', async () => {
+  it('el botón alterna y anuncia su estado', async () => {
     const onToggle = vi.fn()
     const user = userEvent.setup()
     renderCard({ onToggle })

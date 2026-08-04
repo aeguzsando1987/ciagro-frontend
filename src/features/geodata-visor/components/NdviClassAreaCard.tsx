@@ -1,20 +1,23 @@
 /**
  * Superficie por clase del indice activo, en hectareas.
  *
- * Barras horizontales y no columnas verticales por el sitio que ocupa: la tarjeta vive
- * flotando en una esquina del mapa y puede haber nueve o mas clases con etiquetas del tipo
- * "0.70 - 0.80". En vertical esas etiquetas chocan o hay que rotarlas; en horizontal la
- * etiqueta va a la izquierda de su barra y se lee sin girar la cabeza. Es el mismo patron
- * que SoilMapStatsCard.
+ * Histograma de columnas verticales: eje x los rangos de clase, eje y las hectareas. Cada
+ * columna lleva el color de SU clase, el mismo del mapa, para que leyenda e histograma se
+ * lean como una sola cosa.
  *
- * Cada barra lleva el color de SU clase, el mismo del mapa, para que leyenda e histograma
- * se lean como una sola cosa. El valor en hectareas va escrito en cada fila (etiquetado
- * directo), asi que no hace falta leyenda aparte; el texto usa tokens de texto y nunca el
- * color de la serie.
+ * Con nueve o mas clases no cabe una etiqueta por columna sin que choquen, asi que las
+ * etiquetas del eje x se ralean (siempre la primera y la ultima) y el detalle exacto de
+ * cada columna -rango, hectareas, % de area y puntos- se lee en la linea de lectura al
+ * pasar el cursor. El texto usa tokens de texto y nunca el color de la serie.
+ *
+ * "Sin clase" no entra como columna: el eje x es una escala de valores del indice y meter
+ * ahi una barra sin rango la falsearia. Va en el desglose de abajo, donde el area queda
+ * igualmente contabilizada.
  */
+import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { formatHa } from '../lib/aspersionMap.helpers'
-import { formatBandRange, type NdviClassAreaSummary } from '../lib/ndviClassArea'
+import { formatBandRange, type NdviClassArea, type NdviClassAreaSummary } from '../lib/ndviClassArea'
 
 interface NdviClassAreaCardProps {
   summary: NdviClassAreaSummary
@@ -26,14 +29,41 @@ interface NdviClassAreaCardProps {
   plotAreaHa?: number | null
   /**
    * En modo cuartiles los cortes se recalculan desde la propia superficie, asi que cada
-   * clase recibe ~1/n del area POR CONSTRUCCION y las barras salen casi iguales. Se avisa
-   * para que nadie lea como hallazgo lo que es un artefacto del metodo.
+   * clase recibe ~1/n del area POR CONSTRUCCION y las columnas salen casi iguales. Se
+   * avisa para que nadie lea como hallazgo lo que es un artefacto del metodo.
    */
   equalAreaByConstruction?: boolean
 }
 
+/** Alto del area de trazado, en px. Suficiente para comparar alturas sin comerse el mapa. */
+const CHART_HEIGHT = 84
+
 function pctText(value: number): string {
   return `${value.toLocaleString('es-MX', { maximumFractionDigits: 1 })}%`
+}
+
+/**
+ * Decimales minimos para que las marcas del eje x no se repitan: con clases de 0.1 basta
+ * uno, con clases de 0.05 hacen falta dos.
+ */
+function edgeDecimals(classes: NdviClassArea[]): number {
+  const bounds = classes.map((c) => c.min).filter((v): v is number => v !== null)
+  return bounds.some((v) => Math.abs(v * 10 - Math.round(v * 10)) > 1e-9) ? 2 : 1
+}
+
+/** Marca del eje x: el limite inferior de la clase, que es donde empieza su columna. */
+function edgeLabel(min: number | null, decimals: number): string {
+  return min === null ? '−∞' : min.toFixed(decimals)
+}
+
+/**
+ * Cada cuantas columnas se escribe una marca. Por debajo de ~22 px por columna las
+ * etiquetas se tocan, asi que se ralean en vez de rotarlas o recortarlas.
+ */
+function labelStep(count: number): number {
+  if (count <= 6) return 1
+  if (count <= 12) return 2
+  return Math.ceil(count / 6)
 }
 
 export function NdviClassAreaCard({
@@ -45,11 +75,25 @@ export function NdviClassAreaCard({
   equalAreaByConstruction = false,
 }: NdviClassAreaCardProps) {
   const { classes, coveredAreaHa, outsideAreaHa, pctOutside } = summary
-  // Escala de las barras: la clase mayor llena el ancho. Con el maximo a 0 no se divide.
-  const maxAreaHa = Math.max(outsideAreaHa, ...classes.map((c) => c.areaHa))
+  const [hovered, setHovered] = useState<number | null>(null)
+
+  // Escala del eje y: la clase mayor llena el alto. Con el maximo a 0 no se divide.
+  const maxAreaHa = Math.max(0, ...classes.map((c) => c.areaHa))
+  const decimals = edgeDecimals(classes)
+  const step = labelStep(classes.length)
+
+  /**
+   * Superficie de la parcela que quedo SIN medir: la que el casco convexo de los puntos
+   * no alcanza. null cuando lo medido excede el area declarada, caso en el que restar
+   * daria un negativo sin sentido y lo que conviene es avisar de la inconsistencia.
+   */
+  const unmeasuredAreaHa =
+    plotAreaHa != null && plotAreaHa > coveredAreaHa ? plotAreaHa - coveredAreaHa : null
+
+  const active = hovered != null ? classes[hovered] : null
 
   return (
-    <div className="w-[232px] rounded-md bg-white/90 shadow">
+    <div className="w-[272px] rounded-md bg-white/90 shadow">
       <button
         type="button"
         onClick={onToggle}
@@ -73,49 +117,117 @@ export function NdviClassAreaCard({
       </button>
 
       {open && (
-        <div className="border-t px-2 pb-2 pt-1.5">
-          <ul className="space-y-1">
-            {classes.map((c) => (
-              <li key={c.order} title={`${c.label}: ${pctText(c.pctArea)} del area · ${c.pointCount} puntos`}>
-                <div className="flex items-baseline justify-between gap-1 text-[10px] text-gray-600">
-                  <span className="truncate tabular-nums">{formatBandRange(c.min, c.max)}</span>
-                  <span className="shrink-0 tabular-nums font-medium text-gray-800">
-                    {formatHa(c.areaHa)} ha
+        <div className="border-t px-2 pb-2 pt-2">
+          <div className="flex gap-1">
+            {/* Eje y: solo el maximo y el cero. Mas marcas serian ruido a este tamaño. */}
+            <div
+              className="flex w-7 shrink-0 flex-col justify-between text-right text-[9px] tabular-nums text-gray-500"
+              style={{ height: CHART_HEIGHT }}
+            >
+              <span>{formatHa(maxAreaHa)}</span>
+              <span>0</span>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="relative" style={{ height: CHART_HEIGHT }}>
+                {/* Linea del maximo, discreta: referencia sin competir con las columnas. */}
+                <div className="absolute inset-x-0 top-0 border-t border-dashed border-gray-300" />
+                <div className="flex h-full items-end gap-[2px]">
+                  {classes.map((c, i) => (
+                    <div
+                      key={c.order}
+                      className="flex h-full flex-1 items-end"
+                      onMouseEnter={() => setHovered(i)}
+                      onMouseLeave={() => setHovered(null)}
+                      title={`${formatBandRange(c.min, c.max)}: ${formatHa(c.areaHa)} ha · ${pctText(c.pctArea)} del área · ${c.pointCount} puntos`}
+                    >
+                      <div
+                        className="w-full rounded-t-[2px] transition-opacity"
+                        style={{
+                          height: maxAreaHa > 0 ? `${(c.areaHa / maxAreaHa) * 100}%` : '0%',
+                          backgroundColor: c.color,
+                          // Resaltar la columna apuntada atenuando las demas.
+                          opacity: hovered === null || hovered === i ? 1 : 0.45,
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Eje x */}
+              <div className="border-t border-gray-300" />
+              <div className="flex gap-[2px]">
+                {classes.map((c, i) => (
+                  <span
+                    key={c.order}
+                    className="min-w-0 flex-1 truncate text-center text-[9px] tabular-nums text-gray-500"
+                  >
+                    {i % step === 0 || i === classes.length - 1
+                      ? edgeLabel(c.min, decimals)
+                      : ' '}
                   </span>
-                </div>
-                <div className="mt-0.5 h-2 w-full overflow-hidden rounded-sm bg-gray-200/70">
-                  <div
-                    className="h-full rounded-sm"
-                    style={{
-                      width: maxAreaHa > 0 ? `${(c.areaHa / maxAreaHa) * 100}%` : '0%',
-                      backgroundColor: c.color,
-                    }}
-                  />
-                </div>
-              </li>
-            ))}
+                ))}
+              </div>
+              <p className="mt-0.5 text-center text-[9px] text-gray-400">rango del índice</p>
+            </div>
+          </div>
 
-            {outsideAreaHa > 0 && (
-              <li title={`Sin clase: ${pctText(pctOutside)} del area`}>
-                <div className="flex items-baseline justify-between gap-1 text-[10px] text-gray-500">
-                  <span className="truncate">Sin clase</span>
-                  <span className="shrink-0 tabular-nums">{formatHa(outsideAreaHa)} ha</span>
-                </div>
-                <div className="mt-0.5 h-2 w-full overflow-hidden rounded-sm bg-gray-200/70">
-                  <div
-                    className="h-full rounded-sm bg-gray-400"
-                    style={{ width: maxAreaHa > 0 ? `${(outsideAreaHa / maxAreaHa) * 100}%` : '0%' }}
-                  />
-                </div>
-              </li>
+          {/* Linea de lectura: el detalle de la columna apuntada, o el total si no hay. */}
+          <p className="mt-1 truncate border-t pt-1 text-[10px] text-gray-600">
+            {active ? (
+              <>
+                <span className="tabular-nums">{formatBandRange(active.min, active.max)}</span>
+                {' · '}
+                <span className="font-medium tabular-nums text-gray-800">
+                  {formatHa(active.areaHa)} ha
+                </span>
+                {' · '}
+                <span className="tabular-nums">{pctText(active.pctArea)}</span>
+                {' · '}
+                <span className="tabular-nums">{active.pointCount} pts</span>
+              </>
+            ) : (
+              <span className="text-gray-400">Pasa el cursor por una columna para el detalle</span>
             )}
-          </ul>
+          </p>
 
-          {plotAreaHa != null && (
-            <p className="mt-1.5 border-t pt-1 text-[10px] text-gray-500">
-              Parcela: {formatHa(plotAreaHa)} ha · medido {formatHa(coveredAreaHa)} ha
-            </p>
-          )}
+          <dl className="mt-1 space-y-0.5 border-t pt-1 text-[10px] text-gray-500">
+            {outsideAreaHa > 0 && (
+              <div className="flex justify-between gap-1">
+                <dt>Sin clase</dt>
+                <dd className="tabular-nums">
+                  {formatHa(outsideAreaHa)} ha ({pctText(pctOutside)})
+                </dd>
+              </div>
+            )}
+            {plotAreaHa != null && (
+              <>
+                <div className="flex justify-between gap-1">
+                  <dt>Parcela</dt>
+                  <dd className="tabular-nums">{formatHa(plotAreaHa)} ha</dd>
+                </div>
+                <div className="flex justify-between gap-1">
+                  <dt>Medido</dt>
+                  <dd className="tabular-nums">{formatHa(coveredAreaHa)} ha</dd>
+                </div>
+                {unmeasuredAreaHa != null ? (
+                  <div className="flex justify-between gap-1 font-medium text-gray-700">
+                    <dt>Sin medir</dt>
+                    <dd className="tabular-nums">
+                      {formatHa(unmeasuredAreaHa)} ha ({pctText((unmeasuredAreaHa / plotAreaHa) * 100)})
+                    </dd>
+                  </div>
+                ) : (
+                  /* La nube de muestras desborda el area declarada de la parcela: no hay
+                     "sin medir" que reportar, y el dato a revisar es el otro. */
+                  <p className="pt-0.5 leading-snug text-amber-700">
+                    Lo medido excede el área declarada de la parcela; revisa su superficie.
+                  </p>
+                )}
+              </>
+            )}
+          </dl>
 
           {equalAreaByConstruction && (
             <p className="mt-1 text-[10px] leading-snug text-amber-700">

@@ -2453,3 +2453,30 @@ rango configurado, la tarjeta reporta 100 % "Sin clase" en vez de mentir.
 excluidas, bandas con `null`, suma consistente, escalado por tamaño de celda, caso degenerado) y 9
 en `NdviClassAreaCard.test.tsx`. Suite completa **337/337** (62 archivos), `tsc` y `eslint` limpios.
 **No verificado visualmente**: sigue sin haber navegador de Playwright en el entorno.
+
+#### Revisión: área sin medir y histograma vertical
+
+Dos correcciones tras la revisión del desarrollador.
+
+**Área no medida.** El desglose comparaba parcela contra superficie medida pero dejaba la resta al
+lector. Ahora indica explícitamente las hectáreas que quedaron fuera del casco convexo de los puntos
+y su porcentaje — en la sesión real, `10.03 − 9.54 = 0.49 ha (4.9 %)`. Si lo medido excediera el
+área declarada, restar daría un negativo sin sentido: en ese caso se avisa de la inconsistencia en
+vez de mostrar un número absurdo.
+
+**Columnas verticales.** Se había implementado con barras horizontales por el ancho disponible; lo
+pedido era el histograma clásico, con el eje x en los rangos de clase y el eje y en hectáreas. El
+cambio obliga a resolver justo lo que motivó la elección anterior:
+
+- La tarjeta se ensancha de 232 a 272 px.
+- Las marcas del eje x **se ralean automáticamente** (`labelStep`) cuando hay más de seis clases,
+  mostrando siempre la primera y la última, en lugar de rotarlas o recortarlas.
+- Los decimales del eje se deciden según los cortes (uno con clases de 0.1, dos con clases de 0.05)
+  para que no salgan etiquetas repetidas.
+- Como ya no cabe el valor en cada fila, se añade una **línea de lectura** con rango, hectáreas,
+  % de área y puntos de la columna apuntada, atenuando las demás columnas.
+
+"Sin clase" **no** entra como columna: el eje x es una escala de valores del índice y una barra sin
+rango lo falsearía. Se contabiliza en el desglose inferior, junto a parcela / medido / sin medir.
+
+Suite **342/342**, `tsc` y `eslint` limpios.
