@@ -28,6 +28,7 @@ import type { MasterProgramTree } from '@/features/task-manager/types'
 import { PlotMiniMap } from './PlotMiniMap'
 import { AspersionImportDialog } from '../components/AspersionImportDialog'
 import { SoilMapImportDialog } from '../components/SoilMapImportDialog'
+import { FlushSoilMapDialog } from '../components/FlushSoilMapDialog'
 import { SoilMapMapModal } from '../components/SoilMapMapModal'
 import { AspersionImportSummary } from '../components/AspersionImportSummary'
 import { PhytoStatsCard } from '../components/PhytoStatsCard'
@@ -679,8 +680,10 @@ export function SoilMapView({
 }: SoilMapViewProps) {
   const [importOpen, setImportOpen] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
+  const [flushOpen, setFlushOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const canViewMap = canViewSoilMap(roleLevel, detail.import_status, detail.points_count)
+  const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
 
   return (
     <div className="space-y-4">
@@ -750,6 +753,19 @@ export function SoilMapView({
             <Button size="sm" onClick={() => setImportOpen(true)}>
               {detail.import_status === 'done' ? 'Reimportar datos' : 'Importar datos'}
             </Button>
+            <p className="mt-2 text-xs text-muted-foreground">
+              La reimportación <strong>añade</strong> muestras a las existentes (no reemplaza).
+            </p>
+            {isSuperAdmin && (
+              <div className="mt-3 border-t border-dashed pt-3">
+                <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
+                  🗑 Eliminar los datos de esta sesión
+                </Button>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Acción de administrador: borra las muestras importadas solo de esta sesión.
+                </p>
+              </div>
+            )}
           </div>
 
           <SoilMapImportDialog
@@ -759,6 +775,14 @@ export function SoilMapView({
             open={importOpen}
             onOpenChange={setImportOpen}
           />
+
+          {isSuperAdmin && (
+            <FlushSoilMapDialog
+              open={flushOpen}
+              onClose={() => setFlushOpen(false)}
+              sessionId={detail.id}
+            />
+          )}
         </div>
 
         <div className="w-72 shrink-0 space-y-2">
