@@ -2248,3 +2248,146 @@ backend, y cae a los valores de los puntos si la malla queda vacía.
 - 7 tests nuevos en `ndviInterpolation.test.ts`: `sampleSpacing` recupera los 9.5 m reales, el blur
   reduce el moteado a menos de un cuarto con bandas más estrechas que el ruido, conserva la señal y
   la media, ignora los `NaN` sin contaminar vecinas, y no hace nada con radio menor a una celda.
+
+---
+
+## Sesión `ndvi-absolutos-stats` (2026-08-04, rama `dev`)
+
+Continuación de `visor-contours-tenant`. Tres arreglos de UI/render reportados por el desarrollador
+al usar el sistema, más el resumen estadístico que NDVI no tenía.
+
+### 1. El formulario "Nueva Sesión" se salía de la pantalla
+
+Dos causas independientes:
+
+- **Vertical.** `DialogContent` no tiene `max-height` ni scroll, y está centrado con
+  `translate-y-[-50%]`: el contenido alto se desborda por arriba **y** por abajo, y esa parte queda
+  inalcanzable porque no hay scroll que la rescate.
+- **Horizontal.** Los cuatro tipos de sesión eran botones fijos en un `flex gap-2` sin `wrap` dentro
+  de un `max-w-md` (448 px).
+
+Los botones pasan a un `Select` —agregar un quinto tipo ya no obliga a rediseñar el encabezado— y el
+diálogo se reestructura en tres zonas: encabezado y selector fijos (`shrink-0`), cuerpo con
+`min-h-0 flex-1 overflow-y-auto`, y pie `sticky bottom-0` para que "Crear Sesión" siga siempre a la
+vista. Responsive con `w-[calc(100vw-2rem)]` / `sm:max-w-md`, padding escalonado y las cuatro
+rejillas de fechas de `grid-cols-2` fijo a `grid-cols-1 sm:grid-cols-2`. Se usa `dvh` en vez de `vh`
+para que la barra de direcciones móvil no coma altura.
+
+Los 3 tests del diálogo clicaban el botón por nombre; ahora usan un helper que abre el combobox. En
+`src/test/setup.ts` se añaden stubs de `hasPointerCapture`/`setPointerCapture`/
+`releasePointerCapture`/`scrollIntoView`, que jsdom no implementa y sin los cuales Radix Select
+revienta al abrirse. Habilita testear cualquier `Select` de la app.
+
+### 2. El selector de color quedaba fuera de la ventana
+
+En *Configuración de variables de análisis*, con umbrales manuales. La fila de intervalo era un
+`flex` sin `wrap` con anchos fijos y la etiqueta `flex-1` **no encogía**: un flex item tiene
+`min-width: auto` por defecto y se planta en su ancho de contenido. La pista `1fr` del grid tampoco
+bajaba de su `min-content`. Aun a ventana completa el color quedaba pegado al borde derecho, y como
+el picker nativo se ancla al input, abría fuera de la ventana.
+
+Arreglo: `min-w-0` en la columna del editor, `max-w-2xl` en el contenedor de intervalos para que la
+fila no crezca con la ventana, y el selector de color **al inicio** de la fila —nunca cerca del
+borde, y de paso el chip identifica la banda junto a su índice—. Más `flex-wrap` en pantallas
+angostas con la etiqueta bajando a un segundo renglón, y `aria-label` numerado en cada control.
+
+### 3. Los colores no correspondían al valor de los puntos (umbrales absolutos)
+
+Reporte concreto: un punto con NDVI 0.534 pintado dentro de una mancha de la clase 0.6–0.7, y de las
+nueve clases configuradas solo se veían **dos**.
+
+**Causa medida.** `idwValue` promediaba los 1024 puntos con potencia **1.2**, tan baja que los pesos
+apenas decaen y cada celda tiende a la media global (0.724). El rango se aplasta:
+
+| | amplitud |
+|---|---|
+| puntos reales | 0.462 |
+| superficie interpolada | 0.254 |
+| tras el suavizado | 0.216 |
+
+La clase 8 (0.8–0.9) tenía **0 % del área con el 27.4 % de los puntos**.
+
+**Por qué no se había visto antes.** En modo cuartiles los cortes se recalculan desde la propia
+superficie aplastada (el arreglo `escala-por-campo` de la sesión anterior), así que las clases
+siempre reparten el área y el mapa *parece* correcto. Ese arreglo tapó el síntoma, no la causa; con
+umbrales absolutos no hay nada contra qué reescalar y el aplastamiento queda a la vista.
+
+`IDW_POWER` **1.2 → 4**: acierto de clase 47.4 % → **98.9 %**, error máximo 0.298 → 0.000. Se
+descartó limitar el IDW a *k* vecinos (98.4 %) porque exige un índice espacial para ~96 000 celdas
+contra 1024 puntos, y la potencia da más por un cambio de constante. Por encima de 4 la ganancia se
+agota (5 y 6 dan 99.1 % y 99.3 %) y solo se acentúa el *bullseye*.
+
+**Hallazgo colateral:** `krigingTrain` devuelve `null` con estos datos —falla el Cholesky de la
+matriz de Gram 512×512 tras los 6 reintentos de regularización hasta sigma 0.1—, así que `NdviMap`
+pedía kriging y **siempre caía en silencio a IDW**. Kriging e IDW daban resultados idénticos hasta el
+último decimal. Queda pendiente.
+
+**Suavizado apagado con umbrales absolutos.** El blur promedia con el vecindario y por tanto *mueve*
+el valor de cada celda; con cortes fijos ese desplazamiento cambia de clase. Nueva constante
+`ABSOLUTE_BANDS_SMOOTHING_FACTOR = 0`, conservando `DEFAULT_SMOOTHING_FACTOR` en cuartiles. Con
+potencia 4: sin blur 98.9 % y errMax 0.000 con 4.23 % de moteado, contra 87.4 % y errMax 0.116 con
+3.09 % usando blur 0.5 — compra 1 punto de moteado y cuesta 11 de fidelidad.
+
+> **Matiz medido después, que contradice en parte lo anterior.** Contra un campo de verdad sintético,
+> el suavizado **sí** mejora el acierto (91.5 % → 95.1 % con bandas de 0.1), porque la métrica
+> anterior premiaba reproducir el ruido de cada muestra. Se mantiene apagado por dos razones: la
+> consistencia entre el valor del tooltip y el color bajo el cursor es verificable por el usuario y
+> era la queja concreta; y el campo de verdad sintético es suave por construcción, lo que favorece
+> artificialmente al blur frente a un campo real con bordes duros. Revisable.
+
+`buildValueGrid` (fases 1–2) se extrae de `buildInterpolatedImage`: antes todo el pipeline dependía
+de `canvas`, que jsdom no implementa, y la superficie no se podía testear.
+
+### 4. Robustez de cualquier configuración manual
+
+Las clases manuales nacen en `0..1` (`newBand`) y una banda solo pinta si `min <= v < max`, pero
+varios índices de la misma sesión se salen de ese rango:
+
+| índice | rango real |
+|---|---|
+| VARI | −0.173 … 0.329 |
+| Índice de suelo desnudo | −0.367 … 0.063 |
+| NDMI | −0.012 … 0.422 |
+| MSAVI2 | 1.022 … 1.471 |
+
+Con la configuración por defecto el mapa de **MSAVI2 sale completamente en blanco** y VARI, suelo
+desnudo y NDMI con huecos grandes, sin ningún mensaje. `buildInterpolatedImage` devuelve ahora
+`outsideBands` y la leyenda muestra un aviso ámbar cuando pasa del 1 %, con el rango real del índice.
+
+**Estudio de robustez** con campo de verdad conocido: la densidad ayuda hasta ~1000 puntos para esta
+parcela (RMSE 0.0359 con 36 puntos → 0.0128 con 1024) y ahí se aplana, porque manda el ruido de la
+muestra. El límite real es el ancho de clase frente al ruido (0.031): acierto 95.0 % con clases de
+0.2, 91.5 % con 0.1, 80.9 % con 0.05 y 53.6 % con 0.02. Por debajo de ~0.05 la clase de un punto no
+es determinable con estos datos.
+
+### 5. Resumen estadístico de índices NDVI
+
+Nuevo hook `useNdviVariableStats` contra `GET /monitoring/ndvi/headers/{id}/variable-stats/` (fetch
+directo con el token: el endpoint aún no está en `api.d.ts`, mismo patrón que el de aspersión).
+
+- **Sesión NDVI** (`NdviSesionModal`): tabla de los 15 índices, espejo de `AspersionImportSummary`.
+- **Visor** (`NdviMap`): media/desv./mín/máx **solo del índice activo**, dentro del panel de leyenda
+  que ya existe. Una tabla de 15 filas estorbaría ahí; lo útil es el índice que se está mirando.
+
+Ambos consumen el mismo endpoint, así que visor y task-manager nunca muestran cifras distintas para
+la misma sesión. Se usan 3 decimales y no los 2 de aspersión porque los índices vegetativos se mueven
+en rangos estrechos (NDRE varía ~0.27 de punta a punta) y con dos varias filas saldrían iguales.
+
+**Invalidación:** se añade la clave `ndvi-variable-stats` al flush y a la importación. El flush de
+NDVI invalidaba el prefijo `['ndvi']`, pero react-query compara **elemento a elemento**, así que ese
+prefijo no alcanza a `'ndvi-variable-stats'`: sin la clave explícita el resumen se quedaría con los
+números viejos tras vaciar la sesión.
+
+### Verificación
+
+- `tsc --noEmit` → **0 errores**. `vitest run` → **314/314** (60 archivos).
+- 5 tests nuevos en `ndviInterpolation.test.ts` (fidelidad con umbrales absolutos) sobre una nube
+  **sintética** que replica las características de la sesión real, para no meter datos de cliente en
+  el repo. Se comprobó que muerden: revirtiendo `IDW_POWER` a 1.2, **3 de los 5 fallan**, incluido el
+  que verifica que no desaparezcan clases con peso real.
+- 3 tests nuevos en `NdviImportSummary.test.tsx`.
+- **No verificado visualmente**: no hay navegador de Playwright instalado en el entorno.
+
+El refactor del diálogo de flush unificado (`FlushSessionDialog`, `useFlushSession` y los cuatro
+diálogos por tipo) ya estaba en el working tree sin commitear al empezar la sesión; se commitea
+aparte, salvo la línea de invalidación añadida aquí.

@@ -21,8 +21,16 @@ import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import { useMapMode } from '../lib/mapModes'
 import { MapModeSelector } from './MapModeSelector'
 import { useNdviPoints, type NdviPoint } from '../hooks/useNdviPoints'
-import { buildInterpolatedImage, quantileBreaks, type InterpPoint, type ColorBand } from '../lib/ndviInterpolation'
+import {
+  buildInterpolatedImage,
+  quantileBreaks,
+  ABSOLUTE_BANDS_SMOOTHING_FACTOR,
+  DEFAULT_SMOOTHING_FACTOR,
+  type InterpPoint,
+  type ColorBand,
+} from '../lib/ndviInterpolation'
 import { useNdviSessionVariableConfig, readVariableConfig, resolveQuartileColors } from '../hooks/useNdviVariableConfig'
+import { useNdviVariableStats } from '@/features/task-manager/hooks/useNdviVariableStats'
 
 const INDICES: { key: keyof NdviPoint; label: string }[] = [
   { key: 'ndvi', label: 'NDVI' },
@@ -42,6 +50,13 @@ const INDICES: { key: keyof NdviPoint; label: string }[] = [
 // Rampa de la leyenda (misma que ndviInterpolation): bajo -> alto.
 const LEGEND_GRADIENT =
   'linear-gradient(to right, #d32f2f, #f57c00, #388e3c, #00acc1, #1565c0)'
+
+/** Tres decimales: los indices se mueven en rangos estrechos y dos los igualarian. */
+function fmtStat(v: number | null | undefined): string {
+  return v == null
+    ? '—'
+    : v.toLocaleString('es-MX', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+}
 
 function bboxFromRing(ring: number[][]): [number, number, number, number] {
   const lngs = ring.map((c) => c[0] as number)
@@ -90,9 +105,16 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
   // distintas, así que sin ámbito el backend caería a la asignación más antigua y ambas
   // verían la misma config. Si no hay alcance/config, el visor usa el gradiente.
   const { data: varConfig } = useNdviSessionVariableConfig(sessionId, { tenantId, dcId })
+  // Mismo endpoint que la tabla de resumen de la sesion en el task-manager.
+  const { data: varStats } = useNdviVariableStats(sessionId)
 
   const [indexKey, setIndexKey] = useState<keyof NdviPoint>('ndvi')
   const [hover, setHover] = useState<PointHover | null>(null)
+
+  const activeStat = useMemo(
+    () => varStats?.variables.find((v) => v.key === (indexKey as string)) ?? null,
+    [varStats, indexKey],
+  )
 
   // Bandas manuales de la variable activa, si el manager las configuro.
   const manualBands = useMemo<ColorBand[] | null>(() => {
@@ -149,7 +171,11 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
       }
     }
     if (interp.length < 3) return null
-    return buildInterpolatedImage(interp, 'kriging', manualBands, quartileColors)
+    // Con bandas manuales los cortes son ABSOLUTOS: suavizar desplazaria el valor de cada
+    // celda y la pintaria de otra clase. En cuartiles los cortes se recalculan desde la
+    // propia superficie, asi que ahi el suavizado no falsea nada y se conserva.
+    const smoothing = manualBands ? ABSOLUTE_BANDS_SMOOTHING_FACTOR : DEFAULT_SMOOTHING_FACTOR
+    return buildInterpolatedImage(interp, 'kriging', manualBands, quartileColors, 260, smoothing)
   }, [ring, points, indexKey, manualBands, quartileColors])
 
   const plotGeojson = useMemo(() => {
@@ -324,22 +350,62 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
             <p className="mb-2 text-xs font-semibold text-gray-700">
               {INDICES.find((i) => i.key === indexKey)?.label} · {points?.length ?? 0} puntos
             </p>
+
+            {/* Estadisticas del indice activo, del mismo endpoint que alimenta la tabla
+                de la sesion: asi el visor y el task-manager nunca muestran numeros
+                distintos para la misma sesion. */}
+            {activeStat && (
+              <dl className="mb-2 grid grid-cols-2 gap-x-2 gap-y-0.5 rounded bg-gray-100/70 px-2 py-1 text-[10px] text-gray-600">
+                <div className="flex justify-between gap-1">
+                  <dt>Media</dt>
+                  <dd className="font-medium tabular-nums text-gray-800">{fmtStat(activeStat.mean)}</dd>
+                </div>
+                <div className="flex justify-between gap-1">
+                  <dt>Desv.</dt>
+                  <dd className="tabular-nums">{fmtStat(activeStat.stddev)}</dd>
+                </div>
+                <div className="flex justify-between gap-1">
+                  <dt>Mín</dt>
+                  <dd className="tabular-nums">{fmtStat(activeStat.min)}</dd>
+                </div>
+                <div className="flex justify-between gap-1">
+                  <dt>Máx</dt>
+                  <dd className="tabular-nums">{fmtStat(activeStat.max)}</dd>
+                </div>
+              </dl>
+            )}
+
             {manualLegend ? (
               /* Modo manual: clases de la config del tenant. */
-              <ul className="space-y-1">
-                {manualLegend.map((b, i) => (
-                  <li key={i} className="flex items-center gap-2 text-xs">
-                    <span
-                      className="inline-block h-3 w-4 rounded-sm border border-black/10"
-                      style={{ backgroundColor: b.color }}
-                    />
-                    <span className="text-gray-700">{b.label}</span>
-                    <span className="ml-auto tabular-nums text-gray-500">
-                      {b.min ?? '−∞'} – {b.max ?? '+∞'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="space-y-1">
+                  {manualLegend.map((b, i) => (
+                    <li key={i} className="flex items-center gap-2 text-xs">
+                      <span
+                        className="inline-block h-3 w-4 rounded-sm border border-black/10"
+                        style={{ backgroundColor: b.color }}
+                      />
+                      <span className="text-gray-700">{b.label}</span>
+                      <span className="ml-auto tabular-nums text-gray-500">
+                        {b.min ?? '−∞'} – {b.max ?? '+∞'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {/* Sin este aviso, unos umbrales que no cubren el rango del indice dejan
+                    la superficie transparente y el mapa parece roto sin decir por que.
+                    Pasa facil: las clases manuales nacen en 0..1 y varios indices se
+                    salen de ahi (VARI y suelo desnudo dan negativos, MSAVI2 pasa de 1). */}
+                {surface.outsideBands > 0.01 && (
+                  <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] leading-snug text-amber-800">
+                    {(surface.outsideBands * 100).toFixed(0)}% del área queda sin pintar:
+                    esos valores no caen en ninguna clase configurada. El índice va de{' '}
+                    <span className="tabular-nums">{surface.min.toFixed(3)}</span> a{' '}
+                    <span className="tabular-nums">{surface.max.toFixed(3)}</span>; ajusta
+                    los umbrales en Configuración de variables de análisis.
+                  </p>
+                )}
+              </>
             ) : quartileLegend ? (
               /* Modo automático: escala de color por cuantiles (bajo -> alto) con
                  líneas en los valores de corte. Segmentos de igual ancho (cada cuantil

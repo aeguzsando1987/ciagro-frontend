@@ -56,6 +56,9 @@ export function useImportNdviData() {
           : prev,
       )
       queryClient.invalidateQueries({ queryKey: ['ndvi-detail', headerId] })
+      // La importacion es append: si la sesion ya estaba en 'done', el resumen de
+      // indices cacheado quedaria con los numeros de antes.
+      queryClient.invalidateQueries({ queryKey: ['ndvi-variable-stats', headerId] })
     },
   })
 }

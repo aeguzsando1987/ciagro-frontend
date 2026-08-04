@@ -29,6 +29,15 @@ export interface InterpolatedImage {
   coordinates: [[number, number], [number, number], [number, number], [number, number]]
   min: number
   max: number
+  /**
+   * Fraccion del area con datos que NO cae en ninguna banda configurada, y que por tanto
+   * queda transparente. Solo aplica al modo manual; 0 en los demas.
+   *
+   * Existe porque las bandas manuales nacen en 0..1 y varios indices se salen de ese
+   * rango (VARI y el indice de suelo desnudo dan negativos, MSAVI2 pasa de 1): con la
+   * config por defecto el mapa de esos indices sale entero en blanco sin explicar por que.
+   */
+  outsideBands: number
 }
 
 /** Banda de color para el modo manual (config del tenant). min/max null = ±∞. */
@@ -132,12 +141,39 @@ function rankFraction(v: number, sorted: number[]): number {
 }
 
 /**
- * Motor de interpolación (intercambiable). IDW con potencia BAJA para suavizar: potencia
- * alta crea el artefacto 'bullseye' (discos uniformes de color alrededor de cada punto)
- * cuando los puntos están separados. El contraste ya lo aporta la ecualización por
- * percentiles, así que aquí se prioriza suavidad.
+ * Potencia del IDW.
+ *
+ * Estuvo en 1.2 para priorizar suavidad, pero con esa potencia los pesos decaen tan
+ * despacio que cada celda acaba siendo un promedio de TODA la nube: la superficie tiende
+ * a la media global y el rango de valores se aplasta. Medido sobre la sesion real de
+ * 1024 puntos (rango 0.364-0.826, amplitud 0.462):
+ *
+ *   potencia 1.2 -> amplitud 0.254   (0.216 tras suavizar)
+ *   potencia 2   -> amplitud 0.378
+ *   potencia 4   -> amplitud 0.429
+ *
+ * Con umbrales ABSOLUTOS eso pinta el color equivocado: un punto de 0.534 caia dentro de
+ * una mancha pintada como 0.6-0.7, y de nueve clases configuradas solo se veian dos. En
+ * modo cuartiles el fallo quedaba oculto porque los cortes se recalculan desde la propia
+ * superficie aplastada (ver FASE 3), asi que las clases siempre repartian el area.
+ *
+ * Proporcion de puntos cuyo color coincide con su propio valor, contra las bandas reales
+ * del tenant (nueve clases de 0.1 de ancho), sin suavizado:
+ *
+ *   potencia 1.2 -> 47.4%      potencia 3 -> 98.3%
+ *   potencia 2   -> 95.6%      potencia 4 -> 98.9%
+ *
+ * A partir de 4 la ganancia se agota (5 y 6 dan 99.1% y 99.3%) y solo se acentua el
+ * 'bullseye', asi que ahi se queda. El moteado que motivo el suavizado no empeora de
+ * forma apreciable: 4.23% de celdas contiguas que cambian de clase, frente al 11.72%
+ * historico que justifico el blur.
  */
-function idwValue(x: number, y: number, pts: InterpPoint[], power = 1.2): number {
+export const IDW_POWER = 4
+
+/**
+ * Motor de interpolación (intercambiable). IDW ponderado por 1/d^IDW_POWER.
+ */
+function idwValue(x: number, y: number, pts: InterpPoint[], power = IDW_POWER): number {
   let num = 0
   let den = 0
   for (const p of pts) {
@@ -309,14 +345,45 @@ export function quantileBreaks(values: number[], n: number): number[] {
  */
 export const DEFAULT_SMOOTHING_FACTOR = 0.5
 
-export function buildInterpolatedImage(
+/**
+ * Suavizado cuando el color sale de umbrales ABSOLUTOS (bandas manuales).
+ *
+ * Cero, a proposito. El blur promedia con el vecindario y por tanto MUEVE el valor de
+ * cada celda; con cortes fijos ese desplazamiento cambia de clase y el mapa deja de decir
+ * la verdad sobre el dato. Medido sobre la sesion real con potencia 4:
+ *
+ *   sin blur    -> 98.9% de los puntos con su color correcto, error maximo 0.000, moteado 4.23%
+ *   blur 0.5    -> 87.4%,                                     error maximo 0.116, moteado 3.09%
+ *
+ * El blur compra ~1 punto de moteado y cuesta 11 de fidelidad: mal negocio cuando el
+ * usuario definio los umbrales a mano. Ademas su justificacion original no aplica aqui:
+ * se introdujo porque las bandas por cuartiles llegaban a ser mas estrechas (0.0247) que
+ * el ruido entre vecinos (0.0313), mientras que estas bandas manuales miden 0.1, mas del
+ * triple del ruido. En modo cuartiles se mantiene DEFAULT_SMOOTHING_FACTOR.
+ */
+export const ABSOLUTE_BANDS_SMOOTHING_FACTOR = 0
+
+/** Malla de valores interpolados, ya suavizada. Separada del coloreado para poder medirla en tests. */
+export interface ValueGrid {
+  grid: Float32Array
+  w: number
+  h: number
+  xmin: number
+  xmax: number
+  ymin: number
+  ymax: number
+}
+
+/**
+ * FASES 1 y 2 del pipeline: malla de valores sobre el casco convexo (NaN fuera) y
+ * suavizado a la escala del muestreo. Sin canvas, para poder verificarla en tests.
+ */
+export function buildValueGrid(
   pts: InterpPoint[],
   method: InterpMethod = 'idw',
-  bands: ColorBand[] | null = null,
-  quartileColors: string[] | null = null,
   gridSize = 260,
   smoothingFactor = DEFAULT_SMOOTHING_FACTOR,
-): InterpolatedImage | null {
+): ValueGrid | null {
   if (pts.length < 3) return null
 
   const hull = convexHull(pts)
@@ -346,12 +413,6 @@ export function buildInterpolatedImage(
   const ymax = Math.max(...ys)
   if (xmax === xmin || ymax === ymin) return null
 
-  const values = pts.map((p) => p.value)
-  const vmin = Math.min(...values)
-  const vmax = Math.max(...values)
-  // Arreglo ordenado para el mapeo de color por percentiles (ecualizacion).
-  const sorted = [...values].sort((a, b) => a - b)
-
   const w = gridSize
   const h = Math.max(1, Math.round((gridSize * (ymax - ymin)) / (xmax - xmin)))
 
@@ -372,6 +433,27 @@ export function buildInterpolatedImage(
   const cellSize = (xmax - xmin) / Math.max(1, w - 1)
   const radiusCells = cellSize > 0 ? (spacing * smoothingFactor) / cellSize : 0
   if (radiusCells >= 1) grid = blurGrid(grid, w, h, radiusCells)
+
+  return { grid, w, h, xmin, xmax, ymin, ymax }
+}
+
+export function buildInterpolatedImage(
+  pts: InterpPoint[],
+  method: InterpMethod = 'idw',
+  bands: ColorBand[] | null = null,
+  quartileColors: string[] | null = null,
+  gridSize = 260,
+  smoothingFactor = DEFAULT_SMOOTHING_FACTOR,
+): InterpolatedImage | null {
+  const field = buildValueGrid(pts, method, gridSize, smoothingFactor)
+  if (!field) return null
+  const { grid, w, h, xmin, xmax, ymin, ymax } = field
+
+  const values = pts.map((p) => p.value)
+  const vmin = Math.min(...values)
+  const vmax = Math.max(...values)
+  // Arreglo ordenado para el mapeo de color por percentiles (ecualizacion).
+  const sorted = [...values].sort((a, b) => a - b)
 
   // Los cortes de clase salen de la SUPERFICIE que se va a pintar, no de los puntos
   // crudos. Suavizar acorta las colas de la distribución, así que unos percentiles
@@ -394,6 +476,9 @@ export function buildInterpolatedImage(
   if (!ctx) return null
   const img = ctx.createImageData(w, h)
 
+  let withData = 0
+  let outside = 0
+
   for (let i = 0; i < w * h; i++) {
     const idx = i * 4
     const v = grid[i]!
@@ -401,6 +486,7 @@ export function buildInterpolatedImage(
       img.data[idx + 3] = 0
       continue
     }
+    withData++
     // Manual: color por banda de la config. Quartile con colores: clase discreta
     // por percentil. Sin colores: gradiente continuo ecualizado.
     let rgb: [number, number, number] | null
@@ -413,6 +499,7 @@ export function buildInterpolatedImage(
       rgb = rampColor(rankFraction(v, scale))
     }
     if (!rgb) {
+      outside++
       img.data[idx + 3] = 0
       continue
     }
@@ -434,5 +521,6 @@ export function buildInterpolatedImage(
     ],
     min: vmin,
     max: vmax,
+    outsideBands: withData > 0 ? outside / withData : 0,
   }
 }

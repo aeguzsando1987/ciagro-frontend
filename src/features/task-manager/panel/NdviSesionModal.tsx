@@ -13,6 +13,10 @@ import type { MasterProgramTree } from '@/features/task-manager/types'
 import { useNdviSessionDetail } from '../hooks/useNdviSessionDetail'
 import { NdviImportDialog } from '../components/NdviImportDialog'
 import { NdviMapModal } from '../components/NdviMapModal'
+import { NdviImportSummary } from '../components/NdviImportSummary'
+import { FlushNdviDialog } from '../components/FlushNdviDialog'
+import { useAuthStore } from '@/features/auth/useAuthStore'
+import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { PlotMiniMap } from './PlotMiniMap'
 
 const IMPORT_STATUS_LABELS: Record<string, string> = {
@@ -33,12 +37,16 @@ interface Props {
 
 /**
  * Modal de una sesión NDVI. A diferencia de aspersión/fitosanitario, NDVI no tiene
- * evaluación, variable-stats ni reporteador: solo se importa el CSV y se abre el visor de
- * contornos. Por eso es un modal dedicado y simple, no una rama dentro de SesionModal.
+ * evaluación ni reporteador: se importa el CSV, se revisa el resumen de índices y se abre
+ * el visor de contornos. Por eso es un modal dedicado y simple, no una rama dentro de
+ * SesionModal.
  */
 export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }: Props) {
   const [importOpen, setImportOpen] = useState(false)
   const [visorOpen, setVisorOpen] = useState(false)
+  const [flushOpen, setFlushOpen] = useState(false)
+  const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
+  const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
 
   const queryClient = useQueryClient()
   const tree = queryClient.getQueryData<MasterProgramTree>(['master-tree', masterId])
@@ -99,6 +107,10 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
               </p>
             )}
 
+            {importStatus === 'done' && points > 0 && (
+              <NdviImportSummary headerId={sesionId} />
+            )}
+
             <div className="flex flex-wrap gap-2">
               <Button type="button" onClick={() => setImportOpen(true)}>
                 Importar CSV
@@ -113,6 +125,17 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
                 Abrir visor
               </Button>
             </div>
+
+            {isSuperAdmin && (
+              <div className="mt-3 border-t border-dashed pt-3">
+                <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
+                  🗑 Eliminar los datos de esta sesión
+                </Button>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Acción de administrador: borra los puntos importados solo de esta sesión.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </DialogContent>
@@ -132,6 +155,13 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
           plotId={plotId}
           open={visorOpen}
           onOpenChange={setVisorOpen}
+        />
+      )}
+      {isSuperAdmin && flushOpen && (
+        <FlushNdviDialog
+          open={flushOpen}
+          onClose={() => setFlushOpen(false)}
+          sessionId={sesionId}
         />
       )}
     </Dialog>
