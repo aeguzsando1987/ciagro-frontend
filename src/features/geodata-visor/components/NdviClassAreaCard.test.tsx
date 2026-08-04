@@ -55,11 +55,15 @@ describe('NdviClassAreaCard', () => {
     expect(screen.getByText('rango del índice')).toBeInTheDocument()
   })
 
-  it('el eje y llega hasta la clase de mayor área', () => {
+  it('rotula el eje y en hectáreas y con marcas intermedias', () => {
     renderCard()
 
-    expect(screen.getByText('4.39')).toBeInTheDocument()
-    expect(screen.getByText('0')).toBeInTheDocument()
+    expect(screen.getByText('Ha')).toBeInTheDocument()
+    // Con un maximo de 4.39 el eje sube a 5 en pasos redondos: 0,1,2,3,4,5. Sin marcas
+    // intermedias no se puede estimar cuanto vale una barra a media altura.
+    for (const marca of ['0', '1', '2', '3', '4', '5']) {
+      expect(screen.getByText(marca)).toBeInTheDocument()
+    }
   })
 
   it('dibuja cada columna con el color de su clase y altura proporcional al área', () => {
@@ -67,9 +71,38 @@ describe('NdviClassAreaCard', () => {
     const barras = container.querySelectorAll('[style*="background-color"]')
 
     expect(barras).toHaveLength(2)
-    // 1.66 sobre un maximo de 4.39 = 37.8%
-    expect((barras[0] as HTMLElement).style.height).toMatch(/^37\.8/)
-    expect((barras[1] as HTMLElement).style.height).toBe('100%')
+    // El eje llega a 5 y el area de trazado mide 128px: 1.66 -> 42.5px, 4.39 -> 112.4px.
+    expect((barras[0] as HTMLElement).style.height).toMatch(/^42\.4/)
+    expect((barras[1] as HTMLElement).style.height).toMatch(/^112\.3/)
+  })
+
+  it('escribe área y porcentaje dentro de las barras con espacio suficiente', () => {
+    renderCard()
+
+    expect(screen.getByText('4.39')).toBeInTheDocument()
+    expect(screen.getByText('46%')).toBeInTheDocument()
+    expect(screen.getByText('1.66')).toBeInTheDocument()
+    // Dentro de la barra el porcentaje se redondea: "17.4%" no cabe en ~23px de ancho.
+    expect(screen.getByText('17%')).toBeInTheDocument()
+    // El valor exacto sigue disponible en la linea de lectura y en el title.
+    expect(screen.getByTitle(/17.4% del área/)).toBeInTheDocument()
+  })
+
+  it('omite la etiqueta interior en las barras demasiado bajas', () => {
+    // 0.01 ha sobre un eje que llega a 5 deja una barra de 0.26px: no cabe nada dentro.
+    renderCard({
+      summary: summary({
+        classes: [
+          clase({ order: 0, min: 0.6, max: 0.7, areaHa: 0.01, pctArea: 0.1 }),
+          clase({ order: 1, min: 0.7, max: 0.8, areaHa: 4.39, pctArea: 46 }),
+        ],
+      }),
+    })
+
+    expect(screen.queryByText('0.01')).not.toBeInTheDocument()
+    expect(screen.queryByText('0.1%')).not.toBeInTheDocument()
+    // La barra alta si la lleva.
+    expect(screen.getByText('4.39')).toBeInTheDocument()
   })
 
   it('usa dos decimales en el eje cuando las clases no son múltiplos de 0.1', () => {

@@ -2480,3 +2480,31 @@ cambio obliga a resolver justo lo que motivó la elección anterior:
 rango lo falsearía. Se contabiliza en el desglose inferior, junto a parcela / medido / sin medir.
 
 Suite **342/342**, `tsc` y `eslint` limpios.
+
+#### Afinado del histograma: eje con marcas intermedias y etiquetas en las barras
+
+**Eje y.** Iba de 0 al máximo sin nada en medio, así que no se podía estimar cuánto valía una barra a
+media altura. Nuevo módulo `chartScale.ts` con `niceAxisTicks`, que **redondea el paso al número
+legible más cercano** (1, 2, 5 por potencia de diez) en vez de partir el máximo en trozos: con un
+máximo de 4.389 el eje sube a 5 con marcas 0, 1, 2, 3, 4, 5 — no a 4.389 partido en cuatro pedazos de
+1.0975. Se añade retícula discreta en cada marca y la unidad **Ha** explícita encima del eje.
+
+**Etiquetas dentro de las barras.** Área y porcentaje escritos en la propia columna, pero **solo
+donde caben**: dos líneas a partir de 30 px de alto, solo el área a partir de 15 px, y nada por
+debajo — ahí el dato se lee en la línea de lectura al pasar el cursor. Con más de 10 clases se
+desactivan, porque la columna baja de ~20 px de ancho.
+
+El porcentaje se compacta a entero a partir del 10 %: `17.4%` no cabe en los ~23 px de columna que
+quedan con nueve clases. El valor exacto sigue en la línea de lectura y en el `title`.
+
+El color del texto se decide por la **luminancia del fondo** (`readableTextColor`, definición WCAG).
+Los colores de clase los elige el usuario en el configurador y van de un verde muy claro a un rojo
+oscuro: fijar el texto en blanco o en negro dejaría la mitad de los casos ilegible.
+
+El área de trazado sube de 84 a 128 px para que quepan marcas y etiquetas.
+
+Verificado con las áreas reales de la sesión: columna de 22.7 px con nueve clases, tres barras con
+área + %, una con solo el área y el resto accesibles al pasar el cursor. Eje 0–5 con seis marcas.
+
+11 tests nuevos (9 de `chartScale`, incluidos los casos de magnitudes muy distintas y color mal
+formado). Suite **353/353** (63 archivos), `tsc` y `eslint` limpios.

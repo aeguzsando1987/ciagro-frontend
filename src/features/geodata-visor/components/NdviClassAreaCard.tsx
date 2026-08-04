@@ -17,6 +17,7 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { formatHa } from '../lib/aspersionMap.helpers'
+import { niceAxisTicks, readableTextColor } from '../lib/chartScale'
 import { formatBandRange, type NdviClassArea, type NdviClassAreaSummary } from '../lib/ndviClassArea'
 
 interface NdviClassAreaCardProps {
@@ -35,11 +36,30 @@ interface NdviClassAreaCardProps {
   equalAreaByConstruction?: boolean
 }
 
-/** Alto del area de trazado, en px. Suficiente para comparar alturas sin comerse el mapa. */
-const CHART_HEIGHT = 84
+/**
+ * Alto del area de trazado, en px. Se subio de 84 a 128 al añadir marcas intermedias y
+ * etiquetas dentro de las barras: con menos alto no cabian ni unas ni otras.
+ */
+const CHART_HEIGHT = 128
+
+/** Alto minimo de barra para escribir area y porcentaje dentro; por debajo, solo el area. */
+const LABEL_TWO_LINES_PX = 30
+/** Alto minimo de barra para escribir algo dentro. Por debajo el dato se lee al pasar el cursor. */
+const LABEL_ONE_LINE_PX = 15
+/** Mas columnas que esto y no hay ancho para etiquetas dentro de la barra. */
+const MAX_CLASSES_WITH_INNER_LABELS = 10
 
 function pctText(value: number): string {
   return `${value.toLocaleString('es-MX', { maximumFractionDigits: 1 })}%`
+}
+
+/**
+ * Porcentaje para escribir DENTRO de la barra, donde hay ~23 px de ancho: se redondea a
+ * entero a partir del 10% ("17%" en vez de "17.4%") y solo se conserva un decimal en los
+ * valores pequeños, donde el decimal es la informacion.
+ */
+function pctCompact(value: number): string {
+  return value >= 10 ? `${Math.round(value)}%` : pctText(value)
 }
 
 /**
@@ -77,10 +97,13 @@ export function NdviClassAreaCard({
   const { classes, coveredAreaHa, outsideAreaHa, pctOutside } = summary
   const [hovered, setHovered] = useState<number | null>(null)
 
-  // Escala del eje y: la clase mayor llena el alto. Con el maximo a 0 no se divide.
+  // Eje y con marcas intermedias en valores redondos: con solo 0 y el maximo no se puede
+  // estimar cuanto vale una barra a media altura.
   const maxAreaHa = Math.max(0, ...classes.map((c) => c.areaHa))
+  const { axisMax, ticks } = niceAxisTicks(maxAreaHa)
   const decimals = edgeDecimals(classes)
   const step = labelStep(classes.length)
+  const innerLabels = classes.length <= MAX_CLASSES_WITH_INNER_LABELS
 
   /**
    * Superficie de la parcela que quedo SIN medir: la que el casco convexo de los puntos
@@ -119,39 +142,78 @@ export function NdviClassAreaCard({
       {open && (
         <div className="border-t px-2 pb-2 pt-2">
           <div className="flex gap-1">
-            {/* Eje y: solo el maximo y el cero. Mas marcas serian ruido a este tamaño. */}
-            <div
-              className="flex w-7 shrink-0 flex-col justify-between text-right text-[9px] tabular-nums text-gray-500"
-              style={{ height: CHART_HEIGHT }}
-            >
-              <span>{formatHa(maxAreaHa)}</span>
-              <span>0</span>
+            {/* Eje y: unidad arriba y marcas en valores redondos, alineadas a su altura. */}
+            <div className="w-8 shrink-0">
+              <div className="text-right text-[9px] font-medium leading-none text-gray-500">Ha</div>
+              <div className="relative mt-0.5" style={{ height: CHART_HEIGHT }}>
+                {ticks.map((t) => (
+                  <span
+                    key={t}
+                    className="absolute right-0 -translate-y-1/2 text-[9px] tabular-nums leading-none text-gray-500"
+                    style={{ bottom: axisMax > 0 ? `${(t / axisMax) * 100}%` : '0%' }}
+                  >
+                    {formatHa(t)}
+                  </span>
+                ))}
+              </div>
             </div>
 
             <div className="min-w-0 flex-1">
-              <div className="relative" style={{ height: CHART_HEIGHT }}>
-                {/* Linea del maximo, discreta: referencia sin competir con las columnas. */}
-                <div className="absolute inset-x-0 top-0 border-t border-dashed border-gray-300" />
-                <div className="flex h-full items-end gap-[2px]">
-                  {classes.map((c, i) => (
-                    <div
-                      key={c.order}
-                      className="flex h-full flex-1 items-end"
-                      onMouseEnter={() => setHovered(i)}
-                      onMouseLeave={() => setHovered(null)}
-                      title={`${formatBandRange(c.min, c.max)}: ${formatHa(c.areaHa)} ha · ${pctText(c.pctArea)} del área · ${c.pointCount} puntos`}
-                    >
+              {/* Reserva del alto de la etiqueta "Ha" para que ambas columnas se alineen. */}
+              <div className="h-[9px]" />
+              <div className="relative mt-0.5" style={{ height: CHART_HEIGHT }}>
+                {/* Retícula discreta: da referencia sin competir con las columnas. */}
+                {ticks.map((t) => (
+                  <div
+                    key={t}
+                    className="absolute inset-x-0 border-t border-dashed border-gray-200"
+                    style={{ bottom: axisMax > 0 ? `${(t / axisMax) * 100}%` : '0%' }}
+                  />
+                ))}
+                <div className="relative flex h-full items-end gap-[2px]">
+                  {classes.map((c, i) => {
+                    const barPx = axisMax > 0 ? (c.areaHa / axisMax) * CHART_HEIGHT : 0
+                    const showTwoLines = innerLabels && barPx >= LABEL_TWO_LINES_PX
+                    const showOneLine = innerLabels && !showTwoLines && barPx >= LABEL_ONE_LINE_PX
+                    return (
                       <div
-                        className="w-full rounded-t-[2px] transition-opacity"
-                        style={{
-                          height: maxAreaHa > 0 ? `${(c.areaHa / maxAreaHa) * 100}%` : '0%',
-                          backgroundColor: c.color,
-                          // Resaltar la columna apuntada atenuando las demas.
-                          opacity: hovered === null || hovered === i ? 1 : 0.45,
-                        }}
-                      />
-                    </div>
-                  ))}
+                        key={c.order}
+                        className="flex h-full flex-1 items-end"
+                        onMouseEnter={() => setHovered(i)}
+                        onMouseLeave={() => setHovered(null)}
+                        title={`${formatBandRange(c.min, c.max)}: ${formatHa(c.areaHa)} ha · ${pctText(c.pctArea)} del área · ${c.pointCount} puntos`}
+                      >
+                        <div
+                          className="flex w-full flex-col items-center justify-start overflow-hidden rounded-t-[2px] pt-0.5 transition-opacity"
+                          style={{
+                            height: `${barPx}px`,
+                            backgroundColor: c.color,
+                            // Resaltar la columna apuntada atenuando las demas.
+                            opacity: hovered === null || hovered === i ? 1 : 0.45,
+                          }}
+                        >
+                          {/* Etiquetado directo solo donde cabe: en las barras bajas el dato
+                              se lee en la linea de lectura al pasar el cursor. */}
+                          {(showTwoLines || showOneLine) && (
+                            <span
+                              className="text-[8px] font-medium leading-tight tabular-nums"
+                              style={{ color: readableTextColor(c.color) }}
+                            >
+                              {formatHa(c.areaHa)}
+                            </span>
+                          )}
+                          {showTwoLines && (
+                            <span
+                              className="text-[8px] leading-tight tabular-nums opacity-90"
+                              style={{ color: readableTextColor(c.color) }}
+                            >
+                              {pctCompact(c.pctArea)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
 
