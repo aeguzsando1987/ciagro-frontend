@@ -38,6 +38,13 @@ export interface InterpolatedImage {
    * config por defecto el mapa de esos indices sale entero en blanco sin explicar por que.
    */
   outsideBands: number
+  /**
+   * La malla de valores con la que se pinto. Se expone para que quien necesite medirla
+   * (reparto de superficie por clase) no tenga que volver a interpolar: es la parte cara
+   * del pipeline, y recalcularla abriria la puerta a que las cifras no cuadren con lo
+   * que se ve.
+   */
+  field: ValueGrid
 }
 
 /** Banda de color para el modo manual (config del tenant). min/max null = ±∞. */
@@ -372,6 +379,31 @@ export interface ValueGrid {
   xmax: number
   ymin: number
   ymax: number
+  /**
+   * Superficie de UNA celda en hectareas. Con esto el area de cualquier conjunto de
+   * celdas es una multiplicacion, sin prorratear contra el area de la parcela: el area
+   * cubierta por los datos es el total de celdas no-NaN por este factor.
+   */
+  cellAreaHa: number
+}
+
+/** Metros por grado de latitud; los mismos que usa polygonAreaHa en soilMapArea.ts. */
+const METERS_PER_DEGREE = 111_320
+
+/**
+ * Area de una celda de la malla, en hectareas.
+ *
+ * Proyeccion equirectangular local, igual que polygonAreaHa: a la escala de una parcela
+ * agricola la diferencia frente a PostGIS/UTM es despreciable. Los grados de longitud se
+ * encogen con el coseno de la latitud; se toma la del centro del bbox.
+ */
+function cellAreaInHa(xmin: number, xmax: number, ymin: number, ymax: number, w: number, h: number): number {
+  if (w < 2 || h < 2) return 0
+  const midLat = (ymin + ymax) / 2
+  const lonScale = Math.cos((midLat * Math.PI) / 180)
+  const cellWidthM = ((xmax - xmin) / (w - 1)) * METERS_PER_DEGREE * lonScale
+  const cellHeightM = ((ymax - ymin) / (h - 1)) * METERS_PER_DEGREE
+  return (cellWidthM * cellHeightM) / 10_000
 }
 
 /**
@@ -434,7 +466,10 @@ export function buildValueGrid(
   const radiusCells = cellSize > 0 ? (spacing * smoothingFactor) / cellSize : 0
   if (radiusCells >= 1) grid = blurGrid(grid, w, h, radiusCells)
 
-  return { grid, w, h, xmin, xmax, ymin, ymax }
+  return {
+    grid, w, h, xmin, xmax, ymin, ymax,
+    cellAreaHa: cellAreaInHa(xmin, xmax, ymin, ymax, w, h),
+  }
 }
 
 export function buildInterpolatedImage(
@@ -522,5 +557,6 @@ export function buildInterpolatedImage(
     min: vmin,
     max: vmax,
     outsideBands: withData > 0 ? outside / withData : 0,
+    field,
   }
 }

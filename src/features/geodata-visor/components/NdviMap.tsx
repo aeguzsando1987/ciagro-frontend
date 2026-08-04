@@ -31,6 +31,8 @@ import {
 } from '../lib/ndviInterpolation'
 import { useNdviSessionVariableConfig, readVariableConfig, resolveQuartileColors } from '../hooks/useNdviVariableConfig'
 import { useNdviVariableStats } from '@/features/task-manager/hooks/useNdviVariableStats'
+import { buildNdviClassAreas, type ClassBand } from '../lib/ndviClassArea'
+import { NdviClassAreaCard } from './NdviClassAreaCard'
 
 const INDICES: { key: keyof NdviPoint; label: string }[] = [
   { key: 'ndvi', label: 'NDVI' },
@@ -110,6 +112,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
 
   const [indexKey, setIndexKey] = useState<keyof NdviPoint>('ndvi')
   const [hover, setHover] = useState<PointHover | null>(null)
+  const [areaCardOpen, setAreaCardOpen] = useState(true)
 
   const activeStat = useMemo(
     () => varStats?.variables.find((v) => v.key === (indexKey as string)) ?? null,
@@ -177,6 +180,40 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
     const smoothing = manualBands ? ABSOLUTE_BANDS_SMOOTHING_FACTOR : DEFAULT_SMOOTHING_FACTOR
     return buildInterpolatedImage(interp, 'kriging', manualBands, quartileColors, 260, smoothing)
   }, [ring, points, indexKey, manualBands, quartileColors])
+
+  // Bandas con las que se mide la superficie: las manuales del tenant, o los tramos por
+  // cuantiles ya calculados para la leyenda. El modulo de area no distingue estrategias.
+  const areaBands = useMemo<ClassBand[] | null>(() => {
+    if (manualLegend) {
+      return manualLegend.map((b) => ({ min: b.min, max: b.max, color: b.color, label: b.label }))
+    }
+    if (quartileLegend) {
+      return quartileLegend.map((b, i) => ({
+        min: b.min,
+        max: i === quartileLegend.length - 1 ? null : b.max,
+        color: b.color,
+        label: `Q${i + 1}`,
+      }))
+    }
+    return null
+  }, [manualLegend, quartileLegend])
+
+  // Reparto de superficie por clase. Mide la MISMA malla que se pinto (surface.field), no
+  // una recalculada: interpolar es la parte cara y dos mallas podrian no coincidir.
+  const classAreas = useMemo(() => {
+    if (!surface || !areaBands) return null
+    const values = points?.map((p) => p[indexKey] as number | null | undefined) ?? []
+    return buildNdviClassAreas(surface.field, areaBands, values)
+  }, [surface, areaBands, points, indexKey])
+
+  // Area de la parcela como contraste: la superficie medida se recorta al casco convexo
+  // de los puntos, asi que casi siempre es menor que la parcela completa.
+  const plotAreaHa = useMemo(() => {
+    const raw = (plot as { properties?: { total_area?: string | number | null } } | undefined)
+      ?.properties?.total_area
+    const n = typeof raw === 'number' ? raw : Number.parseFloat(raw ?? '')
+    return Number.isFinite(n) && n > 0 ? n : null
+  }, [plot])
 
   const plotGeojson = useMemo(() => {
     if (!plot?.geometry) return null
@@ -319,6 +356,21 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
       <div className="absolute right-3 top-3 z-10">
         <MapModeSelector active={mapMode} onChange={setMapMode} />
       </div>
+
+      {/* Superficie por clase. Va abajo a la derecha: arriba a la derecha esta el selector
+          de modo y abajo a la izquierda la leyenda, asi que es la unica esquina libre. */}
+      {classAreas && (
+        <div className="absolute bottom-3 right-3 z-10">
+          <NdviClassAreaCard
+            summary={classAreas}
+            indexLabel={INDICES.find((i) => i.key === indexKey)?.label ?? ''}
+            open={areaCardOpen}
+            onToggle={() => setAreaCardOpen((v) => !v)}
+            plotAreaHa={plotAreaHa}
+            equalAreaByConstruction={!manualLegend}
+          />
+        </div>
+      )}
 
       <div className="absolute left-3 top-3 z-10 rounded-md bg-white/90 p-2 shadow">
         <div className="flex items-center gap-2">

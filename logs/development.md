@@ -2391,3 +2391,65 @@ números viejos tras vaciar la sesión.
 El refactor del diálogo de flush unificado (`FlushSessionDialog`, `useFlushSession` y los cuatro
 diálogos por tipo) ya estaba en el working tree sin commitear al empezar la sesión; se commitea
 aparte, salvo la línea de invalidación añadida aquí.
+
+### 6. Superficie por clase en hectáreas (visor NDVI)
+
+El visor pintaba los colores pero no respondía la pregunta agronómica: *¿cuántas hectáreas están en
+zona de peligro?* Nueva tarjeta con el área que abarca cada clase.
+
+**El área sale de contar celdas de la superficie, no puntos.** Cada celda representa un trozo igual
+de terreno, así que el reparto es espacial y no depende de que el muestreo sea uniforme — la misma
+lección que ya estaba aprendida en `soilMapArea.buildSoilRasterAreaStats`. El conteo de puntos se
+conserva como dato secundario en el tooltip, útil para contrastar: con malla regular ambos números
+deben quedar cerca, y una divergencia grande delataría un fallo en el reparto.
+
+**El 100 % es el área cubierta por los datos, no la parcela.** La superficie se recorta al casco
+convexo de los puntos; prorratear contra `plot.total_area` atribuiría hectáreas donde no se midió
+nada. El total de la parcela se muestra aparte para que la diferencia se vea.
+
+`buildValueGrid` gana `cellAreaHa` (proyección equirectangular local, la misma que `polygonAreaHa`)
+y `buildInterpolatedImage` expone la malla en `field`, para medir **exactamente la que se pintó** y
+no recalcularla: interpolar es la parte cara del pipeline y dos mallas podrían no cuadrar.
+
+**Barras horizontales**, no columnas verticales: la tarjeta flota en una esquina del mapa y con
+nueve clases las etiquetas tipo `0.70 – 0.80` chocarían en vertical. Cada barra lleva el color de su
+clase, el mismo del mapa, para que leyenda e histograma se lean como una sola cosa; el valor en
+hectáreas va escrito en cada fila, así que no hace falta leyenda aparte. Esquina inferior derecha
+—arriba-derecha está el selector de modo y abajo-izquierda la leyenda— con botón para colapsarla.
+
+Fila "Sin clase" cuando hay área fuera de las bandas, que engancha con el aviso de `outsideBands`.
+
+> **Aviso en modo cuartiles.** Los cortes se recalculan desde la propia superficie, así que cada
+> clase recibe ~1/n del área **por construcción** y las barras salen casi iguales. La tarjeta lo
+> advierte, para que nadie lea como hallazgo lo que es un artefacto del método. Donde el gráfico
+> informa de verdad es con umbrales manuales absolutos.
+
+**Alternativa descartada:** el backend ya guarda polígonos por banda (`NdviIndexContour.geom`) y
+PostGIS daría áreas exactas con `ST_Area`. Se descartó porque `contours.py` usa un motor de
+interpolación distinto al del cliente, así que las cifras no coincidirían con el mapa que el usuario
+tiene delante. Vía futura si algún día se unifican los dos motores.
+
+Sin dependencias nuevas: el proyecto no tiene librería de gráficos y no hace falta.
+
+#### Verificación contra la sesión real
+
+| clase | rango | área | % área | % puntos |
+|---|---|---|---|---|
+| Clase 4 | 0.40–0.50 | 0.140 ha | 1.5 % | 3.7 % |
+| Clase 5 | 0.50–0.60 | 0.684 ha | 7.2 % | 8.8 % |
+| Clase 6 | 0.60–0.70 | 1.660 ha | 17.4 % | 17.6 % |
+| Clase 7 | 0.70–0.80 | 4.389 ha | 46.0 % | 42.0 % |
+| Clase 8 | 0.80–0.90 | 2.663 ha | 27.9 % | 27.4 % |
+
+Los porcentajes de área reproducen exactamente los medidos durante el diagnóstico del arreglo de
+color. **Área cubierta calculada: 9.543 ha**, contra las 9.50 ha que PostGIS había dado para esta
+misma sesión en `visor-contours-tenant` — validación cruzada independiente del cálculo de área de
+celda. La parcela declara 10.03 ha: la diferencia es el borde que el casco convexo no cubre.
+
+Las clases más "Sin clase" suman exactamente el área cubierta (9.5426 ha). Con un índice fuera del
+rango configurado, la tarjeta reporta 100 % "Sin clase" en vez de mentir.
+
+23 tests nuevos: 14 en `ndviClassArea.test.ts` (pertenencia idéntica a la del pintado, celdas `NaN`
+excluidas, bandas con `null`, suma consistente, escalado por tamaño de celda, caso degenerado) y 9
+en `NdviClassAreaCard.test.tsx`. Suite completa **337/337** (62 archivos), `tsc` y `eslint` limpios.
+**No verificado visualmente**: sigue sin haber navegador de Playwright en el entorno.
