@@ -309,7 +309,9 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
   return (
     <>
       <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
-        <DialogContent className="max-w-4xl">
+        {/* max-h + grid-rows: el header queda fijo y el cuerpo scrollea, para que
+            el modal nunca desborde la ventana aunque haya muchas sesiones. */}
+        <DialogContent className="max-h-[85vh] max-w-4xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <button
@@ -326,6 +328,7 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
             </DialogTitle>
           </DialogHeader>
 
+          <div className="overflow-y-auto pr-1">
           {mode === 'view' ? (
             <ViewMode
               hijo={hijo}
@@ -540,6 +543,7 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
               </div>
             </form>
           )}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -657,8 +661,10 @@ function ViewMode({
           {allSessions.length === 0 && (
             <p className="text-xs text-muted-foreground">Sin sesiones todavía.</p>
           )}
+          {/* La lista crece con el numero de sesiones: se acota su alto y
+              scrollea dentro del recuadro en vez de estirar el modal. */}
           {allSessions.length > 0 && (
-            <ul className="divide-y rounded border">
+            <ul className="max-h-64 divide-y overflow-y-auto rounded border">
               {allSessions.map((s) => {
                 const fecha = sessionDate(s)
                 const label = SESSION_LABEL[s.kind]

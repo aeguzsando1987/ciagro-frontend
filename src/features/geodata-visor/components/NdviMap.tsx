@@ -6,8 +6,8 @@
  * un gradiente de color continuo tipo heatmap/kriging. La imagen se recorta a la parcela
  * (celdas fuera del polígono transparentes). Ver lib/ndviInterpolation.ts.
  *
- * Los puntos de muestreo se dibujan encima (toggle "Puntos") y al pasar el cursor muestran
- * un tooltip con el valor del índice activo y el resto de índices del punto.
+ * Los puntos de muestreo se dibujan encima, muy tenues, y al hacer clic en uno se abre un
+ * tooltip con el valor del índice activo y el resto de índices del punto.
  *
  * Datos:
  *   GET /geo_assets/plots/<id>/                        (polígono de la parcela)
@@ -88,7 +88,7 @@ interface NdviMapProps {
 /** Propiedades que viajan en cada feature de punto (obj_id + índices). */
 type PointProps = { obj_id: number | null; [k: string]: number | null }
 
-interface PointHover {
+interface PointSelection {
   lon: number
   lat: number
   props: PointProps
@@ -111,7 +111,11 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
   const { data: varStats } = useNdviVariableStats(sessionId)
 
   const [indexKey, setIndexKey] = useState<keyof NdviPoint>('ndvi')
-  const [hover, setHover] = useState<PointHover | null>(null)
+  // El tooltip se abre al hacer clic en un punto (no al pasar el cursor): con la
+  // superficie de color debajo, un tooltip que sigue al mouse estorba la lectura.
+  const [selected, setSelected] = useState<PointSelection | null>(null)
+  // Solo para el cursor "pointer" sobre un punto clicable.
+  const [hoveringPoint, setHoveringPoint] = useState(false)
   const [areaCardOpen, setAreaCardOpen] = useState(true)
 
   const activeStat = useMemo(
@@ -265,14 +269,20 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
         mapStyle={ESRI_STYLE}
         attributionControl={false}
         style={{ width: '100%', height: '100%' }}
-        cursor={hover ? 'pointer' : ''}
+        cursor={hoveringPoint ? 'pointer' : ''}
         interactiveLayerIds={pointsGeojson ? [POINTS_LAYER_ID] : []}
-        onMouseMove={(e) => {
+        onMouseMove={(e) => setHoveringPoint(!!e.features?.length)}
+        onMouseLeave={() => setHoveringPoint(false)}
+        onClick={(e) => {
+          // Clic sobre un punto: abre su tooltip. Clic en cualquier otro lado: lo cierra.
           const f = e.features?.[0]
-          if (f) setHover({ lon: e.lngLat.lng, lat: e.lngLat.lat, props: f.properties as PointProps })
-          else setHover(null)
+          if (f) {
+            const [lon, lat] = (f.geometry as GeoJSON.Point).coordinates as [number, number]
+            setSelected({ lon, lat, props: f.properties as PointProps })
+          } else {
+            setSelected(null)
+          }
         }}
-        onMouseLeave={() => setHover(null)}
       >
         {/* Superficie interpolada (gradiente continuo) recortada a la parcela. */}
         {surface && (
@@ -304,47 +314,51 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
               id={POINTS_LAYER_ID}
               type="circle"
               paint={{
-                // Radio generoso para facilitar el hover; relleno y borde apenas visibles
-                // para no ensuciar la superficie de color.
-                'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 4, 18, 8],
+                // Puntos pequeños y muy tenues: casi no se notan sobre la superficie de
+                // color, pero siguen siendo clicables (MapLibre consulta el círculo
+                // completo aunque su relleno sea casi transparente).
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 3, 18, 5],
                 'circle-color': '#000000',
-                'circle-opacity': 0.04,
+                'circle-opacity': 0.02,
                 'circle-stroke-color': '#ffffff',
                 'circle-stroke-width': 1,
-                'circle-stroke-opacity': 0.12,
+                'circle-stroke-opacity': 0.06,
               }}
             />
           </Source>
         )}
 
-        {/* Tooltip del punto bajo el cursor. */}
-        {hover && (
+        {/* Tooltip del punto seleccionado con clic. */}
+        {selected && (
           <Popup
-            longitude={hover.lon}
-            latitude={hover.lat}
-            closeButton={false}
+            longitude={selected.lon}
+            latitude={selected.lat}
+            closeButton
+            // El cierre por clic en el mapa ya lo maneja onClick del Map; dejarlo
+            // activo aquí también cerraría el popup antes de seleccionar otro punto.
             closeOnClick={false}
+            onClose={() => setSelected(null)}
             anchor="bottom"
             offset={10}
             style={{ padding: 0 }}
           >
             <div className="min-w-[150px] space-y-0.5 px-2 py-1.5 text-xs">
               <p className="font-semibold text-gray-700">
-                Punto {hover.props.obj_id ?? '—'}
+                Punto {selected.props.obj_id ?? '—'}
               </p>
               <p>
                 {INDICES.find((i) => i.key === indexKey)?.label}:{' '}
                 <span className="font-medium tabular-nums">
-                  {typeof hover.props[indexKey as string] === 'number'
-                    ? (hover.props[indexKey as string] as number).toFixed(3)
+                  {typeof selected.props[indexKey as string] === 'number'
+                    ? (selected.props[indexKey as string] as number).toFixed(3)
                     : '—'}
                 </span>
               </p>
               <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 border-t pt-1 text-[10px] text-gray-500">
-                {INDICES.filter((it) => it.key !== indexKey && typeof hover.props[it.key as string] === 'number').map((it) => (
+                {INDICES.filter((it) => it.key !== indexKey && typeof selected.props[it.key as string] === 'number').map((it) => (
                   <span key={it.key as string} className="flex justify-between gap-1">
                     <span>{it.label}</span>
-                    <span className="tabular-nums">{(hover.props[it.key as string] as number).toFixed(3)}</span>
+                    <span className="tabular-nums">{(selected.props[it.key as string] as number).toFixed(3)}</span>
                   </span>
                 ))}
               </div>

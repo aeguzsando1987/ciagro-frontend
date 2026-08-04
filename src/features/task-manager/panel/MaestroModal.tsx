@@ -131,7 +131,9 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
   return (
     <>
       <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
-        <DialogContent className="max-w-xl">
+        {/* max-h + grid-rows: el header queda fijo y el cuerpo scrollea, para que
+            el modal nunca desborde la ventana aunque haya muchos subprogramas. */}
+        <DialogContent className="max-h-[85vh] max-w-xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               Programa
@@ -141,6 +143,7 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
             </DialogTitle>
           </DialogHeader>
 
+          <div className="overflow-y-auto pr-1">
           {mode === 'view' ? (
             <ViewMode
               master={master}
@@ -215,6 +218,7 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
               </div>
             </form>
           )}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -322,8 +326,10 @@ function ViewMode({
         {tree && tree.programas.length === 0 && (
           <p className="text-xs text-muted-foreground">Sin subprogramas todavía.</p>
         )}
+        {/* La lista crece con el numero de subprogramas: se acota su alto y
+            scrollea dentro del recuadro en vez de estirar el modal. */}
         {tree && tree.programas.length > 0 && (
-          <ul className="divide-y rounded border">
+          <ul className="max-h-64 divide-y overflow-y-auto rounded border">
             {tree.programas.map((hijo) => (
               <li key={hijo.id}>
                 <button
