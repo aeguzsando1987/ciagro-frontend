@@ -6282,6 +6282,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/soil-map/headers/{id}/flush/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Eliminar los puntos importados de UNA sesion de mapeo de suelo (solo SuperAdmin)
+         * @description Accion destructiva e irreversible: borra los SoilMapPoints de la sesion indicada (NO de otras sesiones) y resetea su cabecera a 'pending'. Pensada para limpiar duplicados acumulados por reimportaciones (la importacion es append). Solo SuperAdmin (rol nivel >= 5).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/soil-map/headers/{id}/flush/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("monitoring/soil-map/headers/{id}/flush/")
+         *         suspend fun flushSoilMapSession(@Path("id") id: String): FlushResult
+         *     }
+         *
+         *     val result = api.flushSoilMapSession(id)
+         *     ```
+         */
+        post: operations["v1_monitoring_soil_map_headers_flush_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/monitoring/soil-map/headers/{id}/": {
         parameters: {
             query?: never;
@@ -6613,6 +6652,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/ndvi/headers/{id}/variable-stats/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumen estadistico de los indices de una sesion NDVI
+         * @description Calcula al vuelo (count/media/min/max/desv. est.) sobre los puntos importados para los 15 indices. Espejo de /aspersion/headers/{id}/variable-stats/. No depende de ninguna vista materializada: refleja el estado actual de los puntos. `points_count=0` si la sesion no tiene puntos. Los indices sin un solo valor salen con count=0 y el resto en null.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/ndvi/headers/{id}/variable-stats/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/ndvi/headers/{id}/variable-stats/")
+         *         suspend fun getNdviVariableStats(@Path("id") id: String): NdviVariableStats
+         *     }
+         *
+         *     val result = api.getNdviVariableStats(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_ndvi_headers_variable_stats_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/monitoring/ndvi/headers/{id}/contours/indices/": {
         parameters: {
             query?: never;
@@ -6622,7 +6700,7 @@ export interface paths {
         };
         /**
          * Indices con contornos disponibles
-         * @description Lista las claves de indice que ya tienen contornos generados para la sesion.
+         * @description Lista las claves de indice que ya tienen contornos generados para la sesion, en la organizacion que consulta. Si esa organizacion aun no tiene la coropleta generada, encola el contorneo y responde 202.
          *
          *     **Ejemplos**
          *
@@ -6699,8 +6777,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Config de variables NDVI del tenant dueno de la sesion
-         * @description Devuelve la configuracion de bandas/colores de las variables NDVI del tenant (organizacion) DUENO de la parcela de esta sesion, resuelta en el servidor a partir de la parcela (no del usuario). La puede leer cualquier usuario con alcance sobre la sesion, para que el visor aplique los umbrales/colores del especialista sin importar quien consulta. Si el tenant no tiene config, se responde con defaults quartile por variable; si no se resuelve tenant, se responde un objeto vacio y el visor cae al gradiente.
+         * Config de variables NDVI aplicable a la sesion
+         * @description Devuelve la configuracion de bandas/colores de las variables NDVI de la organizacion que consulta (`?tenant`), que es la misma con la que se genero su coropleta. La puede leer cualquier usuario con alcance sobre la sesion, para armar la leyenda. Si se omite `?tenant` se usa la organizacion con la asignacion mas antigua sobre el productor. Si el tenant no tiene config, se responde con defaults quartile por variable; si no se resuelve tenant, se responde un objeto vacio y el visor cae al gradiente.
          *
          *     **Ejemplos**
          *
@@ -6724,6 +6802,45 @@ export interface paths {
         get: operations["v1_monitoring_ndvi_headers_variable_config_retrieve"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/ndvi/headers/{id}/flush/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Eliminar los puntos importados de UNA sesion NDVI (solo SuperAdmin)
+         * @description Accion destructiva e irreversible: borra los NdviSessionPoints de la sesion indicada (NO de otras sesiones) y resetea su cabecera a 'pending'. Ademas invalida la coropleta cacheada de TODAS las organizaciones (NdviIndexContour y NdviContourRun): esas bandas se derivan de los puntos, asi que sobrevivir al borrado las dejaria mostrando datos que ya no existen. Pensada para limpiar duplicados acumulados por reimportaciones (la importacion es append). Solo SuperAdmin (rol nivel >= 5).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/ndvi/headers/{id}/flush/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("monitoring/ndvi/headers/{id}/flush/")
+         *         suspend fun flushNdviSession(@Path("id") id: String): FlushResult
+         *     }
+         *
+         *     val result = api.flushNdviSession(id)
+         *     ```
+         */
+        post: operations["v1_monitoring_ndvi_headers_flush_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -11351,8 +11468,11 @@ export interface components {
              * @description Parcela referencial. MonitoringHeader hereda este plot si no se provee uno explícito.
              */
             plot?: string | null;
+            readonly plot_code: string | null;
             status?: components["schemas"]["Status5a4Enum"];
             readonly status_display: string;
+            readonly crop_name: string | null;
+            readonly crop_variety_name: string | null;
             /** Format: date-time */
             est_start_date?: string | null;
             /** Format: date-time */
@@ -16260,6 +16380,29 @@ export interface operations {
             };
         };
     };
+    v1_monitoring_soil_map_headers_flush_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     v1_monitoring_soil_map_headers_retrieve: {
         parameters: {
             query?: never;
@@ -16527,9 +16670,47 @@ export interface operations {
             };
         };
     };
-    v1_monitoring_ndvi_headers_contours_indices_retrieve: {
+    v1_monitoring_ndvi_headers_variable_stats_retrieve: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_contours_indices_retrieve: {
+        parameters: {
+            query?: {
+                /** @description UUID de la CIAgro hija (DataCentral) del workspace activo; se aplica la config de SU organizacion. Es la via que usa el visor. Ignorado si se manda `tenant`. */
+                dc?: string;
+                /** @description UUID del DataCentralMain (organizacion) cuya config de bandas se aplica. Alternativa a `dc`. Si se omiten ambos, se usa la organizacion con la asignacion mas antigua sobre el productor. */
+                tenant?: string;
+            };
             header?: never;
             path: {
                 id: string;
@@ -16553,8 +16734,12 @@ export interface operations {
     v1_monitoring_ndvi_headers_contours_list: {
         parameters: {
             query?: {
+                /** @description UUID de la CIAgro hija (DataCentral) del workspace activo; se aplica la config de SU organizacion. Es la via que usa el visor. Ignorado si se manda `tenant`. */
+                dc?: string;
                 /** @description Clave del indice a filtrar. Ej: ndvi, osavi. */
                 index?: string;
+                /** @description UUID del DataCentralMain (organizacion) cuya config de bandas se aplica. Alternativa a `dc`. Si se omiten ambos, se usa la organizacion con la asignacion mas antigua sobre el productor. */
+                tenant?: string;
             };
             header?: never;
             path: {
@@ -16575,6 +16760,34 @@ export interface operations {
         };
     };
     v1_monitoring_ndvi_headers_variable_config_retrieve: {
+        parameters: {
+            query?: {
+                /** @description UUID de la CIAgro hija (DataCentral) del workspace activo; se aplica la config de SU organizacion. Es la via que usa el visor. Ignorado si se manda `tenant`. */
+                dc?: string;
+                /** @description UUID del DataCentralMain (organizacion) cuya config de bandas se aplica. Alternativa a `dc`. Si se omiten ambos, se usa la organizacion con la asignacion mas antigua sobre el productor. */
+                tenant?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_flush_create: {
         parameters: {
             query?: never;
             header?: never;

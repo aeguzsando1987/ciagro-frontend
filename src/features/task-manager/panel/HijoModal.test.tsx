@@ -81,6 +81,9 @@ const mockHijo: ProgramaTree = {
     },
   ],
   ndvi_sessions: [],
+  plot_code: null,
+  crop_name: null,
+  crop_variety_name: null,
 }
 
 function setRole(role_level: number) {

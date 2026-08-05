@@ -328,7 +328,10 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
             </DialogTitle>
           </DialogHeader>
 
-          <div className="overflow-y-auto pr-1">
+          {/* En vista el cuerpo NO scrollea: el unico scroll es el de la lista de
+              sesiones, que absorbe el alto sobrante. En edicion si scrollea, porque
+              el formulario es largo y no tiene una seccion que ceda. */}
+          <div className={mode === 'view' ? 'flex min-h-0 flex-col' : 'overflow-y-auto pr-1'}>
           {mode === 'view' ? (
             <ViewMode
               hijo={hijo}
@@ -595,9 +598,9 @@ function ViewMode({
   onCreateSesion: () => void
 }) {
   return (
-    <div className="flex gap-4">
+    <div className="flex min-h-0 flex-1 gap-4">
       {/* Columna izquierda: datos + status + sesiones */}
-      <div className="min-w-0 flex-1 space-y-4">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
           <div className="col-span-2">
             <dt className="text-xs text-muted-foreground">Título</dt>
@@ -650,7 +653,7 @@ function ViewMode({
         )}
 
         {/* Lista de sesiones */}
-        <section>
+        <section className="flex min-h-0 flex-1 flex-col">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-semibold">Sesiones</h3>
             {canCreateSession && (
@@ -661,10 +664,11 @@ function ViewMode({
           {allSessions.length === 0 && (
             <p className="text-xs text-muted-foreground">Sin sesiones todavía.</p>
           )}
-          {/* La lista crece con el numero de sesiones: se acota su alto y
-              scrollea dentro del recuadro en vez de estirar el modal. */}
+          {/* Unica seccion con scroll del modal en modo vista: absorbe el alto que
+              sobra y scrollea dentro del recuadro en vez de estirar el modal. Sin
+              esto, al anidarse las sesiones el modal crecia fuera de la pantalla. */}
           {allSessions.length > 0 && (
-            <ul className="max-h-64 divide-y overflow-y-auto rounded border">
+            <ul className="min-h-0 flex-1 divide-y overflow-y-auto rounded border">
               {allSessions.map((s) => {
                 const fecha = sessionDate(s)
                 const label = SESSION_LABEL[s.kind]

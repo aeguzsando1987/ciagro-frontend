@@ -143,7 +143,10 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
             </DialogTitle>
           </DialogHeader>
 
-          <div className="overflow-y-auto pr-1">
+          {/* En vista el cuerpo NO scrollea: el unico scroll es el de la lista de
+              subprogramas, que absorbe el alto sobrante. En edicion si scrollea,
+              porque el formulario es largo y no tiene una seccion que ceda. */}
+          <div className={mode === 'view' ? 'flex min-h-0 flex-col' : 'overflow-y-auto pr-1'}>
           {mode === 'view' ? (
             <ViewMode
               master={master}
@@ -234,6 +237,22 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
   )
 }
 
+/**
+ * Linea de contexto de un subprograma: parcela, temporada y cultivo.
+ *
+ * Los tres son opcionales en Programa, asi que se omite el que falte en vez de
+ * imprimir guiones; si no hay ninguno se devuelve un texto explicito para que la
+ * linea no quede vacia y descuadre el alto de los bullets.
+ *
+ * El subcultivo (crop_variety_name) se concatena al cultivo con un guion largo,
+ * el mismo formato que usa cropLabel() en los selectores.
+ */
+function hijoContext(hijo: ProgramaTree): string {
+  const crop = [hijo.crop_name, hijo.crop_variety_name].filter(Boolean).join(' — ')
+  const parts = [hijo.plot_code, hijo.cycle, crop].filter(Boolean)
+  return parts.length > 0 ? parts.join(' · ') : 'Sin parcela, temporada ni cultivo'
+}
+
 function ViewMode({
   master,
   producerName,
@@ -256,7 +275,7 @@ function ViewMode({
   onCreateHijo: () => void
 }) {
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/* Datos generales */}
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
         <div className="col-span-2">
@@ -310,7 +329,7 @@ function ViewMode({
       )}
 
       {/* Lista de Hijos */}
-      <section>
+      <section className="flex min-h-0 flex-1 flex-col">
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Subprogramas</h3>
           {isManager && master.status !== 'completed' && master.status !== 'cancelled' && (
@@ -326,21 +345,26 @@ function ViewMode({
         {tree && tree.programas.length === 0 && (
           <p className="text-xs text-muted-foreground">Sin subprogramas todavía.</p>
         )}
-        {/* La lista crece con el numero de subprogramas: se acota su alto y
-            scrollea dentro del recuadro en vez de estirar el modal. */}
+        {/* Unica seccion con scroll del modal en modo vista: absorbe el alto que
+            sobra y scrollea dentro del recuadro en vez de estirar el modal. */}
         {tree && tree.programas.length > 0 && (
-          <ul className="max-h-64 divide-y overflow-y-auto rounded border">
+          <ul className="min-h-0 flex-1 divide-y overflow-y-auto rounded border">
             {tree.programas.map((hijo) => (
               <li key={hijo.id}>
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-accent"
+                  className="flex w-full items-start justify-between gap-2 px-3 py-2 text-left hover:bg-accent"
                   onClick={() => onNavigateHijo(hijo.id)}
                 >
-                  <span className="truncate text-sm font-medium">
-                    {hijo.title ?? '(Sin título)'}
-                  </span>
-                  <div className="ml-2 flex shrink-0 flex-col items-end gap-0.5">
+                  <div className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">
+                      {hijo.title ?? '(Sin título)'}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {hijoContext(hijo)}
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-0.5">
                     <Badge className={`text-xs ${STATUS_BADGE_COLORS[hijo.status ?? 'pending']}`}>
                       {hijo.status_display}
                     </Badge>

@@ -62,6 +62,9 @@ describe('mapMastersToTasks', () => {
         phyto_monitoring_headers: [],
         soil_map_headers: [],
         ndvi_sessions: [],
+        plot_code: null,
+        crop_name: null,
+        crop_variety_name: null,
       },
     ])
 
@@ -96,6 +99,9 @@ describe('mapMastersToTasks', () => {
           { id: 'sm-1', type: 'soil_map', mapping_date: '2026-07-10', import_status: 'done', status: 'loaded' },
         ],
         ndvi_sessions: [],
+        plot_code: null,
+        crop_name: null,
+        crop_variety_name: null,
       },
     ])
 
@@ -135,6 +141,9 @@ describe('mapMastersToTasks', () => {
         phyto_monitoring_headers: [],
         soil_map_headers: [],
         ndvi_sessions: [],
+        plot_code: null,
+        crop_name: null,
+        crop_variety_name: null,
       },
     ])
 
@@ -163,6 +172,9 @@ describe('mapMastersToTasks', () => {
         phyto_monitoring_headers: [],
         soil_map_headers: [],
         ndvi_sessions: [],
+        plot_code: null,
+        crop_name: null,
+        crop_variety_name: null,
       },
     ])
 
@@ -190,6 +202,9 @@ describe('mapMastersToTasks', () => {
         phyto_monitoring_headers: [],
         soil_map_headers: [],
         ndvi_sessions: [],
+        plot_code: null,
+        crop_name: null,
+        crop_variety_name: null,
       },
     ])
 
@@ -220,6 +235,9 @@ describe('mapMastersToTasks', () => {
           { id: 'sm-1', type: 'soil_map', mapping_date: '2026-07-10', import_status: 'pending', status: 'pending' },
         ],
         ndvi_sessions: [],
+        plot_code: null,
+        crop_name: null,
+        crop_variety_name: null,
       },
     ])
 
@@ -253,6 +271,9 @@ describe('mapMastersToTasks', () => {
         phyto_monitoring_headers: [],
         soil_map_headers: [],
         ndvi_sessions: [],
+        plot_code: null,
+        crop_name: null,
+        crop_variety_name: null,
       },
     ])
 

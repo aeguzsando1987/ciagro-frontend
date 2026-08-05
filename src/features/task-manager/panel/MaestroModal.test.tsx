@@ -24,20 +24,38 @@ const mockMaster: MasterProgram = {
   updated_at: '2026-01-01T00:00:00Z',
 }
 
+function hijo(id: string, title: string, extra: Record<string, unknown> = {}) {
+  return {
+    id,
+    title,
+    status: 'pending',
+    status_display: 'Pendiente',
+    est_start_date: '2026-06-01',
+    est_finish_date: '2026-07-31',
+    aspersion_sessions: [],
+    phyto_monitoring_headers: [],
+    soil_map_headers: [],
+    ndvi_sessions: [],
+    plot_code: null,
+    cycle: null,
+    crop_name: null,
+    crop_variety_name: null,
+    ...extra,
+  }
+}
+
 const mockTree = {
   programas: [
-    {
-      id: 'hijo-1',
-      title: 'Subprograma Norte',
-      status: 'pending',
-      status_display: 'Pendiente',
-      est_start_date: '2026-06-01',
-      est_finish_date: '2026-07-31',
-      aspersion_sessions: [],
-      phyto_monitoring_headers: [],
-      soil_map_headers: [],
-      ndvi_sessions: [],
-    },
+    hijo('hijo-1', 'Subprograma Norte', {
+      plot_code: 'P-01',
+      cycle: 'Primavera-2026',
+      crop_name: 'Maíz',
+      crop_variety_name: 'Amarillo',
+    }),
+    // Sin parcela ni cultivo: la linea de contexto no debe romperse ni quedar vacia.
+    hijo('hijo-2', 'Subprograma Sur'),
+    // Solo temporada: se omiten los que faltan, sin guiones de relleno.
+    hijo('hijo-3', 'Subprograma Este', { cycle: 'Otoño-2026' }),
   ],
 }
 
@@ -115,5 +133,25 @@ describe('MaestroModal', () => {
     renderModal(3)
     await waitFor(() => screen.getByRole('dialog'))
     expect(screen.getByText('Subprograma Norte')).toBeInTheDocument()
+  })
+
+  it('cada subprograma muestra parcela, temporada y cultivo con subcultivo', async () => {
+    renderModal(3)
+    await waitFor(() => screen.getByRole('dialog'))
+    expect(
+      screen.getByText('P-01 · Primavera-2026 · Maíz — Amarillo')
+    ).toBeInTheDocument()
+  })
+
+  it('omite los datos que faltan en vez de rellenar con guiones', async () => {
+    renderModal(3)
+    await waitFor(() => screen.getByRole('dialog'))
+    expect(screen.getByText('Otoño-2026')).toBeInTheDocument()
+  })
+
+  it('un subprograma sin ningún dato muestra un texto explícito', async () => {
+    renderModal(3)
+    await waitFor(() => screen.getByRole('dialog'))
+    expect(screen.getByText('Sin parcela, temporada ni cultivo')).toBeInTheDocument()
   })
 })
