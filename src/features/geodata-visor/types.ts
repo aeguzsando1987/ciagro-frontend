@@ -10,6 +10,56 @@ export type VisorLevel = 'org' | 'datacentral' | 'producer' | 'ranch' | 'plot' |
 /** Tipo de sesión seleccionada a nivel 'session' — decide qué mapa/stats renderiza el dashboard. */
 export type SessionKind = 'aspersion' | 'phyto' | 'ndvi' | 'soil_map'
 
+/**
+ * Resultado de la búsqueda avanzada (fase AS).
+ *
+ * El backend devuelve la jerarquía ya armada, así que el explorador en modo resultados
+ * no vuelve a pedir nada por nivel: pinta este árbol tal cual. `kind` es el mismo
+ * `SessionKind` de la selección, por lo que el dashboard existente renderiza cualquiera
+ * de los cuatro tipos sin cambios.
+ */
+export interface SearchSessionRef {
+  id: string
+  kind: SessionKind
+  date: string | null
+  points_count: number
+}
+
+export interface SearchPlotNode {
+  id: string
+  code: string
+  sessions: SearchSessionRef[]
+}
+
+export interface SearchRanchNode {
+  id: string
+  name: string
+  plots: SearchPlotNode[]
+}
+
+export interface SearchProducerNode {
+  id: string
+  name: string
+  /**
+   * Organización que representa al productor en este resultado (la elegida en el
+   * modal o, si no se eligió ninguna, la de su asignación más antigua). El explorador
+   * la necesita porque toda `VisorSelection` lleva `org`, y de ahí sale el tenant con
+   * el que el mapa NDVI pide su paleta. `null` si el productor perdió sus asignaciones.
+   */
+  organization: VisorRef | null
+  ranches: SearchRanchNode[]
+}
+
+export interface AdvancedSearchResult {
+  /** Sesiones devueltas (ya recortadas si `truncated`). */
+  count: number
+  /** Coincidencias totales antes del recorte. */
+  total: number
+  truncated: boolean
+  plot_ids: string[]
+  producers: SearchProducerNode[]
+}
+
 export interface VisorRef {
   id: string
   name: string

@@ -39,7 +39,8 @@ import { PhytoMap } from '@/features/task-manager/components/PhytoMap'
 import { PhytoStatsCard } from '@/features/task-manager/components/PhytoStatsCard'
 import { SessionReportToggle } from '@/features/session-report/components/SessionReportToggle'
 import { ArrowLeft } from 'lucide-react'
-import type { VisorSelection, VisorSession } from '../types'
+import { sessionIdsForPlot } from '../lib/advancedSearch'
+import type { AdvancedSearchResult, VisorSelection, VisorSession } from '../types'
 
 const LEVEL_TITLE: Record<VisorSelection['level'], string> = {
   org: 'Organización',
@@ -65,6 +66,27 @@ function levelTitle(selection: VisorSelection): string {
 interface DashboardProps {
   selection: VisorSelection
   onSelect: (sel: VisorSelection) => void
+  /**
+   * Resultado de la búsqueda avanzada (fase AS), o `null` si no hay búsqueda activa.
+   * Cuando lo hay, el mapa muestra solo las parcelas involucradas -y se reencuadra a
+   * ellas- y las tarjetas de sesiones listan solo las que el filtro devolvió.
+   */
+  searchResult?: AdvancedSearchResult | null
+}
+
+/**
+ * Recorta las parcelas a las del resultado de búsqueda.
+ *
+ * El reencuadre dinámico que pide el use case sale gratis: `RanchPlotsMap` y
+ * `ProducerRanchesMap` calculan sus límites a partir del arreglo que reciben.
+ */
+function plotsInSearch<T extends { id: string }>(
+  plots: T[],
+  searchResult: AdvancedSearchResult | null | undefined
+): T[] {
+  if (!searchResult) return plots
+  const allowed = new Set(searchResult.plot_ids)
+  return plots.filter((plot) => allowed.has(plot.id))
 }
 
 // ─── Presentacional ───────────────────────────────────────────────────────────
@@ -122,25 +144,29 @@ function ProducerView({
   selection,
   onSelect,
   statsHidden,
+  searchResult,
 }: DashboardProps & { statsHidden: boolean }) {
   const producerId = selection.producer!.id
   const ranches = useRanches(producerId)
   const plots = usePlots({ producerId })
   const loading = ranches.isLoading || plots.isLoading
-  const areaHa = sumArea(plots.data ?? [])
+  // Con búsqueda activa el mapa muestra las parcelas involucradas del productor, a
+  // través de todos sus ranchos, y se reencuadra a ellas.
+  const visiblePlots = plotsInSearch(plots.data ?? [], searchResult)
+  const areaHa = sumArea(visiblePlots)
 
   return (
     <div className="flex h-full flex-col gap-2.5">
       {!statsHidden && (
         <StatGrid
           loading={loading}
-          stats={producerStats(ranches.data?.length ?? 0, plots.data?.length ?? 0, areaHa)}
+          stats={producerStats(ranches.data?.length ?? 0, visiblePlots.length, areaHa)}
         />
       )}
       <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-lg border">
         <ProducerRanchesMap
           ranches={ranches.data ?? []}
-          plots={plots.data ?? []}
+          plots={visiblePlots}
           producerName={selection.producer?.name}
           onSelectRanch={(ranch) => onSelect(selectRanchFromMap(selection, ranch))}
         />
@@ -230,14 +256,26 @@ function RanchView({
   selection,
   onSelect,
   statsHidden,
+  searchResult,
 }: DashboardProps & { statsHidden: boolean }) {
   const ranchId = selection.ranch!.id
   const plots = usePlots({ ranchId })
-  const areaHa = sumArea(plots.data ?? [])
+  const visiblePlots = plotsInSearch(plots.data ?? [], searchResult)
+  const areaHa = sumArea(visiblePlots)
   const isPlotLevel = selection.level !== 'ranch'
   const isSessionLevel = selection.level === 'session'
 
-  const stats = isPlotLevel ? null : ranchStats(plots.data?.length ?? 0, areaHa)
+  // Ids que la búsqueda permite para ESTA parcela, por tipo. `null` sin búsqueda, con
+  // lo que los paneles se comportan como siempre.
+  const plotId = selection.plot?.id ?? null
+  const allowed = {
+    aspersion: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'aspersion') : null,
+    phyto: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'phyto') : null,
+    ndvi: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'ndvi') : null,
+    soil_map: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'soil_map') : null,
+  }
+
+  const stats = isPlotLevel ? null : ranchStats(visiblePlots.length, areaHa)
   const isPhytoSession = isSessionLevel && selection.session?.kind === 'phyto'
   const isNdviSession = isSessionLevel && selection.session?.kind === 'ndvi'
   const isSoilMapSession = isSessionLevel && selection.session?.kind === 'soil_map'
@@ -287,6 +325,7 @@ function RanchView({
                   plotId={selection.plot!.id}
                   selectedSessionId={selection.session?.id ?? null}
                   onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                  allowedIds={allowed.ndvi}
                 />
               </div>
             </div>
@@ -304,6 +343,7 @@ function RanchView({
                   plotId={selection.plot!.id}
                   selectedSessionId={selection.session?.id ?? null}
                   onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                  allowedIds={allowed.phyto}
                 />
               }
               toolbarStart={backToPlotButton}
@@ -321,6 +361,7 @@ function RanchView({
                   plotId={selection.plot!.id}
                   selectedSessionId={selection.session?.id ?? null}
                   onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                  allowedIds={allowed.soil_map}
                 />
               }
               toolbarStart={backToPlotButton}
@@ -339,6 +380,7 @@ function RanchView({
                   plotId={selection.plot!.id}
                   selectedSessionId={selection.session?.id ?? null}
                   onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                  allowedIds={allowed.aspersion}
                 />
               }
               toolbarStart={backToPlotButton}
@@ -353,7 +395,7 @@ function RanchView({
           )
         ) : (
           <RanchPlotsMap
-            plots={plots.data ?? []}
+            plots={visiblePlots}
             selectedPlotId={selection.plot?.id ?? null}
             onSelectPlot={(plot) => onSelect(selectPlotFromMap(selection, plot))}
             producerName={selection.producer?.name}
@@ -374,24 +416,28 @@ function RanchView({
               plotId={selection.plot!.id}
               selectedSessionId={selection.session?.id ?? null}
               onSelectSession={(session) => onSelect(selectSession(selection, session))}
+              allowedIds={allowed.aspersion}
             />
             <PhytoSessionsPanel
               floating={false}
               plotId={selection.plot!.id}
               selectedSessionId={selection.session?.id ?? null}
               onSelectSession={(session) => onSelect(selectSession(selection, session))}
+              allowedIds={allowed.phyto}
             />
             <NdviSessionsPanel
               floating={false}
               plotId={selection.plot!.id}
               selectedSessionId={selection.session?.id ?? null}
               onSelectSession={(session) => onSelect(selectSession(selection, session))}
+              allowedIds={allowed.ndvi}
             />
             <SoilMapSessionsPanel
               floating={false}
               plotId={selection.plot!.id}
               selectedSessionId={selection.session?.id ?? null}
               onSelectSession={(session) => onSelect(selectSession(selection, session))}
+              allowedIds={allowed.soil_map}
             />
           </div>
         )}
@@ -422,6 +468,7 @@ function LevelBody({
   selection,
   onSelect,
   statsHidden,
+  searchResult,
 }: DashboardProps & { statsHidden: boolean }) {
   switch (selection.level) {
     case 'org':
@@ -433,11 +480,25 @@ function LevelBody({
     case 'datacentral':
       return <DataCentralStats dcId={selection.datacentral!.id} />
     case 'producer':
-      return <ProducerView selection={selection} onSelect={onSelect} statsHidden={statsHidden} />
+      return (
+        <ProducerView
+          selection={selection}
+          onSelect={onSelect}
+          statsHidden={statsHidden}
+          searchResult={searchResult}
+        />
+      )
     case 'ranch':
     case 'plot':
     case 'session':
-      return <RanchView selection={selection} onSelect={onSelect} statsHidden={statsHidden} />
+      return (
+        <RanchView
+          selection={selection}
+          onSelect={onSelect}
+          statsHidden={statsHidden}
+          searchResult={searchResult}
+        />
+      )
   }
 }
 
@@ -458,7 +519,7 @@ function selectionName(selection: VisorSelection): string {
   }
 }
 
-export function GeodataDashboard({ selection, onSelect }: DashboardProps) {
+export function GeodataDashboard({ selection, onSelect, searchResult = null }: DashboardProps) {
   const [statsHidden, setStatsHidden] = useState(false)
   // El toggle de estadísticas solo aplica en niveles con mapa (gana alto el mapa).
   const hasMap =
@@ -492,7 +553,12 @@ export function GeodataDashboard({ selection, onSelect }: DashboardProps) {
         )}
       </div>
       <div className="min-h-0 flex-1">
-        <LevelBody selection={selection} onSelect={onSelect} statsHidden={statsHidden} />
+        <LevelBody
+          selection={selection}
+          onSelect={onSelect}
+          statsHidden={statsHidden}
+          searchResult={searchResult}
+        />
       </div>
     </div>
   )

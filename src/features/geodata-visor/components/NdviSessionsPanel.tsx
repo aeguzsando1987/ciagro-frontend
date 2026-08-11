@@ -8,6 +8,7 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { useNdviSessionHeaders } from '../hooks/useNdviSessionHeaders'
+import { isAllowedSession } from '../lib/advancedSearch'
 import type { VisorSession } from '../types'
 
 interface NdviSessionsPanelProps {
@@ -15,6 +16,11 @@ interface NdviSessionsPanelProps {
   selectedSessionId: string | null
   onSelectSession: (session: VisorSession) => void
   floating?: boolean
+  /**
+   * Ids permitidos por la busqueda avanzada (fase AS). `null`/ausente = sin busqueda,
+   * se listan todas las sesiones de la parcela como siempre.
+   */
+  allowedIds?: string[] | null
 }
 
 const IMPORT_LABEL: Record<string, string> = {
@@ -25,7 +31,9 @@ const IMPORT_LABEL: Record<string, string> = {
   pending_mapping: 'Pendiente de mapear',
 }
 
-export function NdviSessionsPanel({ plotId, selectedSessionId, onSelectSession, floating = true }: NdviSessionsPanelProps) {
+export function NdviSessionsPanel({ plotId, selectedSessionId, onSelectSession, floating = true,
+  allowedIds = null,
+}: NdviSessionsPanelProps) {
   const { data, isLoading } = useNdviSessionHeaders(plotId)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -34,12 +42,13 @@ export function NdviSessionsPanel({ plotId, selectedSessionId, onSelectSession, 
   const sessions = useMemo(() => {
     const list = data ?? []
     return list.filter((s) => {
+      if (!isAllowedSession(s.id, allowedIds)) return false
       const d = s.session_date ?? ''
       if (from && d && d < from) return false
       if (to && d && d > to) return false
       return true
     })
-  }, [data, from, to])
+  }, [data, from, to, allowedIds])
 
   return (
     <div

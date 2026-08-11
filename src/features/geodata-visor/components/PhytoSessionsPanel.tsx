@@ -10,6 +10,7 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
+import { isAllowedSession } from '../lib/advancedSearch'
 import type { VisorSession } from '../types'
 
 interface PhytoSessionsPanelProps {
@@ -21,6 +22,11 @@ interface PhytoSessionsPanelProps {
    * `false`: ítem de columna (sin posicionamiento absoluto) para convivir con otras tarjetas.
    */
   floating?: boolean
+  /**
+   * Ids permitidos por la busqueda avanzada (fase AS). `null`/ausente = sin busqueda,
+   * se listan todas las sesiones de la parcela como siempre.
+   */
+  allowedIds?: string[] | null
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -31,7 +37,9 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: 'Cancelado',
 }
 
-export function PhytoSessionsPanel({ plotId, selectedSessionId, onSelectSession, floating = true }: PhytoSessionsPanelProps) {
+export function PhytoSessionsPanel({ plotId, selectedSessionId, onSelectSession, floating = true,
+  allowedIds = null,
+}: PhytoSessionsPanelProps) {
   const { data, isLoading } = usePhytoSessionHeaders(plotId)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -41,12 +49,13 @@ export function PhytoSessionsPanel({ plotId, selectedSessionId, onSelectSession,
   const sessions = useMemo(() => {
     const list = data ?? []
     return list.filter((s) => {
+      if (!isAllowedSession(s.id, allowedIds)) return false
       const d = s.estimated_start_date ?? ''
       if (from && d && d < from) return false
       if (to && d && d > to) return false
       return true
     })
-  }, [data, from, to])
+  }, [data, from, to, allowedIds])
 
   return (
     <div

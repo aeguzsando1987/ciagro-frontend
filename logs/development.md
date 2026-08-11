@@ -2508,3 +2508,65 @@ Verificado con las áreas reales de la sesión: columna de 22.7 px con nueve cla
 
 11 tests nuevos (9 de `chartScale`, incluidos los casos de magnitudes muy distintas y color mal
 formado). Suite **353/353** (63 archivos), `tsc` y `eslint` limpios.
+
+---
+
+## Sesión `visor-advanced-search` — FASE AS: búsqueda avanzada en el explorador (2026-08-10, rama `dev-visor-advanced-search`)
+
+Caso de uso `.context/usecases/use-case-advanced-filters-visor-datos-explorer.md`: botón de lupa en
+el encabezado del explorador que abre un modal (rango de fechas, tipo de fecha, organización,
+productor, rancho, parcela y tipo de sesión) y actualiza el propio panel izquierdo con el árbol de
+coincidencias ya expandido; el mapa se reencuadra a las parcelas involucradas y la lupa tachada
+limpia todo. Consume el endpoint agregador de la fase AS del backend.
+
+### La búsqueda vive en la URL
+
+`validateSearch` con zod en `routes/visor-datos.tsx`, con el patrón ya existente en
+`w.$dc.task-manager.tsx`: cada clave con `.catch(undefined)` para que un enlace viejo o manipulado
+descarte el valor inválido en vez de reventar la ruta. Los ids que ya no existan tampoco molestan,
+porque el backend simplemente no los empata. Así la búsqueda es compartible entre especialistas y
+sobrevive al refresh.
+
+`lib/advancedSearch.ts` concentra la conversión **search params ⇄ criterios → query de API** como
+lógica pura. Es donde se cuelan los errores que no se ven: un array vacío serializado como cadena
+vacía que termina filtrando por "ningún productor", o un `null` que debía significar "sin filtro" y
+acaba significando "ninguno". Por eso tiene 14 tests propios sin montar un solo componente.
+`isSearchActive` ignora `dateMode` a propósito: por sí solo no acota nada y activaría el modo
+resultados con un filtro que devuelve la base entera.
+
+### El ámbito viaja por prop, no por ruta
+
+`GeodataVisorShell` lee los search params con `useSearch` -lo renderiza SOLO `/visor-datos`- y
+reparte los criterios y el resultado **por prop** a explorador y dashboard. Es la lección de la
+trampa ya documentada con `NdviMap`, que se renderiza desde dos árboles de ruta distintos: atar un
+componente compartido a una ruta concreta revienta en el otro punto de render y ni el typecheck ni
+los tests lo atrapan.
+
+Consecuencia directa: cada `VisorSelection` que emite el árbol de resultados lleva la **organización
+del productor**, que el backend resuelve y devuelve. Sin ella el mapa NDVI no sabría de quién es la
+paleta. Un productor sin organización se muestra pero no se navega, y hay un test que lo fija.
+
+### Cascada afinada durante las pruebas
+
+El primer diseño limpiaba los niveles inferiores ante **cualquier** cambio de productor. Un test
+mostró que eso también borraba los ranchos al *añadir* un productor, que es solo ensanchar la
+búsqueda. Ahora: al añadir se conserva lo de abajo, al quitar se limpia -un rancho huérfano del
+productor retirado se combina con AND en el backend y da cero resultados sin explicación visible-.
+El componente no conoce la relación rancho→productor (las opciones son id y etiqueta), de ahí que la
+regla sea esta y no un recorte selectivo.
+
+### Otras notas
+
+- **Sin librería de combobox**: `components/ui/` no tiene una y el comportamiento necesario -buscar,
+  marcar, quitar- cabe en un input con debounce, una lista y unos chips (`MultiSelectSearch`).
+- **El filtrado por texto lo hace el backend** (`?search=`), no el cliente: los catálogos no caben en
+  una sola página y filtrar en cliente solo mostraría coincidencias del primer puñado de registros.
+- **El reencuadre dinámico salió gratis**: `RanchPlotsMap` y `ProducerRanchesMap` calculan sus
+  límites del arreglo de parcelas que reciben, así que basta recortarlo con `plotsInSearch`.
+- Los cuatro paneles de sesiones aceptan `allowedIds` y comparten `isAllowedSession`, para no
+  repetir la misma condición -y su caso nulo- cuatro veces.
+- Tipos regenerados con `npm run types:gen` contra el contenedor: el diff son solo los cambios de
+  esta fase (114 líneas).
+
+**Verificación:** `tsc --noEmit` limpio; `vitest` **380/380** (66 archivos), de los cuales 24 son
+nuevos de esta fase.

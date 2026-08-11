@@ -7,6 +7,7 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
+import { isAllowedSession } from '../lib/advancedSearch'
 import type { VisorSession } from '../types'
 
 interface SoilMapSessionsPanelProps {
@@ -15,6 +16,11 @@ interface SoilMapSessionsPanelProps {
   onSelectSession: (session: VisorSession) => void
   /** `true`: tarjeta sobre el mapa; `false`: elemento dentro de una columna. */
   floating?: boolean
+  /**
+   * Ids permitidos por la busqueda avanzada (fase AS). `null`/ausente = sin busqueda,
+   * se listan todas las sesiones de la parcela como siempre.
+   */
+  allowedIds?: string[] | null
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -30,6 +36,7 @@ export function SoilMapSessionsPanel({
   selectedSessionId,
   onSelectSession,
   floating = true,
+  allowedIds = null,
 }: SoilMapSessionsPanelProps) {
   const { data, isLoading } = useSoilMapSessionHeaders(plotId)
   const [from, setFrom] = useState('')
@@ -39,12 +46,13 @@ export function SoilMapSessionsPanel({
   const sessions = useMemo(() => {
     const list = data ?? []
     return list.filter((session) => {
+      if (!isAllowedSession(session.id, allowedIds)) return false
       const date = session.mapping_date ?? ''
       if (from && date && date < from) return false
       if (to && date && date > to) return false
       return true
     })
-  }, [data, from, to])
+  }, [data, from, to, allowedIds])
 
   return (
     <div
