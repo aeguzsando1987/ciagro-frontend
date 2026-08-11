@@ -407,6 +407,38 @@ vitest es `maplibre-gl` en jsdom dentro de `SessionReportPanel.test.tsx`, preexi
 
 ---
 
+## FASE AS — Búsqueda avanzada en el explorador del Visor de Datos (rama `dev-visor-advanced-search`, 2026-08-10)
+
+**Estado:** `[✅] Implementada y VALIDADA — 2026-08-10 — rama dev-visor-advanced-search`. Prueba manual del desarrollador positiva. Pendiente: homologación a dev y master. Caso de uso
+`.context/usecases/use-case-advanced-filters-visor-datos-explorer.md`: botón de lupa en el
+encabezado del explorador que abre un modal (rango de fechas, organización, productor, rancho,
+parcela, tipo) y actualiza el propio panel izquierdo con el árbol de coincidencias ya expandido,
+más el mapa encuadrando todas las parcelas involucradas. Lupa tachada = limpiar. Solo lectura.
+
+Consume el endpoint agregador `GET /monitoring/sessions/advanced-search/` (fase AS del backend), que
+devuelve la jerarquía productor → rancho → parcela → sesiones de los **cuatro** tipos ya armada. La
+búsqueda se persiste en la URL con `validateSearch` de zod, copiando el patrón ya existente en
+`routes/w.$dc.task-manager.tsx`.
+
+- [x] **AS-6** `validateSearch` (zod) en `routes/visor-datos.tsx`: `from`, `to`, `dateMode`, `org`,
+      `producers`, `ranches`, `plots`, `types`. `.catch(undefined)` para ignorar valores inválidos.
+- [x] **AS-7** `useAdvancedSessionSearch` + tipos del árbol de resultados (reusa `SessionKind`).
+- [x] **AS-8** `MultiSelectSearch`: buscador con debounce contra `?search=` + selección múltiple.
+      Sin librería nueva (no hay combobox en `components/ui/`).
+- [x] **AS-9** `AdvancedSearchModal` sobre `dialog.tsx`, con la cascada productor → rancho → parcela.
+- [x] **AS-10** Botón lupa / lupa tachada en `GeodataVisorShell` y reparto de criterios a ambos paneles.
+- [x] **AS-11** Modo resultados de `GeodataExplorer` (árbol de la API, expandido, reusando `TreeRow`).
+      El modo perezoso actual queda intacto cuando no hay búsqueda.
+- [x] **AS-12** Mapa multiparcela con ajuste dinámico (extiende `boundsOf` de `RanchPlotsMap`) y
+      paneles de sesión acotados a la búsqueda.
+- [x] **AS-13** Vitest + `tsc --noEmit` + guion de pruebas manuales.
+
+**Trampa a respetar:** el visor vive fuera de `/w/$dc`; el ámbito NDVI viaja por prop
+(`tenantId={selection.org.id}`), nunca por `useParams`. El árbol de resultados debe seguir
+emitiendo `org` en cada `VisorSelection` (ver `.CLAUDE/visor-contours-tenant-progress.md`).
+
+---
+
 ## FASES FRONTEND 3–10 · MÓDULOS RESTANTES
 **Estado:** `[ ] Pendientes — UX/UI por pulir`
 

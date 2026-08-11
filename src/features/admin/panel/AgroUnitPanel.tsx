@@ -37,7 +37,8 @@ import { usePlots } from '../hooks/usePlots'
 import { CreateContactDialog } from '../dialogs/CreateContactDialog'
 import { RanchFormDialog } from '../components/RanchFormDialog'
 import { PlotFormDialog } from '../components/PlotFormDialog'
-import type { AgroUnit } from '../types'
+import { PlotPanel } from './PlotPanel'
+import type { AgroUnit, PlotFlat } from '../types'
 
 /** Tipos de agrounidad que actúan como productor (pueden tener ranchos/parcelas). */
 const RANCH_OWNER_TYPES = ['Productor', 'Asociación agrícola']
@@ -87,6 +88,7 @@ export function AgroUnitPanel({ unit, onClose }: Props) {
   const [contactDialogOpen, setContactDialogOpen] = useState(false)
   const [ranchFormOpen, setRanchFormOpen] = useState(false)
   const [plotFormRanchId, setPlotFormRanchId] = useState<string | null>(null)
+  const [selectedPlot, setSelectedPlot] = useState<PlotFlat | null>(null)
   const user = useAuthStore((s) => s.user)
   const canEdit = (user?.role_level ?? 0) >= ROLE_LEVELS.SUPER_ADMIN
   const canManageContacts = (user?.role_level ?? 0) >= ROLE_LEVELS.SUPERVISOR
@@ -417,7 +419,19 @@ export function AgroUnitPanel({ unit, onClose }: Props) {
                           ) : (
                             <ul className="divide-y rounded-md border">
                               {ranchPlots.map((p) => (
-                                <li key={p.id} className="px-3 py-2 text-sm">{p.code}</li>
+                                <li key={p.id}>
+                                  <button
+                                    type="button"
+                                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/30"
+                                    onClick={() => setSelectedPlot(p)}
+                                  >
+                                    <span className="font-medium">{p.code}</span>
+                                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      {p.total_area ? `${p.total_area} ha` : 'Sin vértices'}
+                                      <Badge variant="outline" className="text-xs">{p.status}</Badge>
+                                    </span>
+                                  </button>
+                                </li>
                               ))}
                             </ul>
                           )}
@@ -451,7 +465,13 @@ export function AgroUnitPanel({ unit, onClose }: Props) {
           open={plotFormRanchId !== null}
           onClose={() => setPlotFormRanchId(null)}
           fixedRanchId={plotFormRanchId ?? undefined}
+          // Abrir el detalle de la parcela recién creada para cargar sus vértices.
+          onCreated={(plot) => setSelectedPlot(plot)}
         />
+      )}
+
+      {selectedPlot && (
+        <PlotPanel plot={selectedPlot} onClose={() => setSelectedPlot(null)} />
       )}
     </>
   )

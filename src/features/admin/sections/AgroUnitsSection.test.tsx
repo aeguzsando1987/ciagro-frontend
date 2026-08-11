@@ -33,6 +33,15 @@ vi.mock('../hooks/useAgroSectors', () => ({
   useDeleteAgroSector: vi.fn(() => ({ mutateAsync: deleteSectorMutate, isPending: false })),
 }))
 
+// MapLibre no funciona en JSDOM — mockear el minimapa que usa PlotPanel
+vi.mock('@/features/task-manager/panel/PlotMiniMap', () => ({
+  PlotMiniMap: () => null,
+}))
+
+vi.mock('@/features/task-manager/hooks/usePlotGeometry', () => ({
+  usePlotGeometry: vi.fn(() => ({ data: null, isLoading: false })),
+}))
+
 // El dialog de crear unidad necesita countries
 beforeEach(() => {
   // Estado base por test: sin sectores (los tests que los necesitan lo sobrescriben).

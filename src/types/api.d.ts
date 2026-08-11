@@ -1171,7 +1171,7 @@ export interface paths {
          *
          *     *curl*
          *     ```bash
-         *     curl -X GET http://localhost:8500/api/v1/organizations/?unit_type=Productor&datacentral=<uuid> \
+         *     curl -X GET http://localhost:8500/api/v1/organizations/?unit_type=Productor&search=Crampie \
          *       -H "Authorization: Bearer $TOKEN"
          *     ```
          *
@@ -2269,7 +2269,7 @@ export interface paths {
          *
          *     *curl*
          *     ```bash
-         *     curl -X GET http://localhost:8500/api/v1/geo_assets/ranches/?producer=<uuid> \
+         *     curl -X GET http://localhost:8500/api/v1/geo_assets/ranches/?producer=<uuid>&search=La tij \
          *       -H "Authorization: Bearer $TOKEN"
          *     ```
          *
@@ -2516,7 +2516,7 @@ export interface paths {
          *
          *     *curl*
          *     ```bash
-         *     curl -X GET http://localhost:8500/api/v1/geo_assets/plots/?ranch=<uuid> \
+         *     curl -X GET http://localhost:8500/api/v1/geo_assets/plots/?ranch=<uuid>&search=P-00 \
          *       -H "Authorization: Bearer $TOKEN"
          *     ```
          *
@@ -4704,6 +4704,51 @@ export interface paths {
          *     ```
          */
         delete: operations["v1_field_ops_session_issues_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/sessions/advanced-search/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Busqueda avanzada de sesiones (multidominio)
+         * @description Busca sesiones de los cuatro tipos (aspersion, fitosanitario, NDVI y mapeo de suelo) por rango de fechas, organizacion, productor, rancho, parcela y tipo, y devuelve la jerarquia **productor -> rancho -> parcela -> sesiones** ya armada para el explorador del Visor de Datos.
+         *
+         *     El alcance es el del usuario: SuperAdmin ve todo; el resto solo los productores de las CIAgros que posee (owner de la organizacion padre) o que tiene asignadas.
+         *
+         *     Los filtros geograficos se combinan con AND. Los ids invalidos o inexistentes se ignoran (un enlace compartido con una parcela ya borrada no rompe la vista); una fecha mal formada si responde 400.
+         *
+         *     El resultado se corta en 500 sesiones, conservando las mas recientes: si `truncated` es `true`, el cliente debe pedir al usuario que refine la busqueda.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/sessions/advanced-search/?date_from=2024-10-12&date_to=2025-09-12&producer=<uuid>,<uuid>&type=aspersion,ndvi \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/sessions/advanced-search/")
+         *         suspend fun advancedSessionSearch(): SessionSearchResult
+         *     }
+         *
+         *     val result = api.advancedSessionSearch()
+         *     ```
+         */
+        get: operations["v1_monitoring_sessions_advanced_search_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -12902,6 +12947,10 @@ export interface operations {
             query?: {
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+                /** @description Coincidencia parcial (sin distinguir mayúsculas) sobre el nombre comercial, la razón social o el código de la unidad. */
+                search?: string;
                 /** @description Filtra por tipo de unidad. Valores: `Productor`, `Acopiadora de grano`, `Asociación agrícola`, `Empaque`, `Laboratorio`, `Consultoria`, `Otro`. */
                 unit_type?: string;
             };
@@ -13591,8 +13640,14 @@ export interface operations {
             query?: {
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description Filtra ranchos por UUID del productor (AgroUnit). Útil para navegar la jerarquía Productor → Rancho en la app móvil. */
                 producer?: string;
+                /** @description Lista de UUIDs de productor separados por coma. Para el selector en cascada de la búsqueda avanzada del Visor. */
+                producer_in?: string;
+                /** @description Coincidencia parcial (sin distinguir mayúsculas) sobre el nombre o el código del rancho. */
+                search?: string;
             };
             header?: never;
             path?: never;
@@ -13733,12 +13788,20 @@ export interface operations {
     v1_geo_assets_plots_list: {
         parameters: {
             query?: {
+                /** @description Lista de UUIDs de parcela separados por coma. Trae de una sola vez las geometrías de un conjunto arbitrario de parcelas (p. ej. el resultado de una búsqueda avanzada, que puede cruzar varios ranchos). */
+                ids?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description Filtra parcelas por UUID del productor (AgroUnit). Alternativa directa sin pasar por rancho. */
                 producer?: string;
                 /** @description Filtra parcelas por UUID del rancho. Útil para navegar la jerarquía Rancho → Parcela en la app móvil. */
                 ranch?: string;
+                /** @description Lista de UUIDs de rancho separados por coma. Para el selector en cascada de la búsqueda avanzada del Visor. */
+                ranch_in?: string;
+                /** @description Coincidencia parcial (sin distinguir mayúsculas) sobre el código o la descripción de la parcela. */
+                search?: string;
             };
             header?: never;
             path?: never;
@@ -15245,6 +15308,54 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    v1_monitoring_sessions_advanced_search_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Fecha inicial (YYYY-MM-DD), inclusiva. */
+                date_from?: string;
+                /** @description `planned` (default) usa la fecha programada de cada tipo (aspersion_date / estimated_start_date / session_date / mapping_date); `actual` usa la real (act_start_date / started_at / act_start_date / real_init_date). Las sesiones sin la fecha elegida quedan fuera cuando hay rango. */
+                date_mode?: "actual" | "planned";
+                /** @description Fecha final (YYYY-MM-DD), inclusiva. */
+                date_to?: string;
+                /** @description UUID de la organizacion (DataCentralMain) a la que acotar. */
+                organization?: string;
+                /** @description UUIDs de parcela separados por coma. */
+                plot?: string;
+                /** @description UUIDs de productor separados por coma. */
+                producer?: string;
+                /** @description UUIDs de rancho separados por coma. */
+                ranch?: string;
+                /** @description Tipos separados por coma: `aspersion`, `phyto`, `ndvi`, `soil_map`. Default: los cuatro. */
+                type?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
             };
         };
     };

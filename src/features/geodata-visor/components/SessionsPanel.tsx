@@ -9,6 +9,7 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { useAspersionSessionHeaders } from '../hooks/useAspersionSessionHeaders'
+import { isAllowedSession } from '../lib/advancedSearch'
 import type { VisorSession } from '../types'
 
 interface SessionsPanelProps {
@@ -21,24 +22,37 @@ interface SessionsPanelProps {
    * tarjetas en una columna derecha (p. ej. la tarjeta de categorías a nivel sesión).
    */
   floating?: boolean
+  /**
+   * Ids permitidos por la búsqueda avanzada (fase AS). `null`/ausente = sin búsqueda,
+   * se listan todas las sesiones de la parcela como siempre.
+   */
+  allowedIds?: string[] | null
 }
 
-export function SessionsPanel({ plotId, selectedSessionId, onSelectSession, floating = true }: SessionsPanelProps) {
+export function SessionsPanel({
+  plotId,
+  selectedSessionId,
+  onSelectSession,
+  floating = true,
+  allowedIds = null,
+}: SessionsPanelProps) {
   const { data, isLoading } = useAspersionSessionHeaders(plotId)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [collapsed, setCollapsed] = useState(false)
 
-  // Filtro por rango (fechas ISO YYYY-MM-DD → comparación lexicográfica válida).
+  // Filtro por rango (fechas ISO YYYY-MM-DD → comparación lexicográfica válida) más,
+  // si hay búsqueda avanzada activa, el recorte a las sesiones que ésta devolvió.
   const sessions = useMemo(() => {
     const list = data ?? []
     return list.filter((s) => {
+      if (!isAllowedSession(s.id, allowedIds)) return false
       const d = s.aspersion_date ?? ''
       if (from && d && d < from) return false
       if (to && d && d > to) return false
       return true
     })
-  }, [data, from, to])
+  }, [data, from, to, allowedIds])
 
   return (
     <div

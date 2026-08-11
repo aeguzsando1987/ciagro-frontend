@@ -21,11 +21,28 @@ import { useAspersionSessionHeaders } from '../hooks/useAspersionSessionHeaders'
 import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
 import { useNdviSessionHeaders } from '../hooks/useNdviSessionHeaders'
 import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
-import { activeIdFor, type VisorSelection } from '../types'
+import {
+  activeIdFor,
+  type AdvancedSearchResult,
+  type SearchProducerNode,
+  type SearchSessionRef,
+  type SessionKind,
+  type VisorSelection,
+} from '../types'
 
 interface ExplorerProps {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
+  /**
+   * Modo resultados (fase AS). Con una búsqueda activa el explorador deja de cargar
+   * niveles bajo demanda y pinta el árbol que devolvió el endpoint, ya expandido.
+   * Los criterios y la petición viven en el shell: aquí solo llega el resultado, para
+   * que este componente siga sin depender de una ruta concreta.
+   */
+  searchActive?: boolean
+  searchResult?: AdvancedSearchResult | null
+  searchLoading?: boolean
+  searchError?: boolean
 }
 
 // ─── Fila presentacional compartida ──────────────────────────────────────────
@@ -523,10 +540,199 @@ function OrgNode({ orgRef, selection, onSelect }: {
   )
 }
 
+// ─── Modo resultados de búsqueda (fase AS) ────────────────────────────────────
+
+const SESSION_ICONS: Record<SessionKind, React.ReactNode> = {
+  aspersion: <Layers className="h-3.5 w-3.5" />,
+  phyto: <Bug className="h-3.5 w-3.5" />,
+  ndvi: <Leaf className="h-3.5 w-3.5" />,
+  soil_map: <FlaskConical className="h-3.5 w-3.5" />,
+}
+
+const SESSION_KIND_TEXT: Record<SessionKind, string> = {
+  aspersion: 'Aspersión',
+  phyto: 'Fitosanitaria',
+  ndvi: 'NDVI',
+  soil_map: 'Mapeo de suelo',
+}
+
+function sessionLabel(session: SearchSessionRef): string {
+  const date = session.date ?? 'Sin fecha'
+  const points = session.points_count ? ` · ${session.points_count} pts` : ''
+  return `${date}${points}`
+}
+
+/** Un productor del resultado, con sus ranchos y parcelas ya expandidos. */
+function SearchProducerBranch({ producer, selection, onSelect }: {
+  producer: SearchProducerNode
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+}) {
+  const [expanded, setExpanded] = useState(true)
+  const activeId = activeIdFor(selection)
+
+  // Sin organización no se puede construir una VisorSelection válida (el dashboard y
+  // el mapa NDVI la necesitan), así que el nodo se muestra pero no se selecciona.
+  const org = producer.organization
+  const producerRef = { id: producer.id, name: producer.name }
+
+  return (
+    <>
+      <TreeRow
+        depth={0}
+        icon={<Tractor className="h-3.5 w-3.5" />}
+        label={producer.name}
+        expanded={expanded}
+        onToggle={() => setExpanded((value) => !value)}
+        selected={selection?.level === 'producer' && activeId === producer.id}
+        onSelect={() => org && onSelect({ org, producer: producerRef, level: 'producer' })}
+      />
+      {!org && <Empty depth={1} text="Sin organización asociada: no navegable." />}
+      {expanded && org &&
+        producer.ranches.map((ranch) => (
+          <SearchRanchBranch
+            key={ranch.id}
+            ranch={ranch}
+            base={{ org, producer: producerRef }}
+            selection={selection}
+            onSelect={onSelect}
+          />
+        ))}
+    </>
+  )
+}
+
+function SearchRanchBranch({ ranch, base, selection, onSelect }: {
+  ranch: SearchProducerNode['ranches'][number]
+  base: Pick<VisorSelection, 'org' | 'producer'>
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+}) {
+  const [expanded, setExpanded] = useState(true)
+  const activeId = activeIdFor(selection)
+  const ranchRef = { id: ranch.id, name: ranch.name }
+
+  return (
+    <>
+      <TreeRow
+        depth={1}
+        icon={<MapPin className="h-3.5 w-3.5" />}
+        label={ranch.name}
+        expanded={expanded}
+        onToggle={() => setExpanded((value) => !value)}
+        selected={selection?.level === 'ranch' && activeId === ranch.id}
+        onSelect={() => onSelect({ ...base, ranch: ranchRef, level: 'ranch' })}
+      />
+      {expanded &&
+        ranch.plots.map((plot) => (
+          <SearchPlotBranch
+            key={plot.id}
+            plot={plot}
+            base={{ ...base, ranch: ranchRef }}
+            selection={selection}
+            onSelect={onSelect}
+          />
+        ))}
+    </>
+  )
+}
+
+function SearchPlotBranch({ plot, base, selection, onSelect }: {
+  plot: SearchProducerNode['ranches'][number]['plots'][number]
+  base: Pick<VisorSelection, 'org' | 'producer' | 'ranch'>
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+}) {
+  const [expanded, setExpanded] = useState(true)
+  const activeId = activeIdFor(selection)
+  const plotRef = { id: plot.id, name: plot.code }
+
+  return (
+    <>
+      <TreeRow
+        depth={2}
+        icon={<Sprout className="h-3.5 w-3.5" />}
+        label={plot.code}
+        badge={`${plot.sessions.length}`}
+        expanded={expanded}
+        onToggle={() => setExpanded((value) => !value)}
+        selected={selection?.level === 'plot' && activeId === plot.id}
+        onSelect={() => onSelect({ ...base, plot: plotRef, level: 'plot' })}
+      />
+      {expanded &&
+        plot.sessions.map((session) => (
+          <TreeRow
+            key={`${session.kind}-${session.id}`}
+            depth={3}
+            icon={SESSION_ICONS[session.kind]}
+            label={sessionLabel(session)}
+            badge={SESSION_KIND_TEXT[session.kind]}
+            selected={
+              selection?.level === 'session' &&
+              selection.session?.kind === session.kind &&
+              activeId === session.id
+            }
+            onSelect={() =>
+              onSelect({
+                ...base,
+                plot: plotRef,
+                session: { id: session.id, date: session.date, kind: session.kind },
+                level: 'session',
+              })
+            }
+          />
+        ))}
+    </>
+  )
+}
+
+function SearchResultsTree({ result, selection, onSelect }: {
+  result: AdvancedSearchResult
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+}) {
+  if (result.producers.length === 0) {
+    return <Empty depth={0} text="Ninguna sesión coincide con la búsqueda." />
+  }
+  return (
+    <div role="tree" className="py-1 pr-1">
+      {result.truncated && (
+        <p className="mx-1 mb-1 rounded border border-dashed px-2 py-1 text-[11px] text-muted-foreground">
+          Se muestran las {result.count} sesiones más recientes de {result.total}. Refina la
+          búsqueda para ver el resto.
+        </p>
+      )}
+      {result.producers.map((producer) => (
+        <SearchProducerBranch
+          key={producer.id}
+          producer={producer}
+          selection={selection}
+          onSelect={onSelect}
+        />
+      ))}
+    </div>
+  )
+}
+
 // ─── Componente raíz ──────────────────────────────────────────────────────────
 
-export function GeodataExplorer({ selection, onSelect }: ExplorerProps) {
+export function GeodataExplorer({
+  selection,
+  onSelect,
+  searchActive = false,
+  searchResult = null,
+  searchLoading = false,
+  searchError = false,
+}: ExplorerProps) {
+  // Los hooks se llaman siempre (regla de hooks); solo cambia lo que se pinta.
   const { data: orgs, isLoading, error } = useDataCentralMains()
+
+  if (searchActive) {
+    if (searchLoading) return <Loading depth={0} />
+    if (searchError) return <Empty depth={0} text="No se pudo ejecutar la búsqueda." />
+    if (!searchResult) return <Loading depth={0} />
+    return <SearchResultsTree result={searchResult} selection={selection} onSelect={onSelect} />
+  }
 
   if (isLoading) return <Loading depth={0} />
   if (error) return <Empty depth={0} text="No se pudieron cargar las organizaciones." />

@@ -44,9 +44,11 @@ interface Props {
   /** Rancho padre fijado (cuando se crea desde el panel de un rancho). */
   fixedRanchId?: string
   initialData?: PlotFlat
+  /** Se invoca con la parcela recién creada (permite abrir su detalle enseguida). */
+  onCreated?: (plot: PlotFlat) => void
 }
 
-export function PlotFormDialog({ open, onClose, fixedRanchId, initialData }: Props) {
+export function PlotFormDialog({ open, onClose, fixedRanchId, initialData, onCreated }: Props) {
   const isEdit = !!initialData
   const { data: ranches = [] } = useRanches()
   const createMutation = useCreatePlot()
@@ -97,8 +99,9 @@ export function PlotFormDialog({ open, onClose, fixedRanchId, initialData }: Pro
         await updateMutation.mutateAsync({ id: initialData.id, payload })
         toast.success('Parcela actualizada correctamente.')
       } else {
-        await createMutation.mutateAsync(payload)
+        const created = await createMutation.mutateAsync(payload)
         toast.success('Parcela creada correctamente.')
+        onCreated?.(created)
       }
       handleClose()
     } catch (err) {
