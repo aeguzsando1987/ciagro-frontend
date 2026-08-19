@@ -8,7 +8,7 @@ describe('LoginForm', () => {
     render(<LoginForm onSubmit={vi.fn()} />)
     expect(screen.getByLabelText(/usuario/i)).toBeInTheDocument()
     expect(screen.getByLabelText('Contraseña')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /entrar/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /iniciar sesión/i })).toBeInTheDocument()
   })
 
   it('displays error message from prop', () => {
@@ -28,13 +28,13 @@ describe('LoginForm', () => {
 
     await user.type(screen.getByLabelText(/usuario/i), 'gerente01')
     await user.type(screen.getByLabelText('Contraseña'), 'secreto123')
-    await user.click(screen.getByRole('button', { name: /entrar/i }))
+    await user.click(screen.getByRole('button', { name: /iniciar sesión/i }))
 
     // react-hook-form llama onSubmit(data, event) — el segundo arg es el SubmitEvent
     expect(onSubmit).toHaveBeenCalledOnce()
     expect(onSubmit).toHaveBeenCalledWith(
       { username: 'gerente01', password: 'secreto123' },
-      expect.anything(),
+      expect.anything()
     )
   })
 
@@ -43,7 +43,7 @@ describe('LoginForm', () => {
     const user = userEvent.setup()
     render(<LoginForm onSubmit={onSubmit} />)
 
-    await user.click(screen.getByRole('button', { name: /entrar/i }))
+    await user.click(screen.getByRole('button', { name: /iniciar sesión/i }))
 
     expect(onSubmit).not.toHaveBeenCalled()
     expect(screen.getAllByText(/requerido/i).length).toBeGreaterThanOrEqual(1)

@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { GpaLoader } from '@/components/ui/gpa-loader'
+import { LoadingState } from '@/components/ui/loading-state'
 import {
   useImportSoilMapData,
   usePreviewSoilMapColumns,
@@ -86,7 +88,11 @@ export function SoilMapImportDialog({
 
         {isProcessing ? (
           <div className="space-y-2 py-4 text-sm">
-            <p className="font-medium">Importación en curso…</p>
+            <LoadingState
+              compact
+              label="Importación en curso: procesando datos de suelo…"
+              className="justify-start rounded-lg border border-info/20 bg-info-soft text-info-foreground"
+            />
             <div className="flex flex-wrap items-center gap-1 text-muted-foreground">
               El estado actual es <Badge variant="outline">{importStatus}</Badge>. Puedes cerrar
               esta ventana; el detalle se actualizará automáticamente.
@@ -116,7 +122,11 @@ export function SoilMapImportDialog({
             </div>
 
             {previewMutation.isPending && (
-              <p className="text-sm text-muted-foreground">Analizando columnas…</p>
+              <LoadingState
+                compact
+                label="Analizando columnas…"
+                className="justify-start rounded-lg bg-surface-secondary"
+              />
             )}
 
             {preview && (
@@ -166,6 +176,7 @@ export function SoilMapImportDialog({
           </Button>
           {!isProcessing && (
             <Button onClick={handleImport} disabled={!file || importMutation.isPending}>
+              {importMutation.isPending && <GpaLoader size="xs" />}
               {importMutation.isPending ? 'Importando…' : 'Importar'}
             </Button>
           )}

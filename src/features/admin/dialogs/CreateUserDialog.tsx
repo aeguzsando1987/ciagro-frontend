@@ -7,12 +7,14 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { FormSection } from '@/components/ui/form-section'
 import {
   Select,
   SelectContent,
@@ -58,9 +60,22 @@ type FormValues = z.infer<typeof schema>
 
 /** Campos que el backend (AdminRegisterSerializer) reconoce, para mapear errores DRF. */
 const KNOWN_FIELDS = [
-  'username', 'email', 'password', 'user_role', 'first_name', 'last_name',
-  'phone', 'personal_email', 'address_line_1', 'address_line_2', 'city',
-  'postal_code', 'photo_url', 'country', 'state', 'work_role',
+  'username',
+  'email',
+  'password',
+  'user_role',
+  'first_name',
+  'last_name',
+  'phone',
+  'personal_email',
+  'address_line_1',
+  'address_line_2',
+  'city',
+  'postal_code',
+  'photo_url',
+  'country',
+  'state',
+  'work_role',
 ] as const
 
 interface CreateUserDialogProps {
@@ -155,13 +170,15 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nuevo usuario</DialogTitle>
+          <DialogDescription>
+            Crea la cuenta y completa su perfil, rol y ubicación.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-5">
           {/* ── Cuenta ───────────────────────────────────────────── */}
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground">Cuenta</h3>
-            <div className="grid grid-cols-2 gap-3">
+          <FormSection title="Cuenta" description="Credenciales y nivel de acceso al sistema.">
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Usuario *" error={errors.username?.message}>
                 <Input {...register('username')} placeholder="usuario01" />
               </Field>
@@ -186,12 +203,14 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 </Select>
               </Field>
             </div>
-          </section>
+          </FormSection>
 
           {/* ── Perfil ───────────────────────────────────────────── */}
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground">Perfil</h3>
-            <div className="grid grid-cols-2 gap-3">
+          <FormSection
+            title="Perfil"
+            description="Información personal y función dentro de la organización."
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Nombre *" error={errors.first_name?.message}>
                 <Input {...register('first_name')} />
               </Field>
@@ -209,7 +228,10 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
               </Field>
               <Field label="Rol laboral" error={errors.work_role?.message}>
                 <div className="flex gap-2">
-                  <Select value={watch('work_role')} onValueChange={(v) => setValue('work_role', v)}>
+                  <Select
+                    value={watch('work_role')}
+                    onValueChange={(v) => setValue('work_role', v)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecciona un rol laboral" />
                     </SelectTrigger>
@@ -232,12 +254,14 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 </div>
               </Field>
             </div>
-          </section>
+          </FormSection>
 
           {/* ── Ubicación ────────────────────────────────────────── */}
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground">Ubicación</h3>
-            <div className="grid grid-cols-2 gap-3">
+          <FormSection
+            title="Ubicación"
+            description="Datos de contacto territorial y dirección postal."
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="País" error={errors.country?.message}>
                 <CountryCombobox
                   countries={countries}
@@ -256,7 +280,9 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 >
                   <SelectTrigger>
                     <SelectValue
-                      placeholder={selectedCountryIso2 ? 'Selecciona un estado' : 'Elige país primero'}
+                      placeholder={
+                        selectedCountryIso2 ? 'Selecciona un estado' : 'Elige país primero'
+                      }
                     />
                   </SelectTrigger>
                   <SelectContent>
@@ -281,7 +307,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 <Input {...register('address_line_2')} />
               </Field>
             </div>
-          </section>
+          </FormSection>
 
           {errors.root && (
             <p className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">

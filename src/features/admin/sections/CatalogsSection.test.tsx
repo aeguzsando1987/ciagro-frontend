@@ -10,8 +10,9 @@ import { createTestQueryClient } from '@/test/test-utils'
 // ── Mocks ──
 
 vi.mock('@/features/auth/useAuthStore', () => ({
-  useAuthStore: vi.fn((selector: (s: { user: { role_level: number } | null }) => unknown) =>
-    selector({ user: { role_level: 3 } }) // supervisor por defecto
+  useAuthStore: vi.fn(
+    (selector: (s: { user: { role_level: number } | null }) => unknown) =>
+      selector({ user: { role_level: 3 } }) // supervisor por defecto
   ),
 }))
 
@@ -78,24 +79,44 @@ describe('CatalogsSection', () => {
 
   it('renders crop in table when useCrops returns data', () => {
     vi.mocked(useCrops).mockReturnValueOnce({
-      data: [{
-        id: 1, name: 'Mango Manila', code: 'MNG-MNL', variety: 'Manila',
-        description: null, photo: '', additional_params: null, attachments_url: null,
-      }],
+      data: [
+        {
+          id: 1,
+          name: 'Mango Manila',
+          code: 'MNG-MNL',
+          variety: 'Manila',
+          description: null,
+          photo: '',
+          additional_params: null,
+          attachments_url: null,
+        },
+      ],
       isLoading: false,
       error: null,
     } as never)
     renderSection()
     expect(screen.getByText('Mango Manila')).toBeInTheDocument()
     expect(screen.getByText('MNG-MNL')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Sin fotografía de Mango Manila' })).toHaveClass(
+      'h-10',
+      'w-10'
+    )
   })
 
   it('click on crop row opens CropPanel', async () => {
     vi.mocked(useCrops).mockReturnValueOnce({
-      data: [{
-        id: 1, name: 'Mango Manila', code: null, variety: null,
-        description: null, photo: '', additional_params: null, attachments_url: null,
-      }],
+      data: [
+        {
+          id: 1,
+          name: 'Mango Manila',
+          code: null,
+          variety: null,
+          description: null,
+          photo: '',
+          additional_params: null,
+          attachments_url: null,
+        },
+      ],
       isLoading: false,
       error: null,
     } as never)
@@ -109,12 +130,30 @@ describe('CatalogsSection', () => {
 
   it('click on phyto row opens PhytosanitaryPanel', async () => {
     vi.mocked(usePhytosanitaryCatalogs).mockReturnValueOnce({
-      data: [{
-        id: 2, name: 'Antracnosis', type: 'Enfermedad',
-        default_crop: { id: 1, name: 'Mango Manila', code: null, variety: null, description: null, photo: '', additional_params: null, attachments_url: null },
-        default_crop_id: 1, description: null, min_ref_value: null, max_ref_value: null,
-        stage_photos: [], additional_params: null, attachments_url: null,
-      }],
+      data: [
+        {
+          id: 2,
+          name: 'Antracnosis',
+          type: 'Enfermedad',
+          default_crop: {
+            id: 1,
+            name: 'Mango Manila',
+            code: null,
+            variety: null,
+            description: null,
+            photo: '',
+            additional_params: null,
+            attachments_url: null,
+          },
+          default_crop_id: 1,
+          description: null,
+          min_ref_value: null,
+          max_ref_value: null,
+          stage_photos: [],
+          additional_params: null,
+          attachments_url: null,
+        },
+      ],
       isLoading: false,
       error: null,
     } as never)

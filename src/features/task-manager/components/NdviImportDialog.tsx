@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { GpaLoader } from '@/components/ui/gpa-loader'
+import { LoadingState } from '@/components/ui/loading-state'
 import {
   usePreviewNdviColumns,
   useImportNdviData,
@@ -30,7 +32,13 @@ interface Props {
  * (reconoce nombres con acentos), así que no hay plantillas ni mapeo manual: solo se elige
  * el archivo, opcionalmente se previsualizan las columnas reconocidas, y se importa.
  */
-export function NdviImportDialog({ headerId, importStatus, importErrors, open, onOpenChange }: Props) {
+export function NdviImportDialog({
+  headerId,
+  importStatus,
+  importErrors,
+  open,
+  onOpenChange,
+}: Props) {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<NdviPreviewResult | null>(null)
 
@@ -46,7 +54,7 @@ export function NdviImportDialog({ headerId, importStatus, importErrors, open, o
       {
         onSuccess: (res) => setPreview(res),
         onError: () => toast.error('No se pudo previsualizar el CSV.'),
-      },
+      }
     )
   }
 
@@ -60,7 +68,7 @@ export function NdviImportDialog({ headerId, importStatus, importErrors, open, o
           onOpenChange(false)
         },
         onError: () => toast.error('No se pudo importar el CSV.'),
-      },
+      }
     )
   }
 
@@ -91,14 +99,14 @@ export function NdviImportDialog({ headerId, importStatus, importErrors, open, o
 
           {preview && (
             <div className="rounded border p-2 text-xs">
-              <p className="mb-1 font-medium">
-                Columnas reconocidas: {preview.matched.length}
-              </p>
+              <p className="mb-1 font-medium">Columnas reconocidas: {preview.matched.length}</p>
               {preview.unmatched.length > 0 ? (
                 <div className="flex flex-wrap gap-1">
                   <span className="text-muted-foreground">Sin reconocer:</span>
                   {preview.unmatched.map((c) => (
-                    <Badge key={c} variant="outline">{c}</Badge>
+                    <Badge key={c} variant="outline">
+                      {c}
+                    </Badge>
                   ))}
                 </div>
               ) : (
@@ -115,22 +123,41 @@ export function NdviImportDialog({ headerId, importStatus, importErrors, open, o
           )}
           {importStatus === 'error' && (
             <p className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              La última importación falló.{' '}
-              {typeof importErrors === 'string' ? importErrors : ''}
+              La última importación falló. {typeof importErrors === 'string' ? importErrors : ''}
             </p>
           )}
           {processing && (
-            <p className="rounded bg-blue-50 px-3 py-2 text-xs text-blue-800">
-              Importación en curso…
-            </p>
+            <LoadingState
+              compact
+              label="Importación en curso: procesando datos NDVI…"
+              className="justify-start rounded-lg border border-info/20 bg-info-soft text-info-foreground"
+            />
+          )}
+          {previewMut.isPending && (
+            <LoadingState
+              compact
+              label="Previsualizando columnas…"
+              className="justify-start rounded-lg bg-surface-secondary"
+            />
           )}
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onPreview} disabled={!file || previewMut.isPending}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onPreview}
+            disabled={!file || previewMut.isPending}
+          >
+            {previewMut.isPending && <GpaLoader size="xs" />}
             {previewMut.isPending ? 'Previsualizando…' : 'Previsualizar'}
           </Button>
-          <Button type="button" onClick={onImport} disabled={!file || importMut.isPending || processing}>
+          <Button
+            type="button"
+            onClick={onImport}
+            disabled={!file || importMut.isPending || processing}
+          >
+            {importMut.isPending && <GpaLoader size="xs" />}
             {importMut.isPending ? 'Importando…' : 'Importar'}
           </Button>
         </DialogFooter>

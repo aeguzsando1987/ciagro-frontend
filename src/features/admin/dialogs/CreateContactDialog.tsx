@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -85,6 +86,9 @@ export function CreateContactDialog({ open, onOpenChange, agroUnitId }: Props) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Nuevo contacto</DialogTitle>
+          <DialogDescription>
+            Agrega una persona o empresa relacionada con esta unidad.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Field label="Nombre *" error={errors.name?.message}>
@@ -94,7 +98,11 @@ export function CreateContactDialog({ open, onOpenChange, agroUnitId }: Props) {
             <Input {...register('phone')} placeholder="Ej: +52 3312345678 (opcional)" />
           </Field>
           <Field label="Correo electrónico" error={errors.email?.message}>
-            <Input {...register('email')} type="email" placeholder="contacto@empresa.com (opcional)" />
+            <Input
+              {...register('email')}
+              type="email"
+              placeholder="contacto@empresa.com (opcional)"
+            />
           </Field>
           <Field label="Dirección línea 1" error={errors.address_line_1?.message}>
             <Input {...register('address_line_1')} placeholder="Calle y número (opcional)" />

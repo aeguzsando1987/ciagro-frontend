@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { Plus, Trash2, Upload, X, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { GpaLoader } from '@/components/ui/gpa-loader'
 import { useImportPlotVertices } from '../hooks/usePlots'
 import type { PlotVertexInput } from '../types'
 
@@ -10,11 +11,20 @@ import type { PlotVertexInput } from '../types'
 // Mapea variantes de nombres (español / inglés / abreviaturas) a nombre canónico.
 const COL_ALIASES: Record<string, 'latitude' | 'longitude' | 'level'> = {
   // latitud
-  lat: 'latitude', latitud: 'latitude', latitude: 'latitude',
+  lat: 'latitude',
+  latitud: 'latitude',
+  latitude: 'latitude',
   // longitud
-  lon: 'longitude', lng: 'longitude', longitud: 'longitude', longitude: 'longitude',
+  lon: 'longitude',
+  lng: 'longitude',
+  longitud: 'longitude',
+  longitude: 'longitude',
   // orden / nivel (opcional)
-  level: 'level', nivel: 'level', orden: 'level', order: 'level', seq: 'level',
+  level: 'level',
+  nivel: 'level',
+  orden: 'level',
+  order: 'level',
+  seq: 'level',
 }
 
 function detectDelimiter(line: string): string {
@@ -26,7 +36,10 @@ function detectDelimiter(line: string): string {
 
 /** Normaliza un encabezado: elimina BOM, espacios y pasa a minúsculas. */
 function cleanHeader(h: string): string {
-  return h.replace(/^﻿/, '').trim().toLowerCase()
+  return h
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .toLowerCase()
 }
 
 /** Normaliza un valor decimal: admite coma como separador (p.ej. exportaciones Excel ES). */
@@ -39,7 +52,10 @@ type ParseErr = { ok: false; error: string; detected: string[] }
 type ParseResult = ParseOk | ParseErr
 
 function parseCSV(text: string): ParseResult {
-  const lines = text.replace(/\r/g, '').split('\n').filter((l) => l.trim())
+  const lines = text
+    .replace(/\r/g, '')
+    .split('\n')
+    .filter((l) => l.trim())
   if (lines.length < 2) {
     return { ok: false, error: 'El archivo está vacío o solo tiene encabezados.', detected: [] }
   }
@@ -47,7 +63,7 @@ function parseCSV(text: string): ParseResult {
   const firstLine = lines[0] ?? ''
   const delim = detectDelimiter(firstLine)
   const rawHeaders = firstLine.split(delim)
-  const detected = rawHeaders.map((h) => h.trim().replace(/^﻿/, ''))
+  const detected = rawHeaders.map((h) => h.trim().replace(/^\uFEFF/, ''))
 
   // Construir mapa: nombre canónico → índice de columna
   const colMap: Partial<Record<'latitude' | 'longitude' | 'level', number>> = {}
@@ -87,7 +103,9 @@ function parseCSV(text: string): ParseResult {
     const levelRaw = colMap.level !== undefined ? cells[colMap.level]?.trim() : ''
 
     if (isNaN(lat) || isNaN(lon)) {
-      errors.push(`Fila ${i + 2}: lat="${cells[colMap.latitude!]?.trim()}", lon="${cells[colMap.longitude!]?.trim()}"`)
+      errors.push(
+        `Fila ${i + 2}: lat="${cells[colMap.latitude!]?.trim()}", lon="${cells[colMap.longitude!]?.trim()}"`
+      )
       return
     }
     rows.push({ latitude: lat, longitude: lon, level: levelRaw ? parseInt(levelRaw, 10) || i : i })
@@ -141,20 +159,27 @@ export function PlotVerticesImport({ plotId, onSuccess }: Props) {
 
   // ── Handlers entrada manual ──────────────────────────────────────────────────
 
-  function addRow() { setRows((p) => [...p, makeRow()]) }
+  function addRow() {
+    setRows((p) => [...p, makeRow()])
+  }
 
-  function removeRow(key: number) { setRows((p) => p.filter((r) => r._key !== key)) }
+  function removeRow(key: number) {
+    setRows((p) => p.filter((r) => r._key !== key))
+  }
 
   function updateRow(key: number, field: 'latitude' | 'longitude', value: string) {
-    setRows((p) =>
-      p.map((r) => (r._key === key ? { ...r, [field]: Number(value) || 0 } : r))
-    )
+    setRows((p) => p.map((r) => (r._key === key ? { ...r, [field]: Number(value) || 0 } : r)))
   }
 
   async function handleImportManual() {
-    if (rows.length < 3) { toast.error('Se requieren al menos 3 vértices.'); return }
+    if (rows.length < 3) {
+      toast.error('Se requieren al menos 3 vértices.')
+      return
+    }
     const vertices: PlotVertexInput[] = rows.map((r, i) => ({
-      level: i, latitude: r.latitude, longitude: r.longitude,
+      level: i,
+      latitude: r.latitude,
+      longitude: r.longitude,
     }))
     try {
       await importMutation.mutateAsync({ plotId, vertices })
@@ -213,17 +238,20 @@ export function PlotVerticesImport({ plotId, onSuccess }: Props) {
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm font-medium">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          Vista previa — {csvPreview.rows.length} vértice{csvPreview.rows.length !== 1 ? 's' : ''} detectados
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          Vista previa — {csvPreview.rows.length} vértice{csvPreview.rows.length !== 1 ? 's' : ''}{' '}
+          detectados
         </div>
 
-        <div className="rounded-md border overflow-x-auto">
+        <div className="overflow-x-auto rounded-md border">
           <table className="w-full text-xs">
             <thead className="bg-muted/50">
               <tr>
                 <th className="px-3 py-1.5 text-left font-medium text-muted-foreground">#</th>
                 <th className="px-3 py-1.5 text-left font-medium text-muted-foreground">Latitud</th>
-                <th className="px-3 py-1.5 text-left font-medium text-muted-foreground">Longitud</th>
+                <th className="px-3 py-1.5 text-left font-medium text-muted-foreground">
+                  Longitud
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -236,7 +264,7 @@ export function PlotVerticesImport({ plotId, onSuccess }: Props) {
               ))}
               {extra > 0 && (
                 <tr>
-                  <td colSpan={3} className="px-3 py-1.5 text-center text-muted-foreground italic">
+                  <td colSpan={3} className="px-3 py-1.5 text-center italic text-muted-foreground">
                     …y {extra} vértice{extra !== 1 ? 's' : ''} más
                   </td>
                 </tr>
@@ -251,7 +279,7 @@ export function PlotVerticesImport({ plotId, onSuccess }: Props) {
 
         <div className="flex gap-2">
           <Button type="button" variant="outline" size="sm" onClick={cancelCsv}>
-            <X className="h-4 w-4 mr-1" />
+            <X className="mr-1 h-4 w-4" />
             Cancelar
           </Button>
           <Button
@@ -260,6 +288,7 @@ export function PlotVerticesImport({ plotId, onSuccess }: Props) {
             onClick={handleImportFromCsv}
             disabled={importMutation.isPending}
           >
+            {importMutation.isPending && <GpaLoader size="xs" />}
             {importMutation.isPending ? 'Importando…' : 'Confirmar e importar'}
           </Button>
         </div>
@@ -272,17 +301,17 @@ export function PlotVerticesImport({ plotId, onSuccess }: Props) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          Ingresa los vértices manualmente o sube un archivo CSV.
-          El backend calcula área y centroide automáticamente.
+          Ingresa los vértices manualmente o sube un archivo CSV. El backend calcula área y
+          centroide automáticamente.
         </p>
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="shrink-0 ml-3"
+          className="ml-3 shrink-0"
           onClick={() => fileInputRef.current?.click()}
         >
-          <Upload className="h-4 w-4 mr-1" />
+          <Upload className="mr-1 h-4 w-4" />
           Subir CSV
         </Button>
         <input
@@ -295,13 +324,13 @@ export function PlotVerticesImport({ plotId, onSuccess }: Props) {
       </div>
 
       {csvError && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive whitespace-pre-line">
+        <div className="whitespace-pre-line rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
           {csvError}
         </div>
       )}
 
       <div className="space-y-2">
-        <div className="grid grid-cols-[2rem_1fr_1fr_2rem] gap-2 text-xs font-medium text-muted-foreground px-1">
+        <div className="grid grid-cols-[2rem_1fr_1fr_2rem] gap-2 px-1 text-xs font-medium text-muted-foreground">
           <span>#</span>
           <span>Latitud</span>
           <span>Longitud</span>
@@ -309,8 +338,8 @@ export function PlotVerticesImport({ plotId, onSuccess }: Props) {
         </div>
 
         {rows.map((row, idx) => (
-          <div key={row._key} className="grid grid-cols-[2rem_1fr_1fr_2rem] gap-2 items-center">
-            <span className="text-xs text-muted-foreground text-right">{idx + 1}</span>
+          <div key={row._key} className="grid grid-cols-[2rem_1fr_1fr_2rem] items-center gap-2">
+            <span className="text-right text-xs text-muted-foreground">{idx + 1}</span>
             <Input
               type="number"
               step="any"
@@ -329,7 +358,8 @@ export function PlotVerticesImport({ plotId, onSuccess }: Props) {
               type="button"
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="text-danger hover:bg-danger-soft hover:text-danger"
+              aria-label={`Eliminar vértice ${idx + 1}`}
               onClick={() => removeRow(row._key)}
               disabled={rows.length <= 3}
             >
@@ -341,7 +371,7 @@ export function PlotVerticesImport({ plotId, onSuccess }: Props) {
 
       <div className="flex items-center gap-2">
         <Button type="button" variant="outline" size="sm" onClick={addRow}>
-          <Plus className="h-4 w-4 mr-1" />
+          <Plus className="mr-1 h-4 w-4" />
           Agregar vértice
         </Button>
         <Button
@@ -350,6 +380,7 @@ export function PlotVerticesImport({ plotId, onSuccess }: Props) {
           onClick={handleImportManual}
           disabled={importMutation.isPending}
         >
+          {importMutation.isPending && <GpaLoader size="xs" />}
           {importMutation.isPending ? 'Importando…' : 'Importar vértices'}
         </Button>
       </div>

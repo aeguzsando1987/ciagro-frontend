@@ -130,10 +130,10 @@ describe('GeodataDashboard', () => {
     render(<GeodataDashboard selection={sel} onSelect={vi.fn()} />)
     // "Sesiones de aspersión" aparece como tarjeta de stat y como título del panel
     expect(screen.getAllByText('Sesiones de aspersión').length).toBeGreaterThan(0)
-    expect(screen.getByText('3')).toBeTruthy() // 3 sesiones (stat)
+    expect(screen.getAllByText('3').length).toBeGreaterThan(0) // 3 sesiones (stat y listado)
     expect(screen.getByText(/4.5 ha/)).toBeTruthy()
     expect(screen.getAllByText('Sesiones de mapeo de suelo').length).toBeGreaterThan(0)
-    expect(screen.getByText('1')).toBeTruthy()
+    expect(screen.getAllByText('1').length).toBeGreaterThan(0)
   })
 
   it('nivel sesión: monta el visor de capas (AspersionMap) con el botón Parcela', () => {

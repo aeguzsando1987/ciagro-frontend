@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -13,6 +14,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { FormSection } from '@/components/ui/form-section'
+import { SafeImage } from '@/components/ui/safe-image'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -21,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AnimatedTabs as Tabs } from '@/components/ui/animated-tabs'
+import { Tabs } from '@/components/ui/tabs'
 import { Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
@@ -62,7 +67,14 @@ const schema = z.object({
 })
 
 type FormValues = z.infer<typeof schema>
-const KNOWN_FIELDS = ['name', 'type', 'default_crop_id', 'description', 'min_ref_value', 'max_ref_value'] as const
+const KNOWN_FIELDS = [
+  'name',
+  'type',
+  'default_crop_id',
+  'description',
+  'min_ref_value',
+  'max_ref_value',
+] as const
 
 interface Props {
   phyto: PhytosanitaryCatalog
@@ -163,29 +175,40 @@ export function PhytosanitaryPanel({ phyto, onClose }: Props) {
     }
   }
 
-  const cropItems = crops.map((c) => ({ id: String(c.id), label: c.name, sublabel: c.variety ?? undefined }))
+  const cropItems = crops.map((c) => ({
+    id: String(c.id),
+    label: c.name,
+    sublabel: c.variety ?? undefined,
+  }))
 
   return (
     <Dialog open onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[48rem]">
         <DialogHeader>
           <DialogTitle>{phyto.name}</DialogTitle>
+          <DialogDescription>Información, referencias y fotografías por etapa.</DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="detail">
           <TabsList className="w-full">
-            <TabsTrigger value="detail" className="flex-1">Detalle</TabsTrigger>
-            <TabsTrigger value="photos" className="flex-1">Detalle de etapas</TabsTrigger>
+            <TabsTrigger value="detail" className="flex-1">
+              Detalle
+            </TabsTrigger>
+            <TabsTrigger value="photos" className="flex-1">
+              Detalle de etapas
+            </TabsTrigger>
           </TabsList>
 
           {/* ── Tab Detalle ── */}
           <TabsContent value="detail" className="pt-4">
             {mode === 'view' ? (
               <div className="space-y-3 text-sm">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <span className="text-muted-foreground">Tipo</span>
-                    <p><Badge variant="outline">{currentPhyto.type ?? '—'}</Badge></p>
+                    <p>
+                      <Badge variant="outline">{currentPhyto.type ?? '—'}</Badge>
+                    </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Cultivo</span>
@@ -207,63 +230,73 @@ export function PhytosanitaryPanel({ phyto, onClose }: Props) {
                   </div>
                 )}
                 <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="outline" onClick={handleClose}>Cerrar</Button>
+                  <Button variant="outline" onClick={handleClose}>
+                    Cerrar
+                  </Button>
                   {canEdit && <Button onClick={() => setMode('edit')}>Editar</Button>}
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <Field label="Nombre *" error={errors.name?.message}>
-                  <Input {...register('name')} />
-                </Field>
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Tipo" error={errors.type?.message}>
-                    <Controller
-                      name="type"
-                      control={control}
-                      render={({ field }) => (
-                        <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                          <SelectTrigger><SelectValue placeholder="Tipo..." /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Plaga">Plaga</SelectItem>
-                            <SelectItem value="Enfermedad">Enfermedad</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <FormSection title="Información general">
+                  <Field label="Nombre *" error={errors.name?.message}>
+                    <Input {...register('name')} />
                   </Field>
-                  <Field label="Cultivo" error={errors.default_crop_id?.message}>
-                    <Controller
-                      name="default_crop_id"
-                      control={control}
-                      render={({ field }) => (
-                        <AssignCombobox
-                          items={cropItems}
-                          placeholder="Buscar cultivo..."
-                          value={field.value ?? ''}
-                          onChange={field.onChange}
-                        />
-                      )}
-                    />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Tipo" error={errors.type?.message}>
+                      <Controller
+                        name="type"
+                        control={control}
+                        render={({ field }) => (
+                          <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Tipo..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Plaga">Plaga</SelectItem>
+                              <SelectItem value="Enfermedad">Enfermedad</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </Field>
+                    <Field label="Cultivo" error={errors.default_crop_id?.message}>
+                      <Controller
+                        name="default_crop_id"
+                        control={control}
+                        render={({ field }) => (
+                          <AssignCombobox
+                            items={cropItems}
+                            placeholder="Buscar cultivo..."
+                            value={field.value ?? ''}
+                            onChange={field.onChange}
+                          />
+                        )}
+                      />
+                    </Field>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Mín. referencia">
+                      <Input type="number" step="any" {...register('min_ref_value')} />
+                    </Field>
+                    <Field label="Máx. referencia">
+                      <Input type="number" step="any" {...register('max_ref_value')} />
+                    </Field>
+                  </div>
+                  <Field label="Descripción">
+                    <Textarea {...register('description')} rows={2} />
                   </Field>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Mín. referencia">
-                    <Input type="number" step="any" {...register('min_ref_value')} />
-                  </Field>
-                  <Field label="Máx. referencia">
-                    <Input type="number" step="any" {...register('max_ref_value')} />
-                  </Field>
-                </div>
-                <Field label="Descripción">
-                  <textarea
-                    {...register('description')}
-                    rows={2}
-                    className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  />
-                </Field>
+                </FormSection>
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => { reset(); setMode('view') }} disabled={isSubmitting}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      reset()
+                      setMode('view')
+                    }}
+                    disabled={isSubmitting}
+                  >
                     Cancelar
                   </Button>
                   <Button type="submit" disabled={isSubmitting}>
@@ -275,22 +308,36 @@ export function PhytosanitaryPanel({ phyto, onClose }: Props) {
           </TabsContent>
 
           {/* ── Tab Fotos ── */}
-          <TabsContent value="photos" className="pt-4 space-y-3">
+          <TabsContent value="photos" className="space-y-3 pt-4">
             {(currentPhyto.stage_photos ?? []).length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">Sin fotos de etapas aún.</p>
+              <EmptyState
+                compact
+                title="Sin fotografías de etapas"
+                description="Agrega imágenes únicamente cuando ayuden a reconocer el estado del fitosanitario."
+              />
             )}
             {(currentPhyto.stage_photos ?? []).map((photo) => (
-              <div key={photo.id} className="flex items-center gap-3 border rounded p-2">
-                <img src={photo.photo} alt={photo.stage_display} className="h-14 w-14 rounded object-cover border" />
-                <div className="flex-1 min-w-0">
-                  <Badge variant="outline" className="mb-1">{photo.stage_display}</Badge>
-                  {photo.caption && <p className="text-xs text-muted-foreground truncate">{photo.caption}</p>}
+              <div key={photo.id} className="flex items-center gap-3 rounded border p-2">
+                <SafeImage
+                  src={photo.photo}
+                  alt={photo.stage_display}
+                  className="h-14 w-14 rounded-lg border border-default object-cover"
+                />
+                <div className="min-w-0 flex-1">
+                  <Badge variant="outline" className="mb-1">
+                    {photo.stage_display}
+                  </Badge>
+                  {photo.caption && (
+                    <p className="truncate text-xs text-muted-foreground">{photo.caption}</p>
+                  )}
                 </div>
                 {canEdit && (
                   <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
-                    className="text-destructive hover:text-destructive"
+                    className="text-danger hover:bg-danger-soft hover:text-danger"
+                    aria-label={`Eliminar fotografía de ${photo.stage_display}`}
                     onClick={() => handleDeletePhoto(photo.id)}
                     disabled={deletePhoto.isPending}
                   >
@@ -301,36 +348,56 @@ export function PhytosanitaryPanel({ phyto, onClose }: Props) {
             ))}
 
             {canEdit && !showPhotoForm && (
-              <Button variant="outline" size="sm" className="w-full" onClick={() => setShowPhotoForm(true)}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setShowPhotoForm(true)}
+              >
                 + Agregar etapa
               </Button>
             )}
 
             {showPhotoForm && (
-              <div className="border rounded p-3 space-y-2">
+              <div className="space-y-2 rounded border p-3">
                 <Field label="Etapa">
-                  <Select value={photoStage} onValueChange={(v) => setPhotoStage(v as PhytosanitaryStage)}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona etapa..." /></SelectTrigger>
+                  <Select
+                    value={photoStage}
+                    onValueChange={(v) => setPhotoStage(v as PhytosanitaryStage)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona etapa..." />
+                    </SelectTrigger>
                     <SelectContent>
                       {stageOptions.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </Field>
                 <Field label="Foto *">
-                  <input
+                  <Input
                     type="file"
                     accept="image/*"
-                    className="block w-full text-sm text-muted-foreground file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-muted file:text-foreground cursor-pointer"
                     onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
                   />
                 </Field>
                 <Field label="Descripción (opcional)">
-                  <Input value={photoCaption} onChange={(e) => setPhotoCaption(e.target.value)} placeholder="Ej: Larva recién eclosionada" />
+                  <Input
+                    value={photoCaption}
+                    onChange={(e) => setPhotoCaption(e.target.value)}
+                    placeholder="Ej: Larva recién eclosionada"
+                  />
                 </Field>
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowPhotoForm(false)}>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPhotoForm(false)}
+                  >
                     Cancelar
                   </Button>
                   <Button

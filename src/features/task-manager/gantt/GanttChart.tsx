@@ -112,7 +112,7 @@ export function GanttChart({ tasks, taskMeta = {}, onTaskClick, onExpanderClick 
             type="button"
             onClick={() => setViewMode(mode)}
             className={
-              'rounded border px-2 py-1 text-xs transition-colors ' +
+              'rounded border px-2 py-1 text-xs transition-colors duration-150 ' +
               (viewMode === mode
                 ? 'border-primary bg-primary text-primary-foreground'
                 : 'border-input bg-background hover:bg-accent')

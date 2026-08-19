@@ -47,9 +47,7 @@ beforeEach(() => {
   // Estado base por test: sin sectores (los tests que los necesitan lo sobrescriben).
   vi.mocked(useAgroSectors).mockReturnValue({ data: [], isLoading: false, error: null } as never)
   deleteSectorMutate.mockClear()
-  server.use(
-    http.get(`${BASE}/api/v1/geography/countries/`, () => HttpResponse.json(EMPTY_PAGE)),
-  )
+  server.use(http.get(`${BASE}/api/v1/geography/countries/`, () => HttpResponse.json(EMPTY_PAGE)))
 })
 
 function renderSection() {
@@ -65,6 +63,11 @@ describe('AgroUnitsSection', () => {
     renderSection()
     expect(screen.getByRole('tab', { name: /Unidades/i })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: /Sectores/i })).toBeInTheDocument()
+    expect(screen.getByLabelText('Jerarquía de activos agrícolas')).toHaveTextContent(
+      'Productor / Unidad'
+    )
+    expect(screen.getByLabelText('Jerarquía de activos agrícolas')).toHaveTextContent('Rancho')
+    expect(screen.getByLabelText('Jerarquía de activos agrícolas')).toHaveTextContent('Parcela')
   })
 
   it('supervisor (level 5) sees create button', () => {
@@ -88,13 +91,20 @@ describe('AgroUnitsSection', () => {
   })
 
   const sampleSector = {
-    id: 7, sector_name: 'Granos básicos', scian_code: '111140',
-    activity_name: 'Cultivo de maíz', description: '',
+    id: 7,
+    sector_name: 'Granos básicos',
+    scian_code: '111140',
+    activity_name: 'Cultivo de maíz',
+    description: '',
   }
 
   it('supervisor sees Editar/Eliminar actions for each sector', async () => {
     const user = userEvent.setup()
-    vi.mocked(useAgroSectors).mockReturnValue({ data: [sampleSector], isLoading: false, error: null } as never)
+    vi.mocked(useAgroSectors).mockReturnValue({
+      data: [sampleSector],
+      isLoading: false,
+      error: null,
+    } as never)
     renderSection()
     await user.click(screen.getByRole('tab', { name: /Sectores/i }))
     await waitFor(() => expect(screen.getByText('Granos básicos')).toBeInTheDocument())
@@ -105,7 +115,11 @@ describe('AgroUnitsSection', () => {
   it('confirms and calls delete on Eliminar click', async () => {
     const user = userEvent.setup()
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
-    vi.mocked(useAgroSectors).mockReturnValue({ data: [sampleSector], isLoading: false, error: null } as never)
+    vi.mocked(useAgroSectors).mockReturnValue({
+      data: [sampleSector],
+      isLoading: false,
+      error: null,
+    } as never)
     renderSection()
     await user.click(screen.getByRole('tab', { name: /Sectores/i }))
     await user.click(await screen.findByRole('button', { name: /Eliminar/i }))
@@ -116,17 +130,34 @@ describe('AgroUnitsSection', () => {
 
   it('renders units in table when data present', () => {
     vi.mocked(useAgroUnits).mockReturnValueOnce({
-      data: [{
-        id: 'abc-123', code: 'U-001', commercial_name: 'Rancho Prueba',
-        unit_type: 'Productor' as const, status: 'active' as const,
-        agro_sector: null, slug: 'rancho-prueba',
-        created_at: '', updated_at: '',
-        company_name: null, tax_id: null, tax_type: null,
-        headcount: null, phone: null, email: null, website: null,
-        address_line_1: null, address_line_2: null, location_url: null,
-        country: null, state: null, default_contact: null,
-        additional_params: null, attachments_url: null,
-      }],
+      data: [
+        {
+          id: 'abc-123',
+          code: 'U-001',
+          commercial_name: 'Rancho Prueba',
+          unit_type: 'Productor' as const,
+          status: 'active' as const,
+          agro_sector: null,
+          slug: 'rancho-prueba',
+          created_at: '',
+          updated_at: '',
+          company_name: null,
+          tax_id: null,
+          tax_type: null,
+          headcount: null,
+          phone: null,
+          email: null,
+          website: null,
+          address_line_1: null,
+          address_line_2: null,
+          location_url: null,
+          country: null,
+          state: null,
+          default_contact: null,
+          additional_params: null,
+          attachments_url: null,
+        },
+      ],
       isLoading: false,
       error: null,
     } as never)

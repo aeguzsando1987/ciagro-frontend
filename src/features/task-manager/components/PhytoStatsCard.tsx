@@ -1,4 +1,5 @@
 import { usePhytoSessionStats } from '../hooks/usePhytoSessionStats'
+import { LoadingState } from '@/components/ui/loading-state'
 
 interface Props {
   headerId: string
@@ -25,7 +26,9 @@ export function PhytoStatsCard({ headerId }: Props) {
   const { data, isLoading, error } = usePhytoSessionStats(headerId)
 
   if (isLoading) {
-    return <p className="text-xs text-muted-foreground">Cargando estadísticas…</p>
+    return (
+      <LoadingState compact label="Cargando estadísticas…" className="justify-start p-0 text-xs" />
+    )
   }
   if (error || !data) {
     return <p className="text-xs text-muted-foreground">No se pudo cargar el resumen.</p>
@@ -41,8 +44,8 @@ export function PhytoStatsCard({ headerId }: Props) {
       <p className="text-sm font-medium">
         Resumen de monitoreo
         <span className="ml-2 text-xs font-normal text-muted-foreground">
-          {total.toLocaleString('es-MX')} puntos ·{' '}
-          {data.targets_visited}/{data.targets_count} objetivos visitados
+          {total.toLocaleString('es-MX')} puntos · {data.targets_visited}/{data.targets_count}{' '}
+          objetivos visitados
         </span>
       </p>
 
@@ -57,7 +60,8 @@ export function PhytoStatsCard({ headerId }: Props) {
                 <span className="text-xs text-muted-foreground">{p.label}</span>
               </div>
               <p className="mt-0.5 text-sm font-semibold">
-                {n} <span className="text-xs font-normal text-muted-foreground">({pct(n, total)})</span>
+                {n}{' '}
+                <span className="text-xs font-normal text-muted-foreground">({pct(n, total)})</span>
               </p>
             </div>
           )
@@ -70,9 +74,9 @@ export function PhytoStatsCard({ headerId }: Props) {
           <thead className="text-left text-muted-foreground">
             <tr>
               <th className="py-1 pr-3 font-medium">Problema</th>
-              <th className="py-1 px-2 font-medium">Tipo</th>
-              <th className="py-1 px-2 text-right font-medium">Puntos</th>
-              <th className="py-1 px-2 text-right font-medium">Cantidad</th>
+              <th className="px-2 py-1 font-medium">Tipo</th>
+              <th className="px-2 py-1 text-right font-medium">Puntos</th>
+              <th className="px-2 py-1 text-right font-medium">Cantidad</th>
               <th className="py-1 pl-2 text-right font-medium">Críticos</th>
             </tr>
           </thead>
@@ -80,12 +84,14 @@ export function PhytoStatsCard({ headerId }: Props) {
             {data.by_issue.map((iss) => (
               <tr key={iss.id} className="border-t">
                 <td className="py-1 pr-3 font-medium">{iss.name}</td>
-                <td className="py-1 px-2 text-muted-foreground">{iss.type}</td>
-                <td className="py-1 px-2 text-right">{iss.count}</td>
-                <td className="py-1 px-2 text-right">{iss.qty_total.toLocaleString('es-MX')}</td>
+                <td className="px-2 py-1 text-muted-foreground">{iss.type}</td>
+                <td className="px-2 py-1 text-right">{iss.count}</td>
+                <td className="px-2 py-1 text-right">{iss.qty_total.toLocaleString('es-MX')}</td>
                 <td className="py-1 pl-2 text-right">
                   {iss.critical > 0 ? (
-                    <span className="font-semibold text-red-600 dark:text-red-400">{iss.critical}</span>
+                    <span className="font-semibold text-red-600 dark:text-red-400">
+                      {iss.critical}
+                    </span>
                   ) : (
                     <span className="text-muted-foreground">0</span>
                   )}

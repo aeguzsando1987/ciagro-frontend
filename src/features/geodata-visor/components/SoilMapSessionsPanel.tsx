@@ -5,7 +5,8 @@
  * por `mapping_date` en el cliente y emite una selección `kind: 'soil_map'`.
  */
 import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
+import { GpaLoader } from '@/components/ui/gpa-loader'
 import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
 import { isAllowedSession } from '../lib/advancedSearch'
 import type { VisorSession } from '../types'
@@ -121,7 +122,7 @@ export function SoilMapSessionsPanel({
         <div className="min-h-0 flex-1 overflow-auto p-1">
           {isLoading ? (
             <div className="flex items-center gap-2 px-2 py-2 text-xs text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Cargando sesiones…
+              <GpaLoader size="xs" /> Cargando sesiones…
             </div>
           ) : sessions.length === 0 ? (
             <p className="px-2 py-2 text-xs text-muted-foreground">

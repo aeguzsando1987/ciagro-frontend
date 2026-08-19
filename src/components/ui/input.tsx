@@ -1,22 +1,35 @@
-import * as React from "react"
+import * as React from 'react'
 
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils'
 
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+export type ControlState = 'default' | 'error' | 'success'
+
+export interface InputProps extends React.ComponentProps<'input'> {
+  state?: ControlState
+}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, state = 'default', 'aria-invalid': ariaInvalid, ...props }, ref) => {
+    const invalid = state === 'error' || ariaInvalid === true || ariaInvalid === 'true'
+
     return (
       <input
+        ref={ref}
         type={type}
+        data-state={invalid ? 'error' : state}
+        aria-invalid={invalid || undefined}
         className={cn(
-          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+          'flex h-11 w-full rounded-lg border border-default bg-surface px-3 py-2 text-sm text-foreground shadow-xs transition-colors duration-150 file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:border-border-light disabled:bg-surface-secondary disabled:text-muted disabled:shadow-none',
+          'hover:border-border-hover disabled:hover:border-border-light',
+          'data-[state=error]:border-danger data-[state=error]:focus-visible:border-danger data-[state=error]:focus-visible:ring-danger/20',
+          'data-[state=success]:border-success data-[state=success]:focus-visible:border-success data-[state=success]:focus-visible:ring-success/20',
           className
         )}
-        ref={ref}
         {...props}
       />
     )
   }
 )
-Input.displayName = "Input"
+Input.displayName = 'Input'
 
 export { Input }

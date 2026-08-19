@@ -8,6 +8,7 @@ import { DataCentralChildSelector } from './DataCentralChildSelector'
 import { NoAccessScreen } from './NoAccessScreen'
 import { FirstUseWizard } from './FirstUseWizard'
 import { useDataCentralsMain } from './useDataCentralsMain'
+import { LoadingState } from '@/components/ui/loading-state'
 
 /**
  * Selector de workspace con bifurcacion por role_level (Paso 1.3 product-doc):
@@ -45,12 +46,12 @@ function ManagerEntry() {
     }
   }, [isLoading, mains, datacentrals, navigate])
 
-  if (isLoading) return <p className="text-muted-foreground">Cargando...</p>
+  if (isLoading) return <LoadingState label="Cargando organizaciones…" />
 
   const hasOrgs = (mains?.length ?? 0) > 0
   if (hasOrgs) return <DataCentralMainSelector />
   if (datacentrals.length === 0) return <NoAccessScreen />
-  if (datacentrals.length === 1) return <p className="text-muted-foreground">Redirigiendo...</p>
+  if (datacentrals.length === 1) return <LoadingState label="Abriendo organización…" />
   return <DataCentralChildSelector datacentrals={datacentrals} />
 }
 
@@ -69,7 +70,7 @@ function BasicEntry() {
   }, [datacentrals, navigate])
 
   if (datacentrals.length === 0) return <NoAccessScreen />
-  if (datacentrals.length === 1) return <p className="text-muted-foreground">Redirigiendo...</p>
+  if (datacentrals.length === 1) return <LoadingState label="Abriendo organización…" />
   return <DataCentralChildSelector datacentrals={datacentrals} />
 }
 
@@ -90,7 +91,7 @@ function SuperAdminEntry() {
   }, [isLoading, mains, mode])
 
   if (mode === 'auto' || isLoading) {
-    return <p className="text-muted-foreground">Cargando...</p>
+    return <LoadingState label="Cargando organizaciones…" />
   }
 
   if (mode === 'wizard') {

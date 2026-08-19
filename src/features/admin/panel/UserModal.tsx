@@ -7,12 +7,14 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { FormSection } from '@/components/ui/form-section'
 import { Badge } from '@/components/ui/badge'
 import {
   Select,
@@ -74,9 +76,21 @@ const setPasswordSchema = z
 type SetPasswordValues = z.infer<typeof setPasswordSchema>
 
 const KNOWN_FIELDS = [
-  'email', 'status', 'user_role', 'first_name', 'last_name', 'phone',
-  'personal_email', 'photo_url', 'address_line_1', 'address_line_2', 'city',
-  'postal_code', 'country', 'state', 'work_role',
+  'email',
+  'status',
+  'user_role',
+  'first_name',
+  'last_name',
+  'phone',
+  'personal_email',
+  'photo_url',
+  'address_line_1',
+  'address_line_2',
+  'city',
+  'postal_code',
+  'country',
+  'state',
+  'work_role',
 ] as const
 
 interface UserModalProps {
@@ -206,196 +220,209 @@ export function UserModal({ user, onClose }: UserModalProps) {
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-w-[56rem]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {user.username}
             <Badge variant="outline">{STATUS_LABELS[user.status as UserStatus]}</Badge>
           </DialogTitle>
+          <DialogDescription>Perfil, permisos y datos de contacto del usuario.</DialogDescription>
         </DialogHeader>
 
         {mode === 'view' ? (
           <ViewBody user={user} onEdit={() => setMode('edit')} onClose={onClose} />
         ) : (
           <>
-          <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-5">
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold text-muted-foreground">Cuenta</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Correo *" error={errors.email?.message}>
-                  <Input type="email" {...register('email')} />
-                </Field>
-                <Field label="Estado" error={errors.status?.message}>
-                  <Select
-                    value={watch('status')}
-                    onValueChange={(v) => setValue('status', v as UserStatus)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(STATUS_LABELS) as UserStatus[]).map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {STATUS_LABELS[s]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="Rol de acceso" error={errors.user_role?.message}>
-                  <Select value={watch('user_role')} onValueChange={(v) => setValue('user_role', v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sin rol" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((r) => (
-                        <SelectItem key={r.id} value={String(r.id)}>
-                          {r.role_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
-            </section>
+            <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-6">
+              <FormSection title="Cuenta" description="Acceso, estado y permisos del usuario.">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Correo *" error={errors.email?.message}>
+                    <Input type="email" {...register('email')} />
+                  </Field>
+                  <Field label="Estado" error={errors.status?.message}>
+                    <Select
+                      value={watch('status')}
+                      onValueChange={(v) => setValue('status', v as UserStatus)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(STATUS_LABELS) as UserStatus[]).map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {STATUS_LABELS[s]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Rol de acceso" error={errors.user_role?.message}>
+                    <Select
+                      value={watch('user_role')}
+                      onValueChange={(v) => setValue('user_role', v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sin rol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.map((r) => (
+                          <SelectItem key={r.id} value={String(r.id)}>
+                            {r.role_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+              </FormSection>
 
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold text-muted-foreground">Perfil</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Nombre *" error={errors.first_name?.message}>
-                  <Input {...register('first_name')} />
-                </Field>
-                <Field label="Apellido *" error={errors.last_name?.message}>
-                  <Input {...register('last_name')} />
-                </Field>
-                <Field label="Teléfono" error={errors.phone?.message}>
-                  <Input {...register('phone')} />
-                </Field>
-                <Field label="Correo personal" error={errors.personal_email?.message}>
-                  <Input type="email" {...register('personal_email')} />
-                </Field>
-                <Field label="Foto de perfil (URL)" error={errors.photo_url?.message}>
-                  <Input {...register('photo_url')} placeholder="https://..." />
-                </Field>
-                <Field label="Rol laboral" error={errors.work_role?.message}>
-                  <Select value={watch('work_role')} onValueChange={(v) => setValue('work_role', v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sin rol laboral" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {workRoles.map((w) => (
-                        <SelectItem key={w.id} value={String(w.id)}>
-                          {w.work_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
-            </section>
+              <FormSection title="Perfil" description="Información personal y función laboral.">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Nombre *" error={errors.first_name?.message}>
+                    <Input {...register('first_name')} />
+                  </Field>
+                  <Field label="Apellido *" error={errors.last_name?.message}>
+                    <Input {...register('last_name')} />
+                  </Field>
+                  <Field label="Teléfono" error={errors.phone?.message}>
+                    <Input {...register('phone')} />
+                  </Field>
+                  <Field label="Correo personal" error={errors.personal_email?.message}>
+                    <Input type="email" {...register('personal_email')} />
+                  </Field>
+                  <Field label="Foto de perfil (URL)" error={errors.photo_url?.message}>
+                    <Input {...register('photo_url')} placeholder="https://..." />
+                  </Field>
+                  <Field label="Rol laboral" error={errors.work_role?.message}>
+                    <Select
+                      value={watch('work_role')}
+                      onValueChange={(v) => setValue('work_role', v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sin rol laboral" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {workRoles.map((w) => (
+                          <SelectItem key={w.id} value={String(w.id)}>
+                            {w.work_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+              </FormSection>
 
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold text-muted-foreground">Ubicación</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="País" error={errors.country?.message}>
-                  <Select
-                    value={watch('country')}
-                    onValueChange={(v) => {
-                      setValue('country', v)
-                      setValue('state', undefined)
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un país" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map((c) => (
-                        <SelectItem key={c.id} value={String(c.id)}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="Estado" error={errors.state?.message}>
-                  <Select
-                    value={watch('state')}
-                    onValueChange={(v) => setValue('state', v)}
-                    disabled={!selectedCountryIso2}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={selectedCountryIso2 ? 'Selecciona un estado' : 'Elige país primero'}
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {states.map((s) => (
-                        <SelectItem key={s.id} value={String(s.id)}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="Ciudad" error={errors.city?.message}>
-                  <Input {...register('city')} />
-                </Field>
-                <Field label="Código postal" error={errors.postal_code?.message}>
-                  <Input {...register('postal_code')} />
-                </Field>
-                <Field label="Dirección línea 1" error={errors.address_line_1?.message}>
-                  <Input {...register('address_line_1')} />
-                </Field>
-                <Field label="Dirección línea 2" error={errors.address_line_2?.message}>
-                  <Input {...register('address_line_2')} />
-                </Field>
-              </div>
-            </section>
+              <FormSection title="Ubicación">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="País" error={errors.country?.message}>
+                    <Select
+                      value={watch('country')}
+                      onValueChange={(v) => {
+                        setValue('country', v)
+                        setValue('state', undefined)
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un país" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countries.map((c) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Estado" error={errors.state?.message}>
+                    <Select
+                      value={watch('state')}
+                      onValueChange={(v) => setValue('state', v)}
+                      disabled={!selectedCountryIso2}
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            selectedCountryIso2 ? 'Selecciona un estado' : 'Elige país primero'
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {states.map((s) => (
+                          <SelectItem key={s.id} value={String(s.id)}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Ciudad" error={errors.city?.message}>
+                    <Input {...register('city')} />
+                  </Field>
+                  <Field label="Código postal" error={errors.postal_code?.message}>
+                    <Input {...register('postal_code')} />
+                  </Field>
+                  <Field label="Dirección línea 1" error={errors.address_line_1?.message}>
+                    <Input {...register('address_line_1')} />
+                  </Field>
+                  <Field label="Dirección línea 2" error={errors.address_line_2?.message}>
+                    <Input {...register('address_line_2')} />
+                  </Field>
+                </div>
+              </FormSection>
 
-            {errors.root && (
-              <p className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                {errors.root.message}
-              </p>
-            )}
+              {errors.root && (
+                <p className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  {errors.root.message}
+                </p>
+              )}
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  reset()
-                  setMode('view')
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Guardando…' : 'Guardar cambios'}
-              </Button>
-            </DialogFooter>
-          </form>
-
-          {canSetPassword && (
-            <form
-              onSubmit={handleSubmitPwd((v) => setPasswordMutation.mutate(v))}
-              className="space-y-3 border-t pt-4"
-            >
-              <h3 className="text-sm font-semibold text-muted-foreground">Contraseña</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Nueva contraseña *" error={pwdErrors.new_password?.message}>
-                  <PasswordInput autoComplete="new-password" {...registerPwd('new_password')} />
-                </Field>
-                <Field label="Confirmar contraseña *" error={pwdErrors.confirm_password?.message}>
-                  <PasswordInput autoComplete="new-password" {...registerPwd('confirm_password')} />
-                </Field>
-              </div>
-              <div className="flex justify-end">
-                <Button type="submit" variant="secondary" size="sm" disabled={isPwdSubmitting}>
-                  {isPwdSubmitting ? 'Cambiando...' : 'Cambiar contraseña'}
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    reset()
+                    setMode('view')
+                  }}
+                >
+                  Cancelar
                 </Button>
-              </div>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Guardando…' : 'Guardar cambios'}
+                </Button>
+              </DialogFooter>
             </form>
-          )}
+
+            {canSetPassword && (
+              <form
+                onSubmit={handleSubmitPwd((v) => setPasswordMutation.mutate(v))}
+                className="border-t border-border-light pt-5"
+              >
+                <FormSection title="Contraseña" description="Actualiza las credenciales de acceso.">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Nueva contraseña *" error={pwdErrors.new_password?.message}>
+                      <PasswordInput autoComplete="new-password" {...registerPwd('new_password')} />
+                    </Field>
+                    <Field
+                      label="Confirmar contraseña *"
+                      error={pwdErrors.confirm_password?.message}
+                    >
+                      <PasswordInput
+                        autoComplete="new-password"
+                        {...registerPwd('confirm_password')}
+                      />
+                    </Field>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button type="submit" variant="secondary" size="sm" disabled={isPwdSubmitting}>
+                      {isPwdSubmitting ? 'Cambiando...' : 'Cambiar contraseña'}
+                    </Button>
+                  </div>
+                </FormSection>
+              </form>
+            )}
           </>
         )}
       </DialogContent>

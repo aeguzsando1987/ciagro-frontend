@@ -95,10 +95,8 @@ export function FirstUseWizard({ onExit }: Props) {
       break
   }
 
-  // key={step} remonta el wrapper en cada cambio → la animación CSS se reproduce
-  // (entra deslizándose desde la derecha + fade in).
   return (
-    <div key={step} className="wizard-slide-in">
+    <div key={step}>
       {content}
     </div>
   )
@@ -110,7 +108,7 @@ function WelcomeStep({ onStart, onSkip }: { onStart: () => void; onSkip: () => v
   return (
     <Card className="w-full max-w-lg">
       <CardHeader className="items-center text-center">
-        <Building2 className="mb-2 h-10 w-10 text-primary" />
+        <Building2 className="mb-2 h-10 w-10 text-brand" />
         <CardTitle className="text-2xl">Bienvenido a CIAgro</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 text-center">
@@ -270,7 +268,7 @@ function CiasStep({
           <ul className="space-y-1 rounded-md border bg-muted/30 p-3">
             {createdCias.map((c) => (
               <li key={c.id} className="flex items-center gap-2 text-sm">
-                <Check className="h-4 w-4 text-green-600" /> {c.name}
+                <Check className="h-4 w-4 text-success" /> {c.name}
               </li>
             ))}
           </ul>
@@ -358,7 +356,7 @@ function ProducersStep({
           <ul className="space-y-1 rounded-md border bg-muted/30 p-3">
             {createdProducers.map((p) => (
               <li key={p.id} className="flex items-center gap-2 text-sm">
-                <Check className="h-4 w-4 text-green-600" />
+                <Check className="h-4 w-4 text-success" />
                 <span>{p.commercial_name} <span className="text-muted-foreground">· {p.code}</span></span>
               </li>
             ))}
@@ -532,7 +530,7 @@ function DoneStep({
   return (
     <Card className="w-full max-w-lg">
       <CardHeader className="items-center text-center">
-        <ListChecks className="mb-2 h-10 w-10 text-primary" />
+        <ListChecks className="mb-2 h-10 w-10 text-brand" />
         <CardTitle>¡Listo!</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -542,7 +540,7 @@ function DoneStep({
           {producers.length > 0 && (<> y {producers.length} productor{producers.length > 1 ? 'es' : ''}</>)}.
         </p>
 
-        <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-700 dark:bg-amber-950/30">
+        <div className="space-y-2 rounded-lg border border-warning/25 bg-warning-soft p-4 text-sm text-warning-foreground">
           <div className="flex items-center gap-2 font-medium">
             <UserPlus className="h-4 w-4" /> Aún no hay usuarios registrados
           </div>

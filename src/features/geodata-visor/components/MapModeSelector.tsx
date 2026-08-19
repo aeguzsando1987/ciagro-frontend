@@ -20,7 +20,7 @@ export function MapModeSelector({
             type="button"
             onClick={() => onChange(key)}
             className={[
-              'px-2 py-1 text-[10px] leading-none transition-colors',
+              'min-h-10 px-2 py-1 text-[10px] leading-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
               i < Object.keys(MAP_MODES).length - 1 ? 'border-r' : '',
               active === key
                 ? 'bg-foreground text-background font-semibold'

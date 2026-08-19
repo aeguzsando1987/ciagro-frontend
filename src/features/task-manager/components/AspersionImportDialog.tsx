@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { GpaLoader } from '@/components/ui/gpa-loader'
+import { LoadingState } from '@/components/ui/loading-state'
 import {
   Select,
   SelectContent,
@@ -81,7 +83,11 @@ export function AspersionImportDialog({
 
   async function runPreview(selectedFile: File, tmpl?: string) {
     try {
-      const result = await previewMut.mutateAsync({ headerId, file: selectedFile, templateId: tmpl })
+      const result = await previewMut.mutateAsync({
+        headerId,
+        file: selectedFile,
+        templateId: tmpl,
+      })
       setPreview(result)
       setRemap({})
     } catch {
@@ -122,7 +128,9 @@ export function AspersionImportDialog({
     // acepta template_id, no un mapeo ad-hoc).
     if (hasManualRemap) {
       if (!saveAsTemplate) {
-        toast.error('Marcaste columnas para remapear: activa "Guardar como plantilla" para aplicarlas.')
+        toast.error(
+          'Marcaste columnas para remapear: activa "Guardar como plantilla" para aplicarlas.'
+        )
         return
       }
       if (!tmplName.trim() || !tmplCode.trim()) {
@@ -155,18 +163,21 @@ export function AspersionImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : handleClose())}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Importar datos de aspersión</DialogTitle>
         </DialogHeader>
 
         {isProcessing ? (
           <div className="space-y-2 py-4 text-sm">
-            <p className="font-medium">Importación en curso…</p>
+            <LoadingState
+              compact
+              label="Importación en curso: procesando datos de aspersión…"
+              className="justify-start rounded-lg border border-info/20 bg-info-soft text-info-foreground"
+            />
             <p className="text-muted-foreground">
-              El estado actual es{' '}
-              <Badge variant="outline">{importStatus}</Badge>. Esta ventana puede cerrarse;
-              el avance se refleja en el detalle de la sesión.
+              El estado actual es <Badge variant="outline">{importStatus}</Badge>. Esta ventana
+              puede cerrarse; el avance se refleja en el detalle de la sesión.
             </p>
           </div>
         ) : (
@@ -206,7 +217,11 @@ export function AspersionImportDialog({
             </div>
 
             {previewMut.isPending && (
-              <p className="text-sm text-muted-foreground">Analizando columnas…</p>
+              <LoadingState
+                compact
+                label="Analizando columnas…"
+                className="justify-start rounded-lg bg-surface-secondary"
+              />
             )}
 
             {/* Preview */}
@@ -235,7 +250,8 @@ export function AspersionImportDialog({
                       Columnas no reconocidas ({preview.unmatched.length})
                     </p>
                     <p className="mb-2 text-[11px] text-muted-foreground">
-                      Asigna manualmente las que quieras importar; las que dejes en blanco se ignoran.
+                      Asigna manualmente las que quieras importar; las que dejes en blanco se
+                      ignoran.
                     </p>
                     <div className="space-y-1.5">
                       {preview.unmatched.map((header) => (
@@ -256,7 +272,7 @@ export function AspersionImportDialog({
                             <SelectContent>
                               <SelectItem value={NONE}>Ignorar</SelectItem>
                               {ASPERSION_FIELDS.filter(
-                                (af) => !usedFields.has(af.field) || remap[header] === af.field,
+                                (af) => !usedFields.has(af.field) || remap[header] === af.field
                               ).map((af) => (
                                 <SelectItem key={af.field} value={af.field}>
                                   {af.label}
@@ -311,6 +327,7 @@ export function AspersionImportDialog({
               onClick={handleImport}
               disabled={!file || importMut.isPending || createTmpl.isPending}
             >
+              {(importMut.isPending || createTmpl.isPending) && <GpaLoader size="xs" />}
               {importMut.isPending || createTmpl.isPending ? 'Importando…' : 'Importar'}
             </Button>
           )}

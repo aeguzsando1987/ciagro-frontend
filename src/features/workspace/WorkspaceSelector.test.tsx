@@ -39,7 +39,7 @@ function renderSelector() {
   return render(
     <QueryClientProvider client={queryClient}>
       <WorkspaceSelector />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   )
 }
 
@@ -86,7 +86,7 @@ describe('WorkspaceSelector', () => {
       },
     })
     renderSelector()
-    expect(screen.getByText(/selecciona una organizacion/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Organizaciones', level: 1 })).toBeInTheDocument()
   })
 
   it('Manager dueño de una org sin CIAs hijas igual ve el selector de organizaciones', () => {
@@ -97,7 +97,7 @@ describe('WorkspaceSelector', () => {
       user: { ...BASE_USER, role_level: 4, datacentrals: [] },
     })
     renderSelector()
-    expect(screen.getByText(/selecciona una organizacion/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Organizaciones', level: 1 })).toBeInTheDocument()
     expect(screen.queryByText(/sin acceso/i)).not.toBeInTheDocument()
   })
 

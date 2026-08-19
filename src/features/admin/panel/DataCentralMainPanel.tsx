@@ -6,16 +6,27 @@ import { toast } from 'sonner'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { LoadingState } from '@/components/ui/loading-state'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AnimatedTabs as Tabs } from '@/components/ui/animated-tabs'
+import { Tabs } from '@/components/ui/tabs'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
 import { Field } from '../components/Field'
 import { CountryCombobox } from '../components/CountryCombobox'
@@ -26,7 +37,9 @@ import { CreateDataCentralDialog } from '../dialogs/CreateDataCentralDialog'
 import type { DataCentralMainDetail, DataCentralDetail } from '../types'
 
 const STATUS_LABELS: Record<string, string> = {
-  active: 'Activo', inactive: 'Inactivo', trial: 'Trial',
+  active: 'Activo',
+  inactive: 'Inactivo',
+  trial: 'Trial',
 }
 
 const schema = z.object({
@@ -61,7 +74,11 @@ export function DataCentralMainPanel({ dcm, onClose, onOpenDC }: Props) {
   const owners = allUsers.filter((u) => (u.user_role?.level ?? 0) >= 4)
 
   const {
-    register, handleSubmit, control, reset, setError,
+    register,
+    handleSubmit,
+    control,
+    reset,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -106,15 +123,20 @@ export function DataCentralMainPanel({ dcm, onClose, onOpenDC }: Props) {
   return (
     <>
       <Dialog open onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[56rem]">
           <DialogHeader>
             <DialogTitle>{dcm.name}</DialogTitle>
+            <DialogDescription>
+              Detalle de la organización y sus CIAgros asociadas.
+            </DialogDescription>
           </DialogHeader>
 
           <Tabs defaultValue="detail">
             <TabsList className="mb-4">
               <TabsTrigger value="detail">Detalle</TabsTrigger>
-              <TabsTrigger value="cias">CIAs Hijas ({dcm.datacentrals_count ?? datacentrals.length})</TabsTrigger>
+              <TabsTrigger value="cias">
+                CIAs Hijas ({dcm.datacentrals_count ?? datacentrals.length})
+              </TabsTrigger>
             </TabsList>
 
             {/* ── Tab Detalle ── */}
@@ -135,10 +157,14 @@ export function DataCentralMainPanel({ dcm, onClose, onOpenDC }: Props) {
                     </div>
                   </Row>
                   <Row label="CIAs">{dcm.datacentrals_count ?? '—'}</Row>
-                  <Row label="Creada">{dcm.created_at ? new Date(dcm.created_at).toLocaleDateString('es-MX') : '—'}</Row>
+                  <Row label="Creada">
+                    {dcm.created_at ? new Date(dcm.created_at).toLocaleDateString('es-MX') : '—'}
+                  </Row>
                   {canEdit && (
                     <div className="pt-2">
-                      <Button size="sm" onClick={() => setMode('edit')}>Editar</Button>
+                      <Button size="sm" onClick={() => setMode('edit')}>
+                        Editar
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -148,49 +174,69 @@ export function DataCentralMainPanel({ dcm, onClose, onOpenDC }: Props) {
                     <Input {...register('name')} />
                   </Field>
                   <Field label="Descripción" error={errors.description?.message}>
-                    <textarea
-                      {...register('description')}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      rows={3}
-                    />
+                    <Textarea {...register('description')} rows={3} />
                   </Field>
                   <div className="grid grid-cols-2 gap-4">
                     <Field label="País" error={errors.country?.message}>
-                      <Controller name="country" control={control} render={({ field }) => (
-                        <CountryCombobox countries={countries} value={field.value} onChange={field.onChange} />
-                      )} />
+                      <Controller
+                        name="country"
+                        control={control}
+                        render={({ field }) => (
+                          <CountryCombobox
+                            countries={countries}
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                        )}
+                      />
                     </Field>
                     <Field label="Estatus" error={errors.status?.message}>
-                      <Controller name="status" control={control} render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">Activo</SelectItem>
-                            <SelectItem value="inactive">Inactivo</SelectItem>
-                            <SelectItem value="trial">Trial</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )} />
+                      <Controller
+                        name="status"
+                        control={control}
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Activo</SelectItem>
+                              <SelectItem value="inactive">Inactivo</SelectItem>
+                              <SelectItem value="trial">Trial</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
                     </Field>
                   </div>
                   <Field label="Dueño de organización *" error={errors.owner_id?.message}>
-                    <Controller name="owner_id" control={control} render={({ field }) => (
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger><SelectValue placeholder="Selecciona un usuario" /></SelectTrigger>
-                        <SelectContent>
-                          {owners.map((u) => (
-                            <SelectItem key={u.id} value={u.id}>{u.username}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )} />
+                    <Controller
+                      name="owner_id"
+                      control={control}
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un usuario" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {owners.map((u) => (
+                              <SelectItem key={u.id} value={u.id}>
+                                {u.username}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                     <p className="mt-1 text-xs text-muted-foreground">
                       El <strong>dueño (owner)</strong> es la persona responsable de la
                       organización. Debe ser usuario con rol Gerente o Admin.
                     </p>
                   </Field>
                   <DialogFooter>
-                    <Button type="button" variant="outline" onClick={cancelEdit}>Cancelar</Button>
+                    <Button type="button" variant="outline" onClick={cancelEdit}>
+                      Cancelar
+                    </Button>
                     <Button type="submit" disabled={isSubmitting || mutation.isPending}>
                       {isSubmitting || mutation.isPending ? 'Guardando…' : 'Guardar cambios'}
                     </Button>
@@ -203,11 +249,11 @@ export function DataCentralMainPanel({ dcm, onClose, onOpenDC }: Props) {
             <TabsContent value="cias">
               <div className="space-y-3">
                 {loadingDCs ? (
-                  <p className="text-sm text-muted-foreground">Cargando CIAs…</p>
+                  <LoadingState compact label="Cargando CIAs…" className="justify-start p-0" />
                 ) : datacentrals.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Sin CIAs registradas.</p>
                 ) : (
-                  <div className="rounded-md border overflow-x-auto">
+                  <div className="overflow-x-auto rounded-md border">
                     <table className="w-full text-sm">
                       <thead className="bg-muted/50">
                         <tr>
@@ -222,11 +268,11 @@ export function DataCentralMainPanel({ dcm, onClose, onOpenDC }: Props) {
                         {datacentrals.map((dc) => (
                           <tr
                             key={dc.id}
-                            className="cursor-pointer hover:bg-muted/30 transition-colors"
+                            className="cursor-pointer transition-colors duration-150 hover:bg-muted/30"
                             onClick={() => onOpenDC(dc)}
                           >
                             <td className="px-4 py-2 font-medium">{dc.name}</td>
-                            <td className="px-4 py-2 text-muted-foreground text-xs">{dc.slug}</td>
+                            <td className="px-4 py-2 text-xs text-muted-foreground">{dc.slug}</td>
                             <td className="px-4 py-2">
                               {dc.is_primary && <Badge variant="secondary">Principal</Badge>}
                             </td>
@@ -239,7 +285,9 @@ export function DataCentralMainPanel({ dcm, onClose, onOpenDC }: Props) {
                   </div>
                 )}
                 {canEdit && (
-                  <Button size="sm" onClick={() => setCreateDCOpen(true)}>+ Nueva CIA</Button>
+                  <Button size="sm" onClick={() => setCreateDCOpen(true)}>
+                    + Nueva CIA
+                  </Button>
                 )}
               </div>
             </TabsContent>

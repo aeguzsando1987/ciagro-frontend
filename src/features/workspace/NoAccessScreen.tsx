@@ -9,14 +9,14 @@ export function NoAccessScreen() {
   const { mutate: logout, isPending } = useLogout()
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-8 text-center">
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8 text-center">
       <h1 className="text-xl font-semibold">Sin acceso</h1>
       <p className="max-w-sm text-muted-foreground">
-        Tu cuenta no tiene ningun workspace asignado. Contacta a tu administrador para que te
-        asigne acceso a una organizacion.
+        Tu cuenta no tiene ningún espacio de trabajo asignado. Contacta a tu administrador para que
+        te asigne acceso a una organización.
       </p>
       <Button variant="outline" onClick={() => logout()} disabled={isPending}>
-        {isPending ? 'Cerrando sesion...' : 'Cerrar sesion'}
+        {isPending ? 'Cerrando sesión…' : 'Cerrar sesión'}
       </Button>
     </div>
   )

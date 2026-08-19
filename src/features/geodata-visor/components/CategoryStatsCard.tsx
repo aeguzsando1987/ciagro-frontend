@@ -58,7 +58,7 @@ export function CategoryStatsCard({ legendDefs, areaByBucket, checkedBuckets, on
                 >
                   {/* Checkbox visual con ✓ interno (mismo patrón que la barra inferior) */}
                   <span
-                    className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-2 transition-colors"
+                    className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-2 transition-colors duration-150"
                     style={{ borderColor: def.color, backgroundColor: checked ? def.color : 'transparent' }}
                   >
                     {checked && <span className="leading-none text-white" style={{ fontSize: 10 }}>✓</span>}

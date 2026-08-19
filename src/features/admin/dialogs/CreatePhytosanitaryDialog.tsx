@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -19,6 +20,8 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { FormSection } from '@/components/ui/form-section'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
 import { Field } from '../components/Field'
 import { AssignCombobox } from '../components/AssignCombobox'
@@ -58,7 +61,14 @@ type StageEntry = {
   caption: string
 }
 
-const KNOWN_FIELDS = ['name', 'type', 'default_crop_id', 'description', 'min_ref_value', 'max_ref_value'] as const
+const KNOWN_FIELDS = [
+  'name',
+  'type',
+  'default_crop_id',
+  'description',
+  'min_ref_value',
+  'max_ref_value',
+] as const
 
 interface Props {
   open: boolean
@@ -88,12 +98,20 @@ export function CreatePhytosanitaryDialog({ open, onOpenChange }: Props) {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', type: undefined, default_crop_id: '', description: '', min_ref_value: '', max_ref_value: '' },
+    defaultValues: {
+      name: '',
+      type: undefined,
+      default_crop_id: '',
+      description: '',
+      min_ref_value: '',
+      max_ref_value: '',
+    },
   })
 
   const selectedType = watch('type')
 
-  const availableStages = selectedType === 'Plaga' ? PEST_STAGES : selectedType === 'Enfermedad' ? DISEASE_STAGES : []
+  const availableStages =
+    selectedType === 'Plaga' ? PEST_STAGES : selectedType === 'Enfermedad' ? DISEASE_STAGES : []
 
   function handleClose() {
     reset()
@@ -105,7 +123,14 @@ export function CreatePhytosanitaryDialog({ open, onOpenChange }: Props) {
 
   function addStageEntry() {
     if (!stageForm.stage || !stageForm.photo) return
-    setStages((prev) => [...prev, { stage: stageForm.stage as PhytosanitaryStage, photo: stageForm.photo!, caption: stageForm.caption }])
+    setStages((prev) => [
+      ...prev,
+      {
+        stage: stageForm.stage as PhytosanitaryStage,
+        photo: stageForm.photo!,
+        caption: stageForm.caption,
+      },
+    ])
     setStageForm({ stage: '', photo: null, caption: '' })
     setShowStageForm(false)
   }
@@ -146,7 +171,9 @@ export function CreatePhytosanitaryDialog({ open, onOpenChange }: Props) {
       } else if (failed === 0) {
         toast.success(`Fitosanitario y ${succeeded} etapa(s) creado(s) correctamente.`)
       } else {
-        toast.warning(`Fitosanitario creado. ${succeeded} de ${stages.length} etapa(s) guardada(s). ${failed} fallaron.`)
+        toast.warning(
+          `Fitosanitario creado. ${succeeded} de ${stages.length} etapa(s) guardada(s). ${failed} fallaron.`
+        )
       }
       handleClose()
     } catch (err) {
@@ -156,140 +183,174 @@ export function CreatePhytosanitaryDialog({ open, onOpenChange }: Props) {
     }
   }
 
-  const cropItems = crops.map((c) => ({ id: String(c.id), label: c.name, sublabel: c.variety ?? undefined }))
+  const cropItems = crops.map((c) => ({
+    id: String(c.id),
+    label: c.name,
+    sublabel: c.variety ?? undefined,
+  }))
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nuevo fitosanitario</DialogTitle>
+          <DialogDescription>
+            Define la referencia agronómica y agrega fotografías por etapa cuando sean necesarias.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Field label="Nombre *" error={errors.name?.message}>
-            <Input {...register('name')} placeholder="Ej: Antracnosis" />
-          </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Tipo *" error={errors.type?.message}>
-              <Controller
-                name="type"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Plaga">Plaga</SelectItem>
-                      <SelectItem value="Enfermedad">Enfermedad</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <FormSection
+            title="Información general"
+            description="Clasificación, cultivo y valores de referencia."
+          >
+            <Field label="Nombre *" error={errors.name?.message}>
+              <Input {...register('name')} placeholder="Ej: Antracnosis" />
             </Field>
-            <Field label="Cultivo asociado" error={errors.default_crop_id?.message}>
-              <Controller
-                name="default_crop_id"
-                control={control}
-                render={({ field }) => (
-                  <AssignCombobox
-                    items={cropItems}
-                    placeholder="Buscar cultivo..."
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
-                  />
-                )}
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Tipo *" error={errors.type?.message}>
+                <Controller
+                  name="type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Plaga">Plaga</SelectItem>
+                        <SelectItem value="Enfermedad">Enfermedad</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </Field>
+              <Field label="Cultivo asociado" error={errors.default_crop_id?.message}>
+                <Controller
+                  name="default_crop_id"
+                  control={control}
+                  render={({ field }) => (
+                    <AssignCombobox
+                      items={cropItems}
+                      placeholder="Buscar cultivo..."
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+              </Field>
+            </div>
+            <Field label="Descripción" error={errors.description?.message}>
+              <Textarea {...register('description')} rows={2} placeholder="Descripción corta..." />
             </Field>
-          </div>
-          <Field label="Descripción" error={errors.description?.message}>
-            <textarea
-              {...register('description')}
-              rows={2}
-              placeholder="Descripción corta..."
-              className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Mín. referencia" error={errors.min_ref_value?.message}>
-              <Input type="number" step="any" {...register('min_ref_value')} placeholder="0" />
-            </Field>
-            <Field label="Máx. referencia" error={errors.max_ref_value?.message}>
-              <Input type="number" step="any" {...register('max_ref_value')} placeholder="0" />
-            </Field>
-          </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Mín. referencia" error={errors.min_ref_value?.message}>
+                <Input type="number" step="any" {...register('min_ref_value')} placeholder="0" />
+              </Field>
+              <Field label="Máx. referencia" error={errors.max_ref_value?.message}>
+                <Input type="number" step="any" {...register('max_ref_value')} placeholder="0" />
+              </Field>
+            </div>
+          </FormSection>
 
           {/* Sub-form de etapas de desarrollo */}
-          <div className="border rounded p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Etapas de desarrollo ({stages.length})</span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!selectedType}
-                onClick={() => setShowStageForm(true)}
-              >
-                + Agregar etapa
-              </Button>
-            </div>
-
-            {stages.map((s, idx) => (
-              <div key={idx} className="flex items-center justify-between text-sm bg-muted rounded px-2 py-1">
-                <span>{availableStages.find((a) => a.value === s.stage)?.label ?? s.stage} — {s.photo.name}</span>
-                <button type="button" onClick={() => removeStage(idx)} className="text-destructive hover:underline text-xs">
-                  Quitar
-                </button>
+          <FormSection
+            title="Etapas y fotografías"
+            description="Las imágenes deben ayudar a identificar visualmente cada etapa."
+          >
+            <div className="space-y-3 rounded-lg border border-default bg-surface-secondary/40 p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Etapas de desarrollo ({stages.length})</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!selectedType}
+                  onClick={() => setShowStageForm(true)}
+                >
+                  + Agregar etapa
+                </Button>
               </div>
-            ))}
 
-            {showStageForm && (
-              <div className="border rounded p-2 space-y-2 bg-background">
-                <Field label="Etapa">
-                  <Select
-                    value={stageForm.stage}
-                    onValueChange={(v) => setStageForm((p) => ({ ...p, stage: v as PhytosanitaryStage }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona etapa..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableStages.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="Foto *">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="block w-full text-sm text-muted-foreground file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-muted file:text-foreground cursor-pointer"
-                    onChange={(e) => setStageForm((p) => ({ ...p, photo: e.target.files?.[0] ?? null }))}
-                  />
-                </Field>
-                <Field label="Descripción (opcional)">
-                  <Input
-                    value={stageForm.caption}
-                    onChange={(e) => setStageForm((p) => ({ ...p, caption: e.target.value }))}
-                    placeholder="Ej: Larva recién eclosionada"
-                  />
-                </Field>
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowStageForm(false)}>
-                    Cancelar
-                  </Button>
+              {stages.map((s, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-default bg-surface-secondary px-3 py-2 text-sm"
+                >
+                  <span>
+                    {availableStages.find((a) => a.value === s.stage)?.label ?? s.stage} —{' '}
+                    {s.photo.name}
+                  </span>
                   <Button
                     type="button"
+                    variant="ghost"
                     size="sm"
-                    disabled={!stageForm.stage || !stageForm.photo}
-                    onClick={addStageEntry}
+                    onClick={() => removeStage(idx)}
+                    className="text-danger hover:bg-danger-soft hover:text-danger"
                   >
-                    Añadir etapa
+                    Quitar
                   </Button>
                 </div>
-              </div>
-            )}
-          </div>
+              ))}
+
+              {showStageForm && (
+                <div className="space-y-2 rounded border bg-background p-2">
+                  <Field label="Etapa">
+                    <Select
+                      value={stageForm.stage}
+                      onValueChange={(v) =>
+                        setStageForm((p) => ({ ...p, stage: v as PhytosanitaryStage }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona etapa..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableStages.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Foto *">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        setStageForm((p) => ({ ...p, photo: e.target.files?.[0] ?? null }))
+                      }
+                    />
+                  </Field>
+                  <Field label="Descripción (opcional)">
+                    <Input
+                      value={stageForm.caption}
+                      onChange={(e) => setStageForm((p) => ({ ...p, caption: e.target.value }))}
+                      placeholder="Ej: Larva recién eclosionada"
+                    />
+                  </Field>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowStageForm(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={!stageForm.stage || !stageForm.photo}
+                      onClick={addStageEntry}
+                    >
+                      Añadir etapa
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </FormSection>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>

@@ -5,6 +5,7 @@ export interface DataCentralMain {
   slug: string
   status: string
   is_owner: boolean
+  datacentrals_count?: number | string
   created_at: string
 }
 

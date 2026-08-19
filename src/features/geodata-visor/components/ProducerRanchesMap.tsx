@@ -8,6 +8,7 @@ import Map, { Marker } from 'react-map-gl/maplibre'
 import type { MapRef } from 'react-map-gl/maplibre'
 import { MapModeSelector } from './MapModeSelector'
 import { useMapMode } from '../lib/mapModes'
+import { useMapCameraSync, type MapCameraSyncBinding } from '../lib/mapCameraSync'
 import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import type { RanchFlat, PlotFlat } from '@/features/admin/types'
 
@@ -16,12 +17,16 @@ type Bounds = [number, number, number, number]
 /** Centroide promedio de las parcelas de un rancho (fallback cuando el rancho no tiene
  *  su propia ubicación). Usa el `centroid` Point de cada parcela. */
 function ranchCentroidFromPlots(ranchId: string, plots: PlotFlat[]): [number, number] | null {
-  let sx = 0, sy = 0, n = 0
+  let sx = 0,
+    sy = 0,
+    n = 0
   for (const p of plots) {
     if (p.ranch !== ranchId) continue
     const c = (p.centroid as { coordinates?: number[] } | null | undefined)?.coordinates
     if (c && c.length >= 2 && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
-      sx += c[0]!; sy += c[1]!; n++
+      sx += c[0]!
+      sy += c[1]!
+      n++
     }
   }
   return n > 0 ? [sx / n, sy / n] : null
@@ -43,26 +48,39 @@ interface ProducerRanchesMapProps {
   plots: PlotFlat[]
   onSelectRanch: (ranch: { id: string; name: string }) => void
   producerName?: string
+  mapSync?: MapCameraSyncBinding
 }
 
-export function ProducerRanchesMap({ ranches, plots, onSelectRanch, producerName }: ProducerRanchesMapProps) {
+export function ProducerRanchesMap({
+  ranches,
+  plots,
+  onSelectRanch,
+  producerName,
+  mapSync,
+}: ProducerRanchesMapProps) {
   const mapRef = useRef<MapRef>(null)
   const { mapMode, setMapMode } = useMapMode(mapRef)
+  const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
   const pins = useMemo(
     () =>
       ranches
         .map((r) => ({ ranch: r, coord: ranchCoord(r, plots) }))
         .filter((p): p is { ranch: RanchFlat; coord: [number, number] } => p.coord !== null),
-    [ranches, plots],
+    [ranches, plots]
   )
 
   const bounds = useMemo<Bounds | null>(() => {
     if (pins.length === 0) return null
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity
     for (const { coord } of pins) {
-      minX = Math.min(minX, coord[0]); maxX = Math.max(maxX, coord[0])
-      minY = Math.min(minY, coord[1]); maxY = Math.max(maxY, coord[1])
+      minX = Math.min(minX, coord[0])
+      maxX = Math.max(maxX, coord[0])
+      minY = Math.min(minY, coord[1])
+      maxY = Math.max(maxY, coord[1])
     }
     return [minX, minY, maxX, maxY]
   }, [pins])
@@ -84,6 +102,7 @@ export function ProducerRanchesMap({ ranches, plots, onSelectRanch, producerName
       )}
       <Map
         ref={mapRef}
+        onMove={mapSync ? handleCameraMove : undefined}
         initialViewState={
           bounds
             ? { bounds, fitBoundsOptions: { padding: 80, maxZoom: 13 } }
@@ -100,11 +119,16 @@ export function ProducerRanchesMap({ ranches, plots, onSelectRanch, producerName
             <button
               type="button"
               title={`Ver parcelas de ${ranch.name ?? ranch.code ?? ''}`}
-              onClick={() => onSelectRanch({ id: ranch.id, name: ranch.name ?? ranch.code ?? ranch.id.slice(0, 8) })}
+              onClick={() =>
+                onSelectRanch({
+                  id: ranch.id,
+                  name: ranch.name ?? ranch.code ?? ranch.id.slice(0, 8),
+                })
+              }
               className="flex flex-col items-center"
               style={{ cursor: 'pointer' }}
             >
-              <span className="rounded-md bg-emerald-800/90 px-2 py-1 text-[11px] font-semibold text-white shadow-md whitespace-nowrap hover:bg-emerald-700">
+              <span className="whitespace-nowrap rounded-md bg-emerald-800/90 px-2 py-1 text-[11px] font-semibold text-white shadow-md hover:bg-emerald-700">
                 📍 {ranch.name ?? ranch.code ?? ranch.id.slice(0, 8)}
               </span>
               <span className="h-2 w-0.5 bg-emerald-800/90" />

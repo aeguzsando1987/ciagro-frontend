@@ -11,8 +11,9 @@
 import { useState } from 'react'
 import {
   Building2, Bug, ChevronDown, ChevronRight, Factory, FlaskConical, Layers, Leaf,
-  MapPin, Sprout, Tractor, Loader2,
+  MapPin, RefreshCw, Sprout, Tractor,
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useDataCentralMains, useDataCentrals } from '@/features/admin/hooks/useDataCentrals'
 import { useProducers } from '@/features/admin/hooks/useProducers'
 import { useRanches } from '@/features/admin/hooks/useRanches'
@@ -43,6 +44,7 @@ interface ExplorerProps {
   searchResult?: AdvancedSearchResult | null
   searchLoading?: boolean
   searchError?: boolean
+  onRetrySearch?: () => void
 }
 
 // ─── Fila presentacional compartida ──────────────────────────────────────────
@@ -67,16 +69,16 @@ function TreeRow({ depth, icon, label, expanded, onToggle, selected, onSelect, b
       aria-expanded={expanded}
       onClick={onSelect}
       onDoubleClick={onToggle}
-      className={`flex cursor-pointer select-none items-center gap-1 rounded px-1 py-1 text-sm hover:bg-accent ${
-        selected ? 'bg-accent font-medium' : ''
+      className={`mx-1 flex min-h-10 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 text-[15px] text-secondary transition-colors duration-150 hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+        selected ? 'bg-primary-soft font-medium text-brand' : ''
       }`}
-      style={{ paddingLeft: depth * 14 + 4 }}
+      style={{ paddingLeft: depth * 14 + 8 }}
     >
       <button
         type="button"
         aria-label={expanded ? 'Contraer' : 'Expandir'}
         onClick={(e) => { e.stopPropagation(); onToggle?.() }}
-        className="flex h-4 w-4 shrink-0 items-center justify-center text-muted-foreground"
+        className="flex h-6 w-5 shrink-0 items-center justify-center rounded text-muted hover:bg-surface hover:text-foreground"
       >
         {expanded === undefined ? null : expanded ? (
           <ChevronDown className="h-3.5 w-3.5" />
@@ -84,9 +86,9 @@ function TreeRow({ depth, icon, label, expanded, onToggle, selected, onSelect, b
           <ChevronRight className="h-3.5 w-3.5" />
         )}
       </button>
-      <span className="shrink-0 text-muted-foreground">{icon}</span>
+      <span className={selected ? 'shrink-0 text-brand' : 'shrink-0 text-muted'}>{icon}</span>
       <span className="truncate">{label}</span>
-      {badge && <span className="ml-auto shrink-0 text-xs text-muted-foreground">{badge}</span>}
+      {badge && <span className="ml-auto shrink-0 text-[13px] text-muted">{badge}</span>}
     </div>
   )
 }
@@ -94,7 +96,7 @@ function TreeRow({ depth, icon, label, expanded, onToggle, selected, onSelect, b
 function StatusRow({ depth, children }: { depth: number; children: React.ReactNode }) {
   return (
     <div
-      className="flex items-center gap-1.5 px-1 py-1 text-xs text-muted-foreground"
+      className="flex items-center gap-1.5 px-1 py-1 text-sm text-muted-foreground"
       style={{ paddingLeft: depth * 14 + 22 }}
     >
       {children}
@@ -105,7 +107,7 @@ function StatusRow({ depth, children }: { depth: number; children: React.ReactNo
 function Loading({ depth }: { depth: number }) {
   return (
     <StatusRow depth={depth}>
-      <Loader2 className="h-3 w-3 animate-spin" /> Cargando…
+      <Skeleton className="h-3 w-28" />
     </StatusRow>
   )
 }
@@ -114,13 +116,29 @@ function Empty({ depth, text }: { depth: number; text: string }) {
   return <StatusRow depth={depth}>{text}</StatusRow>
 }
 
+function InlineError({ depth, text, onRetry }: { depth: number; text: string; onRetry: () => void }) {
+  return (
+    <div className="space-y-1 py-2" style={{ paddingLeft: depth * 14 + 22 }}>
+      <p className="text-sm leading-5 text-danger">{text}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-brand transition-colors duration-150 hover:text-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+      >
+        <RefreshCw className="h-3 w-3" />
+        Reintentar
+      </button>
+    </div>
+  )
+}
+
 // ─── Nivel 6: Sesiones (agrupadas por tipo) ───────────────────────────────────
 
 /** Encabezado de grupo dentro del árbol (no seleccionable). */
 function GroupLabel({ depth, icon, text }: { depth: number; icon: React.ReactNode; text: string }) {
   return (
     <div
-      className="flex items-center gap-1.5 px-1 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+      className="flex items-center gap-1.5 px-1 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground"
       style={{ paddingLeft: depth * 14 + 22 }}
     >
       <span className="shrink-0">{icon}</span>
@@ -137,8 +155,9 @@ function AspersionSessionList({ depth, plot, base, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const { data, isLoading } = useAspersionSessionHeaders(plot.id)
+  const { data, isLoading, isError, refetch } = useAspersionSessionHeaders(plot.id)
   if (isLoading) return <Loading depth={depth} />
+  if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones." onRetry={() => void refetch()} />
   if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones de aspersión." />
   const activeId = activeIdFor(selection)
   return (
@@ -170,8 +189,9 @@ function PhytoSessionList({ depth, plot, base, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const { data, isLoading } = usePhytoSessionHeaders(plot.id)
+  const { data, isLoading, isError, refetch } = usePhytoSessionHeaders(plot.id)
   if (isLoading) return <Loading depth={depth} />
+  if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones." onRetry={() => void refetch()} />
   if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones fitosanitarias." />
   const activeId = activeIdFor(selection)
   return (
@@ -206,8 +226,9 @@ function NdviSessionList({ depth, plot, base, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const { data, isLoading } = useNdviSessionHeaders(plot.id)
+  const { data, isLoading, isError, refetch } = useNdviSessionHeaders(plot.id)
   if (isLoading) return <Loading depth={depth} />
+  if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones." onRetry={() => void refetch()} />
   if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones de NDVI." />
   const activeId = activeIdFor(selection)
   return (
@@ -239,8 +260,9 @@ function SoilMapSessionList({ depth, plot, base, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const { data, isLoading } = useSoilMapSessionHeaders(plot.id)
+  const { data, isLoading, isError, refetch } = useSoilMapSessionHeaders(plot.id)
   if (isLoading) return <Loading depth={depth} />
+  if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones." onRetry={() => void refetch()} />
   if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones de mapeo de suelo." />
   const activeId = activeIdFor(selection)
   return (
@@ -325,8 +347,9 @@ function PlotList({ depth, ranch, base, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const { data, isLoading } = usePlots({ ranchId: ranch.id })
+  const { data, isLoading, isError, refetch } = usePlots({ ranchId: ranch.id })
   if (isLoading) return <Loading depth={depth} />
+  if (isError) return <InlineError depth={depth} text="No pudimos cargar las parcelas." onRetry={() => void refetch()} />
   if (!data || data.length === 0) return <Empty depth={depth} text="Sin parcelas." />
   const childBase = { ...base, ranch }
   return (
@@ -381,8 +404,9 @@ function RanchList({ depth, producer, base, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const { data, isLoading } = useRanches(producer.id)
+  const { data, isLoading, isError, refetch } = useRanches(producer.id)
   if (isLoading) return <Loading depth={depth} />
+  if (isError) return <InlineError depth={depth} text="No pudimos cargar los ranchos." onRetry={() => void refetch()} />
   if (!data || data.length === 0) return <Empty depth={depth} text="Sin ranchos." />
   const childBase = { ...base, producer }
   return (
@@ -437,8 +461,9 @@ function ProducerList({ depth, datacentral, base, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const { data, isLoading } = useProducers(datacentral.id)
+  const { data, isLoading, isError, refetch } = useProducers(datacentral.id)
   if (isLoading) return <Loading depth={depth} />
+  if (isError) return <InlineError depth={depth} text="No pudimos cargar los productores." onRetry={() => void refetch()} />
   if (!data || data.length === 0) return <Empty depth={depth} text="Sin productores." />
   const childBase = { ...base, datacentral }
   return (
@@ -492,8 +517,9 @@ function DataCentralList({ depth, org, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const { data, isLoading } = useDataCentrals(org.id)
+  const { data, isLoading, isError, refetch } = useDataCentrals(org.id)
   if (isLoading) return <Loading depth={depth} />
+  if (isError) return <InlineError depth={depth} text="No pudimos cargar las CIAgros." onRetry={() => void refetch()} />
   if (!data || data.length === 0) return <Empty depth={depth} text="Sin CIAgros hijas." />
   return (
     <>
@@ -697,7 +723,7 @@ function SearchResultsTree({ result, selection, onSelect }: {
   return (
     <div role="tree" className="py-1 pr-1">
       {result.truncated && (
-        <p className="mx-1 mb-1 rounded border border-dashed px-2 py-1 text-[11px] text-muted-foreground">
+        <p className="mx-1 mb-1 rounded border border-dashed px-2 py-1 text-xs leading-4 text-muted-foreground">
           Se muestran las {result.count} sesiones más recientes de {result.total}. Refina la
           búsqueda para ver el resto.
         </p>
@@ -723,19 +749,36 @@ export function GeodataExplorer({
   searchResult = null,
   searchLoading = false,
   searchError = false,
+  onRetrySearch,
 }: ExplorerProps) {
   // Los hooks se llaman siempre (regla de hooks); solo cambia lo que se pinta.
-  const { data: orgs, isLoading, error } = useDataCentralMains()
+  const { data: orgs, isLoading, error, refetch } = useDataCentralMains()
 
   if (searchActive) {
     if (searchLoading) return <Loading depth={0} />
-    if (searchError) return <Empty depth={0} text="No se pudo ejecutar la búsqueda." />
+    if (searchError) {
+      return (
+        <InlineError
+          depth={0}
+          text="No pudimos ejecutar la búsqueda."
+          onRetry={onRetrySearch ?? (() => {})}
+        />
+      )
+    }
     if (!searchResult) return <Loading depth={0} />
     return <SearchResultsTree result={searchResult} selection={selection} onSelect={onSelect} />
   }
 
   if (isLoading) return <Loading depth={0} />
-  if (error) return <Empty depth={0} text="No se pudieron cargar las organizaciones." />
+  if (error) {
+    return (
+      <InlineError
+        depth={0}
+        text="No pudimos cargar las organizaciones."
+        onRetry={() => void refetch()}
+      />
+    )
+  }
   if (!orgs || orgs.length === 0) return <Empty depth={0} text="No hay organizaciones visibles." />
 
   return (

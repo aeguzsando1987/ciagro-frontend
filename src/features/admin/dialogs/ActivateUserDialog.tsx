@@ -3,10 +3,12 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { LoadingState } from '@/components/ui/loading-state'
 import {
   Select,
   SelectContent,
@@ -54,10 +56,13 @@ export function ActivateUserDialog({ open, onOpenChange }: ActivateUserDialogPro
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Usuarios pendientes de activación</DialogTitle>
+          <DialogDescription>
+            Revisa cada solicitud y asigna el rol correspondiente antes de activarla.
+          </DialogDescription>
         </DialogHeader>
 
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Cargando…</p>
+          <LoadingState label="Cargando usuarios pendientes…" />
         ) : pending.length === 0 ? (
           <p className="text-sm text-muted-foreground">No hay usuarios pendientes.</p>
         ) : (

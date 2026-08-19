@@ -21,7 +21,7 @@ describe('NoAccessScreen', () => {
     const user = userEvent.setup()
     render(<NoAccessScreen />)
 
-    await user.click(screen.getByRole('button', { name: /cerrar sesion/i }))
+    await user.click(screen.getByRole('button', { name: /cerrar sesión/i }))
 
     expect(mockLogout).toHaveBeenCalledOnce()
   })

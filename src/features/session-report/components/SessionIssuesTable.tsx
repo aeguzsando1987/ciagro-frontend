@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { LoadingState } from '@/components/ui/loading-state'
 import { useSessionIssues, useDeleteSessionIssue } from '../hooks/useSessionIssues'
 import { IssueForm } from './IssueForm'
 import type { SessionIssue } from '../types'
@@ -43,7 +44,14 @@ export function SessionIssuesTable({ reportId, canWrite, datacentralId }: Sessio
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Temas de atención y observaciones</h3>
         {canWrite && !creating && (
-          <Button size="sm" variant="outline" onClick={() => { setCreating(true); setEditingId(null) }}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setCreating(true)
+              setEditingId(null)
+            }}
+          >
             + Nuevo tema de atención
           </Button>
         )}
@@ -53,12 +61,17 @@ export function SessionIssuesTable({ reportId, canWrite, datacentralId }: Sessio
         <IssueForm
           reportId={reportId}
           datacentralId={datacentralId}
-          onDone={() => { setCreating(false); toast.success('Tema de atención agregado.') }}
+          onDone={() => {
+            setCreating(false)
+            toast.success('Tema de atención agregado.')
+          }}
           onCancel={() => setCreating(false)}
         />
       )}
 
-      {isLoading && <p className="text-sm text-muted-foreground">Cargando temas…</p>}
+      {isLoading && (
+        <LoadingState compact label="Cargando temas…" className="justify-start p-0 text-xs" />
+      )}
 
       {!isLoading && issues.length === 0 && !creating && (
         <p className="text-sm text-muted-foreground">Aún no hay temas de atención registrados.</p>
@@ -72,7 +85,10 @@ export function SessionIssuesTable({ reportId, canWrite, datacentralId }: Sessio
                 reportId={reportId}
                 issue={issue}
                 datacentralId={datacentralId}
-                onDone={() => { setEditingId(null); toast.success('Tema de atención guardado.') }}
+                onDone={() => {
+                  setEditingId(null)
+                  toast.success('Tema de atención guardado.')
+                }}
                 onCancel={() => setEditingId(null)}
               />
             </li>
@@ -81,7 +97,10 @@ export function SessionIssuesTable({ reportId, canWrite, datacentralId }: Sessio
               <IssueRow
                 issue={issue}
                 canWrite={canWrite}
-                onEdit={() => { setEditingId(issue.id); setCreating(false) }}
+                onEdit={() => {
+                  setEditingId(issue.id)
+                  setCreating(false)
+                }}
                 onDelete={() => handleDelete(issue.id)}
               />
             </li>
@@ -126,7 +145,12 @@ function IssueRow({
           <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={onEdit}>
             Editar
           </Button>
-          <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-destructive" onClick={onDelete}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-xs text-destructive"
+            onClick={onDelete}
+          >
             Eliminar
           </Button>
         </div>

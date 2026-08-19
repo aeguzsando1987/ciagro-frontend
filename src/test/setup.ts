@@ -1,18 +1,7 @@
 import '@testing-library/jest-dom/vitest'
-import { afterAll, afterEach, beforeAll, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import { server } from './msw-server'
-
-// jsdom no implementa ResizeObserver (lo usa AnimatedHeight para animar la altura
-// de los modales con pestañas). Se mockea para que los componentes monten en tests.
-vi.stubGlobal(
-  'ResizeObserver',
-  class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  },
-)
 
 // jsdom tampoco implementa la API de pointer capture ni scrollIntoView, que Radix
 // usa en Select para posicionar el listado y seguir el puntero. Sin estos stubs

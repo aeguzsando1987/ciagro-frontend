@@ -11,7 +11,8 @@
  * y unos chips.
  */
 import { useEffect, useState } from 'react'
-import { Loader2, X } from 'lucide-react'
+import { X } from 'lucide-react'
+import { GpaLoader } from '@/components/ui/gpa-loader'
 import { Input } from '@/components/ui/input'
 
 export interface SelectOption {
@@ -124,10 +125,14 @@ export function MultiSelectSearch({
             </div>
           )}
 
-          <div role="listbox" aria-multiselectable className="max-h-40 overflow-auto rounded border">
+          <div
+            role="listbox"
+            aria-multiselectable
+            className="max-h-40 overflow-auto rounded border"
+          >
             {isLoading ? (
               <div className="flex items-center gap-1.5 px-2 py-2 text-[11px] text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" /> Cargando…
+                <GpaLoader size="xs" /> Cargando…
               </div>
             ) : options.length === 0 ? (
               <p className="px-2 py-2 text-[11px] text-muted-foreground">{emptyHint}</p>

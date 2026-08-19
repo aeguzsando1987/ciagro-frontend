@@ -1,11 +1,7 @@
-import { createRoute, Link } from '@tanstack/react-router'
-import { LogOut, Map, ShieldCheck } from 'lucide-react'
+import { createRoute } from '@tanstack/react-router'
 import { authenticatedRoute } from './_authenticated'
 import { WorkspaceSelector } from '@/features/workspace/WorkspaceSelector'
-import { useLogout } from '@/features/auth/useLogout'
-import { useAuthStore } from '@/features/auth/useAuthStore'
-import { ROLE_LEVELS } from '@/lib/auth/roles'
-import { Button } from '@/components/ui/button'
+import { ProductShell } from '@/features/layout/ProductShell'
 
 /**
  * Ruta protegida /workspaces — selector de CIAgro (Pasos 1.3-1.6 product-doc).
@@ -17,51 +13,11 @@ export const workspacesRoute = createRoute({
 })
 
 function WorkspacesPage() {
-  const { mutate: logout, isPending } = useLogout()
-  const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
-
   return (
-    <div className="relative flex min-h-dvh items-center justify-center p-8">
-      <div className="absolute left-8 top-8 flex flex-col items-start gap-1">
-        <img
-          src="/agroindustry.png"
-          alt="Tierra Inteligente"
-          className="w-56"
-          draggable={false}
-        />
-        <span className="text-xs text-muted-foreground">CIAgro (ver. Alpha 1.0)</span>
+    <ProductShell contextLabel="Selecciona una organización">
+      <div className="mx-auto w-full max-w-6xl py-3 sm:py-5">
+        <WorkspaceSelector />
       </div>
-      <div className="absolute right-8 top-8 flex items-center gap-2">
-        {/* Visor de Datos Agrícolas y panel /admin: accesibles desde Supervisor+;
-            el backend gatea los datos por scope. */}
-        {roleLevel >= ROLE_LEVELS.SUPERVISOR && (
-          <Button asChild variant="ghost" size="sm" className="gap-1.5">
-            <Link to="/visor-datos">
-              <Map className="h-4 w-4" />
-              Visor de datos
-            </Link>
-          </Button>
-        )}
-        {roleLevel >= ROLE_LEVELS.SUPERVISOR && (
-          <Button asChild variant="ghost" size="sm" className="gap-1.5">
-            <Link to="/admin">
-              <ShieldCheck className="h-4 w-4" />
-              Administración
-            </Link>
-          </Button>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1.5 text-muted-foreground"
-          onClick={() => logout()}
-          disabled={isPending}
-        >
-          <LogOut className="h-4 w-4" />
-          {isPending ? 'Cerrando sesión…' : 'Cerrar sesión'}
-        </Button>
-      </div>
-      <WorkspaceSelector />
-    </div>
+    </ProductShell>
   )
 }

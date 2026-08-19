@@ -6,12 +6,14 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { FormSection } from '@/components/ui/form-section'
 import {
   Select,
   SelectContent,
@@ -36,7 +38,18 @@ const UNIT_TYPES = [
   'Otro',
 ] as const
 
-const TAX_TYPES = ['RFC', 'Tax ID', 'CUIT', 'RIF', 'TIN', 'SSN', 'NIF', 'CIF', 'RUT', 'Otro'] as const
+const TAX_TYPES = [
+  'RFC',
+  'Tax ID',
+  'CUIT',
+  'RIF',
+  'TIN',
+  'SSN',
+  'NIF',
+  'CIF',
+  'RUT',
+  'Otro',
+] as const
 
 const schema = z.object({
   commercial_name: z.string().min(1, 'Requerido'),
@@ -60,10 +73,22 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 
 const KNOWN_FIELDS = [
-  'commercial_name', 'code', 'unit_type', 'agro_sector_id',
-  'company_name', 'tax_type', 'tax_id', 'headcount',
-  'phone', 'email', 'website', 'address_line_1', 'address_line_2',
-  'country', 'state', 'status',
+  'commercial_name',
+  'code',
+  'unit_type',
+  'agro_sector_id',
+  'company_name',
+  'tax_type',
+  'tax_id',
+  'headcount',
+  'phone',
+  'email',
+  'website',
+  'address_line_1',
+  'address_line_2',
+  'country',
+  'state',
+  'status',
 ] as const
 
 interface Props {
@@ -88,11 +113,22 @@ export function CreateAgroUnitDialog({ open, onOpenChange }: Props) {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      commercial_name: '', code: '', unit_type: '', agro_sector_id: '',
-      company_name: '', tax_type: '', tax_id: '', headcount: '',
-      phone: '', email: '', website: '',
-      address_line_1: '', address_line_2: '',
-      country: '', state: '', status: 'pending',
+      commercial_name: '',
+      code: '',
+      unit_type: '',
+      agro_sector_id: '',
+      company_name: '',
+      tax_type: '',
+      tax_id: '',
+      headcount: '',
+      phone: '',
+      email: '',
+      website: '',
+      address_line_1: '',
+      address_line_2: '',
+      country: '',
+      state: '',
+      status: 'pending',
     },
   })
 
@@ -149,166 +185,192 @@ export function CreateAgroUnitDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nueva agrounidad</DialogTitle>
+          <DialogDescription>
+            Registra al productor o unidad y organiza sus datos fiscales, de contacto y ubicación.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Nombre comercial *" error={errors.commercial_name?.message}>
-              <Input {...register('commercial_name')} placeholder="Ej: Rancho Los Pinos" />
-            </Field>
-            <Field label="Código *" error={errors.code?.message}>
-              <Input {...register('code')} placeholder="Ej: RP-001" />
-            </Field>
-          </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <FormSection
+            title="Información general"
+            description="Identificación y clasificación de la unidad."
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Nombre comercial *" error={errors.commercial_name?.message}>
+                <Input {...register('commercial_name')} placeholder="Ej: Rancho Los Pinos" />
+              </Field>
+              <Field label="Código *" error={errors.code?.message}>
+                <Input {...register('code')} placeholder="Ej: RP-001" />
+              </Field>
+            </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Tipo de unidad *" error={errors.unit_type?.message}>
-              <Controller
-                name="unit_type"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {UNIT_TYPES.map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </Field>
-            <Field label="Sector agrícola" error={errors.agro_sector_id?.message}>
-              <Controller
-                name="agro_sector_id"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sin sector" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sectors.map((s) => (
-                        <SelectItem key={s.id} value={String(s.id)}>{s.sector_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </Field>
-          </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Tipo de unidad *" error={errors.unit_type?.message}>
+                <Controller
+                  name="unit_type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {UNIT_TYPES.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </Field>
+              <Field label="Sector agrícola" error={errors.agro_sector_id?.message}>
+                <Controller
+                  name="agro_sector_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sin sector" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sectors.map((s) => (
+                          <SelectItem key={s.id} value={String(s.id)}>
+                            {s.sector_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </Field>
+            </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Razón social" error={errors.company_name?.message}>
-              <Input {...register('company_name')} placeholder="Opcional" />
-            </Field>
-            <Field label="Estatus" error={errors.status?.message}>
-              <Controller
-                name="status"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value ?? 'pending'} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Activo</SelectItem>
-                      <SelectItem value="inactive">Inactivo</SelectItem>
-                      <SelectItem value="suspended">Suspendido</SelectItem>
-                      <SelectItem value="pending">Pendiente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </Field>
-          </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Razón social" error={errors.company_name?.message}>
+                <Input {...register('company_name')} placeholder="Opcional" />
+              </Field>
+              <Field label="Estatus" error={errors.status?.message}>
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? 'pending'} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Activo</SelectItem>
+                        <SelectItem value="inactive">Inactivo</SelectItem>
+                        <SelectItem value="suspended">Suspendido</SelectItem>
+                        <SelectItem value="pending">Pendiente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </Field>
+            </div>
+          </FormSection>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Tipo fiscal" error={errors.tax_type?.message}>
-              <Controller
-                name="tax_type"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Opcional" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TAX_TYPES.map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </Field>
-            <Field label="ID / RFC fiscal" error={errors.tax_id?.message}>
-              <Input {...register('tax_id')} placeholder="Opcional" />
-            </Field>
-          </div>
+          <FormSection title="Información fiscal">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Tipo fiscal" error={errors.tax_type?.message}>
+                <Controller
+                  name="tax_type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Opcional" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TAX_TYPES.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </Field>
+              <Field label="ID / RFC fiscal" error={errors.tax_id?.message}>
+                <Input {...register('tax_id')} placeholder="Opcional" />
+              </Field>
+            </div>
+          </FormSection>
 
-          <div className="grid grid-cols-3 gap-4">
-            <Field label="Teléfono" error={errors.phone?.message}>
-              <Input {...register('phone')} placeholder="Ej: +52 33..." />
-            </Field>
-            <Field label="Correo" error={errors.email?.message}>
-              <Input {...register('email')} type="email" placeholder="contacto@empresa.com" />
-            </Field>
-            <Field label="Sitio web" error={errors.website?.message}>
-              <Input {...register('website')} placeholder="https://..." />
-            </Field>
-          </div>
+          <FormSection title="Contacto">
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Field label="Teléfono" error={errors.phone?.message}>
+                <Input {...register('phone')} placeholder="Ej: +52 33..." />
+              </Field>
+              <Field label="Correo" error={errors.email?.message}>
+                <Input {...register('email')} type="email" placeholder="contacto@empresa.com" />
+              </Field>
+              <Field label="Sitio web" error={errors.website?.message}>
+                <Input {...register('website')} placeholder="https://..." />
+              </Field>
+            </div>
+          </FormSection>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Dirección línea 1" error={errors.address_line_1?.message}>
-              <Input {...register('address_line_1')} placeholder="Calle y número" />
-            </Field>
-            <Field label="Dirección línea 2" error={errors.address_line_2?.message}>
-              <Input {...register('address_line_2')} placeholder="Colonia, municipio" />
-            </Field>
-          </div>
+          <FormSection title="Ubicación" description="Dirección territorial de la unidad.">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Dirección línea 1" error={errors.address_line_1?.message}>
+                <Input {...register('address_line_1')} placeholder="Calle y número" />
+              </Field>
+              <Field label="Dirección línea 2" error={errors.address_line_2?.message}>
+                <Input {...register('address_line_2')} placeholder="Colonia, municipio" />
+              </Field>
+            </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="País" error={errors.country?.message}>
-              <Controller
-                name="country"
-                control={control}
-                render={({ field }) => (
-                  <CountryCombobox
-                    countries={countries}
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                )}
-              />
-            </Field>
-            <Field label="Estado / Provincia" error={errors.state?.message}>
-              <Controller
-                name="state"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value ?? ''}
-                    onValueChange={field.onChange}
-                    disabled={states.length === 0}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={states.length === 0 ? 'Selecciona un país' : 'Seleccionar estado'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {states.map((s) => (
-                        <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </Field>
-          </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="País" error={errors.country?.message}>
+                <Controller
+                  name="country"
+                  control={control}
+                  render={({ field }) => (
+                    <CountryCombobox
+                      countries={countries}
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+              </Field>
+              <Field label="Estado / Provincia" error={errors.state?.message}>
+                <Controller
+                  name="state"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ?? ''}
+                      onValueChange={field.onChange}
+                      disabled={states.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            states.length === 0 ? 'Selecciona un país' : 'Seleccionar estado'
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {states.map((s) => (
+                          <SelectItem key={s.id} value={String(s.id)}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </Field>
+            </div>
+          </FormSection>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>

@@ -11,13 +11,9 @@
  */
 import { useState } from 'react'
 import { Map as MapIcon, X } from 'lucide-react'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
+import { LoadingState } from '@/components/ui/loading-state'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { AspersionMap } from '@/features/geodata-visor/components/AspersionMap'
@@ -54,13 +50,20 @@ export function SessionReportPanel({
   const [creating, setCreating] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
 
-  const { data: report, isLoading, isError, refetch } = useSessionReport(
-    sessionType,
-    open ? objectId : null
-  )
+  const {
+    data: report,
+    isLoading,
+    isError,
+    refetch,
+  } = useSessionReport(sessionType, open ? objectId : null)
 
   return (
-    <Sheet open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose() }}>
+    <Sheet
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) onClose()
+      }}
+    >
       <SheetContent
         side="right"
         className="flex w-full flex-col gap-0 p-0 sm:max-w-xl lg:max-w-2xl"
@@ -83,15 +86,11 @@ export function SessionReportPanel({
 
         {/* Cuerpo scrollable. */}
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
-          {isLoading && (
-            <p className="text-sm text-muted-foreground">Cargando reporte…</p>
-          )}
+          {isLoading && <LoadingState label="Cargando reporte…" />}
 
           {isError && !isLoading && (
             <div className="space-y-2">
-              <p className="text-sm text-destructive">
-                No se pudo cargar el reporte de la sesión.
-              </p>
+              <p className="text-sm text-destructive">No se pudo cargar el reporte de la sesión.</p>
               <Button size="sm" variant="outline" onClick={() => refetch()}>
                 Reintentar
               </Button>
@@ -158,7 +157,7 @@ export function SessionReportPanel({
             </button>
 
             {mapOpen && (
-              <div className="fixed left-2 right-[36rem] top-2 bottom-2 z-50 hidden overflow-hidden rounded-md border bg-background shadow-xl sm:block lg:right-[42rem]">
+              <div className="fixed bottom-2 left-2 right-[36rem] top-2 z-50 hidden overflow-hidden rounded-md border bg-background shadow-xl sm:block lg:right-[42rem]">
                 <AspersionMap
                   sessionId={objectId}
                   plotId={plotId}
@@ -183,13 +182,7 @@ export function SessionReportPanel({
   )
 }
 
-function ReportEmptyState({
-  canWrite,
-  onGenerate,
-}: {
-  canWrite: boolean
-  onGenerate: () => void
-}) {
+function ReportEmptyState({ canWrite, onGenerate }: { canWrite: boolean; onGenerate: () => void }) {
   return (
     <div className="rounded border border-dashed p-4 text-center">
       <p className="mb-1 text-sm font-medium">Esta sesión aún no tiene reporte</p>

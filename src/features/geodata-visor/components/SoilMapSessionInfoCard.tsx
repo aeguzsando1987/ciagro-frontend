@@ -43,7 +43,7 @@ function SoilProgramLinks({
   const { data: hijo } = useHijoDetail(hijoId)
   const masterId = hijo?.master_program ?? null
   const { data: master } = useMasterTree(masterId ?? '', !!masterId)
-  const linkClass = 'inline-flex items-center gap-1 text-primary hover:underline'
+  const linkClass = 'inline-flex items-center gap-1 text-brand hover:underline'
 
   return (
     <>

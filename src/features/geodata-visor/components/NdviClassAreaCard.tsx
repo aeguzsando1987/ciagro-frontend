@@ -149,7 +149,7 @@ export function NdviClassAreaCard({
                 {ticks.map((t) => (
                   <span
                     key={t}
-                    className="absolute right-0 -translate-y-1/2 text-[9px] tabular-nums leading-none text-gray-500"
+                    className="absolute right-0 -translate-y-1/2 text-[9px] tabular-nums leading-none text-muted"
                     style={{ bottom: axisMax > 0 ? `${(t / axisMax) * 100}%` : '0%' }}
                   >
                     {formatHa(t)}
@@ -184,7 +184,7 @@ export function NdviClassAreaCard({
                         title={`${formatBandRange(c.min, c.max)}: ${formatHa(c.areaHa)} ha · ${pctText(c.pctArea)} del área · ${c.pointCount} puntos`}
                       >
                         <div
-                          className="flex w-full flex-col items-center justify-start overflow-hidden rounded-t-[2px] pt-0.5 transition-opacity"
+                          className="flex w-full flex-col items-center justify-start overflow-hidden rounded-t-[2px] pt-0.5"
                           style={{
                             height: `${barPx}px`,
                             backgroundColor: c.color,

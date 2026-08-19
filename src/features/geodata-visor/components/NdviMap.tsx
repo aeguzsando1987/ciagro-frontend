@@ -19,6 +19,7 @@ import type { MapRef } from 'react-map-gl/maplibre'
 import { usePlotGeometry } from '@/features/task-manager/hooks/usePlotGeometry'
 import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import { useMapMode } from '../lib/mapModes'
+import { useMapCameraSync, type MapCameraSyncBinding } from '../lib/mapCameraSync'
 import { MapModeSelector } from './MapModeSelector'
 import { useNdviPoints, type NdviPoint } from '../hooks/useNdviPoints'
 import {
@@ -29,10 +30,15 @@ import {
   type InterpPoint,
   type ColorBand,
 } from '../lib/ndviInterpolation'
-import { useNdviSessionVariableConfig, readVariableConfig, resolveQuartileColors } from '../hooks/useNdviVariableConfig'
+import {
+  useNdviSessionVariableConfig,
+  readVariableConfig,
+  resolveQuartileColors,
+} from '../hooks/useNdviVariableConfig'
 import { useNdviVariableStats } from '@/features/task-manager/hooks/useNdviVariableStats'
 import { buildNdviClassAreas, type ClassBand } from '../lib/ndviClassArea'
 import { NdviClassAreaCard } from './NdviClassAreaCard'
+import { GpaLoader } from '@/components/ui/gpa-loader'
 
 const INDICES: { key: keyof NdviPoint; label: string }[] = [
   { key: 'ndvi', label: 'NDVI' },
@@ -50,8 +56,7 @@ const INDICES: { key: keyof NdviPoint; label: string }[] = [
 ]
 
 // Rampa de la leyenda (misma que ndviInterpolation): bajo -> alto.
-const LEGEND_GRADIENT =
-  'linear-gradient(to right, #d32f2f, #f57c00, #388e3c, #00acc1, #1565c0)'
+const LEGEND_GRADIENT = 'linear-gradient(to right, #d32f2f, #f57c00, #388e3c, #00acc1, #1565c0)'
 
 /** Tres decimales: los indices se mueven en rangos estrechos y dos los igualarian. */
 function fmtStat(v: number | null | undefined): string {
@@ -83,6 +88,7 @@ interface NdviMapProps {
    * task-manager está dentro. Sin ninguno, el backend cae a la asignación más antigua.
    */
   dcId?: string
+  mapSync?: MapCameraSyncBinding
 }
 
 /** Propiedades que viajan en cada feature de punto (obj_id + índices). */
@@ -96,9 +102,10 @@ interface PointSelection {
 
 const POINTS_LAYER_ID = 'ndvi-points'
 
-export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
+export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync }: NdviMapProps) {
   const mapRef = useRef<MapRef>(null)
   const { mapMode, setMapMode } = useMapMode(mapRef)
+  const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
   const { data: plot } = usePlotGeometry(plotId ?? null)
   const { data: points, isLoading } = useNdviPoints(sessionId)
@@ -120,7 +127,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
 
   const activeStat = useMemo(
     () => varStats?.variables.find((v) => v.key === (indexKey as string)) ?? null,
-    [varStats, indexKey],
+    [varStats, indexKey]
   )
 
   // Bandas manuales de la variable activa, si el manager las configuro.
@@ -260,6 +267,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
     <div className="relative h-full w-full">
       <Map
         ref={mapRef}
+        onMove={mapSync ? handleCameraMove : undefined}
         initialViewState={
           mapBounds
             ? { bounds: mapBounds, fitBoundsOptions: { padding: 40, maxZoom: 18 } }
@@ -295,7 +303,11 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
             <Layer
               id="ndvi-surface-raster"
               type="raster"
-              paint={{ 'raster-opacity': 0.9, 'raster-resampling': 'linear', 'raster-fade-duration': 0 }}
+              paint={{
+                'raster-opacity': 0.9,
+                'raster-resampling': 'linear',
+                'raster-fade-duration': 0,
+              }}
             />
           </Source>
         )}
@@ -303,7 +315,11 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
         {/* Contorno de la parcela por encima. */}
         {plotGeojson && (
           <Source id="ndvi-plot" type="geojson" data={plotGeojson}>
-            <Layer id="ndvi-plot-outline" type="line" paint={{ 'line-color': '#16a34a', 'line-width': 2 }} />
+            <Layer
+              id="ndvi-plot-outline"
+              type="line"
+              paint={{ 'line-color': '#16a34a', 'line-width': 2 }}
+            />
           </Source>
         )}
 
@@ -343,9 +359,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
             style={{ padding: 0 }}
           >
             <div className="min-w-[150px] space-y-0.5 px-2 py-1.5 text-xs">
-              <p className="font-semibold text-gray-700">
-                Punto {selected.props.obj_id ?? '—'}
-              </p>
+              <p className="font-semibold text-gray-700">Punto {selected.props.obj_id ?? '—'}</p>
               <p>
                 {INDICES.find((i) => i.key === indexKey)?.label}:{' '}
                 <span className="font-medium tabular-nums">
@@ -355,10 +369,15 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
                 </span>
               </p>
               <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 border-t pt-1 text-[10px] text-gray-500">
-                {INDICES.filter((it) => it.key !== indexKey && typeof selected.props[it.key as string] === 'number').map((it) => (
+                {INDICES.filter(
+                  (it) =>
+                    it.key !== indexKey && typeof selected.props[it.key as string] === 'number'
+                ).map((it) => (
                   <span key={it.key as string} className="flex justify-between gap-1">
                     <span>{it.label}</span>
-                    <span className="tabular-nums">{(selected.props[it.key as string] as number).toFixed(3)}</span>
+                    <span className="tabular-nums">
+                      {(selected.props[it.key as string] as number).toFixed(3)}
+                    </span>
                   </span>
                 ))}
               </div>
@@ -406,7 +425,10 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
 
       <div className="absolute bottom-3 left-3 z-10 w-56 rounded-md bg-white/90 p-3 shadow">
         {isLoading ? (
-          <p className="text-sm text-gray-500">Cargando puntos…</p>
+          <div role="status" className="flex items-center gap-2 text-sm font-medium text-secondary">
+            <GpaLoader size="sm" />
+            <span>Cargando puntos NDVI…</span>
+          </div>
         ) : !surface ? (
           <p className="text-sm text-gray-500">
             {ring ? 'Sin datos para este índice.' : 'La parcela no tiene polígono para interpolar.'}
@@ -424,7 +446,9 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
               <dl className="mb-2 grid grid-cols-2 gap-x-2 gap-y-0.5 rounded bg-gray-100/70 px-2 py-1 text-[10px] text-gray-600">
                 <div className="flex justify-between gap-1">
                   <dt>Media</dt>
-                  <dd className="font-medium tabular-nums text-gray-800">{fmtStat(activeStat.mean)}</dd>
+                  <dd className="font-medium tabular-nums text-gray-800">
+                    {fmtStat(activeStat.mean)}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-1">
                   <dt>Desv.</dt>
@@ -464,11 +488,11 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
                     salen de ahi (VARI y suelo desnudo dan negativos, MSAVI2 pasa de 1). */}
                 {surface.outsideBands > 0.01 && (
                   <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] leading-snug text-amber-800">
-                    {(surface.outsideBands * 100).toFixed(0)}% del área queda sin pintar:
-                    esos valores no caen en ninguna clase configurada. El índice va de{' '}
+                    {(surface.outsideBands * 100).toFixed(0)}% del área queda sin pintar: esos
+                    valores no caen en ninguna clase configurada. El índice va de{' '}
                     <span className="tabular-nums">{surface.min.toFixed(3)}</span> a{' '}
-                    <span className="tabular-nums">{surface.max.toFixed(3)}</span>; ajusta
-                    los umbrales en Configuración de variables de análisis.
+                    <span className="tabular-nums">{surface.max.toFixed(3)}</span>; ajusta los
+                    umbrales en Configuración de variables de análisis.
                   </p>
                 )}
               </>
@@ -498,11 +522,18 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId }: NdviMapProps) {
                           className="absolute top-0 flex flex-col items-center"
                           style={{
                             left: `${(i / n) * 100}%`,
-                            transform: i === 0 ? 'translateX(0)' : i === n ? 'translateX(-100%)' : 'translateX(-50%)',
+                            transform:
+                              i === 0
+                                ? 'translateX(0)'
+                                : i === n
+                                  ? 'translateX(-100%)'
+                                  : 'translateX(-50%)',
                           }}
                         >
                           <span className="h-1.5 w-px bg-gray-500" />
-                          <span className="mt-0.5 text-[10px] tabular-nums text-gray-600">{v.toFixed(2)}</span>
+                          <span className="mt-0.5 text-[10px] tabular-nums text-gray-600">
+                            {v.toFixed(2)}
+                          </span>
                         </div>
                       ))}
                     </div>

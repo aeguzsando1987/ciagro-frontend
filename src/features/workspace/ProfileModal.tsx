@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AnimatedTabs as Tabs } from '@/components/ui/animated-tabs'
+import { Tabs } from '@/components/ui/tabs'
 import { apiClient } from '@/lib/api/client'
 import { tokens } from '@/lib/auth/tokens'
 import { useAuthStore } from '@/features/auth/useAuthStore'

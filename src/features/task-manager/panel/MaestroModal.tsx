@@ -2,16 +2,12 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { LoadingState } from '@/components/ui/loading-state'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { masterTreeQueryOptions } from '@/features/task-manager/hooks/useMasterTree'
@@ -55,8 +51,13 @@ const editSchema = z
 
 type EditValues = z.infer<typeof editSchema>
 const EDIT_FIELDS = [
-  'title', 'code', 'est_start_date', 'est_finish_date',
-  'real_start_date', 'real_finish_date', 'notes',
+  'title',
+  'code',
+  'est_start_date',
+  'est_finish_date',
+  'real_start_date',
+  'real_finish_date',
+  'notes',
 ] as const
 
 interface MaestroModalProps {
@@ -130,7 +131,12 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
 
   return (
     <>
-      <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <Dialog
+        open
+        onOpenChange={(open) => {
+          if (!open) onClose()
+        }}
+      >
         {/* max-h + grid-rows: el header queda fijo y el cuerpo scrollea, para que
             el modal nunca desborde la ventana aunque haya muchos subprogramas. */}
         <DialogContent className="max-h-[85vh] max-w-xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
@@ -147,80 +153,82 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
               subprogramas, que absorbe el alto sobrante. En edicion si scrollea,
               porque el formulario es largo y no tiene una seccion que ceda. */}
           <div className={mode === 'view' ? 'flex min-h-0 flex-col' : 'overflow-y-auto pr-1'}>
-          {mode === 'view' ? (
-            <ViewMode
-              master={master}
-              producerName={producerName}
-              tree={tree}
-              isManager={isManager}
-              isMutating={updateMutation.isPending}
-              onEdit={() => setMode('edit')}
-              onStatusChange={handleStatusChange}
-              onNavigateHijo={onNavigateHijo}
-              onCreateHijo={() => setCreateHijoOpen(true)}
-            />
-          ) : (
-            <form onSubmit={handleSubmit(onSubmitEdit)} className="space-y-4">
-              <div className="space-y-1">
-                <Label htmlFor="em-title">Título *</Label>
-                <Input id="em-title" {...register('title')} />
-                {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="em-code">Código *</Label>
-                <Input id="em-code" {...register('code')} />
-                {errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+            {mode === 'view' ? (
+              <ViewMode
+                master={master}
+                producerName={producerName}
+                tree={tree}
+                isManager={isManager}
+                isMutating={updateMutation.isPending}
+                onEdit={() => setMode('edit')}
+                onStatusChange={handleStatusChange}
+                onNavigateHijo={onNavigateHijo}
+                onCreateHijo={() => setCreateHijoOpen(true)}
+              />
+            ) : (
+              <form onSubmit={handleSubmit(onSubmitEdit)} className="space-y-4">
                 <div className="space-y-1">
-                  <Label htmlFor="em-start">Fecha inicio *</Label>
-                  <Input id="em-start" type="date" {...register('est_start_date')} />
-                  {errors.est_start_date && (
-                    <p className="text-xs text-destructive">{errors.est_start_date.message}</p>
+                  <Label htmlFor="em-title">Título *</Label>
+                  <Input id="em-title" {...register('title')} />
+                  {errors.title && (
+                    <p className="text-xs text-destructive">{errors.title.message}</p>
                   )}
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="em-end">Fecha fin *</Label>
-                  <Input id="em-end" type="date" {...register('est_finish_date')} />
-                  {errors.est_finish_date && (
-                    <p className="text-xs text-destructive">{errors.est_finish_date.message}</p>
-                  )}
+                  <Label htmlFor="em-code">Código *</Label>
+                  <Input id="em-code" {...register('code')} />
+                  {errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
                 </div>
-              </div>
-              {/* Fechas reales de ejecución (caso de uso §2.4.1) — opcionales:
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="em-start">Fecha inicio *</Label>
+                    <Input id="em-start" type="date" {...register('est_start_date')} />
+                    {errors.est_start_date && (
+                      <p className="text-xs text-destructive">{errors.est_start_date.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="em-end">Fecha fin *</Label>
+                    <Input id="em-end" type="date" {...register('est_finish_date')} />
+                    {errors.est_finish_date && (
+                      <p className="text-xs text-destructive">{errors.est_finish_date.message}</p>
+                    )}
+                  </div>
+                </div>
+                {/* Fechas reales de ejecución (caso de uso §2.4.1) — opcionales:
                   se llenan cuando el Programa efectivamente inicia/termina. */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="em-real-start">Inicio real</Label>
-                  <Input id="em-real-start" type="date" {...register('real_start_date')} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="em-real-start">Inicio real</Label>
+                    <Input id="em-real-start" type="date" {...register('real_start_date')} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="em-real-end">Fin real</Label>
+                    <Input id="em-real-end" type="date" {...register('real_finish_date')} />
+                    {errors.real_finish_date && (
+                      <p className="text-xs text-destructive">{errors.real_finish_date.message}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="em-real-end">Fin real</Label>
-                  <Input id="em-real-end" type="date" {...register('real_finish_date')} />
-                  {errors.real_finish_date && (
-                    <p className="text-xs text-destructive">{errors.real_finish_date.message}</p>
-                  )}
+                  <Label htmlFor="em-notes">Notas</Label>
+                  <Input id="em-notes" {...register('notes')} />
                 </div>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="em-notes">Notas</Label>
-                <Input id="em-notes" {...register('notes')} />
-              </div>
-              {errors.root && (
-                <p className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                  {errors.root.message}
-                </p>
-              )}
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={handleCancelEdit}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Guardando...' : 'Guardar'}
-                </Button>
-              </div>
-            </form>
-          )}
+                {errors.root && (
+                  <p className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                    {errors.root.message}
+                  </p>
+                )}
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Guardando...' : 'Guardar'}
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -340,7 +348,11 @@ function ViewMode({
         </div>
 
         {!tree && (
-          <p className="text-xs text-muted-foreground">Cargando subprogramas...</p>
+          <LoadingState
+            compact
+            label="Cargando subprogramas…"
+            className="justify-start p-0 text-xs"
+          />
         )}
         {tree && tree.programas.length === 0 && (
           <p className="text-xs text-muted-foreground">Sin subprogramas todavía.</p>
@@ -369,7 +381,8 @@ function ViewMode({
                       {hijo.status_display}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {hijo.est_start_date?.slice(0, 10) ?? '?'} — {hijo.est_finish_date?.slice(0, 10) ?? '?'}
+                      {hijo.est_start_date?.slice(0, 10) ?? '?'} —{' '}
+                      {hijo.est_finish_date?.slice(0, 10) ?? '?'}
                     </span>
                   </div>
                 </button>

@@ -1,87 +1,269 @@
+@import '@fontsource-variable/inter';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /*
- * Tokens de diseño de shadcn/ui en CSS variables (HSL).
- * Cambiar la paleta global de la app = editar estos valores.
- * Paleta inicial: slate (neutra, B2B sobrio). Puede ajustarse a "agro green"
- * editando --primary cuando el equipo defina identidad visual.
+ * CIAgro design tokens
+ * --------------------
+ * Los colores se guardan como canales RGB para conservar modificadores de
+ * opacidad de Tailwind (por ejemplo bg-primary/10 o ring-primary/20).
  */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    color-scheme: light;
+
+    --primary: 47 107 79;
+    --primary-hover: 37 87 63;
+    --primary-soft: 234 243 238;
+    --primary-foreground: 255 255 255;
+
+    --secondary: 21 34 56;
+    --secondary-hover: 15 25 41;
+    --secondary-foreground: 255 255 255;
+    --accent-agricultural: 165 184 93;
+
+    --background: 247 248 245;
+    --surface: 255 255 255;
+    --surface-secondary: 241 244 240;
+    --table-header: 247 249 247;
+    --table-row-hover: 250 251 250;
+
+    --text-primary: 23 33 27;
+    --text-secondary: 100 112 103;
+    --text-muted: 146 156 149;
+    --control-foreground: 52 65 57;
+
+    --border-default: 221 228 222;
+    --border-light: 233 237 233;
+    --border-hover: 200 211 202;
+    --focus-ring: 47 107 79;
+
+    --success: 46 125 79;
+    --success-soft: 234 246 239;
+    --success-foreground: 32 89 56;
+    --info: 53 120 198;
+    --info-soft: 234 242 251;
+    --info-foreground: 37 86 145;
+    --warning: 217 145 36;
+    --warning-soft: 255 245 227;
+    --warning-foreground: 139 88 18;
+    --danger: 201 77 77;
+    --danger-soft: 252 236 236;
+    --danger-foreground: 151 49 49;
+
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+
+    --shadow-xs: 0 1px 2px rgb(21 34 56 / 0.04);
+    --shadow-sm: 0 1px 3px rgb(21 34 56 / 0.07), 0 1px 2px rgb(21 34 56 / 0.04);
+    --shadow-card: 0 1px 2px rgb(21 34 56 / 0.04), 0 4px 12px rgb(21 34 56 / 0.035);
+    --shadow-overlay: 0 18px 48px rgb(21 34 56 / 0.16), 0 3px 12px rgb(21 34 56 / 0.08);
+
+    /* Compatibilidad con los nombres históricos de shadcn. */
+    --foreground: var(--text-primary);
+    --card: var(--surface);
+    --card-foreground: var(--text-primary);
+    --popover: var(--surface);
+    --popover-foreground: var(--text-primary);
+    --muted: var(--surface-secondary);
+    --muted-foreground: var(--text-secondary);
+    --accent: var(--primary-soft);
+    --accent-foreground: var(--primary-hover);
+    --destructive: var(--danger);
+    --destructive-foreground: var(--danger-foreground);
+    --border: var(--border-default);
+    --input: var(--border-default);
+    --ring: var(--focus-ring);
+    --radius: var(--radius-md);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    color-scheme: dark;
+    --background: 15 25 21;
+    --surface: 22 35 29;
+    --surface-secondary: 29 45 37;
+    --table-header: 26 41 34;
+    --table-row-hover: 29 45 37;
+    --text-primary: 239 244 240;
+    --text-secondary: 181 194 184;
+    --text-muted: 137 151 141;
+    --control-foreground: 221 230 223;
+    --border-default: 52 70 59;
+    --border-light: 41 57 47;
+    --border-hover: 75 96 82;
+    --primary: 108 168 137;
+    --primary-hover: 126 185 154;
+    --primary-soft: 31 61 46;
+    --primary-foreground: 10 27 18;
+    --secondary: 182 198 226;
+    --secondary-hover: 205 217 237;
+    --secondary-foreground: 15 25 41;
+    --accent-agricultural: 181 197 112;
+    --focus-ring: 108 168 137;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
+
+  html {
+    min-width: 320px;
+    background: rgb(var(--background));
+  }
+
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
+    @apply min-h-screen bg-background font-sans antialiased;
+    color: rgb(var(--text-primary));
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    color: rgb(var(--text-primary));
+    background: rgb(var(--primary) / 0.18);
+  }
+
+  :focus-visible {
+    outline-color: rgb(var(--focus-ring));
   }
 }
 
-/* Slide-in usado por el FirstUseWizard al avanzar de paso. */
-@keyframes wizard-slide-in {
-  from { transform: translateX(24px); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
-}
-.wizard-slide-in {
-  animation: wizard-slide-in 240ms ease-out both;
+/*
+ * Los nombres de contenido son intencionalmente específicos por propiedad:
+ * bg-primary usa la marca, mientras text-primary representa texto principal.
+ */
+@layer utilities {
+  .text-primary {
+    color: rgb(var(--text-primary));
+  }
+
+  .text-secondary {
+    color: rgb(var(--text-secondary));
+  }
+
+  .text-muted {
+    color: rgb(var(--text-muted));
+  }
+
+  .cia-overlay-motion[data-state='open'] {
+    animation: cia-fade-in 200ms ease-out both;
+  }
+
+  .cia-overlay-motion[data-state='closed'] {
+    animation: cia-fade-out 150ms ease-in both;
+  }
+
+  .cia-dialog-motion[data-state='open'] {
+    animation: cia-dialog-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .cia-dialog-motion[data-state='closed'] {
+    animation: cia-dialog-out 150ms ease-in both;
+  }
+
+  .cia-popover-motion,
+  .cia-popover-motion[data-state='open'],
+  .cia-popover-motion[data-state='instant-open'],
+  .cia-popover-motion[data-state='delayed-open'] {
+    animation: cia-fade-in 200ms ease-out both;
+  }
+
+  .cia-popover-motion[data-state='closed'] {
+    animation: cia-fade-out 150ms ease-in both;
+  }
+
+  .cia-panel-motion[data-state='open'] {
+    animation: cia-fade-in 200ms ease-out both;
+  }
+
+  .cia-panel-motion[data-state='closed'] {
+    animation: cia-fade-out 150ms ease-in both;
+  }
 }
 
-/* Permite transicionar entre height/max-height intrínsecos (auto, max-content)
- * de forma fluida. Soportado en Chrome/Edge 129+. Browsers sin soporte hacen
- * fallback al cambio instantáneo (sin romper nada). */
-:root {
-  interpolate-size: allow-keywords;
+@keyframes cia-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-/* Aplicar para suavizar cambios de tamaño del panel (tabs, combobox inline). */
-.animate-size {
-  transition: height 280ms ease, max-height 280ms ease;
+@keyframes cia-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes cia-dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -49%) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes cia-dialog-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -49%) scale(0.985);
+  }
+}
+
+@keyframes cia-gear-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cia-login-gear {
+  transform-origin: 50% 50%;
+  animation: cia-gear-spin 18s linear infinite;
+  will-change: transform;
+}
+
+.cia-header-gear {
+  transform-origin: 50% 50%;
+  animation: cia-gear-spin 32s linear infinite;
+  will-change: transform;
+}
+
+.cia-loader-gear {
+  transform-origin: 50% 50%;
+  animation: cia-gear-spin 4s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .cia-login-gear,
+  .cia-header-gear,
+  .cia-loader-gear {
+    animation: none !important;
+  }
 }

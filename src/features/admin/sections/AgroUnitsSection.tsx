@@ -1,7 +1,28 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { ArrowRight, Building2, LandPlot, MapPinned, Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { DataToolbar } from '@/components/ui/data-toolbar'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { PageHeader } from '@/components/ui/page-header'
+import { TableSkeleton } from '@/components/ui/skeleton'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
@@ -19,25 +40,71 @@ const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
 }
 
+function statusVariant(status?: string | null) {
+  if (status === 'active') return 'success' as const
+  if (status === 'pending') return 'warning' as const
+  if (status === 'suspended') return 'danger' as const
+  return 'secondary' as const
+}
+
 /** Sección Agrounidades del panel /admin — casos de uso §4, §5. */
 export function AgroUnitsSection() {
-  const user = useAuthStore((s) => s.user)
+  const user = useAuthStore((state) => state.user)
   const roleLevel = user?.role_level ?? ROLE_LEVELS.GUEST
   const canCreateUnit = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
   const canCreateSector = roleLevel >= ROLE_LEVELS.SUPERVISOR
-
-  const { data: units = [], isLoading: loadingUnits, error: unitsError } = useAgroUnits()
-  const { data: sectors = [], isLoading: loadingSectors, error: sectorsError } = useAgroSectors()
+  const {
+    data: units = [],
+    isLoading: loadingUnits,
+    error: unitsError,
+    refetch: refetchUnits,
+  } = useAgroUnits()
+  const {
+    data: sectors = [],
+    isLoading: loadingSectors,
+    error: sectorsError,
+    refetch: refetchSectors,
+  } = useAgroSectors()
 
   const [createUnitOpen, setCreateUnitOpen] = useState(false)
   const [createSectorOpen, setCreateSectorOpen] = useState(false)
   const [editSector, setEditSector] = useState<AgroSector | null>(null)
   const [selectedUnit, setSelectedUnit] = useState<AgroUnit | null>(null)
-
+  const [unitSearch, setUnitSearch] = useState('')
+  const [unitStatus, setUnitStatus] = useState('all')
+  const [sectorSearch, setSectorSearch] = useState('')
   const deleteSector = useDeleteAgroSector()
 
+  const filteredUnits = useMemo(() => {
+    const query = unitSearch.trim().toLocaleLowerCase('es-MX')
+    return units.filter((unit) => {
+      const sector = (unit.agro_sector as AgroSector | null)?.sector_name ?? ''
+      const matchesSearch =
+        !query ||
+        `${unit.commercial_name} ${unit.code} ${unit.unit_type} ${sector}`
+          .toLocaleLowerCase('es-MX')
+          .includes(query)
+      const matchesStatus = unitStatus === 'all' || unit.status === unitStatus
+      return matchesSearch && matchesStatus
+    })
+  }, [units, unitSearch, unitStatus])
+
+  const filteredSectors = useMemo(() => {
+    const query = sectorSearch.trim().toLocaleLowerCase('es-MX')
+    if (!query) return sectors
+    return sectors.filter((sector) =>
+      `${sector.sector_name} ${sector.scian_code ?? ''} ${sector.activity_name ?? ''}`
+        .toLocaleLowerCase('es-MX')
+        .includes(query)
+    )
+  }, [sectors, sectorSearch])
+
   async function handleDeleteSector(sector: AgroSector) {
-    if (!confirm(`¿Eliminar el sector "${sector.sector_name}"? Esta acción no se puede deshacer.`)) return
+    if (
+      !confirm(`¿Eliminar el sector "${sector.sector_name}"? Esta acción no se puede deshacer.`)
+    ) {
+      return
+    }
     try {
       await deleteSector.mutateAsync(sector.id)
       toast.success('Sector agrícola eliminado.')
@@ -46,16 +113,29 @@ export function AgroUnitsSection() {
     }
   }
 
+  const unitHasFilters = Boolean(unitSearch || unitStatus !== 'all')
+
   return (
-    <div className="space-y-4">
-      <header className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Agrounidades</h1>
-          <p className="text-sm text-muted-foreground">
-            Unidades agroeconómicas, sectores agroindustriales y contactos.
-          </p>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        title="Agrounidades"
+        description="Productores y unidades, sus contactos y la relación entre ranchos y parcelas."
+      />
+
+      <section
+        aria-label="Jerarquía de activos agrícolas"
+        className="flex flex-wrap items-center gap-3 rounded-xl border border-default bg-surface px-4 py-3"
+      >
+        <HierarchyLabel
+          icon={<Building2 />}
+          title="Productor / Unidad"
+          detail="Entidad responsable"
+        />
+        <ArrowRight className="h-4 w-4 text-muted" />
+        <HierarchyLabel icon={<MapPinned />} title="Rancho" detail="Ubicación productiva" />
+        <ArrowRight className="h-4 w-4 text-muted" />
+        <HierarchyLabel icon={<LandPlot />} title="Parcela" detail="Superficie georreferenciada" />
+      </section>
 
       <Tabs defaultValue="units">
         <TabsList>
@@ -63,113 +143,180 @@ export function AgroUnitsSection() {
           <TabsTrigger value="sectors">Sectores</TabsTrigger>
         </TabsList>
 
-        {/* ── Tab Unidades ── */}
-        <TabsContent value="units" className="space-y-3 pt-3">
-          {canCreateUnit && (
-            <div className="flex justify-end">
-              <Button size="sm" onClick={() => setCreateUnitOpen(true)}>
-                + Nueva Unidad
-              </Button>
-            </div>
+        <TabsContent value="units" className="space-y-4 pt-4">
+          <DataToolbar
+            searchValue={unitSearch}
+            onSearchChange={setUnitSearch}
+            searchPlaceholder="Buscar agrounidad…"
+            searchLabel="Buscar agrounidades"
+            resultCount={filteredUnits.length}
+            resultLabel={filteredUnits.length === 1 ? 'unidad' : 'unidades'}
+            hasActiveFilters={unitHasFilters}
+            onClearFilters={() => {
+              setUnitSearch('')
+              setUnitStatus('all')
+            }}
+            filters={
+              <Select value={unitStatus} onValueChange={setUnitStatus}>
+                <SelectTrigger className="w-44" aria-label="Filtrar por estado">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="active">Activas</SelectItem>
+                  <SelectItem value="pending">Pendientes</SelectItem>
+                  <SelectItem value="suspended">Suspendidas</SelectItem>
+                  <SelectItem value="inactive">Inactivas</SelectItem>
+                </SelectContent>
+              </Select>
+            }
+            primaryAction={
+              canCreateUnit ? (
+                <Button onClick={() => setCreateUnitOpen(true)}>
+                  <Plus />
+                  Nueva unidad
+                </Button>
+              ) : undefined
+            }
+          />
+
+          {loadingUnits && <TableSkeleton columns={5} label="Cargando unidades…" />}
+          {unitsError && (
+            <ErrorState
+              title="No pudimos cargar las agrounidades"
+              description="Revisa tu conexión e inténtalo nuevamente."
+              onRetry={() => void refetchUnits()}
+            />
           )}
-          {loadingUnits && <p className="text-muted-foreground">Cargando unidades…</p>}
-          {unitsError && <p className="text-destructive">Error al cargar las unidades.</p>}
-          {!loadingUnits && !unitsError && units.length === 0 && (
-            <p className="text-muted-foreground">No hay agrounidades registradas todavía.</p>
+          {!loadingUnits && !unitsError && filteredUnits.length === 0 && (
+            <EmptyState
+              title={
+                unitHasFilters
+                  ? 'No encontramos agrounidades'
+                  : 'No hay agrounidades registradas todavía'
+              }
+              description={
+                unitHasFilters ? 'Ajusta o limpia los filtros para ver más resultados.' : undefined
+              }
+            />
           )}
-          {units.length > 0 && (
-            <div className="rounded-md border overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-4 py-2 text-left font-medium">Nombre comercial</th>
-                    <th className="px-4 py-2 text-left font-medium">Código</th>
-                    <th className="px-4 py-2 text-left font-medium">Tipo</th>
-                    <th className="px-4 py-2 text-left font-medium">Sector</th>
-                    <th className="px-4 py-2 text-left font-medium">Estatus</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {units.map((unit) => (
-                    <tr
-                      key={unit.id}
-                      className="cursor-pointer hover:bg-muted/30 transition-colors"
-                      onClick={() => setSelectedUnit(unit)}
-                    >
-                      <td className="px-4 py-2 font-medium">{unit.commercial_name}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{unit.code}</td>
-                      <td className="px-4 py-2">{unit.unit_type}</td>
-                      <td className="px-4 py-2">
-                        {(unit.agro_sector as AgroSector | null)?.sector_name ?? '—'}
-                      </td>
-                      <td className="px-4 py-2">
-                        <Badge variant="outline">
-                          {STATUS_LABELS[unit.status ?? ''] ?? unit.status ?? '—'}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {filteredUnits.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre comercial</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Sector</TableHead>
+                  <TableHead>Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUnits.map((unit) => (
+                  <TableRow
+                    key={unit.id}
+                    className="cursor-pointer"
+                    onClick={() => setSelectedUnit(unit)}
+                  >
+                    <TableCell className="font-medium">{unit.commercial_name}</TableCell>
+                    <TableCell className="text-secondary">{unit.code}</TableCell>
+                    <TableCell>{unit.unit_type}</TableCell>
+                    <TableCell>
+                      {(unit.agro_sector as AgroSector | null)?.sector_name ?? '—'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(unit.status)}>
+                        {STATUS_LABELS[unit.status ?? ''] ?? unit.status ?? '—'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </TabsContent>
 
-        {/* ── Tab Sectores ── */}
-        <TabsContent value="sectors" className="space-y-3 pt-3">
-          {canCreateSector && (
-            <div className="flex justify-end">
-              <Button size="sm" onClick={() => setCreateSectorOpen(true)}>
-                + Nuevo Sector
-              </Button>
-            </div>
+        <TabsContent value="sectors" className="space-y-4 pt-4">
+          <DataToolbar
+            searchValue={sectorSearch}
+            onSearchChange={setSectorSearch}
+            searchPlaceholder="Buscar sector…"
+            searchLabel="Buscar sectores"
+            resultCount={filteredSectors.length}
+            resultLabel={filteredSectors.length === 1 ? 'sector' : 'sectores'}
+            hasActiveFilters={Boolean(sectorSearch)}
+            onClearFilters={() => setSectorSearch('')}
+            primaryAction={
+              canCreateSector ? (
+                <Button onClick={() => setCreateSectorOpen(true)}>
+                  <Plus />
+                  Nuevo sector
+                </Button>
+              ) : undefined
+            }
+          />
+
+          {loadingSectors && <TableSkeleton columns={4} label="Cargando sectores…" />}
+          {sectorsError && (
+            <ErrorState
+              title="No pudimos cargar los sectores"
+              description="Revisa tu conexión e inténtalo nuevamente."
+              onRetry={() => void refetchSectors()}
+            />
           )}
-          {loadingSectors && <p className="text-muted-foreground">Cargando sectores…</p>}
-          {sectorsError && <p className="text-destructive">Error al cargar los sectores.</p>}
-          {!loadingSectors && !sectorsError && sectors.length === 0 && (
-            <p className="text-muted-foreground">No hay sectores registrados todavía.</p>
+          {!loadingSectors && !sectorsError && filteredSectors.length === 0 && (
+            <EmptyState
+              title={
+                sectorSearch ? 'No encontramos sectores' : 'No hay sectores registrados todavía'
+              }
+              description={
+                sectorSearch ? 'Ajusta o limpia la búsqueda para ver más resultados.' : undefined
+              }
+            />
           )}
-          {sectors.length > 0 && (
-            <div className="rounded-md border overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-4 py-2 text-left font-medium">Nombre del sector</th>
-                    <th className="px-4 py-2 text-left font-medium">Código SCIAN</th>
-                    <th className="px-4 py-2 text-left font-medium">Actividad principal</th>
+          {filteredSectors.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre del sector</TableHead>
+                  <TableHead>Código SCIAN</TableHead>
+                  <TableHead>Actividad principal</TableHead>
+                  {canCreateSector && <TableHead className="text-right">Acciones</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredSectors.map((sector) => (
+                  <TableRow key={sector.id}>
+                    <TableCell className="font-medium">{sector.sector_name}</TableCell>
+                    <TableCell className="text-secondary">{sector.scian_code ?? '—'}</TableCell>
+                    <TableCell>{sector.activity_name ?? '—'}</TableCell>
                     {canCreateSector && (
-                      <th className="px-4 py-2 text-right font-medium">Acciones</th>
+                      <TableCell>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setEditSector(sector)}
+                          >
+                            <Pencil />
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleDeleteSector(sector)}
+                            disabled={deleteSector.isPending}
+                          >
+                            <Trash2 />
+                            Eliminar
+                          </Button>
+                        </div>
+                      </TableCell>
                     )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {sectors.map((sector) => (
-                    <tr key={sector.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-2 font-medium">{sector.sector_name}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{sector.scian_code ?? '—'}</td>
-                      <td className="px-4 py-2">{sector.activity_name ?? '—'}</td>
-                      {canCreateSector && (
-                        <td className="px-4 py-2">
-                          <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="outline" onClick={() => setEditSector(sector)}>
-                              Editar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDeleteSector(sector)}
-                              disabled={deleteSector.isPending}
-                            >
-                              Eliminar
-                            </Button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </TabsContent>
       </Tabs>
@@ -181,9 +328,29 @@ export function AgroUnitsSection() {
         onOpenChange={(open) => !open && setEditSector(null)}
         sector={editSector}
       />
-      {selectedUnit && (
-        <AgroUnitPanel unit={selectedUnit} onClose={() => setSelectedUnit(null)} />
-      )}
+      {selectedUnit && <AgroUnitPanel unit={selectedUnit} onClose={() => setSelectedUnit(null)} />}
+    </div>
+  )
+}
+
+function HierarchyLabel({
+  icon,
+  title,
+  detail,
+}: {
+  icon: React.ReactNode
+  title: string
+  detail: string
+}) {
+  return (
+    <div className="flex min-w-48 items-center gap-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary [&_svg]:h-4 [&_svg]:w-4">
+        {icon}
+      </span>
+      <span>
+        <span className="block text-sm font-medium text-foreground">{title}</span>
+        <span className="block text-xs text-secondary">{detail}</span>
+      </span>
     </div>
   )
 }

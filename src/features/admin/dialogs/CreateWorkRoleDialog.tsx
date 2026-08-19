@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -62,6 +63,9 @@ export function CreateWorkRoleDialog({ open, onOpenChange, onCreated }: CreateWo
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Nuevo rol laboral</DialogTitle>
+          <DialogDescription>
+            Define una función laboral reutilizable para los perfiles.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1">

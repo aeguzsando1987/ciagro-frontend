@@ -1,14 +1,10 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Leaf } from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { LoadingState } from '@/components/ui/loading-state'
 import type { MasterProgramTree } from '@/features/task-manager/types'
 import { useNdviSessionDetail } from '../hooks/useNdviSessionDetail'
 import { NdviImportDialog } from '../components/NdviImportDialog'
@@ -59,7 +55,12 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
   const canOpenVisor = importStatus === 'done' && points > 0
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+    >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -77,7 +78,7 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
         </DialogHeader>
 
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Cargando…</p>
+          <LoadingState label="Cargando sesión NDVI…" />
         ) : (
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -102,14 +103,12 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
 
             {importStatus === 'pending_mapping' && (
               <p className="rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                La importación quedó pendiente de mapeo: faltan columnas obligatorias
-                (Longitude / Latitude). Vuelve a importar con un archivo válido.
+                La importación quedó pendiente de mapeo: faltan columnas obligatorias (Longitude /
+                Latitude). Vuelve a importar con un archivo válido.
               </p>
             )}
 
-            {importStatus === 'done' && points > 0 && (
-              <NdviImportSummary headerId={sesionId} />
-            )}
+            {importStatus === 'done' && points > 0 && <NdviImportSummary headerId={sesionId} />}
 
             <div className="flex flex-wrap gap-2">
               <Button type="button" onClick={() => setImportOpen(true)}>

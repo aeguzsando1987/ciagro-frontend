@@ -5,12 +5,15 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { FormSection } from '@/components/ui/form-section'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
 import { Field } from '../components/Field'
 import { useCreateCrop } from '../hooks/useCrops'
@@ -75,35 +78,32 @@ export function CreateCropDialog({ open, onOpenChange }: Props) {
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Nuevo cultivo</DialogTitle>
+          <DialogDescription>
+            Registra la identificación del cultivo y una fotografía de referencia opcional.
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Field label="Nombre *" error={errors.name?.message}>
-            <Input {...register('name')} placeholder="Ej: Mango Manila" />
-          </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Código" error={errors.code?.message}>
-              <Input {...register('code')} placeholder="Ej: MNG-MNL" />
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <FormSection title="Información general">
+            <Field label="Nombre *" error={errors.name?.message}>
+              <Input {...register('name')} placeholder="Ej: Mango Manila" />
             </Field>
-            <Field label="Variedad" error={errors.variety?.message}>
-              <Input {...register('variety')} placeholder="Ej: Ataulfo" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Código" error={errors.code?.message}>
+                <Input {...register('code')} placeholder="Ej: MNG-MNL" />
+              </Field>
+              <Field label="Variedad" error={errors.variety?.message}>
+                <Input {...register('variety')} placeholder="Ej: Ataulfo" />
+              </Field>
+            </div>
+          </FormSection>
+          <FormSection title="Descripción y fotografía">
+            <Field label="Descripción" error={errors.description?.message}>
+              <Textarea {...register('description')} rows={3} placeholder="Descripción corta..." />
             </Field>
-          </div>
-          <Field label="Descripción" error={errors.description?.message}>
-            <textarea
-              {...register('description')}
-              rows={3}
-              placeholder="Descripción corta..."
-              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </Field>
-          <Field label="Imagen (opcional)" error={errors.photo?.message as string | undefined}>
-            <input
-              type="file"
-              accept="image/*"
-              className="block w-full text-sm text-muted-foreground file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-muted file:text-foreground cursor-pointer"
-              {...register('photo')}
-            />
-          </Field>
+            <Field label="Imagen (opcional)" error={errors.photo?.message as string | undefined}>
+              <Input type="file" accept="image/*" {...register('photo')} />
+            </Field>
+          </FormSection>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
               Cancelar

@@ -1,4 +1,5 @@
 import { screen, render, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { http, HttpResponse } from 'msw'
@@ -85,7 +86,7 @@ beforeEach(() => {
   server.use(
     http.get(`${BASE}/api/v1/geography/countries/`, () => HttpResponse.json(EMPTY_PAGE)),
     http.get(`${BASE}/api/v1/geo_assets/ranches/`, () => HttpResponse.json(EMPTY_PAGE)),
-    http.get(`${BASE}/api/v1/organizations/`, () => HttpResponse.json(EMPTY_PAGE)),
+    http.get(`${BASE}/api/v1/organizations/`, () => HttpResponse.json(EMPTY_PAGE))
   )
 })
 
@@ -118,6 +119,19 @@ describe('AssetsSection', () => {
   it('muestra el nombre del productor resuelto en la tabla', () => {
     renderSection()
     expect(screen.getByText('Productor Alpha')).toBeInTheDocument()
+  })
+
+  it('muestra el área con unidad explícita y dos decimales', () => {
+    renderSection()
+    expect(screen.getByText('250.00 ha')).toBeInTheDocument()
+  })
+
+  it('ofrece acciones del rancho en un dropdown', async () => {
+    const user = userEvent.setup()
+    renderSection()
+
+    await user.click(screen.getByRole('button', { name: 'Acciones de Rancho El Fresno' }))
+    expect(screen.getByRole('menuitem', { name: 'Ver detalle' })).toBeInTheDocument()
   })
 
   it('abre el formulario de creación al hacer click en "Nuevo rancho"', () => {

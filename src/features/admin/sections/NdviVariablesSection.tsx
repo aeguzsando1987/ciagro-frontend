@@ -8,11 +8,21 @@
  * Los umbrales aplican a TODA la organización (todas sus parcelas).
  */
 import { useEffect, useMemo, useState } from 'react'
+import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { FormSection } from '@/components/ui/form-section'
+import { PageHeader } from '@/components/ui/page-header'
+import { LoadingState } from '@/components/ui/loading-state'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { useDataCentralMains } from '@/features/admin/hooks/useDataCentrals'
@@ -29,7 +39,13 @@ import {
 const DEFAULT_COLORS = ['#d7191c', '#fdae61', '#ffffbf', '#a6d96a', '#1a9850']
 
 function newBand(order: number): Band {
-  return { order, min: 0, max: 1, label: `Clase ${order + 1}`, color: DEFAULT_COLORS[order % DEFAULT_COLORS.length]! }
+  return {
+    order,
+    min: 0,
+    max: 1,
+    label: `Clase ${order + 1}`,
+    color: DEFAULT_COLORS[order % DEFAULT_COLORS.length]!,
+  }
 }
 
 /** Extrae el mensaje de error que manda el backend (400 por tenant ambiguo, 403 sin permiso, etc). */
@@ -50,7 +66,7 @@ export function NdviVariablesSection() {
   const { data: allOrgs = [], isLoading: loadingOrgs } = useDataCentralMains()
   const configurableOrgs = useMemo(
     () => (isSuperAdmin ? allOrgs : allOrgs.filter((o) => o.is_owner)),
-    [allOrgs, isSuperAdmin],
+    [allOrgs, isSuperAdmin]
   )
 
   const [tenantId, setTenantId] = useState<string>('')
@@ -87,7 +103,7 @@ export function NdviVariablesSection() {
 
   const selectedLabel = useMemo(
     () => variables.find((v) => v.key === selected)?.label ?? selected,
-    [variables, selected],
+    [variables, selected]
   )
 
   const orgPicker = needsTenantChoice && !loadingOrgs && (
@@ -110,11 +126,14 @@ export function NdviVariablesSection() {
 
   if (!loadingOrgs && configurableOrgs.length === 0) {
     return (
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold">Configuración de variables de análisis</h1>
-        <p className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Solo un Gerente dueño de la organización puede configurar estos umbrales. Tu usuario no
-          es dueño de ninguna organización.
+      <div className="space-y-6">
+        <PageHeader
+          title="Variables de análisis"
+          description="Configura la clasificación visual de variables agronómicas por organización."
+        />
+        <p className="rounded-lg border border-warning/25 bg-warning-soft px-4 py-3 text-sm text-warning-foreground">
+          Solo un Gerente dueño de la organización puede configurar estos umbrales. Tu usuario no es
+          dueño de ninguna organización.
         </p>
       </div>
     )
@@ -122,13 +141,11 @@ export function NdviVariablesSection() {
 
   if (needsTenantChoice && !tenantId) {
     return (
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Configuración de variables de análisis</h1>
-          <p className="text-sm text-muted-foreground">
-            Posees más de una organización: elige sobre cuál configurar los umbrales.
-          </p>
-        </div>
+      <div className="space-y-6">
+        <PageHeader
+          title="Variables de análisis"
+          description="Elige la organización para configurar sus umbrales de clasificación."
+        />
         {orgPicker}
       </div>
     )
@@ -137,10 +154,13 @@ export function NdviVariablesSection() {
   if (isError) {
     const detail = extractErrorDetail(error)
     return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-semibold">Configuración de variables de análisis</h1>
+      <div className="space-y-6">
+        <PageHeader
+          title="Variables de análisis"
+          description="Configura la clasificación visual de variables agronómicas por organización."
+        />
         {orgPicker}
-        <p className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <p className="rounded-lg border border-warning/25 bg-warning-soft px-4 py-3 text-sm text-warning-foreground">
           {detail ?? 'Solo un Gerente dueño de la organización puede configurar estos umbrales.'}
         </p>
       </div>
@@ -166,9 +186,13 @@ export function NdviVariablesSection() {
       return { ...d, bands: next }
     })
   }
-  const addBand = () => setDraft((d) => ({ ...d, bands: [...(d.bands ?? []), newBand((d.bands ?? []).length)] }))
+  const addBand = () =>
+    setDraft((d) => ({ ...d, bands: [...(d.bands ?? []), newBand((d.bands ?? []).length)] }))
   const removeBand = (i: number) =>
-    setDraft((d) => ({ ...d, bands: (d.bands ?? []).filter((_, k) => k !== i).map((b, k) => ({ ...b, order: k })) }))
+    setDraft((d) => ({
+      ...d,
+      bands: (d.bands ?? []).filter((_, k) => k !== i).map((b, k) => ({ ...b, order: k })),
+    }))
 
   const onSave = () => {
     const payload: VariableBandConfig =
@@ -182,33 +206,34 @@ export function NdviVariablesSection() {
         onError: (e) => {
           // El backend valida por variable: muestra el mensaje si viene.
           const obj = e as unknown as Record<string, unknown>
-          const msg = obj && typeof obj === 'object' && selected in obj
-            ? String(obj[selected])
-            : 'No se pudo guardar (revisa los intervalos: continuos, color hex, sin huecos).'
+          const msg =
+            obj && typeof obj === 'object' && selected in obj
+              ? String(obj[selected])
+              : 'No se pudo guardar (revisa los intervalos: continuos, color hex, sin huecos).'
           toast.error(msg)
         },
-      },
+      }
     )
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Configuración de variables de análisis</h1>
-        <p className="text-sm text-muted-foreground">
-          Define cómo se clasifican y colorean las variables en el visor. Aplica a toda la organización.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Variables de análisis"
+        description="Define cómo se clasifican las variables en el visor. La configuración aplica a toda la organización."
+      />
 
       {orgPicker}
 
       {/* Pestaña única por ahora: NDVI. */}
       <div className="flex gap-2 border-b">
-        <span className="border-b-2 border-primary px-3 py-1.5 text-sm font-medium">NDVI (Índices vegetativos)</span>
+        <span className="border-b-2 border-primary px-3 py-1.5 text-sm font-medium">
+          NDVI (Índices vegetativos)
+        </span>
       </div>
 
       {loadingVars || loadingConfig ? (
-        <p className="text-sm text-muted-foreground">Cargando…</p>
+        <LoadingState label="Cargando variables NDVI…" />
       ) : (
         <div className="grid gap-6 md:grid-cols-[220px_1fr]">
           {/* Lista de variables */}
@@ -218,8 +243,8 @@ export function NdviVariablesSection() {
                 <button
                   type="button"
                   onClick={() => setSelected(v.key)}
-                  className={`w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent ${
-                    selected === v.key ? 'bg-accent font-medium' : ''
+                  className={`min-h-10 w-full rounded-md px-2 py-2 text-left text-sm transition-colors duration-150 hover:bg-primary-soft hover:text-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+                    selected === v.key ? 'bg-primary-soft font-medium text-primary-hover' : ''
                   }`}
                 >
                   {v.label}
@@ -235,157 +260,187 @@ export function NdviVariablesSection() {
             <h2 className="text-lg font-medium">{selectedLabel}</h2>
 
             {/* Estrategia */}
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant={draft.strategy === 'quartile' ? 'default' : 'outline'}
-                onClick={() => setDraft((d) => ({ ...d, strategy: 'quartile' }))}
-              >
-                Automático (cuartiles)
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={draft.strategy === 'manual' ? 'default' : 'outline'}
-                onClick={() =>
-                  setDraft((d) => ({
-                    ...d,
-                    strategy: 'manual',
-                    mode: d.mode ?? 'absolute',
-                    bands: d.bands && d.bands.length > 0 ? d.bands : [newBand(0), newBand(1)],
-                  }))
-                }
-              >
-                Manual (umbrales)
-              </Button>
-            </div>
-
-            {draft.strategy === 'quartile' ? (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label htmlFor="nbands">Número de clases</Label>
-                  <Input
-                    id="nbands"
-                    type="number"
-                    min={2}
-                    max={6}
-                    className="w-24"
-                    value={nBands}
-                    onChange={(e) => {
-                      const n = Math.max(2, Math.min(6, Number(e.target.value) || 2))
-                      setDraft((d) => ({ ...d, n_bands: n, colors: resolveQuartileColors(d, n) }))
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Los cortes se calculan de los datos de cada sesión (sin definir umbrales fijos).
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <Label>Colores de los cuantiles (de menor a mayor)</Label>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {quartileColors.map((c, i) => (
-                      <div key={i} className="flex flex-col items-center gap-1">
-                        <input
-                          type="color"
-                          className="h-8 w-10 cursor-pointer rounded border"
-                          value={c}
-                          onChange={(e) => setQuartileColor(i, e.target.value)}
-                          aria-label={`Color del cuantil ${i + 1}`}
-                        />
-                        <span className="text-[10px] text-muted-foreground">Q{i + 1}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    El visor pinta cada cuantil con su color; los umbrales siguen saliendo de los datos.
-                  </p>
-                </div>
+            <FormSection
+              title="Estrategia de clasificación"
+              description="Elige si los cortes se calculan automáticamente o con umbrales definidos."
+            >
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={draft.strategy === 'quartile' ? 'default' : 'outline'}
+                  onClick={() => setDraft((d) => ({ ...d, strategy: 'quartile' }))}
+                >
+                  Automático (cuartiles)
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={draft.strategy === 'manual' ? 'default' : 'outline'}
+                  onClick={() =>
+                    setDraft((d) => ({
+                      ...d,
+                      strategy: 'manual',
+                      mode: d.mode ?? 'absolute',
+                      bands: d.bands && d.bands.length > 0 ? d.bands : [newBand(0), newBand(1)],
+                    }))
+                  }
+                >
+                  Manual (umbrales)
+                </Button>
               </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Label>Modo:</Label>
-                  <select
-                    className="rounded border px-2 py-1 text-sm"
-                    value={draft.mode ?? 'absolute'}
-                    onChange={(e) => setDraft((d) => ({ ...d, mode: e.target.value as 'absolute' | 'normalized' }))}
-                  >
-                    <option value="absolute">Absoluto (−∞…+∞)</option>
-                    <option value="normalized">Normalizado</option>
-                  </select>
-                </div>
+            </FormSection>
 
-                {/* max-w acota la fila: sin tope, en una ventana maximizada la etiqueta
+            <FormSection
+              title={draft.strategy === 'quartile' ? 'Clases automáticas' : 'Intervalos manuales'}
+            >
+              {draft.strategy === 'quartile' ? (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="nbands">Número de clases</Label>
+                    <Input
+                      id="nbands"
+                      type="number"
+                      min={2}
+                      max={6}
+                      className="w-24"
+                      value={nBands}
+                      onChange={(e) => {
+                        const n = Math.max(2, Math.min(6, Number(e.target.value) || 2))
+                        setDraft((d) => ({ ...d, n_bands: n, colors: resolveQuartileColors(d, n) }))
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Los cortes se calculan de los datos de cada sesión (sin definir umbrales
+                      fijos).
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label>Colores de los cuantiles (de menor a mayor)</Label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {quartileColors.map((c, i) => (
+                        <div key={i} className="flex flex-col items-center gap-1">
+                          <input
+                            type="color"
+                            className="h-8 w-10 cursor-pointer rounded border"
+                            value={c}
+                            onChange={(e) => setQuartileColor(i, e.target.value)}
+                            aria-label={`Color del cuantil ${i + 1}`}
+                          />
+                          <span className="text-[10px] text-muted-foreground">Q{i + 1}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      El visor pinta cada cuantil con su color; los umbrales siguen saliendo de los
+                      datos.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="max-w-xs space-y-1.5">
+                    <Label>Modo</Label>
+                    <Select
+                      value={draft.mode ?? 'absolute'}
+                      onValueChange={(value) =>
+                        setDraft((d) => ({
+                          ...d,
+                          mode: value as 'absolute' | 'normalized',
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="absolute">Absoluto (−∞…+∞)</SelectItem>
+                        <SelectItem value="normalized">Normalizado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* max-w acota la fila: sin tope, en una ventana maximizada la etiqueta
                     estira la fila hasta el borde derecho y el selector de color queda
                     pegado a él, con lo que el picker nativo del navegador (que se ancla
                     al input) abre fuera de la ventana y no se puede usar. El color va al
                     inicio de la fila por el mismo motivo: nunca cerca del borde. */}
-                <div className="max-w-2xl space-y-2">
-                  {bands.map((b, i) => (
-                    <div
-                      key={i}
-                      className="flex flex-wrap items-center gap-2 rounded border p-2 sm:flex-nowrap sm:rounded-none sm:border-0 sm:p-0"
-                    >
-                      <span className="w-6 shrink-0 text-xs text-muted-foreground">{i + 1}</span>
-                      <input
-                        type="color"
-                        className="h-8 w-10 shrink-0 cursor-pointer rounded border"
-                        value={b.color}
-                        onChange={(e) => setBand(i, { color: e.target.value })}
-                        aria-label={`Color del intervalo ${i + 1}`}
-                      />
-                      <Input
-                        type="number"
-                        step="any"
-                        placeholder={i === 0 ? '−∞' : 'min'}
-                        className="w-20 shrink-0 sm:w-24"
-                        value={b.min ?? ''}
-                        onChange={(e) => setBand(i, { min: e.target.value === '' ? null : Number(e.target.value) })}
-                        aria-label={`Mínimo del intervalo ${i + 1}`}
-                      />
-                      <span className="shrink-0 text-muted-foreground">–</span>
-                      <Input
-                        type="number"
-                        step="any"
-                        placeholder={i === bands.length - 1 ? '+∞' : 'max'}
-                        className="w-20 shrink-0 sm:w-24"
-                        value={b.max ?? ''}
-                        onChange={(e) => setBand(i, { max: e.target.value === '' ? null : Number(e.target.value) })}
-                        aria-label={`Máximo del intervalo ${i + 1}`}
-                      />
-                      <Input
-                        type="text"
-                        placeholder="Etiqueta"
-                        className="order-last w-full min-w-0 flex-1 sm:order-none sm:w-auto"
-                        value={b.label}
-                        onChange={(e) => setBand(i, { label: e.target.value })}
-                        aria-label={`Etiqueta del intervalo ${i + 1}`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeBand(i)}
-                        className="shrink-0 px-1 text-muted-foreground hover:text-destructive"
-                        aria-label={`Quitar intervalo ${i + 1}`}
+                  <div className="max-w-2xl space-y-2">
+                    {bands.map((b, i) => (
+                      <div
+                        key={i}
+                        className="flex flex-wrap items-center gap-2 rounded border p-2 sm:flex-nowrap sm:rounded-none sm:border-0 sm:p-0"
                       >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+                        <span className="w-6 shrink-0 text-xs text-muted-foreground">{i + 1}</span>
+                        <input
+                          type="color"
+                          className="h-8 w-10 shrink-0 cursor-pointer rounded border"
+                          value={b.color}
+                          onChange={(e) => setBand(i, { color: e.target.value })}
+                          aria-label={`Color del intervalo ${i + 1}`}
+                        />
+                        <Input
+                          type="number"
+                          step="any"
+                          placeholder={i === 0 ? '−∞' : 'min'}
+                          className="w-20 shrink-0 sm:w-24"
+                          value={b.min ?? ''}
+                          onChange={(e) =>
+                            setBand(i, {
+                              min: e.target.value === '' ? null : Number(e.target.value),
+                            })
+                          }
+                          aria-label={`Mínimo del intervalo ${i + 1}`}
+                        />
+                        <span className="shrink-0 text-muted-foreground">–</span>
+                        <Input
+                          type="number"
+                          step="any"
+                          placeholder={i === bands.length - 1 ? '+∞' : 'max'}
+                          className="w-20 shrink-0 sm:w-24"
+                          value={b.max ?? ''}
+                          onChange={(e) =>
+                            setBand(i, {
+                              max: e.target.value === '' ? null : Number(e.target.value),
+                            })
+                          }
+                          aria-label={`Máximo del intervalo ${i + 1}`}
+                        />
+                        <Input
+                          type="text"
+                          placeholder="Etiqueta"
+                          className="order-last w-full min-w-0 flex-1 sm:order-none sm:w-auto"
+                          value={b.label}
+                          onChange={(e) => setBand(i, { label: e.target.value })}
+                          aria-label={`Etiqueta del intervalo ${i + 1}`}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeBand(i)}
+                          className="shrink-0 text-muted hover:bg-danger-soft hover:text-danger"
+                          aria-label={`Quitar intervalo ${i + 1}`}
+                        >
+                          <X aria-hidden="true" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button type="button" size="sm" variant="outline" onClick={addBand}>
+                    + Agregar intervalo
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Los intervalos deben ser continuos (el max de uno es el min del siguiente). El
+                    primer min y el último max pueden dejarse vacíos (−∞ / +∞) en modo absoluto.
+                  </p>
                 </div>
+              )}
+            </FormSection>
 
-                <Button type="button" size="sm" variant="outline" onClick={addBand}>
-                  + Agregar intervalo
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Los intervalos deben ser continuos (el max de uno es el min del siguiente). El primer
-                  min y el último max pueden dejarse vacíos (−∞ / +∞) en modo absoluto.
-                </p>
-              </div>
-            )}
-
-            <div className="pt-2">
+            <div className="flex justify-end border-t border-border-light pt-4">
               <Button type="button" onClick={onSave} disabled={update.isPending}>
                 {update.isPending ? 'Guardando…' : 'Guardar'}
               </Button>

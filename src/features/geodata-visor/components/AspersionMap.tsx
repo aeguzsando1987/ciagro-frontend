@@ -23,6 +23,7 @@ import type { MapRef } from 'react-map-gl/maplibre'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { LoadingState } from '@/components/ui/loading-state'
 import { useAspersionPoints } from '@/features/task-manager/hooks/useAspersionPoints'
 import { usePlotGeometry } from '@/features/task-manager/hooks/usePlotGeometry'
 import { useAspersionVariableStats } from '@/features/task-manager/hooks/useAspersionVariableStats'
@@ -36,6 +37,7 @@ import {
 } from '@/features/task-manager/lib/plotRectangles'
 import { CategoryStatsCard } from './CategoryStatsCard'
 import { ESRI_STYLE, sumAreaByBucket, formatHa } from '../lib/aspersionMap.helpers'
+import { useMapCameraSync, type MapCameraSyncBinding } from '../lib/mapCameraSync'
 import {
   ASPERSION_LAYERS,
   APPLICATION_CATEGORIES,
@@ -88,21 +90,33 @@ function buildCategoryColorExpr(defs: CategoryDef[]): unknown[] {
 }
 
 function buildQuartileColorExpr(palette: [string, string, string, string]): unknown[] {
-  return ['match', ['get', 'bucket'], 'q1', palette[0], 'q2', palette[1], 'q3', palette[2], 'q4', palette[3], '#94a3b8']
+  return [
+    'match',
+    ['get', 'bucket'],
+    'q1',
+    palette[0],
+    'q2',
+    palette[1],
+    'q3',
+    palette[2],
+    'q4',
+    palette[3],
+    '#94a3b8',
+  ]
 }
 
 // ─── Cómputo de datos por capa ───────────────────────────────────────────────
 
 function buildLayerData(
   baseFC: GeoJSON.FeatureCollection<GeoJSON.Polygon, RectangleProps>,
-  layerDef: LayerDef,
+  layerDef: LayerDef
 ): LayerData | null {
   if (baseFC.features.length === 0) return null
 
   // Helper: anota cada feature con su bucket y arma el LayerData categórico.
   const buildCategorical = (
     bucketOf: (f: GeoJSON.Feature<GeoJSON.Polygon, RectangleProps>) => string,
-    legendDefs: CategoryDef[],
+    legendDefs: CategoryDef[]
   ): LayerData => {
     const annotated = {
       ...baseFC,
@@ -123,14 +137,14 @@ function buildLayerData(
   if (layerDef.kind === 'category') {
     return buildCategorical(
       (f) => classifyApplication(f.properties.applied_rate_l, f.properties.target_rate_l),
-      APPLICATION_CATEGORIES,
+      APPLICATION_CATEGORIES
     )
   }
 
   if (layerDef.kind === 'quality') {
     return buildCategorical(
       (f) => classifyRateQuality(f.properties.rate_quality),
-      RATE_QUALITY_CATEGORIES,
+      RATE_QUALITY_CATEGORIES
     )
   }
 
@@ -152,9 +166,7 @@ function buildLayerData(
       ...f,
       properties: {
         ...f.properties,
-        bucket: cuts
-          ? (quartileOf(f.properties[fieldKey] as number | null, cuts) ?? 'q1')
-          : 'q1',
+        bucket: cuts ? (quartileOf(f.properties[fieldKey] as number | null, cuts) ?? 'q1') : 'q1',
       },
     })),
   } as LayerData['annotated']
@@ -171,7 +183,7 @@ function buildLayerData(
 
 function MapOverlay({ children }: { children: React.ReactNode }) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10 text-sm text-muted-foreground">
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 text-sm text-muted-foreground">
       {children}
     </div>
   )
@@ -192,23 +204,41 @@ function HoverTooltip({ info, layer }: { info: HoverInfo; layer: LayerDef }) {
       offset={8}
       style={{ padding: 0 }}
     >
-      <div className="px-2 py-1.5 text-xs space-y-0.5 min-w-[160px]">
+      <div className="min-w-[160px] space-y-0.5 px-2 py-1.5 text-xs">
         <p className="text-muted-foreground">
           {lat.toFixed(6)}, {lon.toFixed(6)}
         </p>
         {layer.kind === 'category' && (
           <>
-            <p>Aplicado: <span className="font-medium">{props.applied_rate_l?.toFixed(1)} L/ha</span></p>
-            <p>Meta: <span className="font-medium">{props.target_rate_l?.toFixed(1)} L/ha</span></p>
-            <p>% apl.: <span className="font-medium">{pApl != null ? `${pApl.toFixed(1)}%` : '—'}</span></p>
-            {props.bucket && <p>Categoría: <span className="font-medium capitalize">{props.bucket}</span></p>}
+            <p>
+              Aplicado: <span className="font-medium">{props.applied_rate_l?.toFixed(1)} L/ha</span>
+            </p>
+            <p>
+              Meta: <span className="font-medium">{props.target_rate_l?.toFixed(1)} L/ha</span>
+            </p>
+            <p>
+              % apl.:{' '}
+              <span className="font-medium">{pApl != null ? `${pApl.toFixed(1)}%` : '—'}</span>
+            </p>
+            {props.bucket && (
+              <p>
+                Categoría: <span className="font-medium capitalize">{props.bucket}</span>
+              </p>
+            )}
           </>
         )}
         {layer.kind === 'quality' && (
-          <p>Rate Quality: <span className="font-medium">{props.rate_quality ?? '—'}</span></p>
+          <p>
+            Rate Quality: <span className="font-medium">{props.rate_quality ?? '—'}</span>
+          </p>
         )}
         {layer.kind === 'target' && (
-          <p>Proporción meta: <span className="font-medium">{numValue != null ? `${numValue.toFixed(2)} ${layer.unit}` : '—'}</span></p>
+          <p>
+            Proporción meta:{' '}
+            <span className="font-medium">
+              {numValue != null ? `${numValue.toFixed(2)} ${layer.unit}` : '—'}
+            </span>
+          </p>
         )}
         {layer.kind === 'quartile' && (
           <p>
@@ -216,7 +246,10 @@ function HoverTooltip({ info, layer }: { info: HoverInfo; layer: LayerDef }) {
             <span className="font-medium">
               {numValue != null ? numValue.toFixed(3) : '—'} {layer.unit}
               {layer.altUnit && numValue != null && (
-                <> - {(numValue * layer.altUnit.factor).toFixed(2)} {layer.altUnit.label}</>
+                <>
+                  {' '}
+                  - {(numValue * layer.altUnit.factor).toFixed(2)} {layer.altUnit.label}
+                </>
               )}
             </span>
           </p>
@@ -235,22 +268,33 @@ interface LegendCardProps {
   areaByBucket: Record<string, number>
 }
 
-function LegendCard({ legendDefs, checkedBuckets, onToggle, activeLayer, sessionStats, areaByBucket }: LegendCardProps) {
+function LegendCard({
+  legendDefs,
+  checkedBuckets,
+  onToggle,
+  activeLayer,
+  sessionStats,
+  areaByBucket,
+}: LegendCardProps) {
   const isCategory = activeLayer.kind === 'category'
   const totalHa = sessionStats ? parseFloat(sessionStats.area_total_ha) : null
   return (
-    <div className="shrink-0 border-t bg-background px-4 py-2 space-y-1">
+    <div className="shrink-0 space-y-1 border-t bg-background px-4 py-2">
       <div className="flex items-center gap-2">
         <span className="text-xs font-semibold">{activeLayer.label}</span>
         {totalHa != null && Number.isFinite(totalHa) && (
-          <span className="text-xs font-medium text-foreground">· Área total: {formatHa(totalHa)} ha</span>
+          <span className="text-xs font-medium text-foreground">
+            · Área total: {formatHa(totalHa)} ha
+          </span>
         )}
-        <span className="text-xs text-muted-foreground italic">— clic en cada categoría para mostrar u ocultar</span>
+        <span className="text-xs italic text-muted-foreground">
+          — clic en cada categoría para mostrar u ocultar
+        </span>
         {isCategory && sessionStats && (
           <span className="ml-auto text-xs text-muted-foreground">
-            ✓ {parseFloat(sessionStats.pct_in_range ?? '0').toFixed(1)}% en rango ·{' '}
-            ↓ {parseFloat(sessionStats.pct_below ?? '0').toFixed(1)}% bajo ·{' '}
-            ↑ {parseFloat(sessionStats.pct_above ?? '0').toFixed(1)}% sobre
+            ✓ {parseFloat(sessionStats.pct_in_range ?? '0').toFixed(1)}% en rango · ↓{' '}
+            {parseFloat(sessionStats.pct_below ?? '0').toFixed(1)}% bajo · ↑{' '}
+            {parseFloat(sessionStats.pct_above ?? '0').toFixed(1)}% sobre
           </span>
         )}
       </div>
@@ -258,7 +302,10 @@ function LegendCard({ legendDefs, checkedBuckets, onToggle, activeLayer, session
         {legendDefs.map((def) => {
           const checked = checkedBuckets.has(def.key)
           return (
-            <label key={def.key} className="flex items-center gap-1.5 cursor-pointer select-none text-xs group">
+            <label
+              key={def.key}
+              className="group flex cursor-pointer select-none items-center gap-1.5 text-xs"
+            >
               <input
                 type="checkbox"
                 className="sr-only"
@@ -267,24 +314,30 @@ function LegendCard({ legendDefs, checkedBuckets, onToggle, activeLayer, session
               />
               {/* Checkbox visual con ✓ interno */}
               <span
-                className="inline-flex items-center justify-center w-4 h-4 rounded-sm border-2 shrink-0 transition-colors"
+                className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-2 transition-colors duration-150"
                 style={{
                   borderColor: def.color,
                   backgroundColor: checked ? def.color : 'transparent',
                 }}
               >
-                {checked && <span className="text-white leading-none" style={{ fontSize: 10 }}>✓</span>}
+                {checked && (
+                  <span className="leading-none text-white" style={{ fontSize: 10 }}>
+                    ✓
+                  </span>
+                )}
               </span>
               {/* Pastilla de color */}
               <span
-                className="inline-block w-3 h-3 rounded-sm shrink-0"
+                className="inline-block h-3 w-3 shrink-0 rounded-sm"
                 style={{ backgroundColor: checked ? def.color : '#d1d5db' }}
               />
-              <span className={checked ? '' : 'line-through text-muted-foreground'}>
+              <span className={checked ? '' : 'text-muted-foreground line-through'}>
                 {'range' in def ? `${def.label} ${def.range}` : def.label}
                 {/* Área por categoría: solo en la capa 1 (% aplicación) */}
                 {isCategory && (
-                  <span className="ml-1 text-muted-foreground">· {formatHa(areaByBucket[def.key])} ha</span>
+                  <span className="ml-1 text-muted-foreground">
+                    · {formatHa(areaByBucket[def.key])} ha
+                  </span>
                 )}
               </span>
             </label>
@@ -340,6 +393,8 @@ interface AspersionMapProps {
    * que interesa. Default `false` (el visor deja aire alrededor).
    */
   tightFrame?: boolean
+  /** Sincronizacion opcional de camara entre los paneles A/B del visor. */
+  mapSync?: MapCameraSyncBinding
 }
 
 // ─── Componente principal ────────────────────────────────────────────────────
@@ -357,12 +412,14 @@ export function AspersionMap({
   preserveDrawingBuffer = false,
   onIdle,
   tightFrame = false,
+  mapSync,
 }: AspersionMapProps) {
   const [activeLayerIdx, setActiveLayerIdx] = useState(0)
   // null = sin inicializar (tratar como "todos activos"); Set vacío = usuario desmarcó todo
   const [checkedBuckets, setCheckedBuckets] = useState<Set<string> | null>(null)
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null)
   const mapRef = useRef<MapRef>(null)
+  const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
   const {
     data: points,
@@ -382,10 +439,7 @@ export function AspersionMap({
   }, [pointsError])
 
   // FeatureCollection base de rectángulos (calculada una vez cuando llegan los puntos)
-  const baseFC = useMemo(
-    () => (points ? pointsToRectangleCollection(points) : null),
-    [points],
-  )
+  const baseFC = useMemo(() => (points ? pointsToRectangleCollection(points) : null), [points])
 
   // Datos clasificados + leyenda + expresión de color, recalculados al cambiar capa
   const layerData = useMemo(() => {
@@ -463,7 +517,10 @@ export function AspersionMap({
           size="sm"
           variant={i === activeLayerIdx ? 'default' : 'outline'}
           className="h-6 px-1.5 text-[10px] leading-none"
-          onClick={() => { setActiveLayerIdx(i); setHoverInfo(null) }}
+          onClick={() => {
+            setActiveLayerIdx(i)
+            setHoverInfo(null)
+          }}
         >
           {layer.label}
         </Button>
@@ -473,16 +530,16 @@ export function AspersionMap({
   )
 
   return (
-    <div className={`flex flex-col h-full min-h-0 overflow-hidden ${className ?? ''}`}>
+    <div className={`flex h-full min-h-0 flex-col overflow-hidden ${className ?? ''}`}>
       {/* ─ Toolbar en flujo (solo modo no flotante: modal) ──────────── */}
       {!floatingToolbar && (
-        <div className="flex flex-wrap items-center gap-1.5 border-b px-3 py-1.5 shrink-0">
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b px-3 py-1.5">
           {toolbarInner}
         </div>
       )}
 
       {/* ─ Mapa ───────────────────────────────────────────────────── */}
-      <div className="flex-1 relative min-h-0">
+      <div className="relative min-h-0 flex-1">
         {/* ─ Toolbar flotante sobre el mapa (transparente) ──────────── */}
         {floatingToolbar && (
           <div className="absolute left-2 top-2 z-20 flex flex-wrap items-center gap-1.5">
@@ -492,22 +549,28 @@ export function AspersionMap({
 
         {/* ─ Columna derecha (slot de sesiones + tarjeta de categorías) ─ */}
         {sessionsSlot && (
-          <div className="absolute right-2 top-2 bottom-2 z-10 flex w-56 flex-col gap-2">
+          <div className="absolute bottom-2 right-2 top-2 z-10 flex w-56 flex-col gap-2">
             {sessionsSlot}
-            {layerData && layerData.legendDefs.length > 0 && ASPERSION_LAYERS[activeLayerIdx]!.kind === 'category' && (
-              <CategoryStatsCard
-                legendDefs={layerData.legendDefs}
-                areaByBucket={layerData.areaByBucket}
-                checkedBuckets={checkedBuckets ?? new Set(layerData.legendDefs.map((d) => d.key))}
-                onToggle={toggleBucket}
-              />
-            )}
+            {layerData &&
+              layerData.legendDefs.length > 0 &&
+              ASPERSION_LAYERS[activeLayerIdx]!.kind === 'category' && (
+                <CategoryStatsCard
+                  legendDefs={layerData.legendDefs}
+                  areaByBucket={layerData.areaByBucket}
+                  checkedBuckets={checkedBuckets ?? new Set(layerData.legendDefs.map((d) => d.key))}
+                  onToggle={toggleBucket}
+                />
+              )}
           </div>
         )}
 
         {loadingPoints && (
           <MapOverlay>
-            <span className="animate-spin mr-2">⏳</span> Cargando puntos…
+            <LoadingState
+              compact
+              label="Cargando puntos de aspersión…"
+              className="rounded-xl border border-default bg-white/95 shadow-sm"
+            />
           </MapOverlay>
         )}
         {!loadingPoints && points?.length === 0 && (
@@ -517,111 +580,110 @@ export function AspersionMap({
         {/* El mapa se monta cuando hay datos (layerData), con el encuadre inicial ya en
             los bounds de la parcela/puntos. */}
         {layerData && (
-        <Map
-          ref={mapRef}
-          initialViewState={
-            mapBounds
-              ? {
-                  bounds: mapBounds,
-                  // En modo bloqueado (referencia) damos un poco más de margen para que el
-                  // polígono no toque los bordes; el visor mantiene su encuadre cercano.
-                  fitBoundsOptions: tightFrame
-                    ? { padding: 12, maxZoom: 20 }
-                    : { padding: locked ? 64 : 50, maxZoom: locked ? 17 : 18 },
-                }
-              : { longitude: -101, latitude: 20.5, zoom: 6 }
-          }
-          maxZoom={20}
-          mapStyle={ESRI_STYLE}
-          preserveDrawingBuffer={preserveDrawingBuffer}
-          onIdle={onIdle}
-          cooperativeGestures={!locked}
-          interactive={!locked}
-          dragRotate={!locked}
-          pitchWithRotate={!locked}
-          touchPitch={!locked}
-          interactiveLayerIds={locked ? [] : ['rect-fill']}
-          attributionControl={false}
-          style={{ width: '100%', height: '100%' }}
-          onMouseMove={(e) => {
-            if (e.features && e.features.length > 0) {
-              setHoverInfo({
-                lon: e.lngLat.lng,
-                lat: e.lngLat.lat,
-                props: e.features[0]!.properties as RectangleProps & { bucket?: string },
-              })
-            } else {
-              setHoverInfo(null)
+          <Map
+            ref={mapRef}
+            onMove={mapSync ? handleCameraMove : undefined}
+            initialViewState={
+              mapBounds
+                ? {
+                    bounds: mapBounds,
+                    // En modo bloqueado (referencia) damos un poco más de margen para que el
+                    // polígono no toque los bordes; el visor mantiene su encuadre cercano.
+                    fitBoundsOptions: tightFrame
+                      ? { padding: 12, maxZoom: 20 }
+                      : { padding: locked ? 64 : 50, maxZoom: locked ? 17 : 18 },
+                  }
+                : { longitude: -101, latitude: 20.5, zoom: 6 }
             }
-          }}
-          onMouseLeave={() => setHoverInfo(null)}
-        >
-          {/* Polígono de la parcela */}
-          {plotGeojson && (
-            <Source id="plot" type="geojson" data={plotGeojson}>
-              <Layer
-                id="plot-fill"
-                type="fill"
-                paint={{ 'fill-color': '#22c55e', 'fill-opacity': 0.12 }}
-              />
-              <Layer
-                id="plot-outline"
-                type="line"
-                paint={{ 'line-color': '#16a34a', 'line-width': 2 }}
-              />
-            </Source>
-          )}
-
-          {/* Rectángulos de aspersión — una sola Source + Layer con color data-driven */}
-          {layerData && (
-            <>
-              <Source id="rects" type="geojson" data={layerData.annotated}>
+            maxZoom={20}
+            mapStyle={ESRI_STYLE}
+            preserveDrawingBuffer={preserveDrawingBuffer}
+            onIdle={onIdle}
+            cooperativeGestures={!locked}
+            interactive={!locked}
+            dragRotate={!locked}
+            pitchWithRotate={!locked}
+            touchPitch={!locked}
+            interactiveLayerIds={locked ? [] : ['rect-fill']}
+            attributionControl={false}
+            style={{ width: '100%', height: '100%' }}
+            onMouseMove={(e) => {
+              if (e.features && e.features.length > 0) {
+                setHoverInfo({
+                  lon: e.lngLat.lng,
+                  lat: e.lngLat.lat,
+                  props: e.features[0]!.properties as RectangleProps & { bucket?: string },
+                })
+              } else {
+                setHoverInfo(null)
+              }
+            }}
+            onMouseLeave={() => setHoverInfo(null)}
+          >
+            {/* Polígono de la parcela */}
+            {plotGeojson && (
+              <Source id="plot" type="geojson" data={plotGeojson}>
                 <Layer
-                  id="rect-fill"
+                  id="plot-fill"
                   type="fill"
-                  paint={{
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    'fill-color': layerData.colorExpr as unknown as any,
-                    'fill-opacity': 0.78,
-                    'fill-outline-color': 'rgba(0,0,0,0.08)',
-                  }}
-                  // MapLibre rechaza el addLayer entero si se pasa filter={undefined}
-                  // (exige un array cuando la prop está presente). Solo se pasa si hay filtro.
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  {...(filterExpr ? { filter: filterExpr as any } : {})}
+                  paint={{ 'fill-color': '#22c55e', 'fill-opacity': 0.12 }}
+                />
+                <Layer
+                  id="plot-outline"
+                  type="line"
+                  paint={{ 'line-color': '#16a34a', 'line-width': 2 }}
                 />
               </Source>
+            )}
 
-              {/* Pin fijo en el primer punto — ayuda a localizar los rectángulos durante testing */}
-              {layerData.annotated.features[0] && (() => {
-                const p = layerData.annotated.features[0]!.properties
-                return (
-                  <Marker longitude={p.lon} latitude={p.lat} anchor="center">
-                    <div
-                      title="Punto 1"
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: '50%',
-                        background: '#facc15',
-                        border: '2px solid #000',
-                        boxShadow: '0 0 0 3px rgba(250,204,21,0.5)',
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  </Marker>
-                )
-              })()}
-            </>
-          )}
+            {/* Rectángulos de aspersión — una sola Source + Layer con color data-driven */}
+            {layerData && (
+              <>
+                <Source id="rects" type="geojson" data={layerData.annotated}>
+                  <Layer
+                    id="rect-fill"
+                    type="fill"
+                    paint={{
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      'fill-color': layerData.colorExpr as unknown as any,
+                      'fill-opacity': 0.78,
+                      'fill-outline-color': 'rgba(0,0,0,0.08)',
+                    }}
+                    // MapLibre rechaza el addLayer entero si se pasa filter={undefined}
+                    // (exige un array cuando la prop está presente). Solo se pasa si hay filtro.
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    {...(filterExpr ? { filter: filterExpr as any } : {})}
+                  />
+                </Source>
 
-          {hoverInfo && (
-            <HoverTooltip
-              info={hoverInfo}
-              layer={ASPERSION_LAYERS[activeLayerIdx]!}
-            />
-          )}
-        </Map>
+                {/* Pin fijo en el primer punto — ayuda a localizar los rectángulos durante testing */}
+                {layerData.annotated.features[0] &&
+                  (() => {
+                    const p = layerData.annotated.features[0]!.properties
+                    return (
+                      <Marker longitude={p.lon} latitude={p.lat} anchor="center">
+                        <div
+                          title="Punto 1"
+                          style={{
+                            width: 14,
+                            height: 14,
+                            borderRadius: '50%',
+                            background: '#facc15',
+                            border: '2px solid #000',
+                            boxShadow: '0 0 0 3px rgba(250,204,21,0.5)',
+                            pointerEvents: 'none',
+                          }}
+                        />
+                      </Marker>
+                    )
+                  })()}
+              </>
+            )}
+
+            {hoverInfo && (
+              <HoverTooltip info={hoverInfo} layer={ASPERSION_LAYERS[activeLayerIdx]!} />
+            )}
+          </Map>
         )}
       </div>
 

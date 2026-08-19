@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type AriaAttributes } from 'react'
+import { Check, ChevronsUpDown } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -21,6 +22,10 @@ interface BaseProps {
   items: AssignItem[]
   placeholder?: string
   disabled?: boolean
+  id?: string
+  'aria-labelledby'?: string
+  'aria-describedby'?: string
+  'aria-invalid'?: AriaAttributes['aria-invalid']
   /**
    * Si true, el dropdown se renderiza EN FLUJO (no absolute) — empuja el
    * contenido siguiente al abrirse y el contenedor crece naturalmente.
@@ -46,12 +51,22 @@ interface MultiProps {
 type Props = BaseProps & (SingleProps | MultiProps)
 
 export function AssignCombobox(props: Props) {
-  const { items, placeholder = 'Selecciona…', disabled, inline = false } = props
+  const {
+    items,
+    placeholder = 'Selecciona…',
+    disabled,
+    inline = false,
+    id,
+    'aria-labelledby': ariaLabelledBy,
+    'aria-describedby': ariaDescribedBy,
+    'aria-invalid': ariaInvalid,
+  } = props
 
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [localSelected, setLocalSelected] = useState<string[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
+  const listboxId = useId()
 
   // Cierra al hacer click fuera; resetea búsqueda y selección local.
   useEffect(() => {
@@ -112,26 +127,36 @@ export function AssignCombobox(props: Props) {
   return (
     <div ref={containerRef} className="relative">
       <button
+        id={id}
         type="button"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={listboxId}
+        aria-haspopup="listbox"
+        aria-labelledby={ariaLabelledBy}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
         disabled={disabled}
         onClick={() => { if (!disabled) setOpen((o) => !o) }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setOpen(false)
+          if (event.key === 'ArrowDown' && !disabled) setOpen(true)
+        }}
         className={cn(
-          'flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
-          'hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-ring',
+          'flex h-11 w-full items-center justify-between rounded-lg border border-default bg-surface px-3 py-2 text-sm shadow-xs transition-colors duration-150',
+          'hover:border-border-hover focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
           disabled && 'cursor-not-allowed opacity-50',
-          !hasSelection && 'text-muted-foreground',
+          !hasSelection && 'text-muted',
         )}
       >
         <span className="truncate">{getTriggerLabel()}</span>
-        <svg className="ml-2 h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4M8 15l4 4 4-4" />
-        </svg>
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
       </button>
 
       {open && (
         <div
           className={cn(
-            'mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md',
+            'cia-popover-motion mt-1 w-full rounded-lg border border-default bg-popover text-popover-foreground shadow-overlay',
             inline ? '' : 'absolute z-50',
           )}
         >
@@ -142,12 +167,15 @@ export function AssignCombobox(props: Props) {
               placeholder="Buscar…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-8 text-sm"
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setOpen(false)
+              }}
+              className="h-10 text-sm"
             />
           </div>
 
           {/* Lista */}
-          <div className="max-h-48 overflow-y-auto">
+          <div id={listboxId} role="listbox" aria-multiselectable={isMulti || undefined} className="max-h-48 overflow-y-auto p-1">
             {filtered.length === 0 ? (
               <p className="px-3 py-4 text-center text-sm text-muted-foreground">
                 Sin resultados para &ldquo;{search}&rdquo;
@@ -157,34 +185,37 @@ export function AssignCombobox(props: Props) {
                 const isChecked = isMulti && localSelected.includes(item.id)
                 const isSingleSelected = !isMulti && (props as SingleProps).value === item.id
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={item.id}
                     role="option"
                     aria-selected={isMulti ? isChecked : isSingleSelected}
-                    onMouseDown={(e) => {
-                      // preventDefault evita que el handler de outside-click se dispare primero
-                      e.preventDefault()
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => {
                       if (isMulti) toggleMultiItem(item.id)
                       else handleSingleSelect(item)
                     }}
                     className={cn(
-                      'flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm',
-                      'hover:bg-accent hover:text-accent-foreground',
-                      (isChecked || isSingleSelected) && 'bg-accent/60',
+                      'flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors duration-150',
+                      'hover:bg-primary-soft hover:text-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20',
+                      (isChecked || isSingleSelected) && 'bg-primary-soft text-primary-hover',
                     )}
                   >
                     {isMulti && (
-                      <input
-                        type="checkbox"
-                        readOnly
-                        tabIndex={-1}
-                        checked={isChecked}
-                        className="pointer-events-none h-3.5 w-3.5 shrink-0"
-                      />
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-default',
+                          isChecked && 'border-primary bg-primary text-primary-foreground',
+                        )}
+                      >
+                        {isChecked && <Check className="h-3 w-3" />}
+                      </span>
                     )}
                     {!isMulti && isSingleSelected && (
-                      <span className="text-primary">✓</span>
+                      <Check className="h-4 w-4 text-brand" aria-hidden="true" />
                     )}
+                    {!isMulti && !isSingleSelected && <span className="h-4 w-4" aria-hidden="true" />}
                     <span className="flex-1 truncate">
                       {item.label}
                       {item.sublabel && (
@@ -193,7 +224,7 @@ export function AssignCombobox(props: Props) {
                         </span>
                       )}
                     </span>
-                  </div>
+                  </button>
                 )
               })
             )}
@@ -207,7 +238,8 @@ export function AssignCombobox(props: Props) {
                 size="sm"
                 className="w-full"
                 disabled={localSelected.length === 0}
-                onMouseDown={(e) => { e.preventDefault(); handleConfirmMulti() }}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={handleConfirmMulti}
               >
                 {(props as MultiProps).assignLabel ?? 'Asignar'}
                 {localSelected.length > 0 && ` (${localSelected.length})`}

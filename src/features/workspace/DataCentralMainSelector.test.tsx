@@ -14,8 +14,28 @@ vi.mock('@tanstack/react-router', async (importActual) => {
 
 import { DataCentralMainSelector } from './DataCentralMainSelector'
 
-const MAINS = [{ id: 'main-1', name: 'Org Alfa', slug: 'org-alfa', status: 'active', is_owner: true, created_at: '2026-01-01' }]
-const CHILDREN = [{ id: 'dc-1', name: 'CIAgro Alfa 1', slug: 'ciagro-alfa-1', data_central_main: { id: 'main-1', name: 'Org Alfa' }, is_primary: true, is_owner: true, description: '', created_at: '2026-01-01' }]
+const MAINS = [
+  {
+    id: 'main-1',
+    name: 'Org Alfa',
+    slug: 'org-alfa',
+    status: 'active',
+    is_owner: true,
+    created_at: '2026-01-01',
+  },
+]
+const CHILDREN = [
+  {
+    id: 'dc-1',
+    name: 'CIAgro Alfa 1',
+    slug: 'ciagro-alfa-1',
+    data_central_main: { id: 'main-1', name: 'Org Alfa' },
+    is_primary: true,
+    is_owner: true,
+    description: '',
+    created_at: '2026-01-01',
+  },
+]
 
 const BASE_URL = 'http://localhost:8500/api/v1'
 
@@ -23,12 +43,8 @@ describe('DataCentralMainSelector', () => {
   beforeEach(() => {
     tokens.setAccess('test-token')
     server.use(
-      http.get(`${BASE_URL}/organizations/data-centrals-main/`, () =>
-        HttpResponse.json(MAINS),
-      ),
-      http.get(`${BASE_URL}/organizations/datacentrals/`, () =>
-        HttpResponse.json(CHILDREN),
-      ),
+      http.get(`${BASE_URL}/organizations/data-centrals-main/`, () => HttpResponse.json(MAINS)),
+      http.get(`${BASE_URL}/organizations/datacentrals/`, () => HttpResponse.json(CHILDREN))
     )
   })
 
@@ -43,7 +59,7 @@ describe('DataCentralMainSelector', () => {
     await waitFor(() => {
       expect(screen.getByText('Org Alfa')).toBeInTheDocument()
     })
-    expect(screen.getByText(/selecciona una organizacion/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Organizaciones', level: 1 })).toBeInTheDocument()
   })
 
   it('shows children after selecting a main', async () => {

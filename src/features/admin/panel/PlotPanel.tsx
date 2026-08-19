@@ -7,6 +7,7 @@ import { Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -15,6 +16,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
+import { FormSection } from '@/components/ui/form-section'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -22,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AnimatedTabs as Tabs } from '@/components/ui/animated-tabs'
+import { Tabs } from '@/components/ui/tabs'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
@@ -41,6 +50,17 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 const KNOWN_FIELDS = ['description', 'tech_spraying', 'comments', 'status'] as const
+
+function formatArea(value: string | number | null | undefined) {
+  if (value == null || value === '') return '—'
+  const area = Number(value)
+  return Number.isFinite(area)
+    ? `${area.toLocaleString('es-MX', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} ha`
+    : '—'
+}
 
 interface Props {
   plot: PlotFlat
@@ -117,14 +137,28 @@ export function PlotPanel({ plot, onClose }: Props) {
 
   return (
     <Dialog open onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[48rem]">
         <DialogHeader>
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>Rancho</BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>Parcelas</BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{plot.code}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
           <DialogTitle className="flex items-center gap-2">
             {plot.code}
             <Badge variant="outline" className="text-xs font-normal">
               {current.status ?? 'active'}
             </Badge>
           </DialogTitle>
+          <DialogDescription>
+            Detalle, ubicación y vértices geográficos de la parcela.
+          </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="detail">
@@ -138,7 +172,10 @@ export function PlotPanel({ plot, onClose }: Props) {
           <TabsContent value="detail" className="space-y-4 pt-3">
             {current.total_area && (
               <div className="rounded-md bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-                Área: <span className="font-medium text-foreground">{current.total_area} ha</span>
+                Área:{' '}
+                <span className="font-medium text-foreground">
+                  {formatArea(current.total_area)}
+                </span>
                 {current.centroid && (
                   <span className="ml-3">
                     Centroide:{' '}
@@ -170,44 +207,50 @@ export function PlotPanel({ plot, onClose }: Props) {
                 )}
               </div>
             ) : (
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <Field label="Descripción" error={errors.description?.message}>
-                  <Input {...register('description')} />
-                </Field>
-                <Field label="Aspersión técnica" error={errors.tech_spraying?.message}>
-                  <Controller
-                    name="tech_spraying"
-                    control={control}
-                    render={({ field }) => (
-                      <Select value={field.value ?? 'no'} onValueChange={field.onChange}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="yes">Sí</SelectItem>
-                          <SelectItem value="no">No</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                </Field>
-                <Field label="Comentarios" error={errors.comments?.message}>
-                  <Input {...register('comments')} />
-                </Field>
-                <Field label="Estatus" error={errors.status?.message}>
-                  <Controller
-                    name="status"
-                    control={control}
-                    render={({ field }) => (
-                      <Select value={field.value ?? 'active'} onValueChange={field.onChange}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="active">Activo</SelectItem>
-                          <SelectItem value="inactive">Inactivo</SelectItem>
-                          <SelectItem value="deprecated">Depreciado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                </Field>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <FormSection title="Información y operación">
+                  <Field label="Descripción" error={errors.description?.message}>
+                    <Input {...register('description')} />
+                  </Field>
+                  <Field label="Aspersión técnica" error={errors.tech_spraying?.message}>
+                    <Controller
+                      name="tech_spraying"
+                      control={control}
+                      render={({ field }) => (
+                        <Select value={field.value ?? 'no'} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="yes">Sí</SelectItem>
+                            <SelectItem value="no">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </Field>
+                  <Field label="Comentarios" error={errors.comments?.message}>
+                    <Input {...register('comments')} />
+                  </Field>
+                  <Field label="Estatus" error={errors.status?.message}>
+                    <Controller
+                      name="status"
+                      control={control}
+                      render={({ field }) => (
+                        <Select value={field.value ?? 'active'} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active">Activo</SelectItem>
+                            <SelectItem value="inactive">Inactivo</SelectItem>
+                            <SelectItem value="deprecated">Depreciado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </Field>
+                </FormSection>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" size="sm" onClick={() => setMode('view')}>
                     Cancelar
@@ -221,13 +264,13 @@ export function PlotPanel({ plot, onClose }: Props) {
           </TabsContent>
 
           {/* ── Tab Mapa ── */}
-          <TabsContent value="map" className="pt-3 space-y-3">
+          <TabsContent value="map" className="space-y-3 pt-3">
             {current.total_area || current.centroid ? (
               <div className="grid grid-cols-2 gap-3 text-sm">
                 {current.total_area && (
-                  <div className="rounded-md border px-3 py-2 space-y-0.5">
+                  <div className="space-y-0.5 rounded-md border px-3 py-2">
                     <p className="text-xs text-muted-foreground">Área</p>
-                    <p className="font-semibold">{current.total_area} ha</p>
+                    <p className="font-semibold">{formatArea(current.total_area)}</p>
                     <p className="text-xs text-muted-foreground">
                       {(parseFloat(current.total_area) * 10_000).toLocaleString('es-MX', {
                         maximumFractionDigits: 0,
@@ -237,7 +280,7 @@ export function PlotPanel({ plot, onClose }: Props) {
                   </div>
                 )}
                 {current.centroid?.coordinates && (
-                  <div className="rounded-md border px-3 py-2 space-y-0.5">
+                  <div className="space-y-0.5 rounded-md border px-3 py-2">
                     <p className="text-xs text-muted-foreground">Centroide</p>
                     <p className="font-mono text-xs">
                       {Number(current.centroid.coordinates[1]).toFixed(6)}
@@ -265,14 +308,14 @@ export function PlotPanel({ plot, onClose }: Props) {
         </Tabs>
 
         {canDelete && (
-          <DialogFooter className="border-t pt-3 mt-2">
+          <DialogFooter className="mt-2 border-t pt-3">
             <Button
               variant="destructive"
               size="sm"
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
             >
-              <Trash2 className="h-4 w-4 mr-1" />
+              <Trash2 className="mr-1 h-4 w-4" />
               {deleteMutation.isPending ? 'Eliminando…' : 'Eliminar parcela'}
             </Button>
           </DialogFooter>

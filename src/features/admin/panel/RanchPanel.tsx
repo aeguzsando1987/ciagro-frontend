@@ -7,6 +7,7 @@ import { Trash2, Plus } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -15,6 +16,24 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
+import { EmptyState } from '@/components/ui/empty-state'
+import { FormSection } from '@/components/ui/form-section'
+import { SectionHeader } from '@/components/ui/section-header'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -22,7 +41,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AnimatedTabs as Tabs } from '@/components/ui/animated-tabs'
+import { Tabs } from '@/components/ui/tabs'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
@@ -32,7 +51,11 @@ import { PlotFormDialog } from '../components/PlotFormDialog'
 import { PlotPanel } from './PlotPanel'
 import { useUpdateRanch, useDeleteRanch } from '../hooks/useRanches'
 import { usePlots } from '../hooks/usePlots'
-import { useRanchPartners, useCreateRanchPartner, useDeleteRanchPartner } from '../hooks/useRanchPartners'
+import {
+  useRanchPartners,
+  useCreateRanchPartner,
+  useDeleteRanchPartner,
+} from '../hooks/useRanchPartners'
 import { useProducers } from '../hooks/useProducers'
 import { useAgroUnits } from '../hooks/useAgroUnits'
 import type { RanchFlat, PlotFlat, RelationType } from '../types'
@@ -57,7 +80,27 @@ const schema = z.object({
 })
 
 type FormValues = z.infer<typeof schema>
-const KNOWN_FIELDS = ['name', 'producer', 'city', 'address_line_1', 'lat', 'lon', 'area_uom', 'status'] as const
+const KNOWN_FIELDS = [
+  'name',
+  'producer',
+  'city',
+  'address_line_1',
+  'lat',
+  'lon',
+  'area_uom',
+  'status',
+] as const
+
+function formatPlotArea(value: number | string | null | undefined) {
+  if (value == null || value === '') return '—'
+  const area = Number(value)
+  return Number.isFinite(area)
+    ? `${area.toLocaleString('es-MX', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} ha`
+    : '—'
+}
 
 interface Props {
   ranch: RanchFlat
@@ -177,6 +220,9 @@ export function RanchPanel({ ranch, onClose }: Props) {
     label: p.commercial_name,
     sublabel: p.code,
   }))
+  const producerName =
+    producers.find((producer) => producer.id === ranch.producer)?.commercial_name ??
+    String(ranch.producer ?? 'Productor')
 
   const REL_LABELS: Record<RelationType, string> = {
     guild: 'Asociación Agrícola',
@@ -187,14 +233,28 @@ export function RanchPanel({ ranch, onClose }: Props) {
   return (
     <>
       <Dialog open onOpenChange={handleClose}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[48rem]">
           <DialogHeader>
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>{producerName}</BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>Ranchos</BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{ranch.name}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
             <DialogTitle className="flex items-center gap-2">
               {ranch.code} — {ranch.name}
               <Badge variant="outline" className="text-xs font-normal">
                 {ranch.status ?? 'active'}
               </Badge>
             </DialogTitle>
+            <DialogDescription>
+              Información del rancho, parcelas y aliados relacionados.
+            </DialogDescription>
           </DialogHeader>
 
           <Tabs defaultValue="detail">
@@ -214,21 +274,17 @@ export function RanchPanel({ ranch, onClose }: Props) {
                 <div className="space-y-2 text-sm">
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                     <span className="text-muted-foreground">Productor</span>
-                    <span>
-                      {producers.find((p) => p.id === ranch.producer)?.commercial_name ?? ranch.producer ?? '—'}
-                    </span>
+                    <span>{producerName}</span>
                     <span className="text-muted-foreground">Ciudad</span>
                     <span>{ranch.city || '—'}</span>
                     <span className="text-muted-foreground">Dirección</span>
                     <span>{ranch.address_line_1 || '—'}</span>
                     <span className="text-muted-foreground">Coordenadas</span>
-                    <span>
-                      {ranch.lat && ranch.lon ? `${ranch.lat}, ${ranch.lon}` : '—'}
-                    </span>
+                    <span>{ranch.lat && ranch.lon ? `${ranch.lat}, ${ranch.lon}` : '—'}</span>
                     <span className="text-muted-foreground">Unidad de área</span>
                     <span>{ranch.area_uom ?? 'ha'}</span>
                     <span className="text-muted-foreground">Área total</span>
-                    <span>{ranch.total_area ?? '—'}</span>
+                    <span>{formatPlotArea(ranch.total_area)}</span>
                   </div>
                   {canEdit && (
                     <div className="flex justify-end pt-2">
@@ -239,80 +295,93 @@ export function RanchPanel({ ranch, onClose }: Props) {
                   )}
                 </div>
               ) : (
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                  <Field label="Nombre" error={errors.name?.message}>
-                    <Input {...register('name')} />
-                  </Field>
-
-                  <Field label="Productor" error={errors.producer?.message}>
-                    <Controller
-                      name="producer"
-                      control={control}
-                      render={({ field }) => (
-                        <AssignCombobox
-                          items={producerItems}
-                          placeholder="Seleccionar productor…"
-                          value={field.value ?? ''}
-                          onChange={field.onChange}
-                        />
-                      )}
-                    />
-                  </Field>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Ciudad" error={errors.city?.message}>
-                      <Input {...register('city')} />
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                  <FormSection title="Información general">
+                    <Field label="Nombre" error={errors.name?.message}>
+                      <Input {...register('name')} />
                     </Field>
-                    <Field label="Unidad de área" error={errors.area_uom?.message}>
+
+                    <Field label="Productor" error={errors.producer?.message}>
                       <Controller
-                        name="area_uom"
+                        name="producer"
                         control={control}
                         render={({ field }) => (
-                          <Select value={field.value ?? 'ha'} onValueChange={field.onChange}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
+                          <AssignCombobox
+                            items={producerItems}
+                            placeholder="Seleccionar productor…"
+                            value={field.value ?? ''}
+                            onChange={field.onChange}
+                          />
+                        )}
+                      />
+                    </Field>
+                  </FormSection>
+
+                  <FormSection title="Ubicación y medición">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Ciudad" error={errors.city?.message}>
+                        <Input {...register('city')} />
+                      </Field>
+                      <Field label="Unidad de área" error={errors.area_uom?.message}>
+                        <Controller
+                          name="area_uom"
+                          control={control}
+                          render={({ field }) => (
+                            <Select value={field.value ?? 'ha'} onValueChange={field.onChange}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ha">Hectáreas</SelectItem>
+                                <SelectItem value="ac">Acres</SelectItem>
+                                <SelectItem value="m2">Metros²</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </Field>
+                    </div>
+
+                    <Field label="Dirección" error={errors.address_line_1?.message}>
+                      <Input {...register('address_line_1')} />
+                    </Field>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Latitud" error={errors.lat?.message}>
+                        <Input {...register('lat')} placeholder="18.9500" />
+                      </Field>
+                      <Field label="Longitud" error={errors.lon?.message}>
+                        <Input {...register('lon')} placeholder="-99.2000" />
+                      </Field>
+                    </div>
+
+                    <Field label="Estatus" error={errors.status?.message}>
+                      <Controller
+                        name="status"
+                        control={control}
+                        render={({ field }) => (
+                          <Select value={field.value ?? 'active'} onValueChange={field.onChange}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="ha">Hectáreas</SelectItem>
-                              <SelectItem value="ac">Acres</SelectItem>
-                              <SelectItem value="m2">Metros²</SelectItem>
+                              <SelectItem value="active">Activo</SelectItem>
+                              <SelectItem value="inactive">Inactivo</SelectItem>
+                              <SelectItem value="closed">Cerrado</SelectItem>
                             </SelectContent>
                           </Select>
                         )}
                       />
                     </Field>
-                  </div>
-
-                  <Field label="Dirección" error={errors.address_line_1?.message}>
-                    <Input {...register('address_line_1')} />
-                  </Field>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Latitud" error={errors.lat?.message}>
-                      <Input {...register('lat')} placeholder="18.9500" />
-                    </Field>
-                    <Field label="Longitud" error={errors.lon?.message}>
-                      <Input {...register('lon')} placeholder="-99.2000" />
-                    </Field>
-                  </div>
-
-                  <Field label="Estatus" error={errors.status?.message}>
-                    <Controller
-                      name="status"
-                      control={control}
-                      render={({ field }) => (
-                        <Select value={field.value ?? 'active'} onValueChange={field.onChange}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">Activo</SelectItem>
-                            <SelectItem value="inactive">Inactivo</SelectItem>
-                            <SelectItem value="closed">Cerrado</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </Field>
+                  </FormSection>
 
                   <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => setMode('view')}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMode('view')}
+                    >
                       Cancelar
                     </Button>
                     <Button type="submit" size="sm" disabled={isSubmitting}>
@@ -324,46 +393,53 @@ export function RanchPanel({ ranch, onClose }: Props) {
             </TabsContent>
 
             {/* ── Tab Parcelas ── */}
-            <TabsContent value="plots" className="space-y-3 pt-3">
-              {canEdit && (
-                <div className="flex justify-end">
-                  <Button size="sm" onClick={() => setCreatePlotOpen(true)}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    Nueva parcela
-                  </Button>
-                </div>
-              )}
+            <TabsContent value="plots" className="space-y-4 pt-3">
+              <SectionHeader
+                title="Parcelas del rancho"
+                description="Superficies georreferenciadas que pertenecen a este rancho."
+                as="h3"
+                actions={
+                  canEdit ? (
+                    <Button size="sm" onClick={() => setCreatePlotOpen(true)}>
+                      <Plus className="mr-1 h-4 w-4" />
+                      Nueva parcela
+                    </Button>
+                  ) : undefined
+                }
+              />
               {plots.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sin parcelas registradas.</p>
+                <EmptyState
+                  compact
+                  title="Sin parcelas registradas"
+                  description="Crea la primera parcela para completar la jerarquía del rancho."
+                />
               ) : (
-                <div className="rounded-md border overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="px-3 py-2 text-left font-medium">Código</th>
-                        <th className="px-3 py-2 text-left font-medium">Área (ha)</th>
-                        <th className="px-3 py-2 text-left font-medium">Estatus</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {plots.map((p) => (
-                        <tr
-                          key={p.id}
-                          className="cursor-pointer hover:bg-muted/30 transition-colors"
-                          onClick={() => setSelectedPlot(p)}
-                        >
-                          <td className="px-3 py-2 font-medium">{p.code}</td>
-                          <td className="px-3 py-2 text-muted-foreground">
-                            {p.total_area ?? '—'}
-                          </td>
-                          <td className="px-3 py-2">
-                            <Badge variant="outline" className="text-xs">{p.status}</Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Área</TableHead>
+                      <TableHead>Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {plots.map((plotItem) => (
+                      <TableRow
+                        key={plotItem.id}
+                        className="cursor-pointer"
+                        onClick={() => setSelectedPlot(plotItem)}
+                      >
+                        <TableCell className="font-medium">{plotItem.code}</TableCell>
+                        <TableCell className="text-secondary">
+                          {formatPlotArea(plotItem.total_area)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{plotItem.status}</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </TabsContent>
 
@@ -380,7 +456,9 @@ export function RanchPanel({ ranch, onClose }: Props) {
                         setPartnerUnitId('') // cambia la lista filtrada → limpiar selección
                       }}
                     >
-                      <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="guild">Asociación Agrícola</SelectItem>
                         <SelectItem value="grain_collector">Acopiadora</SelectItem>
@@ -396,15 +474,19 @@ export function RanchPanel({ ranch, onClose }: Props) {
                       disabled={partnerUnits.length === 0}
                     >
                       <SelectTrigger className="h-8 text-sm">
-                        <SelectValue placeholder={
-                          partnerUnits.length === 0
-                            ? `Sin unidades de tipo «${REL_TO_UNIT_TYPE[partnerRelType]}»`
-                            : 'Selecciona una unidad'
-                        } />
+                        <SelectValue
+                          placeholder={
+                            partnerUnits.length === 0
+                              ? `Sin unidades de tipo «${REL_TO_UNIT_TYPE[partnerRelType]}»`
+                              : 'Selecciona una unidad'
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {partnerUnits.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>{u.commercial_name}</SelectItem>
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.commercial_name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -423,7 +505,10 @@ export function RanchPanel({ ranch, onClose }: Props) {
               ) : (
                 <div className="space-y-1">
                   {partners.map((pa) => (
-                    <div key={pa.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                    <div
+                      key={pa.id}
+                      className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+                    >
                       <div>
                         <span className="font-medium">{pa.partner_name ?? pa.partner}</span>
                         <Badge variant="secondary" className="ml-2 text-xs">
@@ -432,12 +517,14 @@ export function RanchPanel({ ranch, onClose }: Props) {
                       </div>
                       {canDelete && (
                         <Button
+                          type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7"
+                          className="text-danger hover:bg-danger-soft hover:text-danger"
+                          aria-label={`Eliminar aliado ${pa.partner_name ?? pa.partner}`}
                           onClick={() => handleRemovePartner(pa.id)}
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
@@ -448,14 +535,14 @@ export function RanchPanel({ ranch, onClose }: Props) {
           </Tabs>
 
           {canDelete && (
-            <DialogFooter className="border-t pt-3 mt-2">
+            <DialogFooter className="mt-2 border-t pt-3">
               <Button
                 variant="destructive"
                 size="sm"
                 onClick={handleDelete}
                 disabled={deleteMutation.isPending}
               >
-                <Trash2 className="h-4 w-4 mr-1" />
+                <Trash2 className="mr-1 h-4 w-4" />
                 {deleteMutation.isPending ? 'Eliminando…' : 'Eliminar rancho'}
               </Button>
             </DialogFooter>
@@ -470,12 +557,7 @@ export function RanchPanel({ ranch, onClose }: Props) {
           fixedRanchId={ranch.id}
         />
       )}
-      {selectedPlot && (
-        <PlotPanel
-          plot={selectedPlot}
-          onClose={() => setSelectedPlot(null)}
-        />
-      )}
+      {selectedPlot && <PlotPanel plot={selectedPlot} onClose={() => setSelectedPlot(null)} />}
     </>
   )
 }

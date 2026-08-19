@@ -6,6 +6,7 @@ import { doRefresh } from '@/lib/api/client'
 import { queryClient } from '@/lib/queryClient'
 import { fetchCurrentUser, useCurrentUser } from '@/features/auth/useCurrentUser'
 import { useAuthStore } from '@/features/auth/useAuthStore'
+import { LoadingState } from '@/components/ui/loading-state'
 
 /**
  * Layout route autenticado (pathless).
@@ -62,8 +63,8 @@ function AuthenticatedLayout() {
 
   if (isLoading && !user) {
     return (
-      <div className="flex min-h-dvh items-center justify-center">
-        <p className="text-muted-foreground">Cargando...</p>
+      <div className="flex min-h-dvh items-center justify-center bg-background">
+        <LoadingState label="Preparando CIAgro…" />
       </div>
     )
   }

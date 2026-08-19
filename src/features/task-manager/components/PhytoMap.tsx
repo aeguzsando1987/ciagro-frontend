@@ -14,7 +14,12 @@ import Map, { Layer, Source, Popup } from 'react-map-gl/maplibre'
 import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre'
 import { Info } from 'lucide-react'
 import { ESRI_STYLE } from '@/features/geodata-visor/lib/aspersionMap.helpers'
+import {
+  useMapCameraSync,
+  type MapCameraSyncBinding,
+} from '@/features/geodata-visor/lib/mapCameraSync'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { LoadingState } from '@/components/ui/loading-state'
 import { usePlotGeometry } from '../hooks/usePlotGeometry'
 import { usePhytoCheckPoints, type PhytoCheckpointProps } from '../hooks/usePhytoCheckPoints'
 
@@ -32,6 +37,7 @@ interface PhytoMapProps {
   floatingToolbar?: boolean
   /** Columna derecha sobre el mapa (p. ej. panel de sesiones + tarjeta de stats). */
   sessionsSlot?: React.ReactNode
+  mapSync?: MapCameraSyncBinding
 }
 
 function bboxFromCoords(coords: number[][]): [number, number, number, number] {
@@ -76,9 +82,12 @@ const PRESENCE_HELP: { label: string; color: string; text: string }[] = [
 
 // Capa de calor: solo advertencia/crítica aportan (crítica pesa más).
 const HEAT_WEIGHT = [
-  'match', ['get', 'presence_status'],
-  'critical', 1,
-  'warning', 0.7,
+  'match',
+  ['get', 'presence_status'],
+  'critical',
+  1,
+  'warning',
+  0.7,
   0,
 ] as unknown[]
 
@@ -86,21 +95,31 @@ const HEAT_WEIGHT = [
 // rampa y solo varía la opacidad, de modo que el borde de baja densidad se desvanece
 // en rojo translúcido (no en un rosa/blanco pálido).
 const HEAT_COLOR = [
-  'interpolate', ['linear'], ['heatmap-density'],
-  0, 'rgba(220,38,38,0)',
-  0.2, 'rgba(220,38,38,0.35)',
-  0.5, 'rgba(220,38,38,0.7)',
-  0.8, 'rgba(200,20,20,0.9)',
-  1, 'rgba(153,27,27,1)',
+  'interpolate',
+  ['linear'],
+  ['heatmap-density'],
+  0,
+  'rgba(220,38,38,0)',
+  0.2,
+  'rgba(220,38,38,0.35)',
+  0.5,
+  'rgba(220,38,38,0.7)',
+  0.8,
+  'rgba(200,20,20,0.9)',
+  1,
+  'rgba(153,27,27,1)',
 ] as unknown[]
-
 
 // Color del marcador según presencia.
 const CIRCLE_COLOR = [
-  'match', ['get', 'presence_status'],
-  'critical', PRESENCE_COLOR.critical,
-  'warning', PRESENCE_COLOR.warning,
-  'low', PRESENCE_COLOR.low,
+  'match',
+  ['get', 'presence_status'],
+  'critical',
+  PRESENCE_COLOR.critical,
+  'warning',
+  PRESENCE_COLOR.warning,
+  'low',
+  PRESENCE_COLOR.low,
   '#94a3b8',
 ] as unknown[]
 
@@ -114,13 +133,21 @@ const PRESENCE_RANK: Record<string, number> = { low: 0, warning: 1, critical: 2 
 // 'disc' (Opción B): polígonos circulares REALES (en metros) alrededor de cada punto;
 //   escalan idénticamente al polígono de la parcela. Sin efecto difuminado.
 const HEAT_RADIUS = [
-  'interpolate', ['exponential', 2], ['zoom'],
-  10, 3,
-  14, 12,
-  16, 24,
-  18, 48,
-  20, 120,
-  22, 320,
+  'interpolate',
+  ['exponential', 2],
+  ['zoom'],
+  10,
+  3,
+  14,
+  12,
+  16,
+  24,
+  18,
+  48,
+  20,
+  120,
+  22,
+  320,
 ] as unknown[]
 
 // Radio geográfico FIJO (metros) de la mancha/disco de cada punto con peligro. Fijo (no
@@ -147,8 +174,10 @@ function polygonAreaM2(ring: number[][]): number {
   const mLng = 111320 * Math.cos((lat0 * Math.PI) / 180)
   let area = 0
   for (let i = 0; i < ring.length - 1; i++) {
-    const x1 = (ring[i]![0] ?? 0) * mLng, y1 = (ring[i]![1] ?? 0) * mLat
-    const x2 = (ring[i + 1]![0] ?? 0) * mLng, y2 = (ring[i + 1]![1] ?? 0) * mLat
+    const x1 = (ring[i]![0] ?? 0) * mLng,
+      y1 = (ring[i]![1] ?? 0) * mLat
+    const x2 = (ring[i + 1]![0] ?? 0) * mLng,
+      y2 = (ring[i + 1]![1] ?? 0) * mLat
     area += x1 * y2 - x2 * y1
   }
   return Math.abs(area) / 2
@@ -169,10 +198,20 @@ function circlePolygon(lng: number, lat: number, radiusM: number, steps = 24): n
 
 type HoverInfo = { lon: number; lat: number; items: PhytoCheckpointProps[] }
 
-export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, toolbarEnd, floatingToolbar = false, sessionsSlot }: PhytoMapProps) {
+export function PhytoMap({
+  sessionId,
+  plotId,
+  enabled = true,
+  toolbarStart,
+  toolbarEnd,
+  floatingToolbar = false,
+  sessionsSlot,
+  mapSync,
+}: PhytoMapProps) {
   const { data: fc, isLoading } = usePhytoCheckPoints(sessionId, enabled)
   const { data: plot } = usePlotGeometry(plotId)
   const mapRef = useRef<MapRef>(null)
+  const handleCameraMove = useMapCameraSync(mapRef, mapSync)
   const [popup, setPopup] = useState<HoverInfo | null>(null)
   const [photoModal, setPhotoModal] = useState<string | null>(null)
   const [noteModal, setNoteModal] = useState<string | null>(null)
@@ -219,17 +258,23 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
 
   // Opción B: un polígono circular geográfico por punto con peligro (escala con el zoom
   // como la parcela). Deriva de pointsFC; solo se usa en renderMode 'disc'.
-  const discsFC = useMemo(() => ({
-    type: 'FeatureCollection' as const,
-    features: pointsFC.features.map((f) => {
-      const [lng, lat] = f.geometry.coordinates as [number, number]
-      return {
-        type: 'Feature' as const,
-        geometry: { type: 'Polygon' as const, coordinates: [circlePolygon(lng, lat, PROBLEM_RADIUS_M)] },
-        properties: { presence_status: f.properties.presence_status },
-      }
+  const discsFC = useMemo(
+    () => ({
+      type: 'FeatureCollection' as const,
+      features: pointsFC.features.map((f) => {
+        const [lng, lat] = f.geometry.coordinates as [number, number]
+        return {
+          type: 'Feature' as const,
+          geometry: {
+            type: 'Polygon' as const,
+            coordinates: [circlePolygon(lng, lat, PROBLEM_RADIUS_M)],
+          },
+          properties: { presence_status: f.properties.presence_status },
+        }
+      }),
     }),
-  }), [pointsFC])
+    [pointsFC]
+  )
 
   // Superficie (m²) traducida desde el nº de puntos con peligro (mancha fija de 7.5 m):
   // problemas = nº puntos × área de mancha (aprox., sin descontar solapes), acotado al
@@ -295,14 +340,18 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
 
         {/* Columna derecha (panel de sesiones + tarjeta de stats) */}
         {sessionsSlot && (
-          <div className="absolute right-2 top-2 bottom-2 z-10 flex w-56 flex-col gap-2">
+          <div className="absolute bottom-2 right-2 top-2 z-10 flex w-56 flex-col gap-2">
             {sessionsSlot}
           </div>
         )}
 
         {isLoading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 text-sm text-muted-foreground">
-            <span className="mr-2 animate-spin">⏳</span> Cargando puntos…
+            <LoadingState
+              compact
+              label="Cargando puntos fitosanitarios…"
+              className="rounded-xl border border-default bg-white/95 shadow-sm"
+            />
           </div>
         )}
         {isEmpty && (
@@ -312,9 +361,11 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
         )}
 
         {/* Leyenda — abajo-izquierda cuando hay columna de sesiones para no solaparla. */}
-        <div className={`absolute z-10 rounded border bg-background/90 px-3 py-2 text-xs shadow-sm ${
-          sessionsSlot ? 'left-2 bottom-2' : 'right-2 top-2'
-        }`}>
+        <div
+          className={`absolute z-10 rounded border bg-background/90 px-3 py-2 text-xs shadow-sm ${
+            sessionsSlot ? 'bottom-2 left-2' : 'right-2 top-2'
+          }`}
+        >
           <div className="mb-1 flex items-center gap-1">
             <p className="font-medium">Presencia</p>
             <button
@@ -322,8 +373,8 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
               aria-label="Cómo interpretar cada color"
               aria-expanded={showInfo}
               onClick={() => setShowInfo((s) => !s)}
-              className={`flex h-4 w-4 items-center justify-center rounded-full transition hover:bg-accent ${
-                showInfo ? 'text-primary' : 'text-muted-foreground'
+              className={`flex h-10 w-10 items-center justify-center rounded-md transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+                showInfo ? 'text-brand' : 'text-muted-foreground'
               }`}
             >
               <Info className="h-3.5 w-3.5" />
@@ -333,7 +384,10 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
             <div className="mb-1.5 w-52 space-y-1.5 rounded border bg-background/95 p-2">
               {PRESENCE_HELP.map((h) => (
                 <div key={h.label} className="flex gap-1.5">
-                  <span className="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: h.color }} />
+                  <span
+                    className="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: h.color }}
+                  />
                   <p className="text-[11px] leading-snug">
                     <span className="font-medium">{h.label}:</span>{' '}
                     <span className="text-muted-foreground">{h.text}</span>
@@ -344,14 +398,20 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
           )}
           {(['critical', 'warning'] as const).map((k) => (
             <div key={k} className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRESENCE_COLOR[k] }} />
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: PRESENCE_COLOR[k] }}
+              />
               <span className="text-muted-foreground">{PRESENCE_LABEL[k]}</span>
             </div>
           ))}
           {/* Estado base (verde): puntos de baja presencia + objetivos sin muestrear.
               No se marcan individualmente; corresponden al relleno verde de la parcela. */}
           <div className="flex items-center gap-1.5">
-            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: HEALTHY_GREEN }} />
+            <span
+              className="inline-block h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: HEALTHY_GREEN }}
+            />
             <span className="text-muted-foreground">Baja / Sin monitorear</span>
           </div>
 
@@ -364,19 +424,25 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
               </p>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: PRESENCE_COLOR.critical }} />
+                  <span
+                    className="inline-block h-2 w-2 rounded-full"
+                    style={{ backgroundColor: PRESENCE_COLOR.critical }}
+                  />
                   Con problemas
                 </span>
-                <span className="tabular-nums font-medium">
+                <span className="font-medium tabular-nums">
                   {fmtHa(surface.problem)} ({pctOf(surface.problem, surface.parcela)})
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: HEALTHY_GREEN }} />
+                  <span
+                    className="inline-block h-2 w-2 rounded-full"
+                    style={{ backgroundColor: HEALTHY_GREEN }}
+                  />
                   Baja / sin monitoreo
                 </span>
-                <span className="tabular-nums font-medium">
+                <span className="font-medium tabular-nums">
                   {fmtHa(surface.healthy)} ({pctOf(surface.healthy, surface.parcela)})
                 </span>
               </div>
@@ -385,15 +451,24 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
 
           {/* Toggle de comparación: mancha difuminada (heatmap) vs disco geográfico. */}
           <div className="mt-2 border-t pt-1.5">
-            <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Visualización</p>
+            <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              Visualización
+            </p>
             <div className="flex overflow-hidden rounded border">
-              {([['heat', 'Mapa de calor'], ['disc', 'Discos']] as const).map(([mode, label]) => (
+              {(
+                [
+                  ['heat', 'Mapa de calor'],
+                  ['disc', 'Discos'],
+                ] as const
+              ).map(([mode, label]) => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => setRenderMode(mode)}
-                  className={`flex-1 px-2 py-0.5 text-[11px] transition ${
-                    renderMode === mode ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-accent'
+                  className={`flex-1 px-2 py-0.5 text-[11px] transition-colors duration-150 ${
+                    renderMode === mode
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background hover:bg-accent'
                   }`}
                 >
                   {label}
@@ -405,6 +480,7 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
 
         <Map
           ref={mapRef}
+          onMove={mapSync ? handleCameraMove : undefined}
           initialViewState={
             mapBounds
               ? { bounds: mapBounds, fitBoundsOptions: { padding: 56, maxZoom: 18 } }
@@ -420,8 +496,16 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
           {/* Parcela — relleno verde base */}
           {plotGeojson && (
             <Source id="plot" type="geojson" data={plotGeojson}>
-              <Layer id="plot-fill" type="fill" paint={{ 'fill-color': HEALTHY_GREEN, 'fill-opacity': 0.95 }} />
-              <Layer id="plot-line" type="line" paint={{ 'line-color': '#14532d', 'line-width': 1.5 }} />
+              <Layer
+                id="plot-fill"
+                type="fill"
+                paint={{ 'fill-color': HEALTHY_GREEN, 'fill-opacity': 0.95 }}
+              />
+              <Layer
+                id="plot-line"
+                type="line"
+                paint={{ 'line-color': '#14532d', 'line-width': 1.5 }}
+              />
             </Source>
           )}
 
@@ -438,7 +522,11 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
               <Layer
                 id="cp-disc-line"
                 type="line"
-                paint={{ 'line-color': CIRCLE_COLOR as never, 'line-width': 1.2, 'line-opacity': 0.9 }}
+                paint={{
+                  'line-color': CIRCLE_COLOR as never,
+                  'line-width': 1.2,
+                  'line-opacity': 0.9,
+                }}
               />
             </Source>
           )}
@@ -496,34 +584,49 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
             >
               <div className="px-2 py-1.5 text-xs">
                 <p className="mb-1 font-medium">
-                  {popup.items.length} {popup.items.length === 1 ? 'hallazgo' : 'hallazgos'} en este punto
+                  {popup.items.length} {popup.items.length === 1 ? 'hallazgo' : 'hallazgos'} en este
+                  punto
                 </p>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead className="text-left text-muted-foreground">
                       <tr>
                         <th className="py-0.5 pr-2 font-medium">Problema</th>
-                        <th className="py-0.5 px-1.5 font-medium">Tipo</th>
-                        <th className="py-0.5 px-1.5 font-medium">Etapa</th>
-                        <th className="py-0.5 px-1.5 text-right font-medium">Cant.</th>
-                        <th className="py-0.5 px-1.5 font-medium">Presencia</th>
-                        <th className="py-0.5 px-1.5 font-medium">Foto</th>
+                        <th className="px-1.5 py-0.5 font-medium">Tipo</th>
+                        <th className="px-1.5 py-0.5 font-medium">Etapa</th>
+                        <th className="px-1.5 py-0.5 text-right font-medium">Cant.</th>
+                        <th className="px-1.5 py-0.5 font-medium">Presencia</th>
+                        <th className="px-1.5 py-0.5 font-medium">Foto</th>
                         <th className="py-0.5 pl-1.5 font-medium">Nota</th>
                       </tr>
                     </thead>
                     <tbody>
                       {popup.items
                         .slice()
-                        .sort((a, b) => (PRESENCE_RANK[b.presence_status] ?? 0) - (PRESENCE_RANK[a.presence_status] ?? 0))
+                        .sort(
+                          (a, b) =>
+                            (PRESENCE_RANK[b.presence_status] ?? 0) -
+                            (PRESENCE_RANK[a.presence_status] ?? 0)
+                        )
                         .map((it) => (
                           <tr key={it.id} className="border-t">
-                            <td className="py-0.5 pr-2 font-medium">{it.issue ?? 'Sin problema'}</td>
-                            <td className="py-0.5 px-1.5 text-muted-foreground">{it.issue_type ?? '—'}</td>
-                            <td className="py-0.5 px-1.5">{it.stage_display ?? '—'}</td>
-                            <td className="py-0.5 px-1.5 text-right">{it.qty ?? '—'}</td>
-                            <td className="py-0.5 px-1.5">
-                              <span className="inline-flex items-center gap-1 whitespace-nowrap font-medium" style={{ color: PRESENCE_COLOR[it.presence_status] }}>
-                                <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: PRESENCE_COLOR[it.presence_status] }} />
+                            <td className="py-0.5 pr-2 font-medium">
+                              {it.issue ?? 'Sin problema'}
+                            </td>
+                            <td className="px-1.5 py-0.5 text-muted-foreground">
+                              {it.issue_type ?? '—'}
+                            </td>
+                            <td className="px-1.5 py-0.5">{it.stage_display ?? '—'}</td>
+                            <td className="px-1.5 py-0.5 text-right">{it.qty ?? '—'}</td>
+                            <td className="px-1.5 py-0.5">
+                              <span
+                                className="inline-flex items-center gap-1 whitespace-nowrap font-medium"
+                                style={{ color: PRESENCE_COLOR[it.presence_status] }}
+                              >
+                                <span
+                                  className="inline-block h-1.5 w-1.5 rounded-full"
+                                  style={{ backgroundColor: PRESENCE_COLOR[it.presence_status] }}
+                                />
                                 {PRESENCE_LABEL[it.presence_status] ?? it.presence_status}
                               </span>
                             </td>
@@ -532,10 +635,14 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
                                 <button
                                   type="button"
                                   onClick={() => setPhotoModal(it.photo)}
-                                  className="block h-8 w-8 overflow-hidden rounded border transition hover:ring-2 hover:ring-primary"
+                                  className="block h-10 w-10 overflow-hidden rounded-md border hover:ring-2 hover:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
                                   title="Ver foto completa"
                                 >
-                                  <img src={it.photo} alt="Foto del hallazgo" className="h-full w-full object-cover" />
+                                  <img
+                                    src={it.photo}
+                                    alt="Foto del hallazgo"
+                                    className="h-full w-full object-cover"
+                                  />
                                 </button>
                               ) : (
                                 <span className="text-muted-foreground">—</span>
@@ -546,7 +653,7 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
                                 <button
                                   type="button"
                                   onClick={() => setNoteModal(it.notes)}
-                                  className="whitespace-nowrap text-primary underline underline-offset-2 hover:opacity-80"
+                                  className="whitespace-nowrap text-brand underline underline-offset-2 hover:opacity-80"
                                 >
                                   Ver
                                 </button>
@@ -566,17 +673,31 @@ export function PhytoMap({ sessionId, plotId, enabled = true, toolbarStart, tool
       </div>
 
       {/* Modal de foto completa */}
-      <Dialog open={!!photoModal} onOpenChange={(o) => { if (!o) setPhotoModal(null) }}>
+      <Dialog
+        open={!!photoModal}
+        onOpenChange={(o) => {
+          if (!o) setPhotoModal(null)
+        }}
+      >
         <DialogContent className="max-w-3xl p-2">
           <DialogTitle className="sr-only">Foto del hallazgo</DialogTitle>
           {photoModal && (
-            <img src={photoModal} alt="Foto del hallazgo" className="max-h-[80vh] w-full rounded object-contain" />
+            <img
+              src={photoModal}
+              alt="Foto del hallazgo"
+              className="max-h-[80vh] w-full rounded object-contain"
+            />
           )}
         </DialogContent>
       </Dialog>
 
       {/* Modal de nota */}
-      <Dialog open={!!noteModal} onOpenChange={(o) => { if (!o) setNoteModal(null) }}>
+      <Dialog
+        open={!!noteModal}
+        onOpenChange={(o) => {
+          if (!o) setNoteModal(null)
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogTitle>Nota del hallazgo</DialogTitle>
           <p className="whitespace-pre-wrap text-sm text-muted-foreground">{noteModal}</p>

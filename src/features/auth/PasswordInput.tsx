@@ -16,20 +16,15 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
 
     return (
       <div className="relative">
-        <Input
-          ref={ref}
-          type={visible ? 'text' : 'password'}
-          className={className}
-          {...props}
-        />
+        <Input ref={ref} type={visible ? 'text' : 'password'} className={className} {...props} />
         <Button
           type="button"
           variant="ghost"
-          size="icon"
-          className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+          size="icon-sm"
+          className="absolute right-1.5 top-1.5 text-muted-foreground hover:text-foreground"
           onClick={() => setVisible((v) => !v)}
-          tabIndex={-1}
           aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          aria-pressed={visible}
         >
           {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </Button>

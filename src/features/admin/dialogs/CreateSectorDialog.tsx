@@ -6,12 +6,14 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
 import { Field } from '../components/Field'
 import { useCreateAgroSector, useUpdateAgroSector } from '../hooks/useAgroSectors'
@@ -65,7 +67,7 @@ export function CreateSectorDialog({ open, onOpenChange, sector }: Props) {
             activity_name: sector.activity_name ?? '',
             description: sector.description ?? '',
           }
-        : EMPTY,
+        : EMPTY
     )
   }, [open, sector, reset])
 
@@ -96,7 +98,7 @@ export function CreateSectorDialog({ open, onOpenChange, sector }: Props) {
         toast.error(
           isEdit
             ? 'No se pudo actualizar el sector. Intenta de nuevo.'
-            : 'No se pudo crear el sector. Intenta de nuevo.',
+            : 'No se pudo crear el sector. Intenta de nuevo.'
         )
       }
     }
@@ -107,6 +109,9 @@ export function CreateSectorDialog({ open, onOpenChange, sector }: Props) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Editar sector agrícola' : 'Nuevo sector agrícola'}</DialogTitle>
+          <DialogDescription>
+            Clasifica las agrounidades por sector y actividad económica.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Field label="Nombre del sector *" error={errors.sector_name?.message}>
@@ -119,12 +124,7 @@ export function CreateSectorDialog({ open, onOpenChange, sector }: Props) {
             <Input {...register('activity_name')} placeholder="Ej: Cultivo de maíz" />
           </Field>
           <Field label="Descripción" error={errors.description?.message}>
-            <textarea
-              {...register('description')}
-              placeholder="Opcional"
-              rows={3}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
+            <Textarea {...register('description')} placeholder="Opcional" rows={3} />
           </Field>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>

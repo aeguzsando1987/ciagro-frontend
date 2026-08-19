@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Map, { Layer, Source, Popup } from 'react-map-gl/maplibre'
 import { usePlotGeometry } from '../hooks/usePlotGeometry'
+import { LoadingState } from '@/components/ui/loading-state'
 
 interface PlotMiniMapProps {
   plotId: string | null
@@ -55,8 +56,8 @@ export function PlotMiniMap({ plotId, showTooltip = false }: PlotMiniMapProps) {
 
   if (isLoading) {
     return (
-      <div className="flex h-36 items-center justify-center rounded-md border bg-muted/30 text-sm text-muted-foreground">
-        Cargando mapa…
+      <div className="flex h-36 items-center justify-center rounded-md border bg-muted/30">
+        <LoadingState compact label="Cargando mapa…" />
       </div>
     )
   }
@@ -66,7 +67,10 @@ export function PlotMiniMap({ plotId, showTooltip = false }: PlotMiniMapProps) {
     return (
       <div className="flex h-36 flex-col items-center justify-center gap-1 rounded-md border bg-muted/30 px-4 text-center text-xs text-muted-foreground">
         <span className="font-medium">Geometría no disponible</span>
-        <span>Carga el polígono de la parcela desde la sección de Geo-activos → Parcelas → Importar vértices.</span>
+        <span>
+          Carga el polígono de la parcela desde la sección de Geo-activos → Parcelas → Importar
+          vértices.
+        </span>
       </div>
     )
   }
@@ -124,7 +128,7 @@ export function PlotMiniMap({ plotId, showTooltip = false }: PlotMiniMapProps) {
             offset={10}
             style={{ padding: 0 }}
           >
-            <div className="px-2 py-1.5 text-xs space-y-0.5 min-w-[120px]">
+            <div className="min-w-[120px] space-y-0.5 px-2 py-1.5 text-xs">
               <p className="font-semibold text-foreground">{props?.code ?? '—'}</p>
               {props?.total_area && (
                 <p className="text-muted-foreground">
@@ -132,9 +136,7 @@ export function PlotMiniMap({ plotId, showTooltip = false }: PlotMiniMapProps) {
                   {m2 && <span className="ml-1">· {m2} m²</span>}
                 </p>
               )}
-              {props?.status && (
-                <p className="text-muted-foreground capitalize">{props.status}</p>
-              )}
+              {props?.status && <p className="capitalize text-muted-foreground">{props.status}</p>}
             </div>
           </Popup>
         )}

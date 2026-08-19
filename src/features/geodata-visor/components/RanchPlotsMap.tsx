@@ -12,6 +12,7 @@ import type { MapRef } from 'react-map-gl/maplibre'
 import { ArrowLeft } from 'lucide-react'
 import { MapModeSelector } from './MapModeSelector'
 import { useMapMode } from '../lib/mapModes'
+import { useMapCameraSync, type MapCameraSyncBinding } from '../lib/mapCameraSync'
 import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import type { PlotFlat } from '@/features/admin/types'
 
@@ -23,13 +24,20 @@ function plotCentroid(plot: PlotFlat): [number, number] | null {
   if (c && c.length >= 2) return [c[0]!, c[1]!]
   const ring = (plot.geom as { coordinates?: number[][][] } | null)?.coordinates?.[0]
   if (!ring || ring.length === 0) return null
-  let sx = 0, sy = 0
-  for (const [x, y] of ring as number[][]) { sx += x!; sy += y! }
+  let sx = 0,
+    sy = 0
+  for (const [x, y] of ring as number[][]) {
+    sx += x!
+    sy += y!
+  }
   return [sx / ring.length, sy / ring.length]
 }
 
 /** bbox de una geometría Polygon/MultiPolygon. */
-function bboxOfGeometry(geom: PlotFlat['geom'], acc: { minX: number; minY: number; maxX: number; maxY: number }) {
+function bboxOfGeometry(
+  geom: PlotFlat['geom'],
+  acc: { minX: number; minY: number; maxX: number; maxY: number }
+) {
   if (!geom) return
   // Polygon: number[][][] ; MultiPolygon: number[][][][]. Aplanamos posiciones.
   const walk = (arr: unknown) => {
@@ -37,8 +45,10 @@ function bboxOfGeometry(geom: PlotFlat['geom'], acc: { minX: number; minY: numbe
     if (typeof arr[0] === 'number') {
       const [x, y] = arr as number[]
       if (x == null || y == null) return
-      acc.minX = Math.min(acc.minX, x); acc.maxX = Math.max(acc.maxX, x)
-      acc.minY = Math.min(acc.minY, y); acc.maxY = Math.max(acc.maxY, y)
+      acc.minX = Math.min(acc.minX, x)
+      acc.maxX = Math.max(acc.maxX, x)
+      acc.minY = Math.min(acc.minY, y)
+      acc.maxY = Math.max(acc.maxY, y)
       return
     }
     for (const el of arr) walk(el)
@@ -69,11 +79,22 @@ interface RanchPlotsMapProps {
   /** Si se provee, la línea del productor es clickeable y vuelve a la vista del productor
    *  (mapa de pines de ranchos). */
   onBackToProducer?: () => void
+  mapSync?: MapCameraSyncBinding
 }
 
-export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerName, ranchName, onBackToRanch, onBackToProducer }: RanchPlotsMapProps) {
+export function RanchPlotsMap({
+  plots,
+  selectedPlotId,
+  onSelectPlot,
+  producerName,
+  ranchName,
+  onBackToRanch,
+  onBackToProducer,
+  mapSync,
+}: RanchPlotsMapProps) {
   const mapRef = useRef<MapRef>(null)
   const { mapMode, setMapMode } = useMapMode(mapRef)
+  const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
   // Etiqueta semitransparente por parcela, anclada en su centroide.
   const labels = useMemo(
@@ -81,24 +102,27 @@ export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerNam
       plots
         .map((p) => ({ plot: p, center: plotCentroid(p) }))
         .filter((l): l is { plot: PlotFlat; center: [number, number] } => l.center !== null),
-    [plots],
+    [plots]
   )
 
-  const fc = useMemo<GeoJSON.FeatureCollection>(() => ({
-    type: 'FeatureCollection',
-    features: plots
-      .filter((p) => p.geom)
-      .map((p) => ({
-        type: 'Feature',
-        geometry: p.geom as GeoJSON.Geometry,
-        properties: { id: p.id, code: p.code ?? '' },
-      })),
-  }), [plots])
+  const fc = useMemo<GeoJSON.FeatureCollection>(
+    () => ({
+      type: 'FeatureCollection',
+      features: plots
+        .filter((p) => p.geom)
+        .map((p) => ({
+          type: 'Feature',
+          geometry: p.geom as GeoJSON.Geometry,
+          properties: { id: p.id, code: p.code ?? '' },
+        })),
+    }),
+    [plots]
+  )
 
   // Enfoque: si hay parcela seleccionada → su bbox; si no → el grupo completo.
   const bounds = useMemo(
     () => boundsOf(plots, selectedPlotId) ?? boundsOf(plots),
-    [plots, selectedPlotId],
+    [plots, selectedPlotId]
   )
 
   // Centro del grupo de parcelas → ancla del pin del rancho.
@@ -124,6 +148,7 @@ export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerNam
       )}
       <Map
         ref={mapRef}
+        onMove={mapSync ? handleCameraMove : undefined}
         initialViewState={
           bounds
             ? { bounds, fitBoundsOptions: { padding: 60, maxZoom: 17 } }
@@ -186,7 +211,7 @@ export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerNam
         {!selectedPlotId && ranchName && ranchCenter && (
           <Marker longitude={ranchCenter[0]} latitude={ranchCenter[1]} anchor="bottom">
             <div style={{ pointerEvents: 'none', textAlign: 'center' }}>
-              <div className="rounded-md bg-emerald-800/90 px-2 py-1 text-[11px] font-semibold text-white shadow-md whitespace-nowrap">
+              <div className="whitespace-nowrap rounded-md bg-emerald-800/90 px-2 py-1 text-[11px] font-semibold text-white shadow-md">
                 📍 {ranchName}
               </div>
               <div className="mx-auto h-2 w-0.5 bg-emerald-800/90" />
@@ -218,21 +243,20 @@ export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerNam
           - Rancho: botón solo si hay parcela seleccionada → vuelve a la vista del rancho. */}
       {(producerName || ranchName) && (
         <div className="absolute left-3 top-3 z-10 rounded-md bg-black/55 px-3 py-2 text-white shadow">
-          {producerName && (
-            onBackToProducer ? (
+          {producerName &&
+            (onBackToProducer ? (
               <button
                 type="button"
                 onClick={onBackToProducer}
-                className="flex items-center gap-1 text-[11px] opacity-80 hover:opacity-100 hover:underline"
+                className="flex items-center gap-1 text-[11px] opacity-80 hover:underline hover:opacity-100"
               >
                 <ArrowLeft className="h-3 w-3" /> {producerName}
               </button>
             ) : (
               <div className="text-[11px] opacity-80">{producerName}</div>
-            )
-          )}
-          {ranchName && (
-            selectedPlotId && onBackToRanch ? (
+            ))}
+          {ranchName &&
+            (selectedPlotId && onBackToRanch ? (
               <button
                 type="button"
                 onClick={onBackToRanch}
@@ -242,10 +266,11 @@ export function RanchPlotsMap({ plots, selectedPlotId, onSelectPlot, producerNam
               </button>
             ) : (
               <div className="text-sm font-semibold leading-tight">{ranchName}</div>
-            )
-          )}
+            ))}
           <div className="mt-0.5 text-[10px] opacity-80">
-            {selectedPlotId ? 'Clic en el rancho para ver todas las parcelas' : 'Clic en una parcela para ver sus sesiones'}
+            {selectedPlotId
+              ? 'Clic en el rancho para ver todas las parcelas'
+              : 'Clic en una parcela para ver sus sesiones'}
           </div>
         </div>
       )}

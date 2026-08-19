@@ -3,8 +3,8 @@ import { createRoute, redirect, Outlet, useNavigate, useParams } from '@tanstack
 import { toast } from 'sonner'
 import { authenticatedRoute } from './_authenticated'
 import { useAuthStore } from '@/features/auth/useAuthStore'
-import { AppHeader } from '@/features/workspace/AppHeader'
-import { AppSidebar } from '@/features/workspace/AppSidebar'
+import { ProductShell } from '@/features/layout/ProductShell'
+import { useWorkspaceStore } from '@/features/workspace/useWorkspaceStore'
 
 /**
  * Layout de una CIAgra (workspace). Guard de acceso a la CIA:
@@ -30,8 +30,13 @@ export const workspaceDcRoute = createRoute({
 function WorkspaceLayout() {
   const { dc } = useParams({ from: '/_authenticated/w/$dc' })
   const user = useAuthStore((s) => s.user)
+  const selectedDc = useWorkspaceStore((s) => s.selectedDc)
   const navigate = useNavigate()
   const warned = useRef(false)
+  const dcName =
+    selectedDc?.id === dc
+      ? selectedDc.name
+      : (user?.datacentrals.find((item) => item.id === dc)?.name ?? 'Organización activa')
 
   // Expulsión en caliente: si la CIA deja de estar accesible (org desactivada → /me la
   // excluye al refrescar), salir al selector con un aviso.
@@ -46,14 +51,8 @@ function WorkspaceLayout() {
   }, [user, dc, navigate])
 
   return (
-    <div className="flex h-dvh flex-col">
-      <AppHeader />
-      <div className="flex flex-1 overflow-hidden">
-        <AppSidebar />
-        <main className="flex-1 overflow-auto p-6 pb-9">
-          <Outlet />
-        </main>
-      </div>
-    </div>
+    <ProductShell contextLabel={dcName} currentDcId={dc}>
+      <Outlet />
+    </ProductShell>
   )
 }

@@ -6,12 +6,16 @@ import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { FormSection } from '@/components/ui/form-section'
+import { SafeImage } from '@/components/ui/safe-image'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
@@ -91,13 +95,20 @@ export function CropPanel({ crop, onClose }: Props) {
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{crop.name}</DialogTitle>
+          <DialogDescription>Información y fotografía de referencia del cultivo.</DialogDescription>
         </DialogHeader>
 
         {mode === 'view' ? (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><span className="text-muted-foreground">Código</span><p className="font-medium">{crop.code ?? '—'}</p></div>
-              <div><span className="text-muted-foreground">Variedad</span><p className="font-medium">{crop.variety ?? '—'}</p></div>
+              <div>
+                <span className="text-muted-foreground">Código</span>
+                <p className="font-medium">{crop.code ?? '—'}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Variedad</span>
+                <p className="font-medium">{crop.variety ?? '—'}</p>
+              </div>
             </div>
             {crop.description && (
               <div className="text-sm">
@@ -105,47 +116,54 @@ export function CropPanel({ crop, onClose }: Props) {
                 <p>{crop.description}</p>
               </div>
             )}
-            {crop.photo && (
-              <div>
-                <span className="text-sm text-muted-foreground">Imagen</span>
-                <img src={crop.photo} alt={crop.name} className="mt-1 max-h-40 rounded border object-cover" />
-              </div>
-            )}
+            <div>
+              <span className="text-sm text-muted-foreground">Imagen</span>
+              <SafeImage
+                src={crop.photo}
+                alt={crop.name}
+                className="mt-1 h-40 w-full rounded-lg border border-default object-cover"
+              />
+            </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={handleClose}>Cerrar</Button>
+              <Button variant="outline" onClick={handleClose}>
+                Cerrar
+              </Button>
               {canEdit && <Button onClick={() => setMode('edit')}>Editar</Button>}
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Field label="Nombre *" error={errors.name?.message}>
-              <Input {...register('name')} />
-            </Field>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Código" error={errors.code?.message}>
-                <Input {...register('code')} />
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <FormSection title="Información general">
+              <Field label="Nombre *" error={errors.name?.message}>
+                <Input {...register('name')} />
               </Field>
-              <Field label="Variedad" error={errors.variety?.message}>
-                <Input {...register('variety')} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Código" error={errors.code?.message}>
+                  <Input {...register('code')} />
+                </Field>
+                <Field label="Variedad" error={errors.variety?.message}>
+                  <Input {...register('variety')} />
+                </Field>
+              </div>
+            </FormSection>
+            <FormSection title="Descripción y fotografía">
+              <Field label="Descripción" error={errors.description?.message}>
+                <Textarea {...register('description')} rows={3} />
               </Field>
-            </div>
-            <Field label="Descripción" error={errors.description?.message}>
-              <textarea
-                {...register('description')}
-                rows={3}
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              />
-            </Field>
-            <Field label="Imagen (opcional)">
-              <input
-                type="file"
-                accept="image/*"
-                className="block w-full text-sm text-muted-foreground file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-muted file:text-foreground cursor-pointer"
-                {...register('photo')}
-              />
-            </Field>
+              <Field label="Imagen (opcional)">
+                <Input type="file" accept="image/*" {...register('photo')} />
+              </Field>
+            </FormSection>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { reset(); setMode('view') }} disabled={isSubmitting}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  reset()
+                  setMode('view')
+                }}
+                disabled={isSubmitting}
+              >
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting}>

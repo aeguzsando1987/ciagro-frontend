@@ -1,6 +1,27 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { DataToolbar } from '@/components/ui/data-toolbar'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { PageHeader } from '@/components/ui/page-header'
+import { TableSkeleton } from '@/components/ui/skeleton'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { useDataCentralMains } from '../hooks/useDataCentrals'
@@ -10,94 +31,158 @@ import { DataCentralPanel } from '../panel/DataCentralPanel'
 import type { DataCentralMainDetail, DataCentralDetail } from '../types'
 
 const STATUS_LABELS: Record<string, string> = {
-  active: 'Activo', inactive: 'Inactivo', trial: 'Trial',
+  active: 'Activo',
+  inactive: 'Inactivo',
+  trial: 'Prueba',
+}
+
+function statusVariant(status?: string | null) {
+  if (status === 'active') return 'success' as const
+  if (status === 'trial') return 'warning' as const
+  return 'secondary' as const
 }
 
 /** Sección Organizaciones del panel /admin — casos de uso §1, §3. */
 export function OrganizationsSection() {
-  const user = useAuthStore((s) => s.user)
+  const user = useAuthStore((state) => state.user)
   const roleLevel = user?.role_level ?? ROLE_LEVELS.GUEST
   const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
-  const canCreate = isSuperAdmin
-
-  // El panel de Administración incluye organizaciones inactivas para poder reactivarlas.
-  const { data: rawOrgs = [], isLoading, error } = useDataCentralMains(true)
-  // Non-SuperAdmin: solo ver y gestionar las organizaciones de las que es dueño.
+  const { data: rawOrgs = [], isLoading, error, refetch } = useDataCentralMains(true)
   const orgs = isSuperAdmin
     ? rawOrgs
-    : rawOrgs.filter((org) => org.owner_username === user?.username)
+    : rawOrgs.filter((organization) => organization.owner_username === user?.username)
 
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedDCM, setSelectedDCM] = useState<DataCentralMainDetail | null>(null)
   const [selectedDC, setSelectedDC] = useState<DataCentralDetail | null>(null)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+
+  const filteredOrgs = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase('es-MX')
+    return orgs.filter((organization) => {
+      const matchesSearch =
+        !query ||
+        `${organization.name} ${organization.owner_username ?? ''}`
+          .toLocaleLowerCase('es-MX')
+          .includes(query)
+      const matchesStatus = statusFilter === 'all' || organization.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [orgs, search, statusFilter])
 
   function handleDCClose() {
-    const parentId = selectedDC
-      ? (selectedDC.data_central_main as { id: string }).id
-      : null
-    const parentOrg = parentId ? orgs.find((o) => o.id === parentId) ?? null : null
+    const parentId = selectedDC ? (selectedDC.data_central_main as { id: string }).id : null
+    const parentOrg = parentId ? (orgs.find((org) => org.id === parentId) ?? null) : null
     setSelectedDC(null)
     setSelectedDCM(parentOrg)
   }
 
-  return (
-    <div className="space-y-4">
-      <header className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Organizaciones</h1>
-          <p className="text-sm text-muted-foreground">
-            Organizaciones raíz y sus CIAs hijas.
-          </p>
-        </div>
-        {canCreate && (
-          <Button size="sm" onClick={() => setCreateOpen(true)}>+ Nueva Organización</Button>
-        )}
-      </header>
+  const hasFilters = Boolean(search || statusFilter !== 'all')
 
-      {isLoading && <p className="text-muted-foreground">Cargando organizaciones…</p>}
-      {error && <p className="text-destructive">Error al cargar las organizaciones.</p>}
-      {!isLoading && !error && orgs.length === 0 && (
-        <p className="text-muted-foreground">No hay organizaciones registradas todavía.</p>
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Organizaciones"
+        description="Organizaciones raíz y sus CIAgros asociadas."
+        actions={
+          isSuperAdmin ? (
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus />
+              Nueva organización
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <DataToolbar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Buscar organización…"
+        searchLabel="Buscar organizaciones"
+        resultCount={filteredOrgs.length}
+        resultLabel={filteredOrgs.length === 1 ? 'organización' : 'organizaciones'}
+        hasActiveFilters={hasFilters}
+        onClearFilters={() => {
+          setSearch('')
+          setStatusFilter('all')
+        }}
+        filters={
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-44" aria-label="Filtrar por estado">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="active">Activas</SelectItem>
+              <SelectItem value="trial">En prueba</SelectItem>
+              <SelectItem value="inactive">Inactivas</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      />
+
+      {isLoading && <TableSkeleton columns={5} label="Cargando organizaciones…" />}
+      {error && (
+        <ErrorState
+          title="No pudimos cargar las organizaciones"
+          description="Revisa tu conexión e inténtalo nuevamente."
+          onRetry={() => void refetch()}
+        />
       )}
-      {orgs.length > 0 && (
-        <div className="rounded-md border overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="px-4 py-2 text-left font-medium">Nombre</th>
-                <th className="px-4 py-2 text-left font-medium">Owner</th>
-                <th className="px-4 py-2 text-left font-medium">Estatus</th>
-                <th className="px-4 py-2 text-left font-medium">CIAs</th>
-                <th className="px-4 py-2 text-left font-medium">Creada</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {orgs.map((org) => (
-                <tr
-                  key={org.id}
-                  className="cursor-pointer hover:bg-muted/30 transition-colors"
-                  onClick={() => setSelectedDCM(org)}
-                >
-                  <td className="px-4 py-2 font-medium">{org.name}</td>
-                  <td className="px-4 py-2 text-muted-foreground">{org.owner_username ?? '—'}</td>
-                  <td className="px-4 py-2">
-                    <Badge variant="outline">
-                      {STATUS_LABELS[org.status ?? ''] ?? org.status ?? '—'}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-2">{org.datacentrals_count ?? '—'}</td>
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {org.created_at ? new Date(org.created_at).toLocaleDateString('es-MX') : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {!isLoading && !error && filteredOrgs.length === 0 && (
+        <EmptyState
+          title={
+            hasFilters
+              ? 'No encontramos organizaciones'
+              : 'No hay organizaciones registradas todavía'
+          }
+          description={
+            hasFilters ? 'Ajusta o limpia los filtros para ver más resultados.' : undefined
+          }
+        />
+      )}
+
+      {filteredOrgs.length > 0 && (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nombre</TableHead>
+              <TableHead>Propietario</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>CIAgros</TableHead>
+              <TableHead>Creada</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredOrgs.map((organization) => (
+              <TableRow
+                key={organization.id}
+                className="cursor-pointer"
+                onClick={() => setSelectedDCM(organization)}
+              >
+                <TableCell className="font-medium">{organization.name}</TableCell>
+                <TableCell className="text-secondary">
+                  {organization.owner_username ?? '—'}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={statusVariant(organization.status)}>
+                    {STATUS_LABELS[organization.status ?? ''] ?? organization.status ?? '—'}
+                  </Badge>
+                </TableCell>
+                <TableCell>{organization.datacentrals_count ?? '—'}</TableCell>
+                <TableCell className="text-secondary">
+                  {organization.created_at
+                    ? new Date(organization.created_at).toLocaleDateString('es-MX')
+                    : '—'}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
       <CreateDataCentralMainDialog open={createOpen} onOpenChange={setCreateOpen} />
-
       {selectedDCM && (
         <DataCentralMainPanel
           dcm={selectedDCM}
@@ -108,13 +193,7 @@ export function OrganizationsSection() {
           }}
         />
       )}
-
-      {selectedDC && (
-        <DataCentralPanel
-          dc={selectedDC}
-          onClose={handleDCClose}
-        />
-      )}
+      {selectedDC && <DataCentralPanel dc={selectedDC} onClose={handleDCClose} />}
     </div>
   )
 }

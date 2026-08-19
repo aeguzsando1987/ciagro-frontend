@@ -37,7 +37,7 @@ vi.mock('../hooks/useUsers', () => ({
 beforeEach(() => {
   server.use(
     http.get(`${BASE}/api/v1/geography/countries/`, () => HttpResponse.json(EMPTY_PAGE)),
-    http.get(`${BASE}/api/v1/users/`, () => HttpResponse.json(EMPTY_PAGE)),
+    http.get(`${BASE}/api/v1/users/`, () => HttpResponse.json(EMPTY_PAGE))
   )
 })
 
@@ -66,7 +66,7 @@ const SAMPLE_ORG = {
 describe('OrganizationsSection', () => {
   it('renders Organizaciones header', () => {
     renderSection()
-    expect(screen.getByRole('heading', { name: /Organizaciones/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Organizaciones', level: 1 })).toBeInTheDocument()
   })
 
   it('superadmin (level 5) sees + Nueva Organización button', () => {
@@ -111,7 +111,7 @@ describe('OrganizationsSection', () => {
     await user.click(screen.getByRole('button', { name: /Nueva Organización/i }))
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument()
-      expect(screen.getByText('Nueva organización')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Nueva organización' })).toBeInTheDocument()
     })
   })
 })

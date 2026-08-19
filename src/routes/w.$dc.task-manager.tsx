@@ -17,18 +17,20 @@ import { HijoModal } from '@/features/task-manager/panel/HijoModal'
 import { SesionModal } from '@/features/task-manager/panel/SesionModal'
 import { NdviSesionModal } from '@/features/task-manager/panel/NdviSesionModal'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { LoadingState } from '@/components/ui/loading-state'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { MasterProgram, ProgramaStatus } from '@/features/task-manager/types'
 
 type ModalFrame =
   | { type: 'master'; masterId: string }
   | { type: 'hijo'; hijoId: string; masterId: string }
-  | { type: 'sesion'; sesionId: string; sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map'; hijoId: string; masterId: string }
+  | {
+      type: 'sesion'
+      sesionId: string
+      sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map'
+      hijoId: string
+      masterId: string
+    }
 
 /**
  * Search params del Gantt (paso 2.5).
@@ -97,13 +99,15 @@ function TaskManagerPage() {
     if (deepLinkInit.current) return
     deepLinkInit.current = true
     if (search.openSesion && search.openHijo && search.openMaster) {
-      setModalStack([{
-        type: 'sesion',
-        sesionId: search.openSesion,
-        sesionType: search.openSesionType ?? 'aspersion',
-        hijoId: search.openHijo,
-        masterId: search.openMaster,
-      }])
+      setModalStack([
+        {
+          type: 'sesion',
+          sesionId: search.openSesion,
+          sesionType: search.openSesionType ?? 'aspersion',
+          hijoId: search.openHijo,
+          masterId: search.openMaster,
+        },
+      ])
     } else if (search.openHijo && search.openMaster) {
       setModalStack([{ type: 'hijo', hijoId: search.openHijo, masterId: search.openMaster }])
     } else if (search.openMaster) {
@@ -118,7 +122,11 @@ function TaskManagerPage() {
   const isOwnerOfThisDc = user?.datacentrals.some((d) => d.id === dc && d.is_owner) ?? false
   const canCreateMaster = isSuperAdmin || isOwnerOfThisDc
 
-  const { data: masters, isLoading, error } = useMasterPrograms({
+  const {
+    data: masters,
+    isLoading,
+    error,
+  } = useMasterPrograms({
     datacentral: dc,
     status: search.status,
     agro_unit: search.agro_unit,
@@ -138,14 +146,20 @@ function TaskManagerPage() {
     id: string,
     level: 'master' | 'hijo' | 'sesion',
     masterId: string,
-    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' } | null,
+    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' } | null
   ) {
     if (level === 'master') {
       pushModal({ type: 'master', masterId: id })
     } else if (level === 'hijo') {
       pushModal({ type: 'hijo', hijoId: id, masterId })
     } else if (extra?.hijoId) {
-      pushModal({ type: 'sesion', sesionId: id, sesionType: extra.sesionType, hijoId: extra.hijoId, masterId })
+      pushModal({
+        type: 'sesion',
+        sesionId: id,
+        sesionType: extra.sesionType,
+        hijoId: extra.hijoId,
+        masterId,
+      })
     }
   }
 
@@ -164,7 +178,7 @@ function TaskManagerPage() {
             <h1 className="text-2xl font-semibold">Task Manager</h1>
             <button
               onClick={() => setInfoOpen(true)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground transition-colors duration-150 hover:text-foreground"
               aria-label="Información del módulo"
             >
               <Info className="h-4 w-4" />
@@ -186,37 +200,37 @@ function TaskManagerPage() {
           <DialogHeader>
             <DialogTitle>Acerca del Task Manager</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 px-1 pb-2 text-xs" style={{ color: '#2e2e2e' }}>
+          <div className="space-y-3 px-1 pb-2 text-xs text-foreground">
             <p>
-              El <strong>Task Manager</strong> es el módulo central
-              de planificación agrícola. Organiza el trabajo de campo en tres niveles jerárquicos:
+              El <strong>Task Manager</strong> es el módulo central de planificación agrícola.
+              Organiza el trabajo de campo en tres niveles jerárquicos:
             </p>
             <ul className="space-y-2.5 pl-1">
               <li className="flex gap-2.5">
-                <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500 mt-0.5" />
+                <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-info" />
                 <span>
-                  <strong>Programa</strong> — ciclo productivo
-                  completo asignado a un productor (p. ej. temporada de maíz 2026).
+                  <strong>Programa</strong> — ciclo productivo completo asignado a un productor (p.
+                  ej. temporada de maíz 2026).
                 </span>
               </li>
               <li className="flex gap-2.5">
-                <span className="h-2 w-2 shrink-0 rounded-full bg-violet-500 mt-0.5" />
+                <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-accent-agricultural" />
                 <span>
-                  <strong>Subprograma</strong> — actividad específica
-                  dentro del programa, vinculada a una parcela y cultivo.
+                  <strong>Subprograma</strong> — actividad específica dentro del programa, vinculada
+                  a una parcela y cultivo.
                 </span>
               </li>
               <li className="flex gap-2.5">
-                <span className="h-2 w-2 shrink-0 rounded-full bg-sky-500 mt-0.5" />
+                <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
                 <span>
-                  <strong>Sesión</strong> — evento de campo
-                  ejecutado: aspersión con telemetría GPS o monitoreo fitosanitario.
+                  <strong>Sesión</strong> — evento de campo ejecutado: aspersión con telemetría GPS
+                  o monitoreo fitosanitario.
                 </span>
               </li>
             </ul>
             <p>
-              El cronograma Gantt muestra el avance y detecta automáticamente actividades
-              fuera del rango de fechas planificado.
+              El cronograma Gantt muestra el avance y detecta automáticamente actividades fuera del
+              rango de fechas planificado.
             </p>
           </div>
         </DialogContent>
@@ -224,7 +238,7 @@ function TaskManagerPage() {
 
       <FilterBar />
 
-      {isLoading && <p className="text-muted-foreground">Cargando...</p>}
+      {isLoading && <LoadingState label="Cargando programas…" />}
       {error && <p className="text-destructive">Error al cargar los programas.</p>}
       {masters && masters.length === 0 && !isLoading && (
         <p className="text-muted-foreground">
@@ -262,7 +276,13 @@ function TaskManagerPage() {
           onClose={clearModal}
           onBack={popModal}
           onNavigateSesion={({ sesionId, sesionType }) =>
-            pushModal({ type: 'sesion', sesionId, sesionType, hijoId: topFrame.hijoId, masterId: topFrame.masterId })
+            pushModal({
+              type: 'sesion',
+              sesionId,
+              sesionType,
+              hijoId: topFrame.hijoId,
+              masterId: topFrame.masterId,
+            })
           }
         />
       )}
@@ -312,12 +332,15 @@ function HijoModalWrapper({
   datacentralId: string
   onClose: () => void
   onBack: () => void
-  onNavigateSesion: (ref: { sesionId: string; sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' }) => void
+  onNavigateSesion: (ref: {
+    sesionId: string
+    sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map'
+  }) => void
 }) {
   const { data: tree, isLoading } = useMasterTree(masterId, true)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hijo = tree?.programas.find((p) => p.id === hijoId) as any
-  if (isLoading) return <p className="p-8 text-muted-foreground">Cargando subprograma…</p>
+  if (isLoading) return <LoadingState label="Cargando subprograma…" />
   if (!hijo) return null
   return (
     <HijoModal

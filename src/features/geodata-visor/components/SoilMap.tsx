@@ -24,7 +24,12 @@ import {
   buildSoilRasterAreaStats,
   resolveSoilMapBoundary,
 } from '@/features/geodata-visor/lib/soilMapArea'
+import {
+  useMapCameraSync,
+  type MapCameraSyncBinding,
+} from '@/features/geodata-visor/lib/mapCameraSync'
 import { SoilMapStatsCard } from './SoilMapStatsCard'
+import { LoadingState } from '@/components/ui/loading-state'
 
 interface SoilMapProps {
   sessionId: string
@@ -35,6 +40,7 @@ interface SoilMapProps {
   floatingToolbar?: boolean
   sessionsSlot?: React.ReactNode
   className?: string
+  mapSync?: MapCameraSyncBinding
 }
 
 interface SoilMapSample {
@@ -145,11 +151,13 @@ export function SoilMap({
   floatingToolbar = false,
   sessionsSlot,
   className,
+  mapSync,
 }: SoilMapProps) {
   const [activeLayerIndex, setActiveLayerIndex] = useState(0)
   const [checkedBuckets, setCheckedBuckets] = useState<Set<string> | null>(null)
   const [hoveredSample, setHoveredSample] = useState<PopupInfo | null>(null)
   const mapRef = useRef<MapRef>(null)
+  const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
   const { data: points, isLoading, error } = useSoilMapPoints(sessionId, enabled)
   const { data: plot } = usePlotGeometry(plotId)
@@ -400,7 +408,15 @@ export function SoilMap({
           </div>
         )}
 
-        {isLoading && <LoadingOverlay>Cargando muestras de suelo…</LoadingOverlay>}
+        {isLoading && (
+          <LoadingOverlay>
+            <LoadingState
+              compact
+              label="Cargando muestras de suelo…"
+              className="rounded-xl border border-default bg-white/95 shadow-sm"
+            />
+          </LoadingOverlay>
+        )}
         {!isLoading && error && (
           <LoadingOverlay>No se pudieron cargar las muestras de suelo.</LoadingOverlay>
         )}
@@ -410,6 +426,7 @@ export function SoilMap({
 
         <MapGL
           ref={mapRef}
+          onMove={mapSync ? handleCameraMove : undefined}
           initialViewState={
             mapBounds
               ? { bounds: mapBounds, fitBoundsOptions: { padding: 56, maxZoom: 18 } }
@@ -522,7 +539,7 @@ export function SoilMap({
                   onChange={() => toggleBucket(entry.key)}
                 />
                 <span
-                  className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-2 transition-colors"
+                  className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-2 transition-colors duration-150"
                   style={{
                     borderColor: entry.color,
                     backgroundColor: checked ? entry.color : 'transparent',

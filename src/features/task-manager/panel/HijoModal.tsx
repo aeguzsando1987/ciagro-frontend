@@ -723,7 +723,7 @@ function PlotInfoPanel({ plotId }: { plotId: string }) {
                 <button
                   type="button"
                   title="Click para ver detalle de parcela"
-                  className="text-primary underline underline-offset-2 hover:opacity-70"
+                  className="text-brand underline underline-offset-2 hover:opacity-70"
                   onClick={() => setPlotDetailOpen(true)}
                 >
                   {p.code ?? '—'}

@@ -47,11 +47,11 @@ describe('DataCentralChildSelector', () => {
     expect(screen.getByText('CIAgro Norte')).toBeInTheDocument()
   })
 
-  it('shows Dueno badge only for is_owner datacentrals', () => {
+  it('shows Propietario badge only for is_owner datacentrals', () => {
     render(<DataCentralChildSelector datacentrals={DATACENTRALS} />)
-    expect(screen.getByText('Dueno')).toBeInTheDocument()
+    expect(screen.getByText('Propietario')).toBeInTheDocument()
     // Only one badge (dc-2 is not owner)
-    expect(screen.getAllByText('Dueno')).toHaveLength(1)
+    expect(screen.getAllByText('Propietario')).toHaveLength(1)
   })
 
   it('stores selectedDc and navigates on card click', async () => {

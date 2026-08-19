@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { LoadingState } from '@/components/ui/loading-state'
 import { applyDrfErrors } from '../hooks/useDrfErrorMap'
 import { useAspersionSessionDetail } from '../hooks/useAspersionSessionDetail'
 import { usePhytoSessionDetail } from '../hooks/usePhytoSessionDetail'
@@ -273,9 +274,7 @@ export function SesionModal({
           </DialogTitle>
         </DialogHeader>
 
-        {isLoading && (
-          <p className="py-4 text-center text-sm text-muted-foreground">Cargando sesión...</p>
-        )}
+        {isLoading && <LoadingState label="Cargando sesión…" />}
 
         {!isLoading && !isEditing && sesionType === 'aspersion' && aspersionDetail && (
           <AspersionView

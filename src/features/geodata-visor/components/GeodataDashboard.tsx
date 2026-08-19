@@ -8,13 +8,14 @@
  */
 import { useState } from 'react'
 import { useQueries } from '@tanstack/react-query'
-import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useProducers } from '@/features/admin/hooks/useProducers'
 import { useRanches, ranchesQueryOptions } from '@/features/admin/hooks/useRanches'
 import { usePlots, usePlotDetail, plotsQueryOptions } from '@/features/admin/hooks/usePlots'
 import { useAspersionSessionHeaders } from '../hooks/useAspersionSessionHeaders'
 import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
 import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
+import { useNdviSessionHeaders } from '../hooks/useNdviSessionHeaders'
 import {
   type StatEntry,
   sumArea,
@@ -29,6 +30,7 @@ import { ProducerRanchesMap } from './ProducerRanchesMap'
 import { SessionsPanel } from './SessionsPanel'
 import { PhytoSessionsPanel } from './PhytoSessionsPanel'
 import { SoilMapSessionsPanel } from './SoilMapSessionsPanel'
+import { PlotSessionsPanel } from './PlotSessionsPanel'
 import { SessionInfoCard } from './SessionInfoCard'
 import { SoilMapSessionInfoCard } from './SoilMapSessionInfoCard'
 import { AspersionMap } from './AspersionMap'
@@ -40,7 +42,9 @@ import { PhytoStatsCard } from '@/features/task-manager/components/PhytoStatsCar
 import { SessionReportToggle } from '@/features/session-report/components/SessionReportToggle'
 import { ArrowLeft } from 'lucide-react'
 import { sessionIdsForPlot } from '../lib/advancedSearch'
+import type { MapCameraSyncBinding } from '../lib/mapCameraSync'
 import type { AdvancedSearchResult, VisorSelection, VisorSession } from '../types'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const LEVEL_TITLE: Record<VisorSelection['level'], string> = {
   org: 'Organización',
@@ -72,6 +76,9 @@ interface DashboardProps {
    * ellas- y las tarjetas de sesiones listan solo las que el filtro devolvió.
    */
   searchResult?: AdvancedSearchResult | null
+  /** Reduce chrome y listas duplicadas para reservar ancho a la comparacion A/B. */
+  comparisonMode?: boolean
+  mapSync?: MapCameraSyncBinding
 }
 
 /**
@@ -93,9 +100,11 @@ function plotsInSearch<T extends { id: string }>(
 
 function StatCard({ label, value }: StatEntry) {
   return (
-    <div className="flex items-baseline gap-1.5 rounded-md border bg-card px-2.5 py-1">
-      <span className="text-base font-semibold tabular-nums leading-none">{value}</span>
-      <span className="text-[11px] text-muted-foreground">{label}</span>
+    <div className="min-w-0 flex-1 px-3 py-2.5 sm:min-w-28 sm:flex-none sm:px-4">
+      <span className="block text-xl font-semibold tabular-nums leading-none text-foreground">
+        {value}
+      </span>
+      <span className="mt-1 block text-xs leading-4 text-secondary">{label}</span>
     </div>
   )
 }
@@ -103,13 +112,23 @@ function StatCard({ label, value }: StatEntry) {
 function StatGrid({ stats, loading }: { stats: StatEntry[]; loading?: boolean }) {
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Calculando estadísticas…
+      <div
+        role="status"
+        aria-label="Calculando estadísticas"
+        className="flex gap-px overflow-hidden rounded-xl border border-default bg-border-light"
+      >
+        <span className="sr-only">Calculando estadísticas…</span>
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="w-32 space-y-2 bg-surface px-4 py-3">
+            <Skeleton className="h-5 w-14" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        ))}
       </div>
     )
   }
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex divide-x divide-border-light overflow-hidden rounded-xl border border-default bg-surface">
       {stats.map((s) => (
         <StatCard key={s.label} {...s} />
       ))}
@@ -145,6 +164,7 @@ function ProducerView({
   onSelect,
   statsHidden,
   searchResult,
+  mapSync,
 }: DashboardProps & { statsHidden: boolean }) {
   const producerId = selection.producer!.id
   const ranches = useRanches(producerId)
@@ -169,6 +189,7 @@ function ProducerView({
           plots={visiblePlots}
           producerName={selection.producer?.name}
           onSelectRanch={(ranch) => onSelect(selectRanchFromMap(selection, ranch))}
+          mapSync={mapSync}
         />
       </div>
     </div>
@@ -257,6 +278,8 @@ function RanchView({
   onSelect,
   statsHidden,
   searchResult,
+  comparisonMode = false,
+  mapSync,
 }: DashboardProps & { statsHidden: boolean }) {
   const ranchId = selection.ranch!.id
   const plots = usePlots({ ranchId })
@@ -295,7 +318,10 @@ function RanchView({
       {!statsHidden && stats && <StatGrid loading={plots.isLoading} stats={stats} />}
       {!statsHidden && isPlotLevel && <PlotStats plotId={selection.plot!.id} />}
       {!statsHidden && isSessionLevel && !isPhytoSession && !isNdviSession && !isSoilMapSession && (
-        <SessionInfoCard sessionId={selection.session!.id} datacentralId={selection.datacentral?.id} />
+        <SessionInfoCard
+          sessionId={selection.session!.id}
+          datacentralId={selection.datacentral?.id}
+        />
       )}
       {!statsHidden && isPhytoSession && <PhytoStatsCard headerId={selection.session!.id} />}
       {!statsHidden && isSoilMapSession && (
@@ -317,17 +343,20 @@ function RanchView({
                   /* La organización del árbol define de quién son los umbrales: el
                      productor puede estar compartido con otra organización. */
                   tenantId={selection.org.id}
+                  mapSync={mapSync}
                 />
               </div>
-              <div className="w-56 shrink-0 border-l bg-background/60 p-2">
-                <NdviSessionsPanel
-                  floating={false}
-                  plotId={selection.plot!.id}
-                  selectedSessionId={selection.session?.id ?? null}
-                  onSelectSession={(session) => onSelect(selectSession(selection, session))}
-                  allowedIds={allowed.ndvi}
-                />
-              </div>
+              {!comparisonMode && (
+                <div className="w-56 shrink-0 border-l bg-background/60 p-2">
+                  <NdviSessionsPanel
+                    floating={false}
+                    plotId={selection.plot!.id}
+                    selectedSessionId={selection.session?.id ?? null}
+                    onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                    allowedIds={allowed.ndvi}
+                  />
+                </div>
+              )}
             </div>
           ) : isPhytoSession ? (
             /* Sesión fitosanitaria: mapa de calor de checkpoints sobre la parcela (reuso
@@ -337,14 +366,17 @@ function RanchView({
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               floatingToolbar
+              mapSync={mapSync}
               sessionsSlot={
-                <PhytoSessionsPanel
-                  floating={false}
-                  plotId={selection.plot!.id}
-                  selectedSessionId={selection.session?.id ?? null}
-                  onSelectSession={(session) => onSelect(selectSession(selection, session))}
-                  allowedIds={allowed.phyto}
-                />
+                comparisonMode ? undefined : (
+                  <PhytoSessionsPanel
+                    floating={false}
+                    plotId={selection.plot!.id}
+                    selectedSessionId={selection.session?.id ?? null}
+                    onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                    allowedIds={allowed.phyto}
+                  />
+                )
               }
               toolbarStart={backToPlotButton}
             />
@@ -355,14 +387,17 @@ function RanchView({
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               floatingToolbar
+              mapSync={mapSync}
               sessionsSlot={
-                <SoilMapSessionsPanel
-                  floating={false}
-                  plotId={selection.plot!.id}
-                  selectedSessionId={selection.session?.id ?? null}
-                  onSelectSession={(session) => onSelect(selectSession(selection, session))}
-                  allowedIds={allowed.soil_map}
-                />
+                comparisonMode ? undefined : (
+                  <SoilMapSessionsPanel
+                    floating={false}
+                    plotId={selection.plot!.id}
+                    selectedSessionId={selection.session?.id ?? null}
+                    onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                    allowedIds={allowed.soil_map}
+                  />
+                )
               }
               toolbarStart={backToPlotButton}
             />
@@ -374,14 +409,17 @@ function RanchView({
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               floatingToolbar
+              mapSync={mapSync}
               sessionsSlot={
-                <SessionsPanel
-                  floating={false}
-                  plotId={selection.plot!.id}
-                  selectedSessionId={selection.session?.id ?? null}
-                  onSelectSession={(session) => onSelect(selectSession(selection, session))}
-                  allowedIds={allowed.aspersion}
-                />
+                comparisonMode ? undefined : (
+                  <SessionsPanel
+                    floating={false}
+                    plotId={selection.plot!.id}
+                    selectedSessionId={selection.session?.id ?? null}
+                    onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                    allowedIds={allowed.aspersion}
+                  />
+                )
               }
               toolbarStart={backToPlotButton}
               toolbarEnd={
@@ -404,42 +442,19 @@ function RanchView({
             onBackToProducer={
               selection.producer ? () => onSelect(selectProducerLevel(selection)) : undefined
             }
+            mapSync={mapSync}
           />
         )}
         {/* Nivel parcela (sin sesión): las listas de sesiones por tipo
             apiladas en una columna flotante sobre el mapa de parcelas. A nivel sesión la
             lista vive dentro del mapa correspondiente (sessionsSlot). */}
-        {isPlotLevel && !isSessionLevel && (
-          <div className="absolute bottom-2 right-2 top-2 z-10 flex w-52 flex-col gap-2 overflow-hidden">
-            <SessionsPanel
-              floating={false}
-              plotId={selection.plot!.id}
-              selectedSessionId={selection.session?.id ?? null}
-              onSelectSession={(session) => onSelect(selectSession(selection, session))}
-              allowedIds={allowed.aspersion}
-            />
-            <PhytoSessionsPanel
-              floating={false}
-              plotId={selection.plot!.id}
-              selectedSessionId={selection.session?.id ?? null}
-              onSelectSession={(session) => onSelect(selectSession(selection, session))}
-              allowedIds={allowed.phyto}
-            />
-            <NdviSessionsPanel
-              floating={false}
-              plotId={selection.plot!.id}
-              selectedSessionId={selection.session?.id ?? null}
-              onSelectSession={(session) => onSelect(selectSession(selection, session))}
-              allowedIds={allowed.ndvi}
-            />
-            <SoilMapSessionsPanel
-              floating={false}
-              plotId={selection.plot!.id}
-              selectedSessionId={selection.session?.id ?? null}
-              onSelectSession={(session) => onSelect(selectSession(selection, session))}
-              allowedIds={allowed.soil_map}
-            />
-          </div>
+        {isPlotLevel && !isSessionLevel && !comparisonMode && (
+          <PlotSessionsPanel
+            plotId={selection.plot!.id}
+            selectedSessionId={selection.session?.id ?? null}
+            onSelectSession={(session) => onSelect(selectSession(selection, session))}
+            allowedIds={allowed}
+          />
         )}
       </div>
     </div>
@@ -450,13 +465,19 @@ function PlotStats({ plotId }: { plotId: string }) {
   const plot = usePlotDetail(plotId)
   const sessions = useAspersionSessionHeaders(plotId)
   const phytoSessions = usePhytoSessionHeaders(plotId)
+  const ndviSessions = useNdviSessionHeaders(plotId)
   const soilMapSessions = useSoilMapSessionHeaders(plotId)
   const loading =
-    plot.isLoading || sessions.isLoading || phytoSessions.isLoading || soilMapSessions.isLoading
+    plot.isLoading ||
+    sessions.isLoading ||
+    phytoSessions.isLoading ||
+    ndviSessions.isLoading ||
+    soilMapSessions.isLoading
   const officialAreaHa = parseArea(plot.data?.total_area)
   const stats = [
     ...plotStats(officialAreaHa, sessions.data?.length ?? 0),
     { label: 'Sesiones fitosanitarias', value: String(phytoSessions.data?.length ?? 0) },
+    { label: 'Sesiones NDVI', value: String(ndviSessions.data?.length ?? 0) },
     { label: 'Sesiones de mapeo de suelo', value: String(soilMapSessions.data?.length ?? 0) },
   ]
   return <StatGrid loading={loading} stats={stats} />
@@ -469,6 +490,8 @@ function LevelBody({
   onSelect,
   statsHidden,
   searchResult,
+  comparisonMode,
+  mapSync,
 }: DashboardProps & { statsHidden: boolean }) {
   switch (selection.level) {
     case 'org':
@@ -486,6 +509,8 @@ function LevelBody({
           onSelect={onSelect}
           statsHidden={statsHidden}
           searchResult={searchResult}
+          comparisonMode={comparisonMode}
+          mapSync={mapSync}
         />
       )
     case 'ranch':
@@ -497,6 +522,8 @@ function LevelBody({
           onSelect={onSelect}
           statsHidden={statsHidden}
           searchResult={searchResult}
+          comparisonMode={comparisonMode}
+          mapSync={mapSync}
         />
       )
   }
@@ -519,7 +546,13 @@ function selectionName(selection: VisorSelection): string {
   }
 }
 
-export function GeodataDashboard({ selection, onSelect, searchResult = null }: DashboardProps) {
+export function GeodataDashboard({
+  selection,
+  onSelect,
+  searchResult = null,
+  comparisonMode = false,
+  mapSync,
+}: DashboardProps) {
   const [statsHidden, setStatsHidden] = useState(false)
   // El toggle de estadísticas solo aplica en niveles con mapa (gana alto el mapa).
   const hasMap =
@@ -530,34 +563,38 @@ export function GeodataDashboard({ selection, onSelect, searchResult = null }: D
 
   return (
     <div className="flex h-full flex-col gap-2.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-base font-semibold leading-tight">{selectionName(selection)}</h2>
-          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            {levelTitle(selection)}
-          </span>
+      {!comparisonMode && (
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-base font-semibold leading-tight">{selectionName(selection)}</h2>
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              {levelTitle(selection)}
+            </span>
+          </div>
+          {hasMap && (
+            <button
+              type="button"
+              onClick={() => setStatsHidden((h) => !h)}
+              className="flex shrink-0 items-center gap-1 self-center rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-accent"
+            >
+              {statsHidden ? (
+                <ChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronUp className="h-3.5 w-3.5" />
+              )}
+              {statsHidden ? 'Mostrar estadísticas' : 'Ocultar estadísticas'}
+            </button>
+          )}
         </div>
-        {hasMap && (
-          <button
-            type="button"
-            onClick={() => setStatsHidden((h) => !h)}
-            className="flex shrink-0 items-center gap-1 self-center rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-accent"
-          >
-            {statsHidden ? (
-              <ChevronDown className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronUp className="h-3.5 w-3.5" />
-            )}
-            {statsHidden ? 'Mostrar estadísticas' : 'Ocultar estadísticas'}
-          </button>
-        )}
-      </div>
+      )}
       <div className="min-h-0 flex-1">
         <LevelBody
           selection={selection}
           onSelect={onSelect}
-          statsHidden={statsHidden}
+          statsHidden={comparisonMode || statsHidden}
           searchResult={searchResult}
+          comparisonMode={comparisonMode}
+          mapSync={mapSync}
         />
       </div>
     </div>

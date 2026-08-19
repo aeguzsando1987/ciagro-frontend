@@ -6,20 +6,35 @@ import { toast } from 'sonner'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { LoadingState } from '@/components/ui/loading-state'
 import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AnimatedTabs as Tabs } from '@/components/ui/animated-tabs'
+import { Tabs } from '@/components/ui/tabs'
 import { AssignCombobox } from '../components/AssignCombobox'
-import { Info, Trash2 } from 'lucide-react'
+import { ArrowLeft, Info, Trash2 } from 'lucide-react'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
 import { Field } from '../components/Field'
 import { useUpdateDataCentral } from '../hooks/useDataCentrals'
-import { useUserAssignments, useCreateUserAssignment, useDeleteUserAssignment } from '../hooks/useUserAssignments'
-import { useDataCentralAssignments, useCreateDataCentralAssignment, useDeleteDataCentralAssignment } from '../hooks/useDataCentralAssignments'
+import {
+  useUserAssignments,
+  useCreateUserAssignment,
+  useDeleteUserAssignment,
+} from '../hooks/useUserAssignments'
+import {
+  useDataCentralAssignments,
+  useCreateDataCentralAssignment,
+  useDeleteDataCentralAssignment,
+} from '../hooks/useDataCentralAssignments'
 import { useUsers } from '../hooks/useUsers'
 import { useAgroUnits } from '../hooks/useAgroUnits'
 import type { DataCentralDetail } from '../types'
@@ -61,16 +76,19 @@ export function DataCentralPanel({ dc, onClose }: Props) {
 
   const assignedUserIds = new Set(userAssignments.map((a) => a.user_id))
   const assignableUsers = allUsers.filter(
-    (u) => !assignedUserIds.has(u.id) && !localAssignedUserIds.has(u.id),
+    (u) => !assignedUserIds.has(u.id) && !localAssignedUserIds.has(u.id)
   )
 
   const assignedUnitIds = new Set(dcAssignments.map((a) => a.agro_unit_id))
   const assignableUnits = allUnits.filter(
-    (u) => !assignedUnitIds.has(String(u.id)) && !localAssignedUnitIds.has(String(u.id)),
+    (u) => !assignedUnitIds.has(String(u.id)) && !localAssignedUnitIds.has(String(u.id))
   )
 
   const {
-    register, handleSubmit, reset, setError,
+    register,
+    handleSubmit,
+    reset,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -112,7 +130,11 @@ export function DataCentralPanel({ dc, onClose }: Props) {
       toast.success('Usuario asignado.')
     } catch {
       // Rollback: devolver al selector si el servidor rechaza
-      setLocalAssignedUserIds((prev) => { const n = new Set(prev); n.delete(id); return n })
+      setLocalAssignedUserIds((prev) => {
+        const n = new Set(prev)
+        n.delete(id)
+        return n
+      })
       setSelectedUserId(id)
       toast.error('No se pudo asignar el usuario.')
     }
@@ -166,26 +188,38 @@ export function DataCentralPanel({ dc, onClose }: Props) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto animate-size">
+      <DialogContent className="max-w-[56rem]">
         <DialogHeader>
           <DialogTitle>
             {dc.name}
-            {dc.is_primary && <Badge variant="secondary" className="ml-2 text-xs">Principal</Badge>}
+            {dc.is_primary && (
+              <Badge variant="secondary" className="ml-2 text-xs">
+                Principal
+              </Badge>
+            )}
           </DialogTitle>
+          <DialogDescription>
+            Configuración, usuarios y agrounidades de esta CIAgro.
+          </DialogDescription>
           <button
             type="button"
             onClick={onClose}
-            className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="mt-0.5 flex min-h-10 items-center gap-1 rounded-md px-2 text-sm text-muted-foreground transition-colors duration-150 hover:bg-primary-soft hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
           >
-            ← {(dc.data_central_main as { name: string }).name}
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            {(dc.data_central_main as { name: string }).name}
           </button>
         </DialogHeader>
 
         <Tabs defaultValue="detail">
           <TabsList className="mb-4">
             <TabsTrigger value="detail">Detalle</TabsTrigger>
-            <TabsTrigger value="users">Usuarios ({dc.user_assignments_count ?? userAssignments.length})</TabsTrigger>
-            <TabsTrigger value="units">Agrounidades ({dc.agro_unit_assignments_count ?? dcAssignments.length})</TabsTrigger>
+            <TabsTrigger value="users">
+              Usuarios ({dc.user_assignments_count ?? userAssignments.length})
+            </TabsTrigger>
+            <TabsTrigger value="units">
+              Agrounidades ({dc.agro_unit_assignments_count ?? dcAssignments.length})
+            </TabsTrigger>
           </TabsList>
 
           {/* ── Tab Detalle ── */}
@@ -194,17 +228,25 @@ export function DataCentralPanel({ dc, onClose }: Props) {
               <div className="space-y-3 text-sm">
                 <Row label="Código o nombre">{dc.name}</Row>
                 <Row label="Descripción">{dc.description || '—'}</Row>
-                <Row label="Slug"><span className="font-mono text-xs">{dc.slug}</span></Row>
+                <Row label="Slug">
+                  <span className="font-mono text-xs">{dc.slug}</span>
+                </Row>
                 <Row label="Tipo">
-                  {dc.is_primary
-                    ? <Badge variant="secondary">Principal</Badge>
-                    : <Badge variant="outline">Secundaria</Badge>}
+                  {dc.is_primary ? (
+                    <Badge variant="secondary">Principal</Badge>
+                  ) : (
+                    <Badge variant="outline">Secundaria</Badge>
+                  )}
                 </Row>
                 <Row label="Organización">{(dc.data_central_main as { name: string }).name}</Row>
-                <Row label="Creada">{dc.created_at ? new Date(dc.created_at).toLocaleDateString('es-MX') : '—'}</Row>
+                <Row label="Creada">
+                  {dc.created_at ? new Date(dc.created_at).toLocaleDateString('es-MX') : '—'}
+                </Row>
                 {canEdit && !dc.is_primary && (
                   <div className="pt-2">
-                    <Button size="sm" onClick={() => setMode('edit')}>Editar</Button>
+                    <Button size="sm" onClick={() => setMode('edit')}>
+                      Editar
+                    </Button>
                   </div>
                 )}
               </div>
@@ -214,14 +256,12 @@ export function DataCentralPanel({ dc, onClose }: Props) {
                   <Input {...register('name')} />
                 </Field>
                 <Field label="Descripción" error={errors.description?.message}>
-                  <textarea
-                    {...register('description')}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    rows={3}
-                  />
+                  <Textarea {...register('description')} rows={3} />
                 </Field>
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={cancelEdit}>Cancelar</Button>
+                  <Button type="button" variant="outline" onClick={cancelEdit}>
+                    Cancelar
+                  </Button>
                   <Button type="submit" disabled={isSubmitting || mutation.isPending}>
                     {isSubmitting || mutation.isPending ? 'Guardando…' : 'Guardar cambios'}
                   </Button>
@@ -233,17 +273,17 @@ export function DataCentralPanel({ dc, onClose }: Props) {
           {/* ── Tab Usuarios ── */}
           <TabsContent value="users">
             <div className="space-y-3">
-              <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
+              <div className="flex items-start gap-2 rounded-lg border border-info/20 bg-info-soft px-3 py-2 text-xs text-info-foreground">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" />
                 <p>
-                  Asigna aquí los usuarios que podrán acceder a <strong>{dc.name}</strong>,
-                  el espacio de datos de esta CIAgro. Solo los asignados verán sus
-                  productores, parcelas, programas y sesiones (limitado por su rol).
+                  Asigna aquí los usuarios que podrán acceder a <strong>{dc.name}</strong>, el
+                  espacio de datos de esta CIAgro. Solo los asignados verán sus productores,
+                  parcelas, programas y sesiones (limitado por su rol).
                 </p>
               </div>
 
               {loadingUA ? (
-                <p className="text-sm text-muted-foreground">Cargando usuarios…</p>
+                <LoadingState compact label="Cargando usuarios…" className="justify-start p-0" />
               ) : userAssignments.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Sin usuarios asignados.</p>
               ) : (
@@ -258,8 +298,11 @@ export function DataCentralPanel({ dc, onClose }: Props) {
                       </div>
                       {canEdit && (
                         <Button
-                          size="icon" variant="ghost"
-                          className="text-destructive hover:text-destructive"
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="text-danger hover:bg-danger-soft hover:text-danger"
+                          aria-label={`Quitar usuario ${a.user_username}`}
                           onClick={() => handleRemoveUser(a.id)}
                           disabled={deleteUA.isPending}
                         >
@@ -295,17 +338,21 @@ export function DataCentralPanel({ dc, onClose }: Props) {
           {/* ── Tab Agrounidades ── */}
           <TabsContent value="units">
             <div className="space-y-3">
-              <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
+              <div className="flex items-start gap-2 rounded-lg border border-info/20 bg-info-soft px-3 py-2 text-xs text-info-foreground">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" />
                 <p>
-                  Asigna aquí las agrounidades (productores, comercializadoras, etc.) que
-                  forman parte del espacio de datos de <strong>{dc.name}</strong>. Solo las
-                  asignadas aportan sus ranchos, parcelas y sesiones a esta CIAgro.
+                  Asigna aquí las agrounidades (productores, comercializadoras, etc.) que forman
+                  parte del espacio de datos de <strong>{dc.name}</strong>. Solo las asignadas
+                  aportan sus ranchos, parcelas y sesiones a esta CIAgro.
                 </p>
               </div>
 
               {loadingDCA ? (
-                <p className="text-sm text-muted-foreground">Cargando agrounidades…</p>
+                <LoadingState
+                  compact
+                  label="Cargando agrounidades…"
+                  className="justify-start p-0"
+                />
               ) : dcAssignments.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Sin agrounidades asignadas.</p>
               ) : (
@@ -314,12 +361,17 @@ export function DataCentralPanel({ dc, onClose }: Props) {
                     <li key={a.id} className="flex items-center justify-between py-2 text-sm">
                       <div>
                         <p className="font-medium">{a.agro_unit_name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{a.agro_unit_code}</p>
+                        <p className="font-mono text-xs text-muted-foreground">
+                          {a.agro_unit_code}
+                        </p>
                       </div>
                       {canEdit && (
                         <Button
-                          size="icon" variant="ghost"
-                          className="text-destructive hover:text-destructive"
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="text-danger hover:bg-danger-soft hover:text-danger"
+                          aria-label={`Quitar agrounidad ${a.agro_unit_name}`}
                           onClick={() => handleRemoveUnit(a.id)}
                           disabled={deleteDCA.isPending}
                         >

@@ -4,10 +4,16 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
 import { Field } from '../components/Field'
 import { useCreateDataCentral } from '../hooks/useDataCentrals'
@@ -31,7 +37,10 @@ export function CreateDataCentralDialog({ open, onOpenChange, dataCentralMainId 
   const mutation = useCreateDataCentral()
 
   const {
-    register, handleSubmit, reset, setError,
+    register,
+    handleSubmit,
+    reset,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -66,21 +75,21 @@ export function CreateDataCentralDialog({ open, onOpenChange, dataCentralMainId 
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Nueva CIA Hija</DialogTitle>
+          <DialogDescription>
+            Registra una CIAgro dentro de la organización seleccionada.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Field label="Código o nombre *" error={errors.name?.message}>
             <Input {...register('name')} placeholder="Código o nombre de la CIAgro" />
           </Field>
           <Field label="Descripción" error={errors.description?.message}>
-            <textarea
-              {...register('description')}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              rows={3}
-              placeholder="Descripción breve"
-            />
+            <Textarea {...register('description')} rows={3} placeholder="Descripción breve" />
           </Field>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
             <Button type="submit" disabled={isSubmitting || mutation.isPending}>
               {isSubmitting || mutation.isPending ? 'Guardando…' : 'Crear CIA'}
             </Button>

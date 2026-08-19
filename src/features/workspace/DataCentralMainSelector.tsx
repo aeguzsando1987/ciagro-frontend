@@ -1,50 +1,82 @@
-import { useState } from 'react'
-import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+import { useMemo, useState } from 'react'
+import { ArrowLeft, Building2, ChevronRight, SearchX } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { ListSkeleton } from '@/components/ui/skeleton'
+import { PageHeader } from '@/components/ui/page-header'
+import { SearchInput } from '@/components/ui/search-input'
 import { useDataCentralsMain } from './useDataCentralsMain'
 import { useDataCentrals } from './useDataCentrals'
 import { DataCentralChildSelector } from './DataCentralChildSelector'
 import type { DataCentralMain } from '@/types/workspace'
 
-/**
- * Selector jerarquico para Gerente/SuperAdmin (role_level >= 4).
- * Paso 1: muestra lista de CIAgros Padre.
- * Paso 2: al seleccionar una Padre, carga y muestra sus hijas.
- * (Paso 1.4 product-doc)
- */
+function ciaCountLabel(value?: number | string) {
+  const count = Number(value ?? 0)
+  return `${count} ${count === 1 ? 'CIAgro' : 'CIAgros'}`
+}
+
+/** Selector jerárquico de organización → CIAgro para Gerente y SuperAdmin. */
 export function DataCentralMainSelector() {
   const [selectedMain, setSelectedMain] = useState<DataCentralMain | null>(null)
-  const { data: mains = [], isLoading: loadingMains } = useDataCentralsMain()
-  const { data: children = [], isLoading: loadingChildren } = useDataCentrals(selectedMain?.id)
+  const [search, setSearch] = useState('')
+  const {
+    data: mains = [],
+    isLoading: loadingMains,
+    error: mainsError,
+    refetch: refetchMains,
+  } = useDataCentralsMain()
+  const {
+    data: children = [],
+    isLoading: loadingChildren,
+    error: childrenError,
+    refetch: refetchChildren,
+  } = useDataCentrals(selectedMain?.id)
 
-  if (loadingMains) {
-    return <p className="text-muted-foreground">Cargando organizaciones...</p>
-  }
+  const filteredMains = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase('es-MX')
+    if (!query) return mains
+    return mains.filter((main) =>
+      `${main.name} ${main.slug}`.toLocaleLowerCase('es-MX').includes(query)
+    )
+  }, [mains, search])
 
   if (selectedMain) {
-    if (loadingChildren) {
-      return <p className="text-muted-foreground">Cargando CIAs...</p>
-    }
     return (
-      <div className="space-y-4">
-        <button
-          className="text-sm text-muted-foreground hover:underline"
-          onClick={() => setSelectedMain(null)}
-        >
-          &larr; Volver a organizaciones
-        </button>
-        {children.length === 0 ? (
-          <div className="w-full max-w-md space-y-2">
-            <h2 className="text-xl font-semibold">CIAs de {selectedMain.name}</h2>
-            <p className="rounded-md border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-              Esta organización aún no tiene CIAgros. Crea la primera desde el panel de
-              <strong> Administración → Organizaciones</strong>.
-            </p>
-          </div>
+      <div className="w-full space-y-7">
+        <PageHeader
+          title={selectedMain.name}
+          description="Selecciona la CIAgro con la que deseas trabajar."
+          className="[&_h1]:text-[30px] [&_p]:text-[15px]"
+          breadcrumbs={
+            <Button variant="ghost" size="sm" onClick={() => setSelectedMain(null)}>
+              <ArrowLeft />
+              Organizaciones
+            </Button>
+          }
+        />
+
+        {loadingChildren ? (
+          <ListSkeleton rows={3} label="Cargando CIAgros…" />
+        ) : childrenError ? (
+          <ErrorState
+            title="No pudimos cargar las CIAgros"
+            description="Revisa tu conexión e inténtalo nuevamente."
+            onRetry={() => void refetchChildren()}
+          />
+        ) : children.length === 0 ? (
+          <EmptyState
+            icon={<Building2 />}
+            title="Esta organización todavía no tiene CIAgros"
+            description="Crea la primera desde Administración → Organizaciones."
+          />
         ) : (
           <DataCentralChildSelector
             datacentrals={children}
-            title={`CIAs de ${selectedMain.name}`}
+            title="CIAgros disponibles"
+            description={`Unidades pertenecientes a ${selectedMain.name}.`}
+            showHeader={false}
           />
         )}
       </div>
@@ -52,22 +84,74 @@ export function DataCentralMainSelector() {
   }
 
   return (
-    <div className="w-full max-w-md space-y-4">
-      <h2 className="text-xl font-semibold">Selecciona una organizacion</h2>
-      <div className="space-y-2">
-        {mains.map((main) => (
-          <Card
-            key={main.id}
-            className="cursor-pointer transition-colors hover:bg-accent"
-            onClick={() => setSelectedMain(main)}
-          >
-            <CardHeader className="flex flex-row items-center justify-between py-3">
-              <CardTitle className="text-base font-medium">{main.name}</CardTitle>
-              {main.is_owner && <Badge variant="secondary">Dueno</Badge>}
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
+    <div className="w-full space-y-7">
+      <PageHeader
+        title="Organizaciones"
+        description="Selecciona la organización con la que deseas trabajar."
+        className="[&_h1]:text-[30px] [&_p]:text-[15px]"
+      />
+
+      <SearchInput
+        aria-label="Buscar organización"
+        placeholder="Buscar organización…"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        onClear={search ? () => setSearch('') : undefined}
+        className="h-12 text-base"
+        containerClassName="max-w-lg"
+      />
+
+      {loadingMains ? (
+        <ListSkeleton rows={3} label="Cargando organizaciones…" />
+      ) : mainsError ? (
+        <ErrorState
+          title="No pudimos cargar las organizaciones"
+          description="Revisa tu conexión e inténtalo nuevamente."
+          onRetry={() => void refetchMains()}
+        />
+      ) : filteredMains.length === 0 ? (
+        <EmptyState
+          icon={<SearchX />}
+          title={search ? 'No encontramos organizaciones' : 'No hay organizaciones'}
+          description={
+            search
+              ? 'Prueba con otro nombre o limpia la búsqueda.'
+              : 'No tienes organizaciones disponibles en este momento.'
+          }
+        />
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-default bg-surface">
+          {filteredMains.map((main, index) => (
+            <button
+              key={main.id}
+              type="button"
+              onClick={() => setSelectedMain(main)}
+              className={`flex min-h-20 w-full items-center gap-5 px-5 text-left transition-colors duration-150 hover:bg-table-hover focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/25 sm:px-6 ${
+                index > 0 ? 'border-t border-border-light' : ''
+              }`}
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-brand">
+                <Building2 className="h-[22px] w-[22px]" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-base font-semibold text-foreground">
+                  {main.name}
+                </span>
+                <span className="mt-0.5 block text-[15px] text-secondary">
+                  {ciaCountLabel(main.datacentrals_count)}
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2">
+                {main.is_owner && <Badge variant="secondary">Propietario</Badge>}
+                {main.status && main.status !== 'active' && (
+                  <Badge variant="warning">{main.status}</Badge>
+                )}
+                <ChevronRight className="h-5 w-5 text-muted" />
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
