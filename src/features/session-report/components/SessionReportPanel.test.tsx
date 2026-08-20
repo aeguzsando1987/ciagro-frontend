@@ -25,6 +25,12 @@ vi.mock('../hooks/useSessionReport', async () => {
 vi.mock('../hooks/useReportAssets', () => ({
   useUploadReportAssets: () => ({ mutate: vi.fn(), isPending: false }),
   useOpenReportPdf: () => ({ mutate: vi.fn(), isPending: false }),
+  useDownloadReportKmz: () => ({ mutate: vi.fn(), isPending: false }),
+}))
+// El formulario consulta el clima con su propia mutación (FASE KM); sin mock
+// pediría un QueryClient que este test no monta.
+vi.mock('../hooks/useReportWeather', () => ({
+  useReportWeather: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 vi.mock('../hooks/useSessionIssues', () => ({
   useSessionIssues: () => ({ data: [], isLoading: false }),
@@ -112,6 +118,17 @@ describe('SessionReportPanel', () => {
     expect(screen.queryByRole('button', { name: /Publicar reporte/i })).toBeNull()
     // La liga es el UUID que el reporte ya tiene: revocar = despublicar.
     expect(screen.getByText(new RegExp(`/r/${REPORT.id}/`))).toBeTruthy()
+  })
+
+  it('con reporte: ofrece Exportar KML aunque no haya captura del mapa', () => {
+    setRole(3)
+    // REPORT no tiene `map_snapshot`: el PDF se deshabilita por eso, pero el KMZ
+    // no depende de la captura y debe quedar disponible igual (FASE KM).
+    mockReport.mockReturnValue({ data: REPORT, isLoading: false, isError: false, refetch: vi.fn() })
+    renderPanel()
+    const kml = screen.getByRole('button', { name: /Exportar KML/i })
+    expect((kml as HTMLButtonElement).disabled).toBe(false)
+    expect((screen.getByRole('button', { name: /Ver PDF/i }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('con reporte: al pulsar Generar en estado vacío aparece el formulario de creación', () => {

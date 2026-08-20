@@ -439,6 +439,44 @@ emitiendo `org` en cada `VisorSelection` (ver `.CLAUDE/visor-contours-tenant-pro
 
 ---
 
+## FASE KM — Exportar KML del reporte + traer el clima del día (rama `dev-report-kml`, 2026-08-18)
+
+**Estado:** `[🔄] Implementada — pendiente prueba manual del desarrollador en Google Earth`.
+Dos botones nuevos en el reporte de sesión. El backend de esta fase se registra en
+`../CIAgro_alpha_back/logs/roadmap.md` (KM-1 a KM-8).
+
+- [x] **KM-9** `useDownloadReportKmz` en `hooks/useReportAssets.ts`. Calca `useOpenReportPdf` porque
+      el endpoint es autenticado y no se puede enlazar la URL directo (no llevaría el Bearer): se
+      baja como blob y se dispara la descarga desde memoria. **Siempre descarga**, nunca abre
+      pestaña — un KMZ mostrado en el navegador no sirve de nada — y por eso tampoco necesita el
+      baile con el bloqueador de popups que sí hace el PDF.
+- [x] **KM-10** Botón "Exportar KML" en `ReportDeliverables.tsx`, junto a "Ver PDF". **Sin** el
+      `disabled` por `hasMap`: esa condición es del PDF, el KMZ no depende de la captura del mapa.
+- [x] **KM-11** Clima en `ReportForm.tsx`: hook `useReportWeather`, dos campos nuevos (mínima y
+      máxima) y botón "Traer clima del día de aplicación" con degradado cielo→ámbar e icono
+      `CloudSun`. El botón **rellena el formulario con `setValue`, no guarda**: el analista ve el
+      valor antes de persistirlo y lo puede corregir, y así funciona igual en un reporte publicado.
+      `available: false` (POWER va 4-5 días atrás) se avisa con `toast.info`, no como error.
+- [x] **KM-12** Tests (`ReportForm.test.tsx` nuevo + `sessionReport.test.ts` ampliado) y
+      `npm run types:gen`. 387 tests en 67 archivos, `tsc --noEmit` limpio.
+
+**Trampas encontradas:**
+
+1. **`step="0.1"` rompía el guardado.** El navegador exige que el valor sea múltiplo del `step`, y
+   POWER devuelve dos decimales (12.04, 30.84): eso es un *stepMismatch*, y su mensaje nativo en
+   español es "Introduce un valor válido", que no dice cuál es el problema y no se puede traducir.
+   Se pasa a `step="any"` y la regla vive en zod con mensaje propio. Decisión del dev: las
+   temperaturas se acotan a **grados enteros**; la columna sigue siendo `decimal(5,2)`, así que
+   volver a decimales es quitar el redondeo, sin migración.
+2. **Coma decimal.** El `input type="number"` pinta el valor con el separador del locale (en es-MX,
+   19.94 se ve "19,94") y algunos navegadores dejan teclearla. `Number("19,94")` es `NaN`, así que
+   un valor correcto se rechazaría como inválido: se normaliza a punto al validar y al enviar.
+3. **Acoplamiento del test del panel.** Al meter un hook nuevo en `ReportForm`, `SessionReportPanel.test.tsx`
+   se rompió por falta de `QueryClient`, porque renderiza el formulario. Todo hook nuevo del
+   formulario hay que mockearlo también ahí.
+
+---
+
 ## FASES FRONTEND 3–10 · MÓDULOS RESTANTES
 **Estado:** `[ ] Pendientes — UX/UI por pulir`
 

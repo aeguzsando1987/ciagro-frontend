@@ -111,3 +111,43 @@ export function useOpenReportPdf(reportId: string) {
     },
   })
 }
+
+/**
+ * Descarga el KMZ del reporte (FASE KM) para abrirlo en Google Earth.
+ *
+ * A diferencia del PDF, esto **siempre** descarga y nunca abre pestaña: un KMZ
+ * mostrado en el navegador no sirve de nada, el usuario necesita el archivo en
+ * disco. Por eso tampoco hace falta el baile con el bloqueador de popups que sí
+ * necesita `useOpenReportPdf`.
+ *
+ * El endpoint es autenticado, así que no se puede enlazar la URL directo (no
+ * llevaría el Bearer): se baja como blob y se dispara la descarga desde memoria.
+ */
+export function useDownloadReportKmz(reportId: string) {
+  return useMutation({
+    mutationFn: async (): Promise<void> => {
+      const res = await fetch(`${baseUrl}/field_ops/session-reports/${reportId}/kml/`, {
+        headers: authHeaders(),
+      })
+      if (!res.ok) {
+        const detail = await res
+          .json()
+          .then((body: { detail?: string }) => body.detail)
+          .catch(() => undefined)
+        throw new Error(detail ?? 'No se pudo generar el KML del reporte.')
+      }
+
+      const blob = await res.blob()
+      const filename =
+        res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ??
+        'reporte.kmz'
+
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      link.click()
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    },
+  })
+}

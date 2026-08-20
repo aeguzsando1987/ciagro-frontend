@@ -1,41 +1,97 @@
-feat(admin+ui): sectores CRUD, aliados por selector, ranchos/parcelas en agrounidad y animaciones de modales
+feat(session-report): exportar KML del reporte y traer el clima del dia (FASE KM)
 
-Sesión 22 (rama dev). Cuatro frentes de trabajo sobre /admin y la capa de UI. Varios
-archivos se solapan entre features (AgroUnitPanel, RanchPanel, los 7 paneles con
-pestañas), por lo que se entregan en un solo commit.
+Rama dev-report-kml (desde dev). Dos botones nuevos en el reporte de sesion. El backend va en el
+repo ciagro, misma rama y mismo commit conceptual.
 
-1) feat(admin) — Sectores agrícolas: editar y eliminar
-   La pestaña Sectores solo listaba/creaba (el backend ya soportaba PATCH/DELETE).
-   - useAgroSectors: useUpdateAgroSector (PATCH) + useDeleteAgroSector (DELETE).
-   - CreateSectorDialog: modo edición (prop sector) reutilizando el formulario.
-   - AgroUnitsSection: columna Acciones (Editar/Eliminar, gated Supervisor+), borrado con
-     confirm(). Tests añadidos en AgroUnitsSection.test.tsx.
+El reporte ya entregaba liga publica y PDF (fase RP); faltaba un archivo geografico que el cliente
+pudiera abrir en Google Earth, porque esa informacion solo existia dentro del visor de la app. Y
+day_temperature, que existe desde la fase AC, se llenaba a mano porque la D9 dejo la API de clima
+explicitamente diferida.
 
-2) feat(admin) — Aliados (RanchPartner) por selector filtrado por tipo
-   El form pedía pegar el UUID de la unidad. Ahora "Tipo de relación" filtra y "Unidad" es
-   un selector de agrounidades de ese tipo (espejo de RELATION_TO_UNIT_TYPE del backend).
-   - useAgroUnits(unitType?) filtrable por ?unit_type=.
-   - RanchPanel: Select de unidad; limpia la unidad al cambiar de tipo; muestra
-     partner_name en la lista (en vez del UUID).
-   - types/api.d.ts: partner_name/partner_unit_type añadidos a mano al schema RanchPartner
-     (se evitó regenerar todo el archivo para no arrastrar drift no relacionado).
-   Requiere el cambio de backend del mismo Sesión 22 (RanchPartnerSerializer).
+1) feat(session-report) - useDownloadReportKmz en hooks/useReportAssets.ts
+   Calca useOpenReportPdf porque el endpoint es autenticado y no se puede enlazar la URL directo: no
+   llevaria el Bearer. Se baja como blob y se dispara la descarga desde memoria.
 
-3) feat(admin) — Ranchos y parcelas desde el detalle de una AgroUnit
-   AgroUnitPanel gana pestañas Ranchos y Parcelas (solo Productor/Asociación agrícola) y
-   contadores en Detalle. Backend sin cambios (filtros ?producer= y creates ya existían).
-   - AgroUnitPanel: useRanches(unit.id)/usePlots({producerId}); pestaña Parcelas agrupa por
-     rancho; crear rancho/parcela desde el panel (diálogos anidados).
-   - RanchFormDialog: prop fixedProducerId (fija/oculta el productor).
+   Diferencia deliberada con el PDF: el KMZ SIEMPRE descarga y nunca abre pestana, porque un archivo
+   de Google Earth mostrado en el navegador no sirve de nada. Eso ademas simplifica el hook, que no
+   necesita recibir la ventana ya creada ni cerrarla si falla, que es el baile que hace el PDF para
+   esquivar al bloqueador de popups.
 
-4) feat(ui) — Animaciones de modales (toda la app)
-   - Aparición/cierre: tailwindcss-animate instalado y registrado en tailwind.config →
-     activa las clases ya escritas en dialog.tsx/sheet.tsx (bonus: select/dropdown).
-   - Altura al cambiar de pestaña: auto-animate descartado (solo crossfade, no interpola
-     altura); nuevo AnimatedHeight (ResizeObserver + transición CSS de height, respeta
-     prefers-reduced-motion, no rompe el scroll) y AnimatedTabs (Tabs envuelto). Import
-     Tabs->AnimatedTabs en los 7 modales con pestañas.
-   - src/test/setup.ts: mock de ResizeObserver (jsdom no lo trae).
+2) feat(session-report) - boton "Exportar KML" en ReportDeliverables.tsx
+   Junto a "Ver PDF", pero SIN el disabled por hasMap. Es tentador copiarlo por simetria, pero esa
+   condicion es del PDF: el KMZ no depende de la captura del mapa y siempre hay algo que exportar,
+   aunque sea el contorno de la parcela. Hay un test que fija esa asimetria.
 
-Verificación: tsc --noEmit 0 errores; vitest run 187/187 verde.
-Documentación: logs/development.md (Sesión 22), logs/dev_log.csv.
+3) feat(session-report) - clima del dia en ReportForm.tsx
+   Hook useReportWeather, dos campos nuevos (minima y maxima) y boton "Traer clima del dia de
+   aplicacion".
+
+   DECISION DE DISENO que ordena todo lo demas: el boton RELLENA el formulario con setValue y NO
+   guarda. Asi el endpoint queda como consulta pura, el analista ve el valor antes de persistirlo y
+   lo puede corregir, y no hubo que inventar ninguna regla para reportes publicados, cuyos snapshots
+   estan congelados por la D3. Va en ReportForm y no en ReportDeliverables porque la temperatura es
+   un campo del formulario, no un entregable.
+
+   available:false se avisa con toast.info y no con toast.error: que NASA POWER todavia no publique
+   una fecha es el funcionamiento normal de su archivo -va 4-5 dias atras-, no una falla del sistema,
+   y el usuario tiene que poder distinguir una cosa de la otra.
+
+   Estilo del boton: degradado del token info (azul cielo) al warning (ambar), borde info e icono
+   CloudSun de lucide, para que se lea como "clima" sin depender del texto. Se usan los tokens del
+   sistema de diseno y no colores crudos de Tailwind: asi el boton sigue la paleta si alguien la
+   cambia y el tema oscuro sale solo, sin variantes dark: escritas a mano.
+
+4) fix(session-report) - step de los campos de temperatura
+   BUG reportado por el dev al probar: "Introduce un valor valido" al guardar. La causa era step=0.1
+   en los inputs: el navegador exige que el valor sea multiplo del step, y POWER devuelve dos
+   decimales (12.04, 30.84). Eso es un stepMismatch, y su mensaje nativo no dice cual es el problema
+   ni se puede traducir.
+
+   Lo importante es que la solucion NO era step=1: eso vuelve a disparar el mismo mensaje en cuanto
+   alguien teclea un decimal. Se pasa a step=any para callar la validacion nativa y la regla vive en
+   zod, con mensaje propio en espanol. Decision del dev: las temperaturas se acotan a grados ENTEROS;
+   la columna sigue siendo decimal(5,2), asi que volver a decimales es quitar el redondeo, sin
+   migracion.
+
+   De paso aparecio la coma decimal: el input type=number pinta el valor con el separador del locale
+   -en es-MX, 19.94 se ve "19,94"- y algunos navegadores dejan teclearla, pero Number("19,94") es
+   NaN. Sin normalizarla, un valor que en pantalla se ve bien se rechazaria como invalido. Se
+   normaliza al validar y al enviar, y se redondea tanto al traer de la API como al cargar reportes
+   viejos, para que el usuario vea lo mismo que se va a guardar.
+
+TRAMPA DE ACOPLAMIENTO
+
+Al meter un hook nuevo en ReportForm, SessionReportPanel.test.tsx se rompio por falta de QueryClient,
+porque ese test renderiza el formulario. Todo hook nuevo del formulario hay que mockearlo tambien
+ahi.
+
+VERIFICACION
+
+7 tests nuevos: ReportForm.test.tsx (rellena las tres temperaturas redondeadas, avisa sin ensuciar
+los campos cuando POWER aun no publica, y no ofrece el boton al crear porque no hay reporte que
+consultar), sessionReport.test.ts ampliado (enteros, coma decimal, toWholeDegrees) y el caso de la
+asimetria PDF/KML en el panel. El caso existente que aceptaba 28.5 se actualiza a 28 por el cambio de
+regla.
+
+Tipos regenerados con npm run types:gen contra el contenedor. tsc --noEmit limpio; vitest 412/412 en
+72 archivos (387 propios de la rama mas los del rediseno, tras rebasar sobre el).
+
+BASE ACTUALIZADA POR REBASE
+
+La rama nacio de un dev que quedo 2 commits atras de origin/dev, incluido el rediseno visual
+(46d8124), que reescribio 149 archivos entre ellos los 7 componentes ui que esta fase importa:
+button, input, label, select, sheet, card y badge. No habia conflicto de archivos, pero si riesgo de
+incompatibilidad semantica que git no ve, asi que se rebaso sobre origin/dev ANTES de homologar en
+vez de mezclar a ciegas. El rebase se hizo con un solo commit y sin haberlo pusheado nunca, asi que
+no reescribe historia compartida.
+
+Resultado: sin conflictos, tsc --noEmit limpio y vitest 412/412 en 72 archivos. El rediseno mantuvo
+aliases retrocompatibles de las variantes de boton (outline, default, destructive), que es por lo que
+nada se rompio.
+
+Aprovechando el rebase, el boton de clima se migro de colores crudos a los tokens del sistema nuevo:
+el rediseno agrego design-system.test.tsx, cuyo criterio es componer "sin estilos particulares por
+pantalla", y un degradado sky/amber escrito a mano iba justo a contracorriente.
+
+Pendiente la prueba manual del desarrollador en Google Earth, sin la cual la fase no se marca
+VALIDADA.

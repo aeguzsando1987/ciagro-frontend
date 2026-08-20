@@ -17,7 +17,11 @@ import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { useUpdateSessionReport } from '../hooks/useSessionReport'
-import { useUploadReportAssets, useOpenReportPdf } from '../hooks/useReportAssets'
+import {
+  useUploadReportAssets,
+  useOpenReportPdf,
+  useDownloadReportKmz,
+} from '../hooks/useReportAssets'
 import { ReportMapCapture } from './ReportMapCapture'
 import type { SessionReport, SessionType } from '../types'
 
@@ -42,6 +46,7 @@ export function ReportDeliverables({
   const uploadMut = useUploadReportAssets(report.id, sessionType, objectId)
   const updateMut = useUpdateSessionReport(report.id, sessionType, objectId)
   const pdfMut = useOpenReportPdf(report.id)
+  const kmzMut = useDownloadReportKmz(report.id)
 
   const isPublished = report.status === 'publicado'
   const hasMap = !!report.map_snapshot
@@ -106,6 +111,16 @@ export function ReportDeliverables({
     })
   }
 
+  function exportKmz() {
+    kmzMut.mutate(undefined, {
+      onSuccess: () => toast.success('KML descargado. Ábrelo en Google Earth.'),
+      onError: (e) =>
+        toast.error(
+          e instanceof Error ? e.message : 'No se pudo generar el KML del reporte.'
+        ),
+    })
+  }
+
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(publicUrl)
@@ -120,7 +135,7 @@ export function ReportDeliverables({
       <div>
         <p className="text-sm font-medium">Entregables</p>
         <p className="text-xs text-muted-foreground">
-          Firma del analista, liga para el cliente y PDF del reporte.
+          Firma del analista, liga para el cliente, PDF y archivo KML para Google Earth.
         </p>
       </div>
 
@@ -174,6 +189,18 @@ export function ReportDeliverables({
           title={hasMap ? undefined : 'Publica el reporte para capturar el mapa'}
         >
           {pdfMut.isPending ? 'Generando PDF…' : 'Ver PDF'}
+        </Button>
+
+        {/* El KMZ no depende de la captura del mapa (a diferencia del PDF), así que
+            no se deshabilita por `hasMap`: siempre hay algo que exportar. */}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={exportKmz}
+          disabled={kmzMut.isPending}
+          title="Descarga el archivo para abrirlo en Google Earth"
+        >
+          {kmzMut.isPending ? 'Generando KML…' : 'Exportar KML'}
         </Button>
       </div>
 

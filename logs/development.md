@@ -2570,3 +2570,73 @@ regla sea esta y no un recorte selectivo.
 
 **Verificación:** `tsc --noEmit` limpio; `vitest` **380/380** (66 archivos), de los cuales 24 son
 nuevos de esta fase.
+
+---
+
+## Sesión `report-kml` — FASE KM: exportar KML del reporte y traer el clima (2026-08-18, rama `dev-report-kml`)
+
+Dos botones nuevos en el reporte de sesión. El backend se narra en
+`../CIAgro_alpha_back/logs/development.md`; aquí va lo del front.
+
+### De dónde nace
+
+El reporte ya entregaba liga pública y PDF. Faltaba un archivo geográfico que el cliente pudiera
+abrir en Google Earth: hasta ahora esa información solo existía dentro del visor de la app. Y
+`day_temperature`, que existe desde la fase AC, se llenaba a mano porque la D9 dejó la API de clima
+explícitamente diferida.
+
+### Exportar KML
+
+El hook calca `useOpenReportPdf`, que ya resuelve el problema de fondo: el endpoint es autenticado,
+así que no se puede poner un `<a href>` a la URL porque no llevaría el Bearer. Hay que bajarlo como
+blob y disparar la descarga desde memoria.
+
+La diferencia deliberada con el PDF es que el KMZ **siempre descarga y nunca abre pestaña**: un
+archivo de Google Earth mostrado en el navegador no sirve de nada. Eso además simplifica el hook,
+que no necesita recibir la ventana ya creada ni cerrarla si falla, que es el baile que hace el PDF
+para esquivar al bloqueador de popups.
+
+El botón va sin el `disabled` por `hasMap`. Es tentador copiarlo del PDF por simetría, pero esa
+condición es del PDF: el KMZ no depende de la captura del mapa y siempre hay algo que exportar,
+aunque sea el contorno de la parcela. Hay un test que fija justo esa asimetría.
+
+### Traer el clima
+
+**El botón rellena el formulario, no guarda.** Fue la decisión de diseño que ordenó todo lo demás:
+el endpoint quedó como consulta pura, el analista ve el valor antes de persistirlo y lo puede
+corregir, y no hubo que inventar ninguna regla para reportes publicados (cuyos snapshots están
+congelados por la D3). Va en `ReportForm` y no en `ReportDeliverables` porque la temperatura es un
+campo del formulario, no un entregable.
+
+`available: false` se avisa con `toast.info`, no con `toast.error`. Que NASA POWER todavía no
+publique una fecha es el funcionamiento normal de su archivo (va 4-5 días atrás), no una falla del
+sistema, y el usuario tiene que poder distinguir una cosa de la otra.
+
+### La trampa del `step`
+
+Al probarlo, el dev reportó "Introduce un valor válido" al guardar. La causa era `step="0.1"` en los
+inputs: el navegador exige que el valor sea múltiplo del `step`, y POWER devuelve dos decimales
+(12.04, 30.84). Eso es un *stepMismatch*, y su mensaje nativo no dice cuál es el problema ni se
+puede traducir.
+
+Lo importante es que la solución **no** era `step="1"`: eso vuelve a disparar el mismo mensaje feo en
+cuanto alguien teclea un decimal. Se pasa a `step="any"` para callar la validación nativa y la regla
+vive en zod, con mensaje propio en español. Decisión del dev: las temperaturas se acotan a grados
+enteros; la columna sigue siendo `decimal(5,2)`, así que volver a decimales es quitar el redondeo,
+sin migración.
+
+De paso apareció la coma decimal: el `input type="number"` pinta el valor con el separador del
+locale (en es-MX, 19.94 se ve "19,94") y algunos navegadores dejan teclearla, pero `Number("19,94")`
+es `NaN`. Sin normalizarla, un valor que en pantalla se ve bien se rechazaría como inválido.
+
+### Otras notas
+
+- **Acoplamiento que conviene recordar**: al meter un hook nuevo en `ReportForm`,
+  `SessionReportPanel.test.tsx` se rompió por falta de `QueryClient`, porque ese test renderiza el
+  formulario. Todo hook nuevo del formulario hay que mockearlo también ahí.
+- El estilo del botón de clima (degradado cielo→ámbar, borde `sky-500`, icono `CloudSun` de lucide)
+  es para que se lea como "clima" sin depender del texto. Icono, no emoji.
+- Tipos regenerados con `npm run types:gen` contra el contenedor.
+
+**Verificación:** `tsc --noEmit` limpio; `vitest` **387/387** (67 archivos). Pendiente la prueba
+manual del dev en Google Earth, sin la cual la fase no se marca VALIDADA.

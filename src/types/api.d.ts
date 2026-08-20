@@ -4496,6 +4496,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/field_ops/session-reports/{id}/kml/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Descargar el reporte de sesión en KML (KMZ) para Google Earth
+         * @description Genera el archivo geográfico del reporte: contorno de la parcela, los rectángulos de cobertura coloreados con el **mismo semáforo** que el PDF (una carpeta por bucket, para prender y apagar en Google Earth) y los temas de atención. Autenticado y sujeto al scope del usuario.
+         *
+         *     Se entrega comprimido como **KMZ** (`.kmz`): el KML plano de una sesión real ronda los 4 MB y comprimido baja a ~280 KB.
+         *
+         *     A diferencia del PDF, **no** exige `map_snapshot`: el archivo no depende de la captura del mapa. Un reporte cuyo tipo de sesión aún no exporta telemetría devuelve **200** con la parcela y los temas de atención, no un error.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/session-reports/{id}/kml/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         */
+        get: operations["v1_field_ops_session_reports_kml_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/session-reports/{id}/weather/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Clima del día de aspersión (NASA POWER)
+         * @description Devuelve las temperaturas **media, mínima y máxima** del día de aspersión en la ubicación de la parcela, para llenar los campos de temperatura del reporte sin capturarlos a mano. Fuente: NASA POWER (dominio público).
+         *
+         *     **No escribe nada**: es una consulta. El front rellena el formulario y el analista guarda (o corrige) con el resto del reporte, así que funciona igual en un reporte publicado.
+         *
+         *     **200 con `available: false`** cuando POWER todavía no publica ese día: el archivo va 4-5 días atrás de la fecha actual. No es un error.
+         *     **422** si el reporte no tiene fecha de aplicación en su snapshot o no hay coordenadas de la parcela. **502** si POWER no responde.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/session-reports/{id}/weather/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         */
+        get: operations["v1_field_ops_session_reports_weather_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/field_ops/public/session-reports/{id}/": {
         parameters: {
             query?: never;
@@ -10875,9 +10940,21 @@ export interface components {
             /**
              * Temperatura de día
              * Format: decimal
-             * @description Manual. Se difiere con API de clima para otro feature
+             * @description Temperatura media del día. Manual o traída de NASA POWER.
              */
             day_temperature?: string | null;
+            /**
+             * Temperatura mínima del día
+             * Format: decimal
+             * @description Manual o traída de NASA POWER.
+             */
+            day_temperature_min?: string | null;
+            /**
+             * Temperatura máxima del día
+             * Format: decimal
+             * @description Manual o traída de NASA POWER.
+             */
+            day_temperature_max?: string | null;
             /** Responsable de actividad */
             lead?: string;
             /** Encargado del rancho */
@@ -11700,9 +11777,21 @@ export interface components {
             /**
              * Temperatura de día
              * Format: decimal
-             * @description Manual. Se difiere con API de clima para otro feature
+             * @description Temperatura media del día. Manual o traída de NASA POWER.
              */
             day_temperature?: string | null;
+            /**
+             * Temperatura mínima del día
+             * Format: decimal
+             * @description Manual o traída de NASA POWER.
+             */
+            day_temperature_min?: string | null;
+            /**
+             * Temperatura máxima del día
+             * Format: decimal
+             * @description Manual o traída de NASA POWER.
+             */
+            day_temperature_max?: string | null;
             /** Responsable de actividad */
             lead?: string;
             /** Encargado del rancho */
@@ -11752,7 +11841,7 @@ export interface components {
             /**
              * Temperatura de día
              * Format: decimal
-             * @description Manual. Se difiere con API de clima para otro feature
+             * @description Temperatura media del día. Manual o traída de NASA POWER.
              */
             day_temperature?: string | null;
             /** Responsable de actividad */
@@ -12945,6 +13034,8 @@ export interface operations {
     v1_organizations_list: {
         parameters: {
             query?: {
+                /** @description Filtra por organización padre (`DataCentralMain`), es decir por todas sus CIAgros hijas a la vez. Complementa a `datacentral`, que acota a una sola. */
+                organization?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
                 /** @description Number of results to return per page. */
@@ -15110,6 +15201,80 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_field_ops_session_reports_kml_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_field_ops_session_reports_weather_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };
