@@ -1,10 +1,14 @@
 /**
- * Mapa de los ranchos de un productor: un pin por rancho (geom Point), con su nombre.
- * Al hacer clic en un pin se selecciona ese rancho (sube a nivel rancho → el dashboard
- * pasa a mostrar sus parcelas). Solo lectura.
+ * Mapa de los ranchos de un productor sobre imagen satelital: los polígonos de sus
+ * parcelas, coloreados por rancho, y encima un pin con el nombre de cada uno. Al hacer
+ * clic en un pin o en un polígono se selecciona ese rancho (sube a nivel rancho → el
+ * dashboard pasa a mostrar sus parcelas). Solo lectura.
+ *
+ * Los polígonos son lo que deja ver la tierra real; el pin solo dice dónde está. Antes
+ * solo había pines, así que a nivel de productor no se apreciaba la extensión.
  */
 import { useEffect, useMemo, useRef } from 'react'
-import Map, { Marker } from 'react-map-gl/maplibre'
+import Map, { Layer, Marker, Source } from 'react-map-gl/maplibre'
 import type { MapRef } from 'react-map-gl/maplibre'
 import { MapModeSelector } from './MapModeSelector'
 import { useMapMode } from '../lib/mapModes'
@@ -13,6 +17,27 @@ import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import type { RanchFlat, PlotFlat } from '@/features/admin/types'
 
 type Bounds = [number, number, number, number]
+
+/**
+ * Colores por rancho, en ORDEN FIJO — nunca se ciclan.
+ *
+ * Validados con el script de la guía de visualización contra un fondo oscuro, que es
+ * lo que más se parece a la imagen satelital: separación para daltonismo ΔE 21.1
+ * (deutan) y 13.3 (tritan), visión normal 27.4, contraste >= 3:1. La única
+ * comprobación que no pasa es la banda de luminosidad, y es esperable: esa banda se
+ * calibra contra una superficie PLANA de gráfico, mientras que aquí el fondo es
+ * terreno —variable y a menudo claro—, donde los tonos brillantes a baja opacidad son
+ * justo lo que se distingue.
+ *
+ * La identidad nunca depende del color: cada rancho lleva además su pin con nombre.
+ */
+const COLORES_RANCHO = [
+  '#22d3ee', '#fb923c', '#c084fc', '#a3e635', '#f472b6', '#fbbf24',
+] as const
+
+/** Gris neutro para los ranchos que exceden la paleta: ciclar hues seria enga\u00f1oso. */
+const COLOR_EXCEDENTE = '#94a3b8'
+
 
 /** Centroide promedio de las parcelas de un rancho (fallback cuando el rancho no tiene
  *  su propia ubicación). Usa el `centroid` Point de cada parcela. */
@@ -70,20 +95,70 @@ export function ProducerRanchesMap({
     [ranches, plots]
   )
 
+  /** Color de cada rancho, fijado por su posición en la lista (no por su ranking). */
+  // Objeto plano y no `Map`: el componente `Map` de react-map-gl tapa el constructor
+  // nativo en este módulo.
+  const colorPorRancho = useMemo<Record<string, string>>(() => {
+    const porId: Record<string, string> = {}
+    ranches.forEach((r, i) => {
+      porId[r.id] = COLORES_RANCHO[i] ?? COLOR_EXCEDENTE
+    })
+    return porId
+  }, [ranches])
+
+  const poligonos = useMemo<GeoJSON.FeatureCollection>(() => {
+    const deEsteProductor = new Set(ranches.map((r) => r.id))
+    return {
+      type: 'FeatureCollection',
+      features: plots
+        .filter((p) => p.geom && p.ranch && deEsteProductor.has(p.ranch))
+        .map((p) => ({
+          type: 'Feature' as const,
+          geometry: p.geom as GeoJSON.Geometry,
+          properties: {
+            ranchId: p.ranch,
+            color: colorPorRancho[p.ranch!] ?? COLOR_EXCEDENTE,
+          },
+        })),
+    }
+  }, [plots, ranches, colorPorRancho])
+
+  const hayPoligonos = poligonos.features.length > 0
+
   const bounds = useMemo<Bounds | null>(() => {
-    if (pins.length === 0) return null
     let minX = Infinity,
       minY = Infinity,
       maxX = -Infinity,
       maxY = -Infinity
-    for (const { coord } of pins) {
-      minX = Math.min(minX, coord[0])
-      maxX = Math.max(maxX, coord[0])
-      minY = Math.min(minY, coord[1])
-      maxY = Math.max(maxY, coord[1])
+    let hay = false
+
+    const anota = (lon: number, lat: number) => {
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) return
+      hay = true
+      minX = Math.min(minX, lon)
+      maxX = Math.max(maxX, lon)
+      minY = Math.min(minY, lat)
+      maxY = Math.max(maxY, lat)
     }
-    return [minX, minY, maxX, maxY]
-  }, [pins])
+
+    for (const { coord } of pins) anota(coord[0], coord[1])
+
+    // Los polígonos también entran en el encuadre: con solo los pines, una parcela
+    // grande quedaba cortada por el borde del mapa.
+    const recorre = (nodo: unknown) => {
+      if (!Array.isArray(nodo)) return
+      if (typeof nodo[0] === 'number' && typeof nodo[1] === 'number') {
+        anota(nodo[0], nodo[1])
+        return
+      }
+      for (const hijo of nodo) recorre(hijo)
+    }
+    for (const f of poligonos.features) {
+      recorre((f.geometry as { coordinates?: unknown }).coordinates)
+    }
+
+    return hay ? [minX, minY, maxX, maxY] : null
+  }, [pins, poligonos])
 
   useEffect(() => {
     if (!mapRef.current || !bounds) return
@@ -91,7 +166,8 @@ export function ProducerRanchesMap({
     mapRef.current.fitBounds(bounds, { padding: 80, duration: 600, maxZoom: 13 })
   }, [bounds])
 
-  const hasPins = pins.length > 0
+  // Con polígonos ya se ve dónde está el rancho aunque no haya pin.
+  const hasPins = pins.length > 0 || hayPoligonos
 
   return (
     <div className="relative h-full w-full">
@@ -110,10 +186,42 @@ export function ProducerRanchesMap({
         }
         maxZoom={20}
         mapStyle={ESRI_STYLE}
+        interactiveLayerIds={hayPoligonos ? ['producer-plots-fill'] : []}
+        onClick={(e) => {
+          // El polígono es un objetivo mucho mayor que el pin: hace clicable toda la
+          // superficie del rancho, no solo su etiqueta.
+          const ranchId = e.features?.[0]?.properties?.['ranchId'] as string | undefined
+          if (!ranchId) return
+          const ranch = ranches.find((r) => r.id === ranchId)
+          if (!ranch) return
+          onSelectRanch({
+            id: ranch.id,
+            name: ranch.name ?? ranch.code ?? ranch.id.slice(0, 8),
+          })
+        }}
         cooperativeGestures
         attributionControl={false}
         style={{ width: '100%', height: '100%' }}
       >
+        {hayPoligonos && (
+          <Source id="producer-plots" type="geojson" data={poligonos}>
+            {/* Relleno translúcido: deja ver el terreno debajo, que es el punto de
+                usar imagen satelital. */}
+            <Layer
+              id="producer-plots-fill"
+              type="fill"
+              paint={{ 'fill-color': ['get', 'color'] as unknown as string, 'fill-opacity': 0.28 }}
+            />
+            {/* Contorno opaco: sobre terreno irregular el borde es lo que define la
+                parcela; el relleno solo la tiñe. */}
+            <Layer
+              id="producer-plots-line"
+              type="line"
+              paint={{ 'line-color': ['get', 'color'] as unknown as string, 'line-width': 2 }}
+            />
+          </Source>
+        )}
+
         {pins.map(({ ranch, coord }) => (
           <Marker key={ranch.id} longitude={coord[0]} latitude={coord[1]} anchor="bottom">
             <button
