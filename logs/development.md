@@ -2640,3 +2640,76 @@ es `NaN`. Sin normalizarla, un valor que en pantalla se ve bien se rechazaría c
 
 **Verificación:** `tsc --noEmit` limpio; `vitest` **387/387** (67 archivos). Pendiente la prueba
 manual del dev en Google Earth, sin la cual la fase no se marca VALIDADA.
+
+---
+
+## Sesión `plot-scope` — FASE PS: scope por parcela (frontend) (2026-08-21, rama `dev-plot-scope`)
+
+Contraparte del backend (ver `../../CIAgro_alpha_back/logs/development.md`). El alcance de un usuario
+pasa a tener dos granos: la CIAgro y, opcionalmente, parcelas concretas dentro de ella.
+
+### Hooks compartidos y un fix de paginación que era el verdadero riesgo
+
+`useProducers`, `useRanches` y `usePlots` leían `data.results` y se quedaban con la **primera
+página**, descartando el resto sin ningún aviso. `StandardPagination` sirve 100 por página (máximo
+1000), así que una CIAgro con más de 100 parcelas mostraba un selector recortado en silencio.
+
+En un árbol de navegación eso es un nodo que falta. **En un selector de permisos son parcelas que el
+gerente cree haber asignado y no asignó.**
+
+`src/lib/api/paginated.ts` pide de golpe el máximo que el backend admite y solo encadena más páginas
+si el `count` dice que faltan: en la práctica es **una** petición salvo en los casos grandes de
+verdad. Lleva cota de seguridad porque un `count` inconsistente con los datos haría girar el bucle.
+
+Los tres hooks se extendieron **antes** del modal a propósito: alimentan los dos casos de uso —el
+selector y el explorador—, así que hacerlos dentro del modal habría obligado a reescribirlos después.
+
+### Modal de alcance
+
+Colgado del item de usuario de la pestaña Usuarios de `DataCentralPanel`, que **no era clickeable**:
+ese hueco era el gancho natural. Dos modos excluyentes, y el selector de parcelas **solo aparece en
+modo delimitado** — que es justo lo que el admin de Django no puede hacer sin JavaScript propio. En
+modo completo no hay nada que elegir, y mostrarlo sugeriría que la selección importa cuando se ignora.
+
+Filtros en cascada (cambiar de agrounidad resetea el rancho, que era del anterior), búsqueda,
+agrupación Agrounidad → Rancho y casilla por rancho. Parte del alcance **ya guardado**, no de un
+estado en blanco: es un modal de edición.
+
+**Cuatro estados diferenciados a propósito:** cargando, error con reintento, *"esta CIAgro no tiene
+parcelas"* y *"ninguna coincide con estos filtros"*. Confundirlos hace parecer roto un modal que
+funciona, y el caso es real: hay CIAgros con productores y cero parcelas. Además, aviso antes de
+guardar cuando delimitado se queda sin ninguna parcela: es un estado válido en la base de datos pero
+deja al usuario sin ver nada.
+
+El modal destapó tres huecos en el backend, los tres aditivos: el endpoint de alcance no declaraba
+`request`/`responses` (sin tipos generados, y el schema lo consume también la app móvil);
+`PlotSerializer` no exponía productor ni nombre de rancho, sin los cuales era imposible agrupar; y
+`UserAssignmentSerializer` no exponía `access_mode`, sin el cual el listado no podía mostrar quién
+está delimitado sin pedir el alcance de cada uno por separado.
+
+### Poda de ramas vacías
+
+Antes de tocar nada se verificó si hacía falta: **la poda que el análisis daba por trabajo de
+frontend ya la resolvía el backend**. Recorriendo el árbol endpoint por endpoint para los perfiles
+delimitado, mixto, sin-parcelas y owner: cero ramas vacías.
+
+Lo que sí quedaba era ruido de **datos legítimos**, no de alcance: 13 productores sin ningún rancho
+repartidos en 5 CIAgros, pintados con un "Sin ranchos" debajo. En un árbol cuyo propósito es llegar a
+las sesiones de una parcela, eso no lleva a ninguna parte.
+
+Para saber si un nodo tiene contenido hay que preguntarlo **antes** de pintarlo, cosa que la carga
+perezosa nodo por nodo no permite: se invirtió a petición **por lote** de los nietos (`?producer_in`,
+`?ranch_in`). Efecto lateral favorable: al expandir un nivel se pasa de **N peticiones a una**.
+
+### Verificación
+
+**17 tests nuevos** (6 del helper de paginación, 7 del modal, 4 de la poda). Los de poda llevan cada
+uno su **control positivo**: comprueban que el nodo *con* contenido sí se pinta, porque un test que
+solo verifica una ausencia pasaría igual si no se pintara nada.
+
+El fixture de `GeodataExplorer.test.tsx` mockeaba ranchos sin `producer` y parcelas sin `ranch`,
+campos que la API real sí devuelve; al agrupar por ellos todo quedaba podado. **Se completó el
+fixture para que refleje la respuesta real, no se relajó la implementación.**
+
+`tsc --noEmit` limpio, lint sin errores (24 warnings preexistentes) y suite en verde: **75 archivos,
+429 tests**. Tipos regenerados desde el schema del backend.

@@ -25,10 +25,19 @@ vi.mock('@/features/admin/hooks/useProducers', () => ({
   }),
 }))
 vi.mock('@/features/admin/hooks/useRanches', () => ({
-  useRanches: () => ({ data: [{ id: 'ranch-1', name: 'Rancho Norte', code: 'RN' }], isLoading: false }),
+  // `producer` es imprescindible: el explorador agrupa los ranchos por productor
+  // para no pintar productores sin ninguno. La API real siempre lo devuelve.
+  useRanches: () => ({
+    data: [{ id: 'ranch-1', name: 'Rancho Norte', code: 'RN', producer: 'prod-1' }],
+    isLoading: false,
+  }),
 }))
 vi.mock('@/features/admin/hooks/usePlots', () => ({
-  usePlots: () => ({ data: [{ id: 'plot-1', code: 'P-01' }], isLoading: false }),
+  // Igual con `ranch`: agrupa las parcelas por rancho para podar los que no tienen.
+  usePlots: () => ({
+    data: [{ id: 'plot-1', code: 'P-01', ranch: 'ranch-1' }],
+    isLoading: false,
+  }),
 }))
 vi.mock('../hooks/useAspersionSessionHeaders', () => ({
   useAspersionSessionHeaders: () => ({

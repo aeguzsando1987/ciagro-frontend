@@ -8,7 +8,7 @@
  * Reutiliza los hooks de la jerarquía (regla de reuso del contrato) y emite una
  * VisorSelection con la ruta completa al hacer clic en cualquier nodo.
  */
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Building2, Bug, ChevronDown, ChevronRight, Factory, FlaskConical, Layers, Leaf,
   MapPin, RefreshCw, Sprout, Tractor,
@@ -340,25 +340,29 @@ function PlotNode({ depth, plotRef, base, selection, onSelect }: {
   )
 }
 
-function PlotList({ depth, ranch, base, selection, onSelect }: {
+/** Referencia minima de un nodo del arbol: lo que hace falta para pintarlo y seleccionarlo. */
+type RanchRef = { id: string; name: string }
+type PlotRef = { id: string; name: string }
+
+function PlotList({ depth, ranch, plots, base, selection, onSelect }: {
   depth: number
   ranch: { id: string; name: string }
+  plots: PlotRef[]
   base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer'>
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const { data, isLoading, isError, refetch } = usePlots({ ranchId: ranch.id })
-  if (isLoading) return <Loading depth={depth} />
-  if (isError) return <InlineError depth={depth} text="No pudimos cargar las parcelas." onRetry={() => void refetch()} />
-  if (!data || data.length === 0) return <Empty depth={depth} text="Sin parcelas." />
+  // `RanchList` ya trajo las parcelas de todos sus ranchos en una sola peticion, y solo
+  // pinta los que tienen alguna: aqui la lista nunca llega vacia.
+  if (plots.length === 0) return <Empty depth={depth} text="Sin parcelas." />
   const childBase = { ...base, ranch }
   return (
     <>
-      {data.map((p) => (
+      {plots.map((p) => (
         <PlotNode
           key={p.id}
           depth={depth}
-          plotRef={{ id: p.id, name: p.code ?? p.id.slice(0, 8) }}
+          plotRef={p}
           base={childBase}
           selection={selection}
           onSelect={onSelect}
@@ -370,9 +374,11 @@ function PlotList({ depth, ranch, base, selection, onSelect }: {
 
 // ─── Nivel 4: Ranchos ─────────────────────────────────────────────────────────
 
-function RanchNode({ depth, ranchRef, base, selection, onSelect }: {
+function RanchNode({ depth, ranchRef, plots, base, selection, onSelect }: {
   depth: number
   ranchRef: { id: string; name: string }
+  /** Ya resueltas por `RanchList`: evita una peticion por rancho al expandir. */
+  plots: PlotRef[]
   base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer'>
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
@@ -391,31 +397,51 @@ function RanchNode({ depth, ranchRef, base, selection, onSelect }: {
         onSelect={() => onSelect({ ...base, ranch: ranchRef, level: 'ranch' })}
       />
       {expanded && (
-        <PlotList depth={depth + 1} ranch={ranchRef} base={base} selection={selection} onSelect={onSelect} />
+        <PlotList depth={depth + 1} ranch={ranchRef} plots={plots} base={base} selection={selection} onSelect={onSelect} />
       )}
     </>
   )
 }
 
-function RanchList({ depth, producer, base, selection, onSelect }: {
+function RanchList({ depth, producer, ranches, base, selection, onSelect }: {
   depth: number
   producer: { id: string; name: string }
+  ranches: RanchRef[]
   base: Pick<VisorSelection, 'org' | 'datacentral'>
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const { data, isLoading, isError, refetch } = useRanches(producer.id)
-  if (isLoading) return <Loading depth={depth} />
-  if (isError) return <InlineError depth={depth} text="No pudimos cargar los ranchos." onRetry={() => void refetch()} />
-  if (!data || data.length === 0) return <Empty depth={depth} text="Sin ranchos." />
+  const idsRanchos = useMemo(() => ranches.map((r) => r.id), [ranches])
+  // Las parcelas de todos los ranchos del productor de una vez, por el mismo motivo
+  // que en el nivel de arriba: una sola peticion y poda antes de pintar.
+  const parcelas = usePlots({ ranchIds: idsRanchos })
+
+  if (ranches.length === 0) return <Empty depth={depth} text="Sin ranchos." />
+  if (parcelas.isLoading) return <Loading depth={depth} />
+  if (parcelas.isError) {
+    return <InlineError depth={depth} text="No pudimos cargar las parcelas." onRetry={() => void parcelas.refetch()} />
+  }
+
+  const porRancho = new Map<string, PlotRef[]>()
+  for (const p of parcelas.data ?? []) {
+    if (!p.ranch) continue
+    const lista = porRancho.get(p.ranch) ?? []
+    lista.push({ id: p.id, name: p.code ?? p.id.slice(0, 8) })
+    porRancho.set(p.ranch, lista)
+  }
+  // Poda: un rancho sin parcelas visibles no lleva a ninguna sesion.
+  const conParcelas = ranches.filter((r) => (porRancho.get(r.id) ?? []).length > 0)
+  if (conParcelas.length === 0) return <Empty depth={depth} text="Sin ranchos con parcelas." />
+
   const childBase = { ...base, producer }
   return (
     <>
-      {data.map((r) => (
+      {conParcelas.map((r) => (
         <RanchNode
           key={r.id}
           depth={depth}
-          ranchRef={{ id: r.id, name: r.name ?? r.code ?? r.id.slice(0, 8) }}
+          ranchRef={r}
+          plots={porRancho.get(r.id) ?? []}
           base={childBase}
           selection={selection}
           onSelect={onSelect}
@@ -427,9 +453,11 @@ function RanchList({ depth, producer, base, selection, onSelect }: {
 
 // ─── Nivel 3: Productores ─────────────────────────────────────────────────────
 
-function ProducerNode({ depth, producerRef, base, selection, onSelect }: {
+function ProducerNode({ depth, producerRef, ranches, base, selection, onSelect }: {
   depth: number
   producerRef: { id: string; name: string }
+  /** Ya resueltos por `ProducerList`: evita una peticion por productor al expandir. */
+  ranches: RanchRef[]
   base: Pick<VisorSelection, 'org' | 'datacentral'>
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
@@ -448,7 +476,7 @@ function ProducerNode({ depth, producerRef, base, selection, onSelect }: {
         onSelect={() => onSelect({ ...base, producer: producerRef, level: 'producer' })}
       />
       {expanded && (
-        <RanchList depth={depth + 1} producer={producerRef} base={base} selection={selection} onSelect={onSelect} />
+        <RanchList depth={depth + 1} producer={producerRef} ranches={ranches} base={base} selection={selection} onSelect={onSelect} />
       )}
     </>
   )
@@ -462,17 +490,38 @@ function ProducerList({ depth, datacentral, base, selection, onSelect }: {
   onSelect: (sel: VisorSelection) => void
 }) {
   const { data, isLoading, isError, refetch } = useProducers(datacentral.id)
+  const idsProductores = useMemo(() => (data ?? []).map((p) => p.id), [data])
+  // Los ranchos de TODA la CIAgro en una sola peticion. Sirve para dos cosas: evita
+  // una peticion por productor al expandir, y es lo unico que permite saber, ANTES de
+  // pintar, que productores no tienen ningun rancho visible.
+  const ranchos = useRanches(null, idsProductores)
+
   if (isLoading) return <Loading depth={depth} />
   if (isError) return <InlineError depth={depth} text="No pudimos cargar los productores." onRetry={() => void refetch()} />
   if (!data || data.length === 0) return <Empty depth={depth} text="Sin productores." />
+  if (ranchos.isLoading) return <Loading depth={depth} />
+
+  const porProductor = new Map<string, RanchRef[]>()
+  for (const r of ranchos.data ?? []) {
+    if (!r.producer) continue
+    const lista = porProductor.get(r.producer) ?? []
+    lista.push({ id: r.id, name: r.name ?? r.code ?? r.id.slice(0, 8) })
+    porProductor.set(r.producer, lista)
+  }
+  // Poda: un productor sin ranchos no tiene nada que explorar en el Visor. Se omite
+  // en vez de pintarlo con un "Sin ranchos" debajo, que es ruido en el arbol.
+  const conRanchos = data.filter((p) => (porProductor.get(p.id) ?? []).length > 0)
+  if (conRanchos.length === 0) return <Empty depth={depth} text="Sin productores con ranchos." />
+
   const childBase = { ...base, datacentral }
   return (
     <>
-      {data.map((p) => (
+      {conRanchos.map((p) => (
         <ProducerNode
           key={p.id}
           depth={depth}
           producerRef={{ id: p.id, name: p.commercial_name ?? p.code ?? p.id.slice(0, 8) }}
+          ranches={porProductor.get(p.id) ?? []}
           base={childBase}
           selection={selection}
           onSelect={onSelect}

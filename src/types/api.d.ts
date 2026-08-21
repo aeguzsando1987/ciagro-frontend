@@ -767,6 +767,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/assignments/{id}/scope/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Leer o reemplazar el alcance por parcela de una asignación
+         * @description `GET` devuelve el modo de acceso de la asignación y, si está delimitada, las parcelas concretas con su rancho y su productor ya resueltos.
+         *
+         *     `PUT` reemplaza el alcance COMPLETO: recibe el modo y el conjunto entero de parcelas, no un delta. Es idempotente y transaccional.
+         *
+         *     **Modos:** `full` (el usuario ve todo el alcance de la CIAgro, comportamiento por defecto) y `restricted` (solo las parcelas de `plot_ids`).
+         *
+         *     El modo y las parcelas se escriben en la MISMA llamada a propósito: separarlos permitiría dejar una asignación en `restricted` con cero parcelas, que es un usuario sin ninguna visibilidad.
+         *
+         *     Las parcelas deben pertenecer a productores asignados a la CIAgro de la asignación; en caso contrario responde `400`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PUT http://localhost:8500/api/v1/users/assignments/{id}/scope/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "access_mode": "restricted",
+         *       "plot_ids": [
+         *         "<uuid>",
+         *         "<uuid>"
+         *       ]
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("users/assignments/{id}/scope/")
+         *         suspend fun getAssignmentScope(@Path("id") id: String): AssignmentScope
+         *     }
+         *
+         *     val result = api.getAssignmentScope(id)
+         *     ```
+         */
+        get: operations["v1_users_assignments_scope_retrieve"];
+        /**
+         * Leer o reemplazar el alcance por parcela de una asignación
+         * @description `GET` devuelve el modo de acceso de la asignación y, si está delimitada, las parcelas concretas con su rancho y su productor ya resueltos.
+         *
+         *     `PUT` reemplaza el alcance COMPLETO: recibe el modo y el conjunto entero de parcelas, no un delta. Es idempotente y transaccional.
+         *
+         *     **Modos:** `full` (el usuario ve todo el alcance de la CIAgro, comportamiento por defecto) y `restricted` (solo las parcelas de `plot_ids`).
+         *
+         *     El modo y las parcelas se escriben en la MISMA llamada a propósito: separarlos permitiría dejar una asignación en `restricted` con cero parcelas, que es un usuario sin ninguna visibilidad.
+         *
+         *     Las parcelas deben pertenecer a productores asignados a la CIAgro de la asignación; en caso contrario responde `400`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X PUT http://localhost:8500/api/v1/users/assignments/{id}/scope/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "access_mode": "restricted",
+         *       "plot_ids": [
+         *         "<uuid>",
+         *         "<uuid>"
+         *       ]
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("users/assignments/{id}/scope/")
+         *         suspend fun getAssignmentScope(@Path("id") id: String): AssignmentScope
+         *     }
+         *
+         *     val result = api.getAssignmentScope(id)
+         *     ```
+         */
+        put: operations["v1_users_assignments_scope_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/pending/": {
         parameters: {
             query?: never;
@@ -7944,6 +8038,12 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * @description * `full` - Acceso completo
+         *     * `restricted` - Delimitado por parcela
+         * @enum {string}
+         */
+        AccessModeEnum: "full" | "restricted";
+        /**
          * @description * `ASPERSION` - Aspersión
          *     * `PHYTOSANITARY` - Monitoreo Fitosanitario
          *     * `MONITORING` - Monitoreo genérico
@@ -10733,6 +10833,10 @@ export interface components {
                 description?: string;
                 /** Format: uuid */
                 ranch?: string;
+                readonly ranch_name?: string;
+                /** Format: uuid */
+                readonly producer_id?: string;
+                readonly producer_name?: string;
                 centroid?: {
                     /** @enum {string} */
                     type?: "Point";
@@ -11488,6 +11592,10 @@ export interface components {
                 description?: string;
                 /** Format: uuid */
                 ranch?: string;
+                readonly ranch_name?: string;
+                /** Format: uuid */
+                readonly producer_id?: string;
+                readonly producer_name?: string;
                 centroid?: {
                     /** @enum {string} */
                     type?: "Point";
@@ -11682,6 +11790,25 @@ export interface components {
          * @enum {string}
          */
         RelevanciaEnum: "alta" | "media" | "baja" | "na";
+        /**
+         * @description Parcela dentro del alcance de una asignación, con sus dos ancestros.
+         *
+         *     Trae rancho y productor ya resueltos porque el modal agrupa Agrounidad → Rancho:
+         *     devolver solo los ids obligaría al frontend a pedir los nombres por separado,
+         *     una petición por nodo del árbol.
+         */
+        ScopedPlot: {
+            /** Format: uuid */
+            readonly id: string;
+            code: string;
+            description?: string;
+            /** Format: uuid */
+            readonly ranch_id: string;
+            readonly ranch_name: string;
+            /** Format: uuid */
+            readonly producer_id: string;
+            readonly producer_name: string;
+        };
         SessionIssue: {
             /** Format: uuid */
             readonly id: string;
@@ -12237,8 +12364,35 @@ export interface components {
             datacentral_id: string;
             readonly datacentral_name: string;
             readonly datacentral_slug: string;
+            /** Modo de acceso */
+            readonly access_mode: components["schemas"]["AccessModeEnum"];
             /** Format: date-time */
             readonly created_at: string;
+        };
+        /** @description Alcance de una asignación: el modo y, si está delimitado, sus parcelas. */
+        UserAssignmentScopeRead: {
+            readonly id: number;
+            /** Format: uuid */
+            readonly user_id: string;
+            /** Format: uuid */
+            readonly datacentral_id: string | null;
+            /** Modo de acceso */
+            access_mode?: components["schemas"]["AccessModeEnum"];
+            readonly plots: components["schemas"]["ScopedPlot"][];
+        };
+        /**
+         * @description Reemplazo completo del alcance de una asignación.
+         *
+         *     Modo y parcelas viajan JUNTOS a propósito. Separarlos en dos llamadas permite un
+         *     estado intermedio `restricted` con cero parcelas y, tras el fix del scope vacío,
+         *     ese estado es un usuario que no ve absolutamente nada. Si la segunda llamada
+         *     fallara (red, cierre del modal), el usuario quedaría a ciegas sin que nadie lo
+         *     supiera. Aquí es una sola operación y además idempotente: se manda el conjunto
+         *     completo y el resultado no depende de cuántas veces se repita.
+         */
+        UserAssignmentScopeWrite: {
+            access_mode: components["schemas"]["AccessModeEnum"];
+            plot_ids?: string[];
         };
         UserDetail: {
             /** Format: uuid */
@@ -12765,6 +12919,54 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    v1_users_assignments_scope_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAssignmentScopeRead"];
+                };
+            };
+        };
+    };
+    v1_users_assignments_scope_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserAssignmentScopeWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["UserAssignmentScopeWrite"];
+                "multipart/form-data": components["schemas"]["UserAssignmentScopeWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAssignmentScopeRead"];
+                };
             };
         };
     };
@@ -13887,6 +14089,8 @@ export interface operations {
                 page_size?: number;
                 /** @description Filtra parcelas por UUID del productor (AgroUnit). Alternativa directa sin pasar por rancho. */
                 producer?: string;
+                /** @description Lista de UUIDs de productor separados por coma. Trae de una vez todas las parcelas de varios productores, que es lo que necesita el selector del modal de alcance por parcela: las parcelas de una CIAgro cuelgan de varios productores. */
+                producer_in?: string;
                 /** @description Filtra parcelas por UUID del rancho. Útil para navegar la jerarquía Rancho → Parcela en la app móvil. */
                 ranch?: string;
                 /** @description Lista de UUIDs de rancho separados por coma. Para el selector en cascada de la búsqueda avanzada del Visor. */

@@ -1,5 +1,6 @@
 import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/client'
+import { fetchAllPages } from '@/lib/api/paginated'
 import type { components } from '@/types/api'
 import type { RanchFlat } from '../types'
 
@@ -9,22 +10,50 @@ function flattenRanch(f: components['schemas']['Ranch']): RanchFlat {
   return { ...(f.properties ?? {}), id: f.id!, geom: f.geometry ?? null }
 }
 
-export function ranchesQueryOptions(producerId?: string | null) {
+/**
+ * @param producerId un productor concreto.
+ * @param producerIds varios a la vez (`?producer_in`). El explorador lo usa para traer
+ *   los ranchos de TODA la CIAgro en una peticion en vez de una por productor, que es
+ *   ademas lo que le permite saber que productores no tienen ninguno y no pintarlos.
+ */
+export function ranchesQueryOptions(
+  producerId?: string | null,
+  producerIds?: string[] | null
+) {
+  const productores = producerIds?.length ? [...producerIds].sort() : null
   return queryOptions({
-    queryKey: producerId ? [...RANCHES_KEY, { producer: producerId }] : RANCHES_KEY,
+    queryKey: productores
+      ? ([...RANCHES_KEY, { producer_in: productores }] as const)
+      : producerId
+        ? ([...RANCHES_KEY, { producer: producerId }] as const)
+        : RANCHES_KEY,
+    // Un array vacio significa "aun no se de que productores", no "de todos".
+    enabled: producerIds === undefined || producerIds === null || producerIds.length > 0,
     queryFn: async (): Promise<RanchFlat[]> => {
-      const { data, error } = await apiClient.GET('/api/v1/geo_assets/ranches/', {
-        params: { query: producerId ? { producer: producerId } : undefined },
-      })
-      if (error) throw new Error('No se pudieron cargar los ranchos')
-      return (data?.results?.features ?? []).map(flattenRanch)
+      const features = await fetchAllPages<components['schemas']['Ranch']>(
+        async ({ page, page_size }) => {
+          const { data, error } = await apiClient.GET('/api/v1/geo_assets/ranches/', {
+            params: {
+              query: {
+                ...(producerId ? { producer: producerId } : {}),
+                ...(productores ? { producer_in: productores.join(',') } : {}),
+                page,
+                page_size,
+              } as never,
+            },
+          })
+          if (error) throw new Error('No se pudieron cargar los ranchos')
+          return data ?? null
+        }
+      )
+      return features.map(flattenRanch)
     },
     staleTime: 30_000,
   })
 }
 
-export function useRanches(producerId?: string | null) {
-  return useQuery(ranchesQueryOptions(producerId))
+export function useRanches(producerId?: string | null, producerIds?: string[] | null) {
+  return useQuery(ranchesQueryOptions(producerId, producerIds))
 }
 
 export function ranchDetailQueryOptions(id: string | null) {

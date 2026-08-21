@@ -1,5 +1,6 @@
 import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/client'
+import { fetchAllPages } from '@/lib/api/paginated'
 import type { components } from '@/types/api'
 import type { PlotFlat } from '../types'
 
@@ -9,20 +10,61 @@ function flattenPlot(f: components['schemas']['Plot']): PlotFlat {
   return { ...(f.properties ?? {}), id: f.id!, geom: f.geometry ?? null }
 }
 
-type PlotsFilter = { ranchId?: string | null; producerId?: string | null }
+type PlotsFilter = {
+  ranchId?: string | null
+  producerId?: string | null
+  /**
+   * Varios productores a la vez (`?producer_in`). Lo necesita el selector del modal
+   * de alcance: las parcelas de una CIAgro cuelgan de varios productores, y pedirlas
+   * de una en una sería una petición por productor más un recorte en el cliente.
+   */
+  producerIds?: string[] | null
+  /**
+   * Varios ranchos a la vez (`?ranch_in`). El explorador lo usa para saber, de una
+   * sola peticion, que ranchos no tienen ninguna parcela visible y no pintarlos.
+   */
+  ranchIds?: string[] | null
+}
 
-export function plotsQueryOptions({ ranchId, producerId }: PlotsFilter = {}) {
+export function plotsQueryOptions({ ranchId, producerId, producerIds, ranchIds }: PlotsFilter = {}) {
+  // Se normaliza para la clave de caché: dos arrays con el mismo contenido en distinto
+  // orden son la misma consulta, y sin normalizar generarían dos entradas distintas.
+  const productores = producerIds?.length ? [...producerIds].sort() : null
+  const ranchos = ranchIds?.length ? [...ranchIds].sort() : null
   return queryOptions({
-    queryKey: [...PLOTS_KEY, { ranchId: ranchId ?? null, producerId: producerId ?? null }] as const,
+    queryKey: [
+      ...PLOTS_KEY,
+      {
+        ranchId: ranchId ?? null,
+        producerId: producerId ?? null,
+        producerIds: productores,
+        ranchIds: ranchos,
+      },
+    ] as const,
+    // Sin al menos un filtro pediría TODAS las parcelas visibles del sistema. El
+    // selector siempre acota por CIAgro, así que un array vacío significa "todavía no
+    // sé de qué productores", no "de todos".
+    enabled:
+      (producerIds === undefined || producerIds === null || producerIds.length > 0) &&
+      (ranchIds === undefined || ranchIds === null || ranchIds.length > 0),
     queryFn: async (): Promise<PlotFlat[]> => {
       const query: Record<string, string> = {}
       if (ranchId) query['ranch'] = ranchId
       if (producerId) query['producer'] = producerId
-      const { data, error } = await apiClient.GET('/api/v1/geo_assets/plots/', {
-        params: { query: Object.keys(query).length ? query : undefined },
-      })
-      if (error) throw new Error('No se pudieron cargar las parcelas')
-      return (data?.results?.features ?? []).map(flattenPlot)
+      if (productores) query['producer_in'] = productores.join(',')
+      if (ranchos) query['ranch_in'] = ranchos.join(',')
+      const features = await fetchAllPages<components['schemas']['Plot']>(
+        async ({ page, page_size }) => {
+          const { data, error } = await apiClient.GET('/api/v1/geo_assets/plots/', {
+            params: {
+              query: { ...query, page, page_size } as never,
+            },
+          })
+          if (error) throw new Error('No se pudieron cargar las parcelas')
+          return data ?? null
+        }
+      )
+      return features.map(flattenPlot)
     },
     staleTime: 30_000,
   })

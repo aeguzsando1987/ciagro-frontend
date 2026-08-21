@@ -1,7 +1,7 @@
 # ROADMAP — CIAgro Alpha Frontend
 
 > **Estado actual:** Sesión 18 — Tanda de mejoras de producto: wizard de primer uso convertido en mini-tutorial (org → CIAgros → productores → asignaciones → info usuarios) con animación; UX de Administración (banners de asignación, labels "Dueño de organización"/"Código o nombre", combobox inline + transición de tamaño); visor con mapa de ranchos por productor (pines) y toolbar flotante; fix Manager dueño de org sin CIAs (no más NoAccessScreen); organizaciones inactivas deshabilitadas en selector/visor con guard de expulsión en caliente. Apoyado en cambios de backend Sesión 18.
-> **Última actualización:** 2026-07-21 — Fase RP planeada (liga pública `/r/<uuid>` + PDF del reporte de aspersión, rama `dev-report-public-pdf`; maquetado server-side en el backend, el front aporta captura de mapa, firma y botones).
+> **Última actualización:** 2026-08-21 — Fase PS implementada y validada (scope por parcela, rama `dev-plot-scope`): hooks con paginación real, modal de alcance en la pestaña Usuarios y poda de ramas vacías del explorador.
 > **Backend:** roadmap propio en `../../CIAgro_alpha_backend/logs/roadmap.md`
 > **Producto:** `../../.context/templates/product-doc.md`
 > **Convención:** los sprints son estimaciones de **dev-week** (1 dev senior full-time).
@@ -579,6 +579,44 @@ Dos botones nuevos en el reporte de sesión. El backend de esta fase se registra
 - Fase 2 requiere Fase 1 cerrada (`datacentral_id` persistido en URL + cliente HTTP estable).
 - Fases 3–10 pueden correr en paralelo entre sí una vez Fase 1 cerrada.
 - GAP-BACKEND-001 (seed) bloquea Fase 1 entera.
+
+---
+
+## FASE PS: SCOPE POR PARCELA — FRONTEND
+**Estado:** `[✅] Implementada y VALIDADA manualmente — rama dev-plot-scope, 2026-08-21; pendiente homologación`
+
+Contraparte de la fase PS del backend (ver `../../CIAgro_alpha_back/logs/roadmap.md`, PS-0 a PS-7,
+ya completos). El backend ya resuelve el alcance con dos granos: la CIAgro y, opcionalmente,
+parcelas concretas dentro de ella.
+
+- [x] **PS-8** Hooks compartidos: paginacion real en `useProducers`/`useRanches`/`usePlots` + filtro `producer_in`
+- [x] **PS-9** Modal de alcance en `DataCentralPanel`, pestaña Usuarios
+- [x] **PS-10** Poda de ramas vacias en el explorador del Visor
+
+**PS-8 — por que era necesario antes del modal.** Los tres hooks leian `data.results` y se
+quedaban con la PRIMERA pagina, descartando el resto sin ningun aviso. `StandardPagination` sirve
+100 por pagina (maximo 1000), asi que una CIAgro con mas de 100 parcelas mostraba un selector
+recortado en silencio. En un arbol de navegacion eso es un nodo que falta; en un selector de
+permisos son parcelas que el gerente cree haber asignado y no asigno. Se resolvio con
+`src/lib/api/paginated.ts`: pide de golpe el maximo que el backend admite y solo encadena mas
+paginas si el `count` dice que faltan, asi que en la practica es UNA peticion salvo en los casos
+grandes de verdad.
+
+Los tres hooks alimentan **los dos** casos de uso —el selector del modal y el explorador del
+Visor—, por eso se extienden una sola vez antes de tocar ninguna pantalla.
+
+**Endpoints que consume el modal (ya disponibles):**
+
+```
+GET  /api/v1/users/assignments/<id>/scope/          modo actual + parcelas con sus ancestros
+PUT  /api/v1/users/assignments/<id>/scope/          { access_mode, plot_ids[] } idempotente
+GET  /api/v1/organizations/?datacentral=<id>        productores de la CIAgro
+GET  /api/v1/geo_assets/plots/?producer_in=<csv>    sus parcelas, para el selector
+```
+
+**Aviso para el modal (PS-9):** hay CIAgros con productores pero sin ninguna parcela
+(`CIA-ejemplo-01` en la base de desarrollo tiene 5 productores y 0 parcelas). El selector debe
+distinguir "no hay parcelas que asignar" de "todavia cargando" o de un fallo, o parecera roto.
 
 ---
 

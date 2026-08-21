@@ -1,5 +1,6 @@
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/client'
+import { fetchAllPages } from '@/lib/api/paginated'
 import type { AgroUnit } from '../types'
 
 export const PRODUCERS_KEY = ['admin', 'producers'] as const
@@ -16,11 +17,13 @@ export function producersQueryOptions(datacentral?: string | null) {
       // schema (filtro manual del view), de ahí el cast `as never`.
       const query: Record<string, string> = { unit_type: 'Productor' }
       if (datacentral) query['datacentral'] = datacentral
-      const { data, error } = await apiClient.GET('/api/v1/organizations/', {
-        params: { query: query as never },
+      return fetchAllPages<AgroUnit>(async ({ page, page_size }) => {
+        const { data, error } = await apiClient.GET('/api/v1/organizations/', {
+          params: { query: { ...query, page, page_size } as never },
+        })
+        if (error) throw new Error('No se pudieron cargar los productores')
+        return data ?? null
       })
-      if (error) throw new Error('No se pudieron cargar los productores')
-      return data?.results ?? []
     },
     staleTime: 60_000,
   })

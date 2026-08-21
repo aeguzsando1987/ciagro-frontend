@@ -21,6 +21,7 @@ import { LoadingState } from '@/components/ui/loading-state'
 import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tabs } from '@/components/ui/tabs'
 import { AssignCombobox } from '../components/AssignCombobox'
+import { UserScopeDialog } from '../dialogs/UserScopeDialog'
 import { ArrowLeft, Info, Trash2 } from 'lucide-react'
 import { applyDrfErrors } from '@/features/task-manager/hooks/useDrfErrorMap'
 import { Field } from '../components/Field'
@@ -37,7 +38,7 @@ import {
 } from '../hooks/useDataCentralAssignments'
 import { useUsers } from '../hooks/useUsers'
 import { useAgroUnits } from '../hooks/useAgroUnits'
-import type { DataCentralDetail } from '../types'
+import type { DataCentralDetail, UserAssignment } from '../types'
 
 const schema = z.object({
   name: z.string().min(1, 'Requerido'),
@@ -55,6 +56,8 @@ interface Props {
 export function DataCentralPanel({ dc, onClose }: Props) {
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [selectedUserId, setSelectedUserId] = useState('')
+  // La asignación cuyo alcance se está editando; null = modal cerrado.
+  const [scopeAssignment, setScopeAssignment] = useState<UserAssignment | null>(null)
   // Filtrado optimista: IDs asignados localmente antes de que el refetch confirme.
   // Se eliminan del selector de forma inmediata; si el servidor falla, se revierten.
   const [localAssignedUserIds, setLocalAssignedUserIds] = useState<Set<string>>(new Set())
@@ -290,12 +293,25 @@ export function DataCentralPanel({ dc, onClose }: Props) {
                 <ul className="divide-y">
                   {userAssignments.map((a) => (
                     <li key={a.id} className="flex items-center justify-between py-2 text-sm">
-                      <div>
+                      {/* El nombre abre el alcance. Hasta la fase PS el item no era
+                          clickeable: ese hueco era el gancho natural del modal. */}
+                      <button
+                        type="button"
+                        className="flex-1 rounded text-left hover:underline disabled:cursor-default disabled:no-underline"
+                        onClick={() => canEdit && setScopeAssignment(a)}
+                        disabled={!canEdit}
+                        aria-label={`Configurar alcance de ${a.user_username}`}
+                      >
                         <p className="font-medium">{a.user_username}</p>
                         <p className="text-xs text-muted-foreground">
-                          {a.created_at ? new Date(a.created_at).toLocaleDateString('es-MX') : ''}
+                          {a.access_mode === 'restricted'
+                            ? 'Delimitado por parcela'
+                            : 'Acceso completo'}
+                          {a.created_at
+                            ? ` · ${new Date(a.created_at).toLocaleDateString('es-MX')}`
+                            : ''}
                         </p>
-                      </div>
+                      </button>
                       {canEdit && (
                         <Button
                           type="button"
@@ -404,6 +420,18 @@ export function DataCentralPanel({ dc, onClose }: Props) {
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      {/* Fuera de DialogContent para que no herede su ancho ni su scroll. */}
+      {scopeAssignment && (
+        <UserScopeDialog
+          open={!!scopeAssignment}
+          onOpenChange={(v) => !v && setScopeAssignment(null)}
+          assignmentId={scopeAssignment.id ?? null}
+          username={scopeAssignment.user_username ?? ''}
+          datacentralId={dc.id}
+          datacentralName={dc.name}
+        />
+      )}
     </Dialog>
   )
 }
