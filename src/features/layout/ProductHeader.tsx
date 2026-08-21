@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Building2, ChevronDown, LogOut, Map, Menu, Settings, UserRound } from 'lucide-react'
+import { Building2, ChevronDown, LogOut, Menu, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -14,7 +14,6 @@ import { useAuthStore } from '@/features/auth/useAuthStore'
 import { useLogout } from '@/features/auth/useLogout'
 import { ProfileModal } from '@/features/workspace/ProfileModal'
 import { AnimatedAgroindustryLogo } from '@/features/auth/AnimatedAgroindustryLogo'
-import { ROLE_LEVELS } from '@/lib/auth/roles'
 
 interface ProductHeaderProps {
   contextLabel: string
@@ -32,7 +31,6 @@ export function ProductHeader({ contextLabel, currentDcId, onOpenNavigation }: P
   const { mutate: logout, isPending: isLoggingOut } = useLogout()
   const navigate = useNavigate()
   const [showProfile, setShowProfile] = useState(false)
-  const canManage = (user?.role_level ?? 0) >= ROLE_LEVELS.SUPERVISOR
 
   const brand = (
     <span className="flex min-w-0 items-center gap-3">
@@ -72,46 +70,18 @@ export function ProductHeader({ contextLabel, currentDcId, onOpenNavigation }: P
 
         <div className="mx-3 hidden h-6 w-px bg-border-light sm:block" aria-hidden="true" />
 
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="hidden min-w-0 max-w-[260px] justify-start px-2 sm:inline-flex"
+        {/* Indicador de contexto, ya no un acceso: cambiar de organizacion vive en el
+            menu del avatar y tenerlo dos veces solo repetia la misma accion. Se
+            conserva el nombre porque sin el no se sabe en que CIAgro se esta. */}
+        <span
+          className="hidden min-w-0 max-w-[260px] items-center gap-2 px-2 text-sm text-secondary sm:inline-flex"
+          title={contextLabel}
         >
-          <Link to="/workspaces" title={`Cambiar contexto: ${contextLabel}`}>
-            <Building2 className="text-muted" />
-            <span className="truncate">{contextLabel}</span>
-            <ChevronDown className="text-muted" />
-          </Link>
-        </Button>
+          <Building2 className="h-4 w-4 shrink-0 text-muted" />
+          <span className="truncate">{contextLabel}</span>
+        </span>
 
         <div className="ml-auto flex items-center gap-1.5">
-          {canManage && (
-            <nav aria-label="Accesos principales" className="hidden items-center gap-1 lg:flex">
-              <Button asChild variant="ghost" size="sm">
-                <Link
-                  to="/visor-datos"
-                  activeProps={{ className: 'bg-primary-soft text-primary-hover' }}
-                >
-                  <Map />
-                  Visor
-                </Link>
-              </Button>
-              <Button asChild variant="ghost" size="sm">
-                <Link
-                  to="/admin"
-                  activeOptions={{ exact: false }}
-                  activeProps={{ className: 'bg-primary-soft text-primary-hover' }}
-                >
-                  <Settings />
-                  Administración
-                </Link>
-              </Button>
-            </nav>
-          )}
-
-          <div className="mx-1 hidden h-6 w-px bg-border-light lg:block" aria-hidden="true" />
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
