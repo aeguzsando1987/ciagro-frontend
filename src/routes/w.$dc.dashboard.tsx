@@ -1,32 +1,20 @@
-import { createRoute, useParams } from '@tanstack/react-router'
+import { createRoute, redirect } from '@tanstack/react-router'
 import { workspaceDcRoute } from './w.$dc'
-import { useAuthStore } from '@/features/auth/useAuthStore'
-import { useWorkspaceStore } from '@/features/workspace/useWorkspaceStore'
 
+/**
+ * `/w/$dc/dashboard` — redirección al Visor.
+ *
+ * El foco de una CIAgro pasó a ser el Visor de Datos Agrícolas: al entrar se ve
+ * directamente el explorador con el panel de la CIAgro, en vez de una pantalla de
+ * bienvenida intermedia que no llevaba a ninguna parte.
+ *
+ * La ruta se conserva en lugar de borrarse para que los enlaces guardados, los
+ * marcadores del navegador y cualquier redirección antigua sigan funcionando.
+ */
 export const workspaceDashboardRoute = createRoute({
   getParentRoute: () => workspaceDcRoute,
   path: '/dashboard',
-  component: DashboardPage,
+  beforeLoad: ({ params }) => {
+    throw redirect({ to: '/w/$dc/visor', params: { dc: params.dc } })
+  },
 })
-
-function DashboardPage() {
-  const { dc } = useParams({ from: '/_authenticated/w/$dc/dashboard' })
-  const user = useAuthStore((s) => s.user)
-  const selectedDc = useWorkspaceStore((s) => s.selectedDc)
-
-  const dcName =
-    selectedDc?.id === dc
-      ? selectedDc.name
-      : (user?.datacentrals.find((d) => d.id === dc)?.name ?? dc.slice(0, 8))
-
-  return (
-    <div className="space-y-1">
-      <h1 className="text-2xl font-semibold">
-        Bienvenido, {user?.username ?? ''}
-      </h1>
-      <p className="text-muted-foreground">
-        CIA activa: <span className="font-medium text-foreground">{dcName}</span>
-      </p>
-    </div>
-  )
-}

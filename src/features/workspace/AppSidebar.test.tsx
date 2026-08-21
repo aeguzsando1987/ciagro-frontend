@@ -20,14 +20,17 @@ describe('AppSidebar — navegación global por role_level', () => {
     useAuthStore.setState({ user: null })
   })
 
-  it('GUEST (level 1): muestra únicamente Dashboard', async () => {
+  it('GUEST (level 1): solo el Visor de su CIAgro', async () => {
+    // El Visor es la pantalla principal de una CIAgro y esta abierto a todos los
+    // roles: el alcance por parcela ya limita lo que cada uno ve dentro. Lo que
+    // sigue restringido es el Visor GLOBAL, que cruza varias CIAgros.
     useAuthStore.setState({ user: { ...BASE_USER, role_level: 1 } })
     renderInWorkspaceRoute(AppSidebar)
 
-    await waitFor(() => screen.getByText('Dashboard'))
+    await waitFor(() => screen.getByText('Visor agrícola'))
 
-    expect(screen.getByText('Dashboard')).toBeInTheDocument()
-    expect(screen.queryByText('Visor agrícola')).not.toBeInTheDocument()
+    expect(screen.getByText('Visor agrícola')).toBeInTheDocument()
+    expect(screen.queryByText('Visor global')).not.toBeInTheDocument()
     expect(screen.queryByText('Task Manager')).not.toBeInTheDocument()
     expect(screen.queryByText('Agrounidades')).not.toBeInTheDocument()
   })
@@ -36,10 +39,10 @@ describe('AppSidebar — navegación global por role_level', () => {
     useAuthStore.setState({ user: { ...BASE_USER, role_level: 2 } })
     renderInWorkspaceRoute(AppSidebar)
 
-    await waitFor(() => screen.getByText('Dashboard'))
+    await waitFor(() => screen.getByText('Visor agrícola'))
 
-    expect(screen.getByText('Dashboard')).toBeInTheDocument()
-    expect(screen.queryByText('Visor agrícola')).not.toBeInTheDocument()
+    expect(screen.getByText('Visor agrícola')).toBeInTheDocument()
+    expect(screen.queryByText('Visor global')).not.toBeInTheDocument()
     expect(screen.queryByText('Task Manager')).not.toBeInTheDocument()
     expect(screen.queryByText('Catálogos')).not.toBeInTheDocument()
   })
@@ -48,9 +51,10 @@ describe('AppSidebar — navegación global por role_level', () => {
     useAuthStore.setState({ user: { ...BASE_USER, role_level: 3 } })
     renderInWorkspaceRoute(AppSidebar)
 
-    await waitFor(() => screen.getByText('Dashboard'))
+    await waitFor(() => screen.getByText('Visor agrícola'))
 
     expect(screen.getByText('Visor agrícola')).toBeInTheDocument()
+    expect(screen.getByText('Visor global')).toBeInTheDocument()
     expect(screen.getByText('Task Manager')).toBeInTheDocument()
     expect(screen.getByText('Agrounidades')).toBeInTheDocument()
     expect(screen.getByText('Catálogos')).toBeInTheDocument()
@@ -62,9 +66,9 @@ describe('AppSidebar — navegación global por role_level', () => {
     useAuthStore.setState({ user: { ...BASE_USER, role_level: 4 } })
     renderInWorkspaceRoute(AppSidebar)
 
-    await waitFor(() => screen.getByText('Dashboard'))
+    await waitFor(() => screen.getByText('Visor agrícola'))
 
-    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    expect(screen.getByText('Visor agrícola')).toBeInTheDocument()
     expect(screen.getByText('Task Manager')).toBeInTheDocument()
     expect(screen.getByText('Organizaciones')).toBeInTheDocument()
     expect(screen.getByText('Variables')).toBeInTheDocument()
@@ -76,7 +80,7 @@ describe('AppSidebar — navegación global por role_level', () => {
     useAuthStore.setState({ user: { ...BASE_USER, role_level: 5 } })
     renderInWorkspaceRoute(AppSidebar)
 
-    await waitFor(() => screen.getByText('Dashboard'))
+    await waitFor(() => screen.getByText('Visor agrícola'))
 
     expect(screen.getByText('Usuarios')).toBeInTheDocument()
     expect(screen.getByText('Activos agrícolas')).toBeInTheDocument()

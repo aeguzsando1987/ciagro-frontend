@@ -76,7 +76,7 @@ export function DataCentralChildSelector({
                 } ${active ? 'bg-primary-soft' : ''}`}
                 onClick={() => {
                   setSelectedDc({ id: dc.id, name: dc.name })
-                  void navigate({ to: '/w/$dc/dashboard', params: { dc: dc.id } })
+                  void navigate({ to: '/w/$dc/visor', params: { dc: dc.id } })
                 }}
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-brand">

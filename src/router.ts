@@ -8,6 +8,7 @@ import { visorDatosRoute } from './routes/visor-datos'
 import { changePasswordRoute } from './routes/change-password'
 import { workspaceDcRoute } from './routes/w.$dc'
 import { workspaceDashboardRoute } from './routes/w.$dc.dashboard'
+import { workspaceVisorRoute } from './routes/w.$dc.visor'
 import { workspaceTaskManagerRoute } from './routes/w.$dc.task-manager'
 import {
   adminRoute,
@@ -42,7 +43,11 @@ const routeTree = rootRoute.addChildren([
       adminAssetsRoute,
       adminAnalysisVariablesRoute,
     ]),
-    workspaceDcRoute.addChildren([workspaceDashboardRoute, workspaceTaskManagerRoute]),
+    workspaceDcRoute.addChildren([
+      workspaceDashboardRoute,
+      workspaceVisorRoute,
+      workspaceTaskManagerRoute,
+    ]),
   ]),
 ])
 

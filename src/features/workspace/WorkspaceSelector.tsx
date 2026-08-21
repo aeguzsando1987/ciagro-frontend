@@ -42,7 +42,7 @@ function ManagerEntry() {
     if (isLoading) return
     const noOrgs = (mains?.length ?? 0) === 0
     if (noOrgs && datacentrals.length === 1 && datacentrals[0]) {
-      void navigate({ to: '/w/$dc/dashboard', params: { dc: datacentrals[0].id } })
+      void navigate({ to: '/w/$dc/visor', params: { dc: datacentrals[0].id } })
     }
   }, [isLoading, mains, datacentrals, navigate])
 
@@ -65,7 +65,7 @@ function BasicEntry() {
 
   useEffect(() => {
     if (datacentrals.length === 1 && datacentrals[0]) {
-      void navigate({ to: '/w/$dc/dashboard', params: { dc: datacentrals[0].id } })
+      void navigate({ to: '/w/$dc/visor', params: { dc: datacentrals[0].id } })
     }
   }, [datacentrals, navigate])
 

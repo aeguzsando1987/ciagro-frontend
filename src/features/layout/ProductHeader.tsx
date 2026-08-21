@@ -61,7 +61,7 @@ export function ProductHeader({ contextLabel, currentDcId, onOpenNavigation }: P
         </Button>
 
         {currentDcId ? (
-          <Link to="/w/$dc/dashboard" params={{ dc: currentDcId }} className="shrink-0">
+          <Link to="/w/$dc/visor" params={{ dc: currentDcId }} className="shrink-0">
             {brand}
           </Link>
         ) : (

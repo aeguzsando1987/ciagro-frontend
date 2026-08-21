@@ -4,7 +4,7 @@
  * Se mantiene separado del panel general para reservar el ancho disponible al
  * explorador y al contenido analítico. Ningún estilo interno de mapa vive aquí.
  */
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import {
   ArrowLeft,
@@ -73,8 +73,17 @@ function selectionLevelLabel(selection: VisorSelection | null): string {
   return labels[selection.session?.kind ?? 'aspersion']
 }
 
-export function GeodataVisorShell() {
-  const [selection, setSelection] = useState<VisorSelection | null>(null)
+interface GeodataVisorShellProps {
+  /**
+   * Selección con la que abre el panel derecho, sin que el usuario toque nada.
+   * La usa la ruta `/w/$dc/visor`, donde ya se sabe en qué CIAgro se entró; en
+   * `/visor-datos` no se pasa y el visor arranca sin selección, como siempre.
+   */
+  initialSelection?: VisorSelection | null
+}
+
+export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShellProps = {}) {
+  const [selection, setSelection] = useState<VisorSelection | null>(initialSelection)
   const [comparisonSelection, setComparisonSelection] = useState<VisorSelection | null>(null)
   const [comparisonEnabled, setComparisonEnabled] = useState(false)
   const [activePane, setActivePane] = useState<ComparisonPaneId>('primary')
@@ -92,7 +101,9 @@ export function GeodataVisorShell() {
   )
 
   // La búsqueda vive en la URL para poder compartirla y conservarla al refrescar.
-  const search = useSearch({ from: '/_authenticated/visor-datos' })
+  // `strict: false` porque el shell se monta en DOS rutas (`/visor-datos` y
+  // `/w/$dc/visor`) y atarlo a una sola lo haría inservible en la otra.
+  const search = useSearch({ strict: false }) as Record<string, string | undefined>
   const navigate = useNavigate()
   const criteria = useMemo(() => criteriaFromSearch(search), [search])
   const searchActive = isSearchActive(criteria)
@@ -120,7 +131,9 @@ export function GeodataVisorShell() {
 
   const applySearch = useCallback(
     (next: AdvancedSearchCriteria) => {
-      void navigate({ to: '/visor-datos', search: searchFromCriteria(next) })
+      // `to: '.'` mantiene la ruta actual: escribir '/visor-datos' sacaria al
+      // usuario de su CIAgro al aplicar una busqueda.
+      void navigate({ to: '.', search: searchFromCriteria(next) as never })
       setSearchOpen(false)
       setSelection(null)
       setComparisonSelection(null)
@@ -129,10 +142,20 @@ export function GeodataVisorShell() {
   )
 
   const clearSearch = useCallback(() => {
-    void navigate({ to: '/visor-datos', search: {} })
+    void navigate({ to: '.', search: {} as never })
     setSelection(null)
     setComparisonSelection(null)
   }, [navigate])
+
+  // La CIAgro se resuelve por HTTP, asi que `initialSelection` llega DESPUES del
+  // primer render. Se aplica solo mientras el usuario no haya elegido nada, para no
+  // pisarle la navegacion si ya se movio por el arbol.
+  const seleccionInicialAplicada = useRef(false)
+  useEffect(() => {
+    if (!initialSelection || seleccionInicialAplicada.current) return
+    seleccionInicialAplicada.current = true
+    setSelection(initialSelection)
+  }, [initialSelection])
 
   // El delta parte del ancho actual para que el divisor siga al puntero sin saltos.
   const startResize = useCallback(

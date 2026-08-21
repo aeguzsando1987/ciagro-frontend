@@ -106,6 +106,29 @@ export function useDataCentrals(dcmId?: string, includeInactive = false) {
   }))
 }
 
+/**
+ * Una CIAgro por id, con su organizacion padre resuelta.
+ *
+ * La ruta `/w/$dc/visor` solo tiene el id de la CIAgro en la URL, pero el visor
+ * necesita ademas la organizacion para construir su seleccion: el arbol cuelga de
+ * Organizacion -> CIAgro. `DataCentralDetail` ya trae `data_central_main`, asi que
+ * una sola peticion resuelve las dos cosas.
+ */
+export function useDataCentralDetail(id: string | null) {
+  return useQuery(queryOptions({
+    queryKey: [...DC_QUERY_KEY, 'detail', id] as const,
+    enabled: !!id,
+    queryFn: async (): Promise<DataCentralDetail> => {
+      const { data, error } = await apiClient.GET('/api/v1/organizations/datacentrals/{id}/', {
+        params: { path: { id: id! } },
+      })
+      if (error) throw new Error('No se pudo cargar la CIAgro')
+      return data!
+    },
+    staleTime: 60_000,
+  }))
+}
+
 type DCWritePayload = components['schemas']['DataCentralWrite']
 
 export function useCreateDataCentral() {

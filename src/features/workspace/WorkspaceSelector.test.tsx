@@ -57,7 +57,7 @@ describe('WorkspaceSelector', () => {
     expect(screen.getByText(/sin acceso/i)).toBeInTheDocument()
   })
 
-  it('calls navigate to /w/$dc/dashboard when user has exactly 1 datacentral', () => {
+  it('calls navigate to /w/$dc/visor when user has exactly 1 datacentral', () => {
     useAuthStore.setState({
       user: {
         ...BASE_USER,
@@ -66,7 +66,7 @@ describe('WorkspaceSelector', () => {
     })
     renderSelector()
     expect(mockNavigate).toHaveBeenCalledWith({
-      to: '/w/$dc/dashboard',
+      to: '/w/$dc/visor',
       params: { dc: 'dc-uuid' },
     })
   })

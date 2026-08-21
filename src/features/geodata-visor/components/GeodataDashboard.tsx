@@ -6,12 +6,12 @@
  * en un polígono se selecciona esa parcela. La integración del visor de aspersión
  * (al elegir una sesión) se añade en 7.E.
  */
-import { useState } from 'react'
-import { useQueries } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
+import { useAuthStore } from '@/features/auth/useAuthStore'
 import { useProducers } from '@/features/admin/hooks/useProducers'
-import { useRanches, ranchesQueryOptions } from '@/features/admin/hooks/useRanches'
-import { usePlots, usePlotDetail, plotsQueryOptions } from '@/features/admin/hooks/usePlots'
+import { useRanches } from '@/features/admin/hooks/useRanches'
+import { usePlots, usePlotDetail } from '@/features/admin/hooks/usePlots'
 import { useAspersionSessionHeaders } from '../hooks/useAspersionSessionHeaders'
 import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
 import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
@@ -138,24 +138,45 @@ function StatGrid({ stats, loading }: { stats: StatEntry[]; loading?: boolean })
 
 // ─── Stats por nivel ──────────────────────────────────────────────────────────
 
-function DataCentralStats({ dcId }: { dcId: string }) {
+/**
+ * Panel de la CIAgro: es la pantalla de entrada del Visor y tambien el punto de
+ * retorno —seleccionar la CIAgro en el arbol vuelve aqui desde cualquier nivel—, asi
+ * que abre con un saludo en vez de con numeros sueltos. Es el sitio donde iran las
+ * estadisticas y graficos generales de la CIAgro.
+ */
+function DataCentralStats({ dcId, dcName }: { dcId: string; dcName?: string }) {
+  const user = useAuthStore((s) => s.user)
   const producers = useProducers(dcId)
-  const producerIds = producers.data?.map((p) => p.id) ?? []
+  const producerIds = useMemo(() => producers.data?.map((p) => p.id) ?? [], [producers.data])
 
-  const ranchQueries = useQueries({ queries: producerIds.map((id) => ranchesQueryOptions(id)) })
-  const plotQueries = useQueries({
-    queries: producerIds.map((id) => plotsQueryOptions({ producerId: id })),
-  })
+  // Una peticion por lote en vez de una por productor: este panel es ahora lo primero
+  // que se carga al entrar, asi que encadenar N peticiones se nota de inmediato.
+  const ranches = useRanches(null, producerIds)
+  const plots = usePlots({ producerIds })
 
-  const loading =
-    producers.isLoading ||
-    ranchQueries.some((q) => q.isLoading) ||
-    plotQueries.some((q) => q.isLoading)
+  const loading = producers.isLoading || ranches.isLoading || plots.isLoading
 
-  const ranches = ranchQueries.reduce((acc, q) => acc + (q.data?.length ?? 0), 0)
-  const plots = plotQueries.reduce((acc, q) => acc + (q.data?.length ?? 0), 0)
-
-  return <StatGrid loading={loading} stats={datacentralStats(producerIds.length, ranches, plots)} />
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-xl font-semibold">
+          Bienvenido{user?.username ? `, ${user.username}` : ''}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Estás en <span className="font-medium text-foreground">{dcName ?? 'esta CIAgro'}</span>.
+          Explora el árbol de la izquierda para ver sus productores, ranchos, parcelas y sesiones.
+        </p>
+      </div>
+      <StatGrid
+        loading={loading}
+        stats={datacentralStats(
+          producerIds.length,
+          ranches.data?.length ?? 0,
+          plots.data?.length ?? 0
+        )}
+      />
+    </div>
+  )
 }
 
 /** Vista de productor: tarjetas de stats + mapa con un pin por rancho. */
@@ -501,7 +522,12 @@ function LevelBody({
         </p>
       )
     case 'datacentral':
-      return <DataCentralStats dcId={selection.datacentral!.id} />
+      return (
+        <DataCentralStats
+          dcId={selection.datacentral!.id}
+          dcName={selection.datacentral!.name}
+        />
+      )
     case 'producer':
       return (
         <ProducerView

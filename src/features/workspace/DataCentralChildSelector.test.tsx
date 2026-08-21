@@ -62,7 +62,7 @@ describe('DataCentralChildSelector', () => {
 
     expect(useWorkspaceStore.getState().selectedDc).toEqual({ id: 'dc-1', name: 'CIAgro Bajio' })
     expect(mockNavigate).toHaveBeenCalledWith({
-      to: '/w/$dc/dashboard',
+      to: '/w/$dc/visor',
       params: { dc: 'dc-1' },
     })
   })

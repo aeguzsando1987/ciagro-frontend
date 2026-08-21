@@ -54,17 +54,19 @@ export function ProductSidebar({
     >
       <nav aria-label="Navegación principal" className="flex-1 space-y-6 overflow-y-auto p-3 py-5">
         <NavGroup label="General">
+          {/* El Visor es la pantalla principal de una CIAgro: ya no hay un item
+              "Dashboard" aparte, porque apuntaba a una pantalla intermedia que ahora
+              solo redirige aquí. El panel de la CIAgro es el nivel raíz del Visor. */}
           {currentDcId ? (
             <Link
-              to="/w/$dc/dashboard"
+              to="/w/$dc/visor"
               params={{ dc: currentDcId }}
-              activeOptions={{ exact: true }}
               className={navItemClass}
               activeProps={{ className: activeNavItem }}
               onClick={onNavigate}
             >
-              <LayoutDashboard className="h-[18px] w-[18px]" />
-              Dashboard
+              <Map className="h-[18px] w-[18px]" />
+              Visor agrícola
             </Link>
           ) : (
             <Link
@@ -74,19 +76,21 @@ export function ProductSidebar({
               onClick={onNavigate}
             >
               <LayoutDashboard className="h-[18px] w-[18px]" />
-              Dashboard
+              Panel general
             </Link>
           )}
 
-          {canManage && (
+          {/* Visor global, sin CIAgro fija: sigue sirviendo a quien alcanza varias y
+              quiere compararlas sin salir a cambiar de workspace. */}
+          {canManage && currentDcId && (
             <Link
               to="/visor-datos"
               className={navItemClass}
               activeProps={{ className: activeNavItem }}
               onClick={onNavigate}
             >
-              <Map className="h-[18px] w-[18px]" />
-              Visor agrícola
+              <LayoutDashboard className="h-[18px] w-[18px]" />
+              Visor global
             </Link>
           )}
 

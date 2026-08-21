@@ -67,7 +67,7 @@ export const workspaceTaskManagerRoute = createRoute({
     const user = useAuthStore.getState().user
     const level = user?.role_level ?? ROLE_LEVELS.GUEST
     if (level < ROLE_LEVELS.SUPERVISOR) {
-      throw redirect({ to: '/w/$dc/dashboard', params: { dc: params.dc } })
+      throw redirect({ to: '/w/$dc/visor', params: { dc: params.dc } })
     }
   },
   loaderDeps: ({ search }) => ({
