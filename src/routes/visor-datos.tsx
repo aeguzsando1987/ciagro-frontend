@@ -46,5 +46,17 @@ export const visorDatosRoute = createRoute({
       throw redirect({ to: '/workspaces' })
     }
   },
-  component: GeodataVisorShell,
+  component: VisorDatosPage,
 })
+
+/**
+ * El shell toma el alto de su contenedor, asi que aqui se le da el de la ventana:
+ * esta ruta no pasa por `ProductShell` y no tiene cabecera propia encima.
+ */
+function VisorDatosPage() {
+  return (
+    <div className="h-dvh">
+      <GeodataVisorShell />
+    </div>
+  )
+}

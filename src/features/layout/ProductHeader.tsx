@@ -53,7 +53,7 @@ export function ProductHeader({ contextLabel, currentDcId, onOpenNavigation }: P
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="mr-2 lg:hidden"
+          className="mr-2"
           onClick={onOpenNavigation}
           aria-label="Abrir navegación"
         >

@@ -1,5 +1,12 @@
 import { useEffect, useRef } from 'react'
-import { createRoute, redirect, Outlet, useNavigate, useParams } from '@tanstack/react-router'
+import {
+  createRoute,
+  redirect,
+  Outlet,
+  useMatchRoute,
+  useNavigate,
+  useParams,
+} from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { authenticatedRoute } from './_authenticated'
 import { useAuthStore } from '@/features/auth/useAuthStore'
@@ -32,6 +39,8 @@ function WorkspaceLayout() {
   const user = useAuthStore((s) => s.user)
   const selectedDc = useWorkspaceStore((s) => s.selectedDc)
   const navigate = useNavigate()
+  const matchRoute = useMatchRoute()
+  const enVisor = !!matchRoute({ to: '/w/$dc/visor', fuzzy: true })
   const warned = useRef(false)
   const dcName =
     selectedDc?.id === dc
@@ -51,7 +60,15 @@ function WorkspaceLayout() {
   }, [user, dc, navigate])
 
   return (
-    <ProductShell contextLabel={dcName} currentDcId={dc}>
+    <ProductShell
+      contextLabel={dcName}
+      currentDcId={dc}
+      // El Visor es una interfaz de mapa: ocupa todo el espacio disponible, sin el
+      // margen del resto de pantallas y sin scroll propio. Con el margen y el
+      // `overflow-auto` por defecto aparecia una barra de desplazamiento que dejaba
+      // ver el borde inferior del visor, que no deberia poder moverse.
+      mainClassName={enVisor ? 'overflow-hidden p-0 pb-0 sm:p-0 lg:p-0' : undefined}
+    >
       <Outlet />
     </ProductShell>
   )

@@ -31,12 +31,11 @@ export function ProductShell({
         onOpenNavigation={() => setMobileNavigationOpen(true)}
       />
 
+      {/* Sin barra lateral fija: la navegacion se abre desde la pestaña de la
+          cabecera. El Visor ya tiene su propio panel izquierdo (el explorador), y
+          tener dos columnas apiladas a la izquierda del mapa se comia el ancho util
+          justo en la pantalla que mas lo necesita. */}
       <div className="flex min-h-0 flex-1">
-        <ProductSidebar
-          roleLevel={roleLevel}
-          currentDcId={currentDcId}
-          className="hidden lg:flex"
-        />
         <main
           className={cn(
             'min-w-0 flex-1 overflow-auto bg-background p-4 pb-8 sm:p-6 lg:p-8',

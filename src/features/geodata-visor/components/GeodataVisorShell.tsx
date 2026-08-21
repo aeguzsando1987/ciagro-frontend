@@ -186,7 +186,11 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
   )
 
   return (
-    <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-background">
+    // `h-full` y no `h-dvh`: el shell se monta en dos sitios y solo en uno ocupa
+    // la ventana entera. Dentro del layout de la CIAgro cuelga bajo la cabecera, asi
+    // que imponer el alto de la ventana lo desbordaba justo esos pixeles y sacaba una
+    // barra de desplazamiento vertical. Cada contenedor define el alto.
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-default bg-surface px-3 sm:px-4">
         <Button
           type="button"
