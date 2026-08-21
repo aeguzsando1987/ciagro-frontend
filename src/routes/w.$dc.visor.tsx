@@ -8,11 +8,10 @@ import { useDataCentralDetail } from '@/features/admin/hooks/useDataCentrals'
 import type { VisorSelection } from '@/features/geodata-visor/types'
 
 /**
- * Mismo contrato de búsqueda avanzada que `/visor-datos`.
+ * Contrato de la búsqueda avanzada, que vive en la URL para poder compartirse.
  *
- * Se repite el esquema en vez de importarlo porque cada ruta declara el suyo y
- * TanStack lo usa para tipar `useSearch`; `.catch(undefined)` hace que un enlace viejo
- * o manipulado descarte el valor inválido en lugar de reventar la ruta.
+ * `.catch(undefined)` hace que un enlace viejo o manipulado descarte el valor inválido
+ * en lugar de reventar la ruta.
  */
 const visorSearchSchema = z.object({
   from: z.string().optional().catch(undefined),
@@ -28,10 +27,13 @@ const visorSearchSchema = z.object({
 /**
  * Ruta `/w/$dc/visor` — el Visor como pantalla principal de una CIAgro.
  *
- * A diferencia de `/visor-datos`, que arranca en el nivel Organización y sirve para
- * recorrer varias CIAgros, aquí ya se sabe en cuál se entró: el panel derecho abre
- * directamente en el nivel de esa CIAgro. Volver a ese panel después de explorar es
- * seleccionar la CIAgro en el árbol, que es el mismo estado.
+ * Es el ÚNICO Visor: la antigua `/visor-datos` redirige aquí, porque el árbol lista
+ * todas las organizaciones que el usuario alcanza en cualquier caso y tener dos
+ * entradas para la misma pantalla solo confundía.
+ *
+ * El panel derecho abre directamente en el nivel de la CIAgro por la que se entró.
+ * Volver a ese panel después de explorar es seleccionar la CIAgro en el árbol, que es
+ * el mismo estado.
  *
  * La CIAgro viaja en la URL como parámetro de ruta, así que un refresh o un enlace
  * compartido reabren donde toca; el guard de acceso lo hereda de `/w/$dc`.

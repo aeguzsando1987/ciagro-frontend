@@ -42,7 +42,7 @@ const SELECCION: VisorSelection = {
 
 describe('Visor como pantalla principal de la CIAgro', () => {
   it('sin selección inicial mantiene el estado vacío de siempre', () => {
-    // Control: es el comportamiento de /visor-datos, que no debe cambiar.
+    // Control: sin CIAgro de entrada el visor no debe inventarse una selección.
     renderWithQueryClient(<GeodataVisorShell />)
     expect(screen.getByText('Explora tus datos agrícolas')).toBeInTheDocument()
   })

@@ -76,8 +76,8 @@ function selectionLevelLabel(selection: VisorSelection | null): string {
 interface GeodataVisorShellProps {
   /**
    * Selección con la que abre el panel derecho, sin que el usuario toque nada.
-   * La usa la ruta `/w/$dc/visor`, donde ya se sabe en qué CIAgro se entró; en
-   * `/visor-datos` no se pasa y el visor arranca sin selección, como siempre.
+   * La usa la ruta `/w/$dc/visor`, donde ya se sabe en qué CIAgro se entró. Sin
+   * ella el visor arranca sin selección y muestra su estado vacío.
    */
   initialSelection?: VisorSelection | null
 }
@@ -101,8 +101,8 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
   )
 
   // La búsqueda vive en la URL para poder compartirla y conservarla al refrescar.
-  // `strict: false` porque el shell se monta en DOS rutas (`/visor-datos` y
-  // `/w/$dc/visor`) y atarlo a una sola lo haría inservible en la otra.
+  // `strict: false` y no `from: '/ruta'`: atar la lectura a una ruta concreta
+  // rompería el shell si se monta en otra, como ya pasó al moverlo bajo /w/$dc.
   const search = useSearch({ strict: false }) as Record<string, string | undefined>
   const navigate = useNavigate()
   const criteria = useMemo(() => criteriaFromSearch(search), [search])
@@ -131,8 +131,8 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
 
   const applySearch = useCallback(
     (next: AdvancedSearchCriteria) => {
-      // `to: '.'` mantiene la ruta actual: escribir '/visor-datos' sacaria al
-      // usuario de su CIAgro al aplicar una busqueda.
+      // `to: '.'` mantiene la ruta actual: una ruta fija sacaria al usuario de su
+      // CIAgro al aplicar una busqueda.
       void navigate({ to: '.', search: searchFromCriteria(next) as never })
       setSearchOpen(false)
       setSelection(null)

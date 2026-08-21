@@ -80,19 +80,6 @@ export function ProductSidebar({
             </Link>
           )}
 
-          {/* Visor global, sin CIAgro fija: sigue sirviendo a quien alcanza varias y
-              quiere compararlas sin salir a cambiar de workspace. */}
-          {canManage && currentDcId && (
-            <Link
-              to="/visor-datos"
-              className={navItemClass}
-              activeProps={{ className: activeNavItem }}
-              onClick={onNavigate}
-            >
-              <LayoutDashboard className="h-[18px] w-[18px]" />
-              Visor global
-            </Link>
-          )}
 
           {currentDcId && canManage && (
             <Link

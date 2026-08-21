@@ -1,9 +1,7 @@
 import { createRoute, redirect } from '@tanstack/react-router'
 import { z } from 'zod'
 import { authenticatedRoute } from './_authenticated'
-import { useAuthStore } from '@/features/auth/useAuthStore'
-import { ROLE_LEVELS } from '@/lib/auth/roles'
-import { GeodataVisorShell } from '@/features/geodata-visor/components/GeodataVisorShell'
+import { useWorkspaceStore } from '@/features/workspace/useWorkspaceStore'
 
 /**
  * Search params de la búsqueda avanzada del explorador (fase AS).
@@ -28,35 +26,37 @@ const visorSearchSchema = z.object({
 })
 
 /**
- * Ruta /visor-datos — Visor de Datos Agrícolas (Fase 7).
+ * Ruta /visor-datos — CONSERVADA SOLO COMO REDIRECCIÓN.
  *
- * Sección independiente, fuera de /w/$dc: no requiere una CIAgro seleccionada
- * (el explorador arranca en el nivel Organización). Hermana de /workspaces.
+ * Nació como sección independiente fuera de /w/$dc, con el explorador arrancando en
+ * el nivel Organización. Al pasar el Visor a ser la pantalla principal de una CIAgro
+ * quedaron dos entradas para la MISMA pantalla: el árbol lista todas las
+ * organizaciones que el usuario alcanza en las dos rutas, así que lo único que
+ * cambiaba era con qué abría el panel derecho.
  *
- * Guard de rol: Supervisor+ (level >= 3). Regla crítica #5: usa ROLE_LEVELS.
- * Roles GUEST(1) y TECHNICIAN(2) se redirigen al selector de workspaces.
+ * Ya no valida rol propio: el destino, /w/$dc/visor, hereda el guard de acceso a la
+ * CIAgro de /w/$dc, que es el que de verdad importa. El Visor está abierto a todos
+ * los roles y el alcance por parcela limita lo que cada uno ve dentro.
  */
 export const visorDatosRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/visor-datos',
   validateSearch: visorSearchSchema,
   beforeLoad: () => {
-    const level = useAuthStore.getState().user?.role_level ?? ROLE_LEVELS.GUEST
-    if (level < ROLE_LEVELS.SUPERVISOR) {
-      throw redirect({ to: '/workspaces' })
-    }
+    // Redirige al Visor de la CIAgro activa: eran la MISMA pantalla. El arbol del
+    // explorador siempre arranca listando todas las organizaciones que el usuario
+    // alcanza, sin importar la ruta, asi que lo unico que cambiaba era con que abria
+    // el panel derecho. Mantener dos entradas para lo mismo confundia mas que ayudaba.
+    //
+    // La ruta se conserva redirigiendo para no romper enlaces guardados ni las
+    // busquedas avanzadas compartidas, que viven en los parametros de la URL.
+    const dc = useWorkspaceStore.getState().selectedDc?.id
+    throw redirect(
+      dc
+        ? { to: '/w/$dc/visor', params: { dc } }
+        : { to: '/workspaces' }
+    )
   },
-  component: VisorDatosPage,
 })
 
-/**
- * El shell toma el alto de su contenedor, asi que aqui se le da el de la ventana:
- * esta ruta no pasa por `ProductShell` y no tiene cabecera propia encima.
- */
-function VisorDatosPage() {
-  return (
-    <div className="h-dvh">
-      <GeodataVisorShell />
-    </div>
-  )
-}
+

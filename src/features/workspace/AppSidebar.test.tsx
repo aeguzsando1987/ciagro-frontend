@@ -22,15 +22,13 @@ describe('AppSidebar — navegación global por role_level', () => {
 
   it('GUEST (level 1): solo el Visor de su CIAgro', async () => {
     // El Visor es la pantalla principal de una CIAgro y esta abierto a todos los
-    // roles: el alcance por parcela ya limita lo que cada uno ve dentro. Lo que
-    // sigue restringido es el Visor GLOBAL, que cruza varias CIAgros.
+    // roles: el alcance por parcela ya limita lo que cada uno ve dentro.
     useAuthStore.setState({ user: { ...BASE_USER, role_level: 1 } })
     renderInWorkspaceRoute(AppSidebar)
 
     await waitFor(() => screen.getByText('Visor agrícola'))
 
     expect(screen.getByText('Visor agrícola')).toBeInTheDocument()
-    expect(screen.queryByText('Visor global')).not.toBeInTheDocument()
     expect(screen.queryByText('Task Manager')).not.toBeInTheDocument()
     expect(screen.queryByText('Agrounidades')).not.toBeInTheDocument()
   })
@@ -42,7 +40,6 @@ describe('AppSidebar — navegación global por role_level', () => {
     await waitFor(() => screen.getByText('Visor agrícola'))
 
     expect(screen.getByText('Visor agrícola')).toBeInTheDocument()
-    expect(screen.queryByText('Visor global')).not.toBeInTheDocument()
     expect(screen.queryByText('Task Manager')).not.toBeInTheDocument()
     expect(screen.queryByText('Catálogos')).not.toBeInTheDocument()
   })
@@ -54,7 +51,6 @@ describe('AppSidebar — navegación global por role_level', () => {
     await waitFor(() => screen.getByText('Visor agrícola'))
 
     expect(screen.getByText('Visor agrícola')).toBeInTheDocument()
-    expect(screen.getByText('Visor global')).toBeInTheDocument()
     expect(screen.getByText('Task Manager')).toBeInTheDocument()
     expect(screen.getByText('Agrounidades')).toBeInTheDocument()
     expect(screen.getByText('Catálogos')).toBeInTheDocument()
