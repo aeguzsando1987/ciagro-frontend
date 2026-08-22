@@ -10,11 +10,12 @@
  */
 import { useState, useMemo } from 'react'
 import {
-  Building2, Bug, ChevronDown, ChevronRight, Factory, FlaskConical, Layers, Leaf,
+  Building2, Bug, ChevronDown, ChevronRight, FlaskConical, Layers, Leaf,
   MapPin, RefreshCw, Sprout, Tractor,
   LayoutDashboard,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { SiloIcon } from '@/components/ui/silo-icon'
 import { resolveExplorerRoot } from '../lib/explorerRoot'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { useDataCentralMains, useDataCentrals } from '@/features/admin/hooks/useDataCentrals'
@@ -549,7 +550,7 @@ function DataCentralNode({ depth, dcRef, org, selection, onSelect }: {
     <>
       <TreeRow
         depth={depth}
-        icon={<Factory className="h-3.5 w-3.5" />}
+        icon={<SiloIcon className="h-3.5 w-3.5" />}
         label={dcRef.name}
         expanded={expanded}
         onToggle={() => setExpanded((e) => !e)}
