@@ -29,9 +29,11 @@ describe('formatHa', () => {
 })
 
 describe('constructores de tarjetas', () => {
-  it('datacentralStats', () => {
-    const s = datacentralStats(2, 5, 12)
-    expect(s).toHaveLength(3)
+  it('datacentralStats incluye superficie', () => {
+    // La superficie es la magnitud con la que se piensa el trabajo agricola; los
+    // conteos dicen cuantos objetos hay, no cuanto terreno cubren.
+    const s = datacentralStats(2, 5, 12, 100)
+    expect(s.map((e) => e.label)).toEqual(['Productores', 'Ranchos', 'Parcelas', 'Superficie'])
     expect(s[0]).toEqual({ label: 'Productores', value: '2' })
     expect(s[2]).toEqual({ label: 'Parcelas', value: '12' })
   })

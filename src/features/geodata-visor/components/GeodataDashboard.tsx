@@ -172,7 +172,8 @@ function DataCentralStats({ dcId, dcName }: { dcId: string; dcName?: string }) {
         stats={datacentralStats(
           producerIds.length,
           ranches.data?.length ?? 0,
-          plots.data?.length ?? 0
+          plots.data?.length ?? 0,
+          sumArea(plots.data ?? [])
         )}
       />
     </div>

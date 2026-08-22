@@ -12,8 +12,11 @@ import { useState, useMemo } from 'react'
 import {
   Building2, Bug, ChevronDown, ChevronRight, Factory, FlaskConical, Layers, Leaf,
   MapPin, RefreshCw, Sprout, Tractor,
+  LayoutDashboard,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { resolveExplorerRoot } from '../lib/explorerRoot'
+import { useAuthStore } from '@/features/auth/useAuthStore'
 import { useDataCentralMains, useDataCentrals } from '@/features/admin/hooks/useDataCentrals'
 import { useProducers } from '@/features/admin/hooks/useProducers'
 import { useRanches } from '@/features/admin/hooks/useRanches'
@@ -803,6 +806,16 @@ export function GeodataExplorer({
   // Los hooks se llaman siempre (regla de hooks); solo cambia lo que se pinta.
   const { data: orgs, isLoading, error, refetch } = useDataCentralMains()
 
+  // Las CIAgros visibles salen de `/users/me/`, que ya está en el store: son las de
+  // las organizaciones que posee más las que tiene asignadas, sin las de
+  // organizaciones inactivas. Decidir la raíz no cuesta ni una petición extra.
+  const misDatacentrals = useAuthStore((st) => st.user?.datacentrals)
+
+  const raiz = resolveExplorerRoot({
+    orgs: orgs?.length ?? 0,
+    datacentrals: misDatacentrals?.length ?? 0,
+  })
+
   if (searchActive) {
     if (searchLoading) return <Loading depth={0} />
     if (searchError) {
@@ -830,16 +843,78 @@ export function GeodataExplorer({
   }
   if (!orgs || orgs.length === 0) return <Empty depth={0} text="No hay organizaciones visibles." />
 
-  return (
-    <div role="tree" className="py-1 pr-1">
-      {orgs.map((o) => (
-        <OrgNode
-          key={o.id}
-          orgRef={{ id: o.id, name: o.name, count: `${o.datacentrals_count} CIAgros` }}
+  const unicaOrg = orgs[0]
+  const unicaDc = misDatacentrals?.[0]
+
+  // Los niveles que se ocultan no desaparecen del modelo: viajan como ancestros
+  // implícitos en `base`, que es lo que ya espera cada nivel del árbol. Sin ellos, el
+  // dashboard y los mapas no sabrían de qué CIAgro cuelga lo seleccionado.
+  const contenido = () => {
+    if (raiz === 'producer' && unicaOrg && unicaDc) {
+      return (
+        <ProducerList
+          depth={0}
+          datacentral={{ id: unicaDc.id, name: unicaDc.name }}
+          base={{ org: { id: unicaOrg.id, name: unicaOrg.name } }}
           selection={selection}
           onSelect={onSelect}
         />
-      ))}
+      )
+    }
+    if (raiz === 'datacentral' && unicaOrg) {
+      return (
+        <DataCentralList
+          depth={0}
+          org={{ id: unicaOrg.id, name: unicaOrg.name }}
+          selection={selection}
+          onSelect={onSelect}
+        />
+      )
+    }
+    return orgs.map((o) => (
+      <OrgNode
+        key={o.id}
+        orgRef={{ id: o.id, name: o.name, count: `${o.datacentrals_count} CIAgros` }}
+        selection={selection}
+        onSelect={onSelect}
+      />
+    ))
+  }
+
+  return (
+    <div role="tree" className="py-1 pr-1">
+      {/* Fila fija de vuelta al panel de la CIAgro. Va aparte del árbol a propósito:
+          cuando la raíz colapsa, el nodo de CIAgro deja de existir y con él se perdía
+          el único camino de regreso al dashboard. Aquí no depende de qué niveles se
+          pinten. */}
+      {unicaOrg && unicaDc && raiz !== 'org' && (
+        <DashboardRow
+          org={{ id: unicaOrg.id, name: unicaOrg.name }}
+          datacentral={{ id: unicaDc.id, name: unicaDc.name }}
+          selection={selection}
+          onSelect={onSelect}
+        />
+      )}
+      {contenido()}
     </div>
+  )
+}
+
+/** Acceso permanente al panel de la CIAgro, sea cual sea la raíz del árbol. */
+function DashboardRow({ org, datacentral, selection, onSelect }: {
+  org: { id: string; name: string }
+  datacentral: { id: string; name: string }
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+}) {
+  const activo = selection?.level === 'datacentral' && selection.datacentral?.id === datacentral.id
+  return (
+    <TreeRow
+      depth={0}
+      icon={<LayoutDashboard className="h-3.5 w-3.5" />}
+      label="Dashboard"
+      selected={activo}
+      onSelect={() => onSelect({ org, datacentral, level: 'datacentral' })}
+    />
   )
 }

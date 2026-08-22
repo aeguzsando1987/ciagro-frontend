@@ -32,11 +32,20 @@ export function formatHa(value: number): string {
 
 // ─── Constructores de tarjetas por nivel ──────────────────────────────────────
 
-export function datacentralStats(producers: number, ranches: number, plots: number): StatEntry[] {
+export function datacentralStats(
+  producers: number,
+  ranches: number,
+  plots: number,
+  areaHa: number
+): StatEntry[] {
   return [
     { label: 'Productores', value: String(producers) },
     { label: 'Ranchos', value: String(ranches) },
     { label: 'Parcelas', value: String(plots) },
+    // La superficie es la magnitud con la que se piensa el trabajo agricola; los
+    // conteos dicen cuantos objetos hay, no cuanto terreno cubren. Con alcance
+    // delimitado suma solo las parcelas que el usuario ve.
+    { label: 'Superficie', value: formatHa(areaHa) },
   ]
 }
 
