@@ -2832,3 +2832,95 @@ lint sin errores (24 warnings preexistentes).
 
 Pendiente la validación visual del desarrollador: nada de lo anterior —tipos, tests, build, lint—
 mira una pantalla, y el bug del scroll lo demuestra.
+
+---
+
+## Sesión `nav-visor` (continuación) — El Visor como entrada real y migas de pan (2026-08-21, rama `dev-nav-entrada`)
+
+Continuación de la fase NV, ya validada. Dos cambios que salieron de usar el resultado.
+
+### El selector de CIAgro dejó de tener sentido al entrar
+
+Desde que el explorador colapsa su raíz según el alcance del usuario, elegir CIAgro al iniciar
+sesión pedía algo que el árbol iba a mostrar igual: un trámite antes de llegar a los datos.
+
+Ahora el login entra directo al Visor. Toda la decisión de arranque vive en un **despachador** en el
+`beforeLoad` de `/visor-datos`:
+
+```
+ninguna CIAgro -> /workspaces   (wizard de primer uso o pantalla de sin acceso)
+exactamente 1  -> /w/$dc/visor  (directo, con su dashboard)
+varias         -> se queda ahí; el árbol arranca donde corresponda
+```
+
+Va en `beforeLoad` y no en un componente porque `_authenticated.beforeLoad` ya garantiza que el
+usuario está poblado antes de los guards hijos: resolverlo **antes de montar** evita pintar una
+pantalla para acto seguido navegar a otra.
+
+La decisión se extrajo a `resolveEntryDecision`, función pura, por un motivo concreto: su forma
+natural sería un guard de redirección, y **un guard pasa con facilidad sin llegar a ejercitarse**.
+
+### El error: había tres puertas, no una
+
+Se cambió la ruta raíz `/` creyendo que era la puerta del login. **No lo era.** El desarrollador
+probó y el selector seguía apareciendo.
+
+Al auditar salieron **tres** puertas al selector:
+
+- `useLogin` navega por su cuenta a `/workspaces`, sin pasar por la ruta raíz.
+- `useChangePassword` hacía lo mismo tras cambiar la contraseña.
+- El Visor tenía un botón "Panel general" que llevaba allí.
+
+Las tres corregidas. El botón se retiró porque además era un "volver" sin destino: el Visor ya es la
+pantalla principal, no hay nada detrás.
+
+Auditoría posterior: quedan cuatro caminos a `/workspaces` y **los cuatro son correctos** —el
+despachador sin CIAgros, el guard de acceso de `/w/$dc`, la expulsión en caliente y "Cambiar
+organización" del menú del avatar—. Ninguno es una ruta de entrada.
+
+**Lección:** cambiar el destino de una navegación exige buscar *todas* las llamadas, no solo la que
+parece la principal. La ruta raíz es una de varias puertas, y ni los tipos ni los tests ven que
+falte una.
+
+### El selector, solo para el Task Manager
+
+Sobrevive únicamente en ese camino, cuyos datos sí son de una CIAgro concreta y no tienen
+equivalente al árbol del Visor. `/workspaces` acepta `?next=task-manager` y los selectores respetan
+ese destino, también al auto-navegar cuando hay una sola CIAgro.
+
+### Menú y cabecera
+
+- **El Visor está siempre en el menú**, haya o no CIAgro determinada. Antes, sin `currentDcId`, el
+  primer item era "Panel general" y el Task Manager **ni se pintaba**, lo que dejaba fuera del Visor
+  justo a quien aterriza sin elegir nada.
+- **La etiqueta de CIAgro activa queda solo en el Task Manager**, donde el trabajo es *de* esa
+  CIAgro. En el Visor lo dicen el explorador y las migas. En `/workspaces` era además engañosa:
+  llevaba icono de edificio en la pantalla donde justamente no hay ninguna seleccionada.
+
+### Migas de pan
+
+El panel mostraba el nombre del nodo actual, pero no **cómo** se llegó a él. Eso importa más desde
+que el explorador oculta niveles y el árbol se desplaza al navegar en profundidad: mirando la
+izquierda no siempre se sabe dónde se está.
+
+```
+Organización > CIAgro > Agrounidad > Rancho > Parcela > Sesión
+```
+
+Sustituyen al título suelto; el último escalón es el mismo nombre que había antes.
+
+**Cada escalón anterior es navegable**, que es lo que las convierte en herramienta y no en adorno.
+Con eso son el tercer camino de vuelta al panel de la CIAgro desde cualquier profundidad, junto al
+nodo del árbol y la fila "Dashboard".
+
+Un detalle que habría sido un bug: **al subir se descartan los descendientes**. Sin eso, subir a la
+agrounidad desde una sesión dejaría el rancho y la parcela colgando, y el panel mostraría los datos
+de un nivel con el título de otro. Tiene test.
+
+### Verificación
+
+**20 tests nuevos** (11 de la entrada, 9 de las migas), la lógica aislada en `entryTarget.ts` y
+`breadcrumbTrail.ts` para poder probarla sin montar el árbol entero. Verificados por mutación:
+ignorar el destino o forzar la decisión hace fallar los casos que los ejercitan.
+
+Suite completa: 83 archivos, 468 tests. `tsc --noEmit` limpio, build correcto, lint sin errores.

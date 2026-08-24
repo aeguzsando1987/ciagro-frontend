@@ -1,7 +1,7 @@
 # ROADMAP — CIAgro Alpha Frontend
 
 > **Estado actual:** Sesión 18 — Tanda de mejoras de producto: wizard de primer uso convertido en mini-tutorial (org → CIAgros → productores → asignaciones → info usuarios) con animación; UX de Administración (banners de asignación, labels "Dueño de organización"/"Código o nombre", combobox inline + transición de tamaño); visor con mapa de ranchos por productor (pines) y toolbar flotante; fix Manager dueño de org sin CIAs (no más NoAccessScreen); organizaciones inactivas deshabilitadas en selector/visor con guard de expulsión en caliente. Apoyado en cambios de backend Sesión 18.
-> **Última actualización:** 2026-08-21 — Fases PS y NV en `dev`: scope por parcela (modal de alcance, hooks con paginación real, poda del explorador) y el Visor como pantalla principal de una CIAgro, con la navegación en pestaña desplegable y la raíz del árbol adaptada al alcance del usuario.
+> **Última actualización:** 2026-08-21 — Fases PS y NV: scope por parcela y el Visor como pantalla principal. El login entra directo al Visor, el selector de CIAgro queda solo para el Task Manager, la raíz del árbol se adapta al alcance del usuario y el panel lleva migas de pan navegables.
 > **Backend:** roadmap propio en `../../CIAgro_alpha_backend/logs/roadmap.md`
 > **Producto:** `../../.context/templates/product-doc.md`
 > **Convención:** los sprints son estimaciones de **dev-week** (1 dev senior full-time).
@@ -621,7 +621,7 @@ distinguir "no hay parcelas que asignar" de "todavia cargando" o de un fallo, o 
 ---
 
 ## FASE NV: EL VISOR COMO PANTALLA PRINCIPAL Y NAVEGACION EN PESTAÑA
-**Estado:** `[✅] Implementada — rama dev-plot-scope, 2026-08-21; pendiente validacion visual del dev`
+**Estado:** `[✅] Implementada y VALIDADA por el dev — ramas dev-plot-scope y dev-nav-entrada, 2026-08-21`
 
 Es el hallazgo **H9** del analisis de la fase PS ("rediseño de navegacion, sesion aparte"), que el
 desarrollador decidio hacer en la misma rama. Se dejo en commits separados para poder revertir uno
@@ -633,8 +633,16 @@ sin el otro.
 - [x] **NV-4** Barra superior sin atajos duplicados y un solo Visor
 - [x] **NV-5** Raiz del explorador segun el alcance del usuario
 - [x] **NV-6** Icono de silos para las CIAgros hijas
+- [x] **NV-7** El login entra al Visor; el selector solo para el Task Manager
+- [x] **NV-8** Etiqueta de CIAgro activa solo en el Task Manager
+- [x] **NV-9** Migas de pan navegables en el panel del Visor
 
 **Decisiones que conviene no reabrir sin releer el porque:**
+
+0. **El login entra al Visor, no al selector.** Toda la decision de arranque vive en un
+   despachador en el `beforeLoad` de `/visor-datos`: sin CIAgros va a `/workspaces` (wizard o
+   sin acceso), con una entra directo a la suya, con varias se queda en el Visor. El selector
+   sobrevive SOLO en el camino del Task Manager, cuyos datos si son de una CIAgro concreta.
 
 1. **El Visor esta abierto a TODOS los roles** dentro de su CIAgro. Exigia Supervisor (3), pero
    mandar a todos al Visor al entrar dejaba a Guest y Tecnico en un bucle de redireccion. Es ademas
@@ -656,8 +664,13 @@ sin el otro.
   ejercitarse. Verificado por mutacion.
 - El fixture de `GeodataExplorer.test.tsx` mockeaba ranchos sin `producer` y parcelas sin `ranch`,
   campos que la API real si devuelve.
+- **Cambiar el destino de una navegacion exige buscar TODAS las llamadas.** Habia tres puertas al
+  selector —`useLogin`, `useChangePassword` y un boton del propio Visor— y cambiar la ruta raiz
+  no bastaba. Lo detecto la prueba manual; ni los tipos ni los tests ven que falte una.
+- **Al subir por las migas hay que descartar los descendientes**, o el panel muestra los datos de
+  un nivel con el titulo de otro.
 
-19 tests nuevos. Suite: 79 archivos, 448 tests.
+39 tests nuevos. Suite: 83 archivos, 468 tests.
 
 ---
 
