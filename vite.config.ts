@@ -16,6 +16,12 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // El servidor de la empresa expone este dev server por Cloudflare Tunnel
+    // (quick tunnel a *.trycloudflare.com) como respaldo de ciagro.bapta.mx.
+    // `host` lo saca de 127.0.0.1 para que cloudflared lo alcance, y
+    // `allowedHosts` evita el bloqueo de Vite por Host header desconocido.
+    host: true,
+    allowedHosts: true,
     proxy: {
       // Liga pública del reporte (/r/<uuid>/): la renderiza Django server-side, NO la
       // SPA. Sin este proxy, en desarrollo Vite devolvería index.html y el router
