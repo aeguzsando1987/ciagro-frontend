@@ -1,7 +1,10 @@
 import { createRoute, redirect } from '@tanstack/react-router'
 import { z } from 'zod'
 import { authenticatedRoute } from './_authenticated'
-import { useWorkspaceStore } from '@/features/workspace/useWorkspaceStore'
+import { useAuthStore } from '@/features/auth/useAuthStore'
+import { resolveEntryDecision } from '@/features/workspace/entryTarget'
+import { ProductShell } from '@/features/layout/ProductShell'
+import { GeodataVisorShell } from '@/features/geodata-visor/components/GeodataVisorShell'
 
 /**
  * Search params de la búsqueda avanzada del explorador (fase AS).
@@ -26,37 +29,56 @@ const visorSearchSchema = z.object({
 })
 
 /**
- * Ruta /visor-datos — CONSERVADA SOLO COMO REDIRECCIÓN.
+ * Ruta `/visor-datos` — el Visor sin CIAgro fija, y el DESPACHADOR de arranque.
  *
- * Nació como sección independiente fuera de /w/$dc, con el explorador arrancando en
- * el nivel Organización. Al pasar el Visor a ser la pantalla principal de una CIAgro
- * quedaron dos entradas para la MISMA pantalla: el árbol lista todas las
- * organizaciones que el usuario alcanza en las dos rutas, así que lo único que
- * cambiaba era con qué abría el panel derecho.
+ * Es donde aterriza el login. Antes se entraba por `/workspaces`, que obligaba a elegir
+ * una CIAgro antes de ver nada; desde que el explorador colapsa su raíz según el
+ * alcance del usuario, esa elección pedía algo que el árbol iba a mostrar igual.
  *
- * Ya no valida rol propio: el destino, /w/$dc/visor, hereda el guard de acceso a la
- * CIAgro de /w/$dc, que es el que de verdad importa. El Visor está abierto a todos
- * los roles y el alcance por parcela limita lo que cada uno ve dentro.
+ * El `beforeLoad` concentra toda la decisión de entrada, y va aquí y no en el
+ * componente porque `_authenticated.beforeLoad` ya garantiza que el usuario está
+ * poblado antes de los guards de las rutas hijas. Resolverlo antes de montar evita
+ * pintar una pantalla para acto seguido navegar a otra.
+ *
+ * Se conserva este path en vez de estrenar uno porque las búsquedas avanzadas
+ * compartidas viven en sus parámetros: los enlaces ya repartidos siguen funcionando.
  */
 export const visorDatosRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/visor-datos',
   validateSearch: visorSearchSchema,
   beforeLoad: () => {
-    // Redirige al Visor de la CIAgro activa: eran la MISMA pantalla. El arbol del
-    // explorador siempre arranca listando todas las organizaciones que el usuario
-    // alcanza, sin importar la ruta, asi que lo unico que cambiaba era con que abria
-    // el panel derecho. Mantener dos entradas para lo mismo confundia mas que ayudaba.
-    //
-    // La ruta se conserva redirigiendo para no romper enlaces guardados ni las
-    // busquedas avanzadas compartidas, que viven en los parametros de la URL.
-    const dc = useWorkspaceStore.getState().selectedDc?.id
-    throw redirect(
-      dc
-        ? { to: '/w/$dc/visor', params: { dc } }
-        : { to: '/workspaces' }
-    )
+    // La decisión vive en `resolveEntryDecision` para poder probarla: un guard de
+    // redirección pasa con facilidad sin llegar a ejercitarse, y aquí se decide a qué
+    // pantalla entra todo el mundo.
+    const decision = resolveEntryDecision(useAuthStore.getState().user?.datacentrals)
+
+    if (decision.kind === 'sin-acceso') {
+      // `/workspaces` decide entre el wizard de primer uso y la pantalla de sin acceso.
+      throw redirect({ to: '/workspaces' })
+    }
+    if (decision.kind === 'unica') {
+      throw redirect({ to: '/w/$dc/visor', params: { dc: decision.dcId } })
+    }
+    // 'elegir-en-el-arbol': se queda aquí y el explorador hace el resto.
   },
+  component: VisorDatosPage,
 })
 
-
+/**
+ * El Visor va dentro de `ProductShell` como el resto de la aplicación: sin él no
+ * tendría cabecera y, con la navegación viviendo en la pestaña de la esquina, entrar
+ * aquí dejaría al usuario sin ninguna forma de moverse.
+ *
+ * `mainClassName` a sangre completa por el mismo motivo que en `/w/$dc/visor`: es una
+ * interfaz de mapa, no un documento, y el margen y el scroll del contenedor le sobran.
+ */
+function VisorDatosPage() {
+  return (
+    <ProductShell
+      mainClassName="overflow-hidden p-0 pb-0 sm:p-0 lg:p-0"
+    >
+      <GeodataVisorShell />
+    </ProductShell>
+  )
+}

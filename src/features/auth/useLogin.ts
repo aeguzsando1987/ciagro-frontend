@@ -31,7 +31,13 @@ async function loginRequest(values: LoginFormValues): Promise<LoginResponse> {
 }
 
 /**
- * Mutacion de login. Al exito guarda tokens y navega a /workspaces.
+ * Mutacion de login. Al exito guarda tokens y entra al Visor.
+ *
+ * Va al Visor y no al selector de CIAgro: el explorador ya arranca en el nivel que el
+ * alcance del usuario justifica, asi que elegir antes de entrar pedia algo que el arbol
+ * iba a mostrar igual. Las tres condiciones de entrada —una CIAgro, varias, o ninguna—
+ * las resuelve el despachador de `/visor-datos`, no esta mutacion.
+ *
  * El guard en _authenticated maneja requires_password_change via useCurrentUser.
  */
 export function useLogin() {
@@ -45,7 +51,7 @@ export function useLogin() {
             // Limpiar cache del usuario anterior para que useCurrentUser refetchee
             // con los nuevos tokens y el guard lea requires_password_change correcto.
             queryClient.removeQueries({ queryKey: ['me'] })
-            void navigate({ to: '/workspaces' })
+            void navigate({ to: '/visor-datos' })
         },
     })
 }

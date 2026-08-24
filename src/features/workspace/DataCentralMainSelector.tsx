@@ -10,6 +10,7 @@ import { SearchInput } from '@/components/ui/search-input'
 import { useDataCentralsMain } from './useDataCentralsMain'
 import { useDataCentrals } from './useDataCentrals'
 import { DataCentralChildSelector } from './DataCentralChildSelector'
+import type { EntryTarget } from './entryTarget'
 import type { DataCentralMain } from '@/types/workspace'
 
 function ciaCountLabel(value?: number | string) {
@@ -18,7 +19,7 @@ function ciaCountLabel(value?: number | string) {
 }
 
 /** Selector jerárquico de organización → CIAgro para Gerente y SuperAdmin. */
-export function DataCentralMainSelector() {
+export function DataCentralMainSelector({ next }: { next?: EntryTarget }) {
   const [selectedMain, setSelectedMain] = useState<DataCentralMain | null>(null)
   const [search, setSearch] = useState('')
   const {
@@ -73,6 +74,7 @@ export function DataCentralMainSelector() {
           />
         ) : (
           <DataCentralChildSelector
+            next={next}
             datacentrals={children}
             title="CIAgros disponibles"
             description={`Unidades pertenecientes a ${selectedMain.name}.`}

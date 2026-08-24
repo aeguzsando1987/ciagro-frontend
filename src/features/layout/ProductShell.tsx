@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { AnimatedAgroindustryLogo } from '@/features/auth/AnimatedAgroindustryLogo'
 
 interface ProductShellProps {
-  contextLabel: string
+  contextLabel?: string
   currentDcId?: string
   children: React.ReactNode
   mainClassName?: string

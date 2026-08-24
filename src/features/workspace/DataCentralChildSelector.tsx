@@ -9,11 +9,15 @@ import { useWorkspaceStore } from './useWorkspaceStore'
 import type { DataCentral } from '@/types/workspace'
 import type { WorkspaceDataCentral } from '@/types/auth'
 
+import { targetRouteFor, type EntryTarget } from './entryTarget'
+
 interface Props {
   datacentrals: Array<DataCentral | WorkspaceDataCentral>
   title?: string
   description?: string
   showHeader?: boolean
+  /** A dónde llevar tras elegir. Sin él, al Visor. Ver `entryTarget.ts`. */
+  next?: EntryTarget
 }
 
 /** Selector compacto de CIAgro con búsqueda y estado activo. */
@@ -22,6 +26,7 @@ export function DataCentralChildSelector({
   title = 'Organizaciones',
   description = 'Selecciona la organización con la que deseas trabajar.',
   showHeader = true,
+  next,
 }: Props) {
   const navigate = useNavigate()
   const selectedDc = useWorkspaceStore((state) => state.selectedDc)
@@ -76,7 +81,7 @@ export function DataCentralChildSelector({
                 } ${active ? 'bg-primary-soft' : ''}`}
                 onClick={() => {
                   setSelectedDc({ id: dc.id, name: dc.name })
-                  void navigate({ to: '/w/$dc/visor', params: { dc: dc.id } })
+                  void navigate(targetRouteFor(dc.id, next))
                 }}
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-brand">

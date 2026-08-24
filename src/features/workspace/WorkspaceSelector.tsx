@@ -9,6 +9,7 @@ import { NoAccessScreen } from './NoAccessScreen'
 import { FirstUseWizard } from './FirstUseWizard'
 import { useDataCentralsMain } from './useDataCentralsMain'
 import { LoadingState } from '@/components/ui/loading-state'
+import { targetRouteFor, type EntryTarget } from './entryTarget'
 
 /**
  * Selector de workspace con bifurcacion por role_level (Paso 1.3 product-doc):
@@ -17,12 +18,12 @@ import { LoadingState } from '@/components/ui/loading-state'
  *                                aunque no tengan CIAs hijas todavía)
  * - role_level < 4            → BasicEntry (flujo clásico basado en user.datacentrals)
  */
-export function WorkspaceSelector() {
+export function WorkspaceSelector({ next }: { next?: EntryTarget }) {
   const user = useAuthStore((s) => s.user)
   if (!user) return null
-  if (user.role_level >= ROLE_LEVELS.SUPER_ADMIN) return <SuperAdminEntry />
-  if (user.role_level >= ROLE_LEVELS.MANAGER) return <ManagerEntry />
-  return <BasicEntry />
+  if (user.role_level >= ROLE_LEVELS.SUPER_ADMIN) return <SuperAdminEntry next={next} />
+  if (user.role_level >= ROLE_LEVELS.MANAGER) return <ManagerEntry next={next} />
+  return <BasicEntry next={next} />
 }
 
 /**
@@ -31,7 +32,7 @@ export function WorkspaceSelector() {
  * Si NO ve ninguna org cae al flujo basado en user.datacentrals (CIAs asignadas
  * por otros owners) o NoAccessScreen.
  */
-function ManagerEntry() {
+function ManagerEntry({ next }: { next?: EntryTarget }) {
   const user = useAuthStore((s) => s.user)!
   const navigate = useNavigate()
   const datacentrals = user.datacentrals ?? []
@@ -42,36 +43,36 @@ function ManagerEntry() {
     if (isLoading) return
     const noOrgs = (mains?.length ?? 0) === 0
     if (noOrgs && datacentrals.length === 1 && datacentrals[0]) {
-      void navigate({ to: '/w/$dc/visor', params: { dc: datacentrals[0].id } })
+      void navigate(targetRouteFor(datacentrals[0].id, next))
     }
-  }, [isLoading, mains, datacentrals, navigate])
+  }, [isLoading, mains, datacentrals, navigate, next])
 
   if (isLoading) return <LoadingState label="Cargando organizaciones…" />
 
   const hasOrgs = (mains?.length ?? 0) > 0
-  if (hasOrgs) return <DataCentralMainSelector />
+  if (hasOrgs) return <DataCentralMainSelector next={next} />
   if (datacentrals.length === 0) return <NoAccessScreen />
   if (datacentrals.length === 1) return <LoadingState label="Abriendo organización…" />
-  return <DataCentralChildSelector datacentrals={datacentrals} />
+  return <DataCentralChildSelector datacentrals={datacentrals} next={next} />
 }
 
 /**
  * Entrada para Supervisor/Tecnico/Guest (<4): selector plano sobre user.datacentrals.
  */
-function BasicEntry() {
+function BasicEntry({ next }: { next?: EntryTarget }) {
   const user = useAuthStore((s) => s.user)!
   const navigate = useNavigate()
   const datacentrals = user.datacentrals ?? []
 
   useEffect(() => {
     if (datacentrals.length === 1 && datacentrals[0]) {
-      void navigate({ to: '/w/$dc/visor', params: { dc: datacentrals[0].id } })
+      void navigate(targetRouteFor(datacentrals[0].id, next))
     }
-  }, [datacentrals, navigate])
+  }, [datacentrals, navigate, next])
 
   if (datacentrals.length === 0) return <NoAccessScreen />
   if (datacentrals.length === 1) return <LoadingState label="Abriendo organización…" />
-  return <DataCentralChildSelector datacentrals={datacentrals} />
+  return <DataCentralChildSelector datacentrals={datacentrals} next={next} />
 }
 
 /**
@@ -80,7 +81,7 @@ function BasicEntry() {
  * se fija una sola vez (mode) para que crear la primera org dentro del wizard no lo
  * desmonte a mitad de camino.
  */
-function SuperAdminEntry() {
+function SuperAdminEntry({ next }: { next?: EntryTarget }) {
   const queryClient = useQueryClient()
   const { data: mains, isLoading } = useDataCentralsMain()
   const [mode, setMode] = useState<'auto' | 'wizard' | 'selector'>('auto')
@@ -108,5 +109,5 @@ function SuperAdminEntry() {
     )
   }
 
-  return <DataCentralMainSelector />
+  return <DataCentralMainSelector next={next} />
 }

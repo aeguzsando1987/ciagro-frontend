@@ -41,6 +41,7 @@ function WorkspaceLayout() {
   const navigate = useNavigate()
   const matchRoute = useMatchRoute()
   const enVisor = !!matchRoute({ to: '/w/$dc/visor', fuzzy: true })
+  const enTaskManager = !!matchRoute({ to: '/w/$dc/task-manager', fuzzy: true })
   const warned = useRef(false)
   const dcName =
     selectedDc?.id === dc
@@ -61,7 +62,9 @@ function WorkspaceLayout() {
 
   return (
     <ProductShell
-      contextLabel={dcName}
+      // La CIAgro activa solo se anuncia donde el trabajo es DE esa CIAgro: el
+      // Task Manager. En el Visor lo dicen el explorador y sus migas de pan.
+      contextLabel={enTaskManager ? dcName : undefined}
       currentDcId={dc}
       // El Visor es una interfaz de mapa: ocupa todo el espacio disponible, sin el
       // margen del resto de pantallas y sin scroll propio. Con el margen y el

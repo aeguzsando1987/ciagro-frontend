@@ -7,7 +7,6 @@
 import { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import {
-  ArrowLeft,
   Columns2,
   FolderTree,
   LayoutDashboard,
@@ -192,19 +191,9 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
     // barra de desplazamiento vertical. Cada contenedor define el alto.
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-default bg-surface px-3 sm:px-4">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="shrink-0 px-2 sm:px-3"
-          onClick={() => void navigate({ to: '/workspaces' })}
-        >
-          <ArrowLeft />
-          <span className="hidden sm:inline">Panel general</span>
-        </Button>
-
-        <div className="h-6 w-px bg-border-light" aria-hidden="true" />
-
+        {/* Sin boton de "volver": el Visor es la pantalla principal, no hay nada
+            detras. Llevaba al selector de CIAgro, que desde esta fase solo aparece en
+            el camino del Task Manager. */}
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-hover">
             <Map className="h-[18px] w-[18px]" aria-hidden="true" />

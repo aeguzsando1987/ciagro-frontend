@@ -16,7 +16,8 @@ import { ProfileModal } from '@/features/workspace/ProfileModal'
 import { AnimatedAgroindustryLogo } from '@/features/auth/AnimatedAgroindustryLogo'
 
 interface ProductHeaderProps {
-  contextLabel: string
+  /** Indicador de CIAgro activa. Sin el, no se pinta. */
+  contextLabel?: string
   currentDcId?: string
   onOpenNavigation: () => void
 }
@@ -68,18 +69,22 @@ export function ProductHeader({ contextLabel, currentDcId, onOpenNavigation }: P
           </Link>
         )}
 
-        <div className="mx-3 hidden h-6 w-px bg-border-light sm:block" aria-hidden="true" />
-
-        {/* Indicador de contexto, ya no un acceso: cambiar de organizacion vive en el
-            menu del avatar y tenerlo dos veces solo repetia la misma accion. Se
-            conserva el nombre porque sin el no se sabe en que CIAgro se esta. */}
-        <span
-          className="hidden min-w-0 max-w-[260px] items-center gap-2 px-2 text-sm text-secondary sm:inline-flex"
-          title={contextLabel}
-        >
-          <Building2 className="h-4 w-4 shrink-0 text-muted" />
-          <span className="truncate">{contextLabel}</span>
-        </span>
+        {/* Indicador de CIAgro activa: solo donde el trabajo es DE una CIAgro
+            concreta, o sea el Task Manager. En el Visor sobra, porque el propio
+            explorador y sus migas de pan dicen a cada momento donde esta el usuario, y
+            repetirlo arriba era ruido. */}
+        {contextLabel && (
+          <>
+            <div className="mx-3 hidden h-6 w-px bg-border-light sm:block" aria-hidden="true" />
+            <span
+              className="hidden min-w-0 max-w-[260px] items-center gap-2 px-2 text-sm text-secondary sm:inline-flex"
+              title={contextLabel}
+            >
+              <Building2 className="h-4 w-4 shrink-0 text-muted" />
+              <span className="truncate">{contextLabel}</span>
+            </span>
+          </>
+        )}
 
         <div className="ml-auto flex items-center gap-1.5">
           <DropdownMenu>

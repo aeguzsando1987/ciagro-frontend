@@ -34,11 +34,11 @@ const BASE_USER: AuthUser = {
   datacentrals: [],
 }
 
-function renderSelector() {
+function renderSelector(next?: 'task-manager') {
   const queryClient = createTestQueryClient()
   return render(
     <QueryClientProvider client={queryClient}>
-      <WorkspaceSelector />
+      <WorkspaceSelector next={next} />
     </QueryClientProvider>
   )
 }
@@ -67,6 +67,22 @@ describe('WorkspaceSelector', () => {
     renderSelector()
     expect(mockNavigate).toHaveBeenCalledWith({
       to: '/w/$dc/visor',
+      params: { dc: 'dc-uuid' },
+    })
+  })
+
+  it('con destino Task Manager, la CIAgro unica entra al Task Manager y no al Visor', () => {
+    // El selector dejo de ser la entrada del sistema: solo aparece en el camino del
+    // Task Manager, y ahi tiene que respetar ese destino tambien cuando auto-navega.
+    useAuthStore.setState({
+      user: {
+        ...BASE_USER,
+        datacentrals: [{ id: 'dc-uuid', name: 'DC Prueba', slug: 'dc-prueba', is_owner: true }],
+      },
+    })
+    renderSelector('task-manager')
+    expect(mockNavigate).toHaveBeenCalledWith({
+      to: '/w/$dc/task-manager',
       params: { dc: 'dc-uuid' },
     })
   })

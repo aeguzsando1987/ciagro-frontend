@@ -3,7 +3,6 @@ import {
   BookOpen,
   Building2,
   CalendarClock,
-  LayoutDashboard,
   Map,
   MapPinned,
   SlidersHorizontal,
@@ -54,9 +53,11 @@ export function ProductSidebar({
     >
       <nav aria-label="Navegación principal" className="flex-1 space-y-6 overflow-y-auto p-3 py-5">
         <NavGroup label="General">
-          {/* El Visor es la pantalla principal de una CIAgro: ya no hay un item
-              "Dashboard" aparte, porque apuntaba a una pantalla intermedia que ahora
-              solo redirige aquí. El panel de la CIAgro es el nivel raíz del Visor. */}
+          {/* El Visor es la pantalla principal del producto y esta SIEMPRE, haya o no
+              una CIAgro determinada: apunta a la suya cuando la hay, y al Visor sin
+              CIAgro fija cuando no. Antes, sin `currentDcId`, el primer item era
+              "Panel general" y dejaba al usuario fuera del Visor justo en el caso en
+              que aterriza sin elegir nada. */}
           {currentDcId ? (
             <Link
               to="/w/$dc/visor"
@@ -70,29 +71,45 @@ export function ProductSidebar({
             </Link>
           ) : (
             <Link
-              to="/workspaces"
+              to="/visor-datos"
               className={navItemClass}
               activeProps={{ className: activeNavItem }}
               onClick={onNavigate}
             >
-              <LayoutDashboard className="h-[18px] w-[18px]" />
-              Panel general
+              <Map className="h-[18px] w-[18px]" />
+              Visor agrícola
             </Link>
           )}
 
 
-          {currentDcId && canManage && (
-            <Link
-              to="/w/$dc/task-manager"
-              params={{ dc: currentDcId }}
-              className={navItemClass}
-              activeProps={{ className: activeNavItem }}
-              onClick={onNavigate}
-            >
-              <CalendarClock className="h-[18px] w-[18px]" />
-              Task Manager
-            </Link>
-          )}
+          {/* El Task Manager trabaja sobre UNA CIAgro concreta, asi que sin una
+              determinada pasa antes por el selector. Es el unico camino donde ese
+              selector sigue teniendo sentido. Sin esto quedaba inalcanzable para quien
+              aterriza sin CIAgro fija, porque el item no se pintaba. */}
+          {canManage &&
+            (currentDcId ? (
+              <Link
+                to="/w/$dc/task-manager"
+                params={{ dc: currentDcId }}
+                className={navItemClass}
+                activeProps={{ className: activeNavItem }}
+                onClick={onNavigate}
+              >
+                <CalendarClock className="h-[18px] w-[18px]" />
+                Task Manager
+              </Link>
+            ) : (
+              <Link
+                to="/workspaces"
+                search={{ next: 'task-manager' as const }}
+                className={navItemClass}
+                activeProps={{ className: activeNavItem }}
+                onClick={onNavigate}
+              >
+                <CalendarClock className="h-[18px] w-[18px]" />
+                Task Manager
+              </Link>
+            ))}
         </NavGroup>
 
         {canManage && (

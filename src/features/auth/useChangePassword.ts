@@ -39,7 +39,8 @@ export function useChangePassword() {
     onSuccess: async () => {
       // Forzar recarga de /users/me/ para que requires_password_change sea false
       await queryClient.invalidateQueries({ queryKey: ['me'] })
-      void navigate({ to: '/workspaces' })
+      // Misma entrada que el login: al Visor, no al selector.
+      void navigate({ to: '/visor-datos' })
     },
   })
 }
