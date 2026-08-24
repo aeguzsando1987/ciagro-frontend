@@ -25,6 +25,7 @@ import {
   ranchStats,
   plotStats,
 } from '../lib/visorStats'
+import { VisorBreadcrumb } from './VisorBreadcrumb'
 import { RanchPlotsMap } from './RanchPlotsMap'
 import { ProducerRanchesMap } from './ProducerRanchesMap'
 import { SessionsPanel } from './SessionsPanel'
@@ -556,22 +557,6 @@ function LevelBody({
   }
 }
 
-function selectionName(selection: VisorSelection): string {
-  switch (selection.level) {
-    case 'org':
-      return selection.org.name
-    case 'datacentral':
-      return selection.datacentral!.name
-    case 'producer':
-      return selection.producer!.name
-    case 'ranch':
-      return selection.ranch!.name
-    case 'plot':
-      return selection.plot!.name
-    case 'session':
-      return selection.session!.date ?? 'Sesión'
-  }
-}
 
 export function GeodataDashboard({
   selection,
@@ -592,9 +577,13 @@ export function GeodataDashboard({
     <div className="flex h-full flex-col gap-2.5">
       {!comparisonMode && (
         <div className="flex items-baseline justify-between gap-2">
-          <div className="flex items-baseline gap-2">
-            <h2 className="text-base font-semibold leading-tight">{selectionName(selection)}</h2>
-            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          {/* Las migas sustituyen al titulo suelto: decian el nombre del nodo actual
+              pero no como se llego a el, que es lo que el usuario necesita saber
+              cuando el explorador oculta niveles o el arbol se ha desplazado. El
+              ultimo escalon es el mismo nombre que habia antes. */}
+          <div className="flex min-w-0 items-baseline gap-2">
+            <VisorBreadcrumb selection={selection} onSelect={onSelect} />
+            <span className="shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">
               {levelTitle(selection)}
             </span>
           </div>
