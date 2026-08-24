@@ -1,7 +1,7 @@
 # ROADMAP — CIAgro Alpha Frontend
 
 > **Estado actual:** Sesión 18 — Tanda de mejoras de producto: wizard de primer uso convertido en mini-tutorial (org → CIAgros → productores → asignaciones → info usuarios) con animación; UX de Administración (banners de asignación, labels "Dueño de organización"/"Código o nombre", combobox inline + transición de tamaño); visor con mapa de ranchos por productor (pines) y toolbar flotante; fix Manager dueño de org sin CIAs (no más NoAccessScreen); organizaciones inactivas deshabilitadas en selector/visor con guard de expulsión en caliente. Apoyado en cambios de backend Sesión 18.
-> **Última actualización:** 2026-08-21 — Fase PS implementada y validada (scope por parcela, rama `dev-plot-scope`): hooks con paginación real, modal de alcance en la pestaña Usuarios y poda de ramas vacías del explorador.
+> **Última actualización:** 2026-08-21 — Fases PS y NV en `dev`: scope por parcela (modal de alcance, hooks con paginación real, poda del explorador) y el Visor como pantalla principal de una CIAgro, con la navegación en pestaña desplegable y la raíz del árbol adaptada al alcance del usuario.
 > **Backend:** roadmap propio en `../../CIAgro_alpha_backend/logs/roadmap.md`
 > **Producto:** `../../.context/templates/product-doc.md`
 > **Convención:** los sprints son estimaciones de **dev-week** (1 dev senior full-time).
@@ -617,6 +617,47 @@ GET  /api/v1/geo_assets/plots/?producer_in=<csv>    sus parcelas, para el select
 **Aviso para el modal (PS-9):** hay CIAgros con productores pero sin ninguna parcela
 (`CIA-ejemplo-01` en la base de desarrollo tiene 5 productores y 0 parcelas). El selector debe
 distinguir "no hay parcelas que asignar" de "todavia cargando" o de un fallo, o parecera roto.
+
+---
+
+## FASE NV: EL VISOR COMO PANTALLA PRINCIPAL Y NAVEGACION EN PESTAÑA
+**Estado:** `[✅] Implementada — rama dev-plot-scope, 2026-08-21; pendiente validacion visual del dev`
+
+Es el hallazgo **H9** del analisis de la fase PS ("rediseño de navegacion, sesion aparte"), que el
+desarrollador decidio hacer en la misma rama. Se dejo en commits separados para poder revertir uno
+sin el otro.
+
+- [x] **NV-1** El Visor como entrada de una CIAgro (`/w/$dc/visor`)
+- [x] **NV-2** Poligonos de las parcelas bajo los pines a nivel de productor
+- [x] **NV-3** Navegacion en pestaña desplegable y Visor a sangre completa
+- [x] **NV-4** Barra superior sin atajos duplicados y un solo Visor
+- [x] **NV-5** Raiz del explorador segun el alcance del usuario
+- [x] **NV-6** Icono de silos para las CIAgros hijas
+
+**Decisiones que conviene no reabrir sin releer el porque:**
+
+1. **El Visor esta abierto a TODOS los roles** dentro de su CIAgro. Exigia Supervisor (3), pero
+   mandar a todos al Visor al entrar dejaba a Guest y Tecnico en un bucle de redireccion. Es ademas
+   coherente con el caso de uso 2 de la fase PS: el usuario delimitado es un tecnico y el explorador
+   se diseño para el. El alcance por parcela limita lo que cada uno ve.
+2. **Un solo Visor.** `/visor-datos` redirige: era la MISMA pantalla, porque el arbol lista todas
+   las organizaciones alcanzables en cualquier caso. La ruta se conserva redirigiendo para no romper
+   las busquedas avanzadas compartidas, que viven en la URL.
+3. **La raiz del explorador colapsa los niveles con un solo hijo**, deteniendose en agrounidad, y
+   cuenta lo que el usuario REALMENTE ve, no sus filas de asignacion.
+4. **Los colores por rancho van en orden fijo y no se ciclan**: el septimo rancho cae a un gris
+   neutro. Repetir el primer color haria creer que dos ranchos son el mismo.
+
+**Trampas encontradas:**
+
+- El shell del Visor imponia `h-dvh` y dentro del layout cuelga bajo una cabecera de 64px: se
+  desbordaba exactamente esos pixeles y sacaba un scroll. Cada contenedor define el alto.
+- Los tests existentes no tocan el store de autenticacion, asi que la regla de colapso "paso" sin
+  ejercitarse. Verificado por mutacion.
+- El fixture de `GeodataExplorer.test.tsx` mockeaba ranchos sin `producer` y parcelas sin `ranch`,
+  campos que la API real si devuelve.
+
+19 tests nuevos. Suite: 79 archivos, 448 tests.
 
 ---
 

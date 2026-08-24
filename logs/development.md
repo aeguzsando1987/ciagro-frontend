@@ -2713,3 +2713,122 @@ fixture para que refleje la respuesta real, no se relajó la implementación.**
 
 `tsc --noEmit` limpio, lint sin errores (24 warnings preexistentes) y suite en verde: **75 archivos,
 429 tests**. Tipos regenerados desde el schema del backend.
+
+---
+
+## Sesión `nav-visor` — El Visor como pantalla principal y navegación en pestaña (2026-08-21, rama `dev-plot-scope`)
+
+**Contexto:** el análisis de la fase PS había apartado esta parte como hallazgo H9 —"rediseño de
+navegación, sesión aparte"— para no mezclar un bug de navegación con uno de permisos. El
+desarrollador decidió hacerla en la misma rama, y se dejó en commits separados para poder revertir
+uno sin el otro.
+
+### El Visor como entrada de una CIAgro
+
+Al elegir una CIAgro se entraba a `/w/$dc/dashboard`, una pantalla que solo decía el nombre de la
+CIA activa y no llevaba a ninguna parte. Ahora se entra directo al Visor, con el panel derecho
+abierto en el nivel de esa CIAgro.
+
+**El retorno a ese panel no necesitó ningún concepto nuevo:** el explorador ya tenía nodo de CIAgro
+y seleccionarlo muestra el nivel `datacentral`, que es exactamente el mismo estado. Ahí es donde
+irán las estadísticas y gráficos generales.
+
+`/w/$dc/dashboard` no se borró: redirige. Los enlaces guardados y los marcadores siguen
+funcionando.
+
+### Un bucle de redirección evitado por poco
+
+El Visor exigía nivel Supervisor (3). Mandar a **todos** al Visor al entrar habría dejado a Guest y
+Técnico dando vueltas: `/workspaces` los auto-navega al Visor y el Visor los rebota a
+`/workspaces`.
+
+Y no era teórico: `tecnico01` y `newuser01`, los usuarios con los que se estaba probando la fase
+PS, son **nivel 2**.
+
+**Decisión (del desarrollador):** el Visor de la CIAgro se abre a todos los roles. Es lo coherente
+con el caso de uso 2 de la propia fase PS —el usuario delimitado es un técnico y el explorador se
+diseñó para él— y el alcance por parcela ya limita lo que cada uno ve dentro.
+
+### Dos redundancias que encontró el desarrollador usándolo
+
+1. **Los tres accesos de la barra superior** repetían lo que estaba a un clic en el menú. Antes de
+   quitarlos se verificó **uno por uno** que ninguna capacidad quedara huérfana: el Visor y las
+   seis secciones de administración están en el menú, y el botón de contexto hacía lo mismo que
+   "Cambiar organización" del menú del avatar. El nombre de la CIAgro se conservó como
+   **indicador**, no como enlace: sin él no se sabe dónde se está trabajando.
+
+2. **"Visor global" y "Visor agrícola" eran la misma pantalla.** El árbol del explorador siempre
+   arranca listando todas las organizaciones que el usuario alcanza, sin importar la ruta, así que
+   lo único que cambiaba era con qué abría el panel derecho. Se dejó **un solo Visor**;
+   `/visor-datos` redirige. No se pierde alcance —desde el árbol se sigue pudiendo subir a
+   Organización y bajar a cualquier otra CIAgro— y la ruta se conserva redirigiendo para no romper
+   las búsquedas avanzadas compartidas, que viven en los parámetros de la URL.
+
+   Esto resolvió de paso que el Visor global no tuviera cabecera: al no montarse bajo
+   `ProductShell`, entrar ahí dejaba al usuario sin la pestaña de navegación.
+
+### El scroll que apareció, y por qué
+
+Con el Visor dentro del layout quedaban **dos columnas apiladas** a la izquierda del mapa: la barra
+lateral y el explorador propio del Visor. Al quitar la barra lateral y pasar la navegación a la
+pestaña de la esquina, el desarrollador detectó una barra de desplazamiento que dejaba mover el
+visor.
+
+**Causa:** el shell imponía `h-dvh`, el alto completo de la ventana, pero dentro del layout cuelga
+bajo una cabecera de 64 px. Se desbordaba **exactamente** esos píxeles. Ahora usa `h-full` y cada
+contenedor define el alto; `/visor-datos` aporta el de la ventana porque no pasa por `ProductShell`.
+
+### La raíz del explorador según el alcance
+
+El árbol empezaba siempre en Organización aunque el usuario alcanzara una sola. Un técnico con una
+CIAgro atravesaba dos niveles con un único hijo cada uno: expandir para encontrar exactamente una
+cosa es trabajo sin información.
+
+El desarrollador pidió tres reglas; se implementó **una** que las produce solas: *un nivel con un
+solo hijo no se pinta*, deteniéndose en agrounidad. Cubre además las combinaciones que no estaban
+enumeradas, como varias organizaciones con una CIAgro cada una.
+
+**Se cuenta lo que el usuario realmente ve**, no sus filas de asignación: desde la fase PS un
+técnico puede estar asignado a una CIAgro de cinco productores y alcanzar las parcelas de uno solo.
+El dato sale de `/users/me/`, que ya está en el store, así que decidir la raíz **no cuesta ni una
+petición extra** —la estimación previa de "una consulta antes de pintar el árbol" resultó
+pesimista.
+
+**Por qué no hubo que reescribir el explorador:** los niveles ocultos no desaparecen del modelo,
+viajan como ancestros implícitos en la prop `base` que cada nivel del árbol **ya esperaba**. Sin
+ellos, el dashboard y los mapas no sabrían de qué CIAgro cuelga lo seleccionado.
+
+La fila fija **"Dashboard"** existe porque al colapsar la raíz el nodo de CIAgro deja de existir y
+con él se perdía el único camino de vuelta. Va aparte del árbol para no depender de qué niveles se
+pinten, y solo aparece cuando hace falta.
+
+### Sobre los colores del mapa de productor
+
+Los polígonos de las parcelas van coloreados por rancho, en **orden fijo y nunca ciclado**: a
+partir del séptimo rancho se usa un gris neutro, porque repetir el primer color haría creer que dos
+ranchos distintos son el mismo. La identidad no depende del color — cada rancho conserva su pin con
+nombre.
+
+La paleta se **validó con el script** de la guía de visualización, no a ojo: daltonismo 21.1
+(deutan) y 13.3 (tritan), visión normal 27.4, contraste ≥ 3:1. La única comprobación que no pasa es
+la banda de luminosidad, y es esperable: esa banda se calibra contra una superficie **plana** de
+gráfico, mientras que aquí el fondo es terreno —variable y a menudo claro—, donde los tonos
+brillantes a baja opacidad son justo lo que se distingue. Queda anotado en el código.
+
+### Dos lecciones sobre los propios tests
+
+- **Los 448 tests pasaron a la primera tras la regla de colapso, y no validaban nada.** Los tests
+  existentes no tocan el store de autenticación, así que veían cero CIAgros y caían en el caso de
+  siempre. Se escribió cobertura real y se verificó **por mutación**: al desactivar la regla fallan
+  los 7 casos que la ejercitan.
+- **Un fixture mentía.** `GeodataExplorer.test.tsx` mockeaba ranchos sin `producer` y parcelas sin
+  `ranch`, campos que la API real sí devuelve. Al agrupar por ellos todo quedaba podado. Se
+  completó el fixture; **no se relajó la implementación**.
+
+### Verificación
+
+**19 tests nuevos.** Suite completa: 79 archivos, 448 tests. `tsc --noEmit` limpio, build correcto,
+lint sin errores (24 warnings preexistentes).
+
+Pendiente la validación visual del desarrollador: nada de lo anterior —tipos, tests, build, lint—
+mira una pantalla, y el bug del scroll lo demuestra.
