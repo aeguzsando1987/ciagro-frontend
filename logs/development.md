@@ -2924,3 +2924,50 @@ de un nivel con el título de otro. Tiene test.
 ignorar el destino o forzar la decisión hace fallar los casos que los ejercitan.
 
 Suite completa: 83 archivos, 468 tests. `tsc --noEmit` limpio, build correcto, lint sin errores.
+
+---
+
+## Sesión `soilmap-layer-load` — FASE SL: contrato de carga por capa (2026-08-24)
+
+**Esta sesión no tocó código de frontend.** Se registra aquí porque el backend cerró el contrato que
+la sesión de front va a consumir, y porque el análisis se hizo leyendo este repo.
+
+### Qué habilitó el backend
+
+`GET /soil-map/points/` acepta `?fields=` (sparse fieldset) y existe
+`GET /soil-map/headers/<id>/variable-stats/` con `count/mean/min/max/stddev` por variable. Detalle
+en `CIAgro_alpha_back/logs/development.md`, sesión homónima.
+
+### Por qué todavía no se nota nada
+
+El bucle que provoca la sobrecarga vive aquí, en `fetchAllSoilMapPoints`. Medido contra la sesión
+real de **16,944 puntos**: abrir una sesión de Mapeo de Suelo descarga **22.83 MB** en 9 peticiones
+encadenadas —los 57 campos de cada punto— para pintar **una** de las **49** capas del catálogo. Con
+el contrato nuevo son **2.90 MB** hasta la primera capa pintada, **−87.3%**.
+
+### Tres hallazgos de este repo que condicionan la sesión SL-F
+
+1. **`SOIL_MAP_LAYERS` tiene 49 capas**, no 10 como decía el prompt de arranque (46 numéricas + 3
+   categóricas). Ese número es el que descartó la alternativa de una ruta de API por capa.
+
+2. **`layerCounts` (`SoilMap.tsx:184`) es bloqueante.** Recorre las 49 capas sobre todos los puntos
+   para elegir la capa inicial con datos. Con precarga `id,geom` da **0 en las 49** y el `useEffect`
+   de fallback cambiaría de capa erráticamente. Hay que sustituirlo por el `count` por variable del
+   endpoint nuevo: lo mismo en **5.1 KB** sin descargar un punto. Es lo que le da al endpoint de
+   estadísticas una razón funcional y no solo de reporte.
+
+3. **El tirón al cambiar de capa no lo arregla el backend.** Son los **773 ms** medidos de
+   `analyzeSoilSurface`: IDW sobre 260×260 celdas contra 1,000 muestras, **síncrono dentro de un
+   `useMemo`**, o sea que congela la pestaña. Son dos cuellos distintos y separables: los 22.83 MB
+   dominan el tiempo hasta que aparecen los puntos, el IDW domina el lag al colorearlos. Se le dijo
+   al desarrollador antes de escribir nada: esta fase quita la espera larga, no el tirón al pintar.
+   `GAP-SUELO-001`.
+
+   Nota para quien busque: `kriging.ts` existe en el repo pero **no está en esta ruta de render**.
+   El costo real es el IDW de `soilMapSurface.ts`.
+
+### Aviso sobre los tipos generados
+
+`components['schemas']['SoilMapPoints']` se genera desde el serializer completo y declara todos los
+campos presentes. Con `?fields` la respuesta es un **subconjunto**. Usar un tipo estrecho local; no
+relajar el esquema del backend para acomodar al cliente.

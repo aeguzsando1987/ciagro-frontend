@@ -674,6 +674,58 @@ sin el otro.
 
 ---
 
+## FASE SL: CARGA POR CAPA DEL MAPA DE SUELO — FRONTEND (PENDIENTE DE PLANEAR)
+
+**Estado:** `[ ] No iniciada. El backend ya la habilito; la mejora NO es observable hasta que corra esta sesion.`
+
+El backend cerro la FASE SL en `CIAgro_alpha_back` (rama `dev-soilmap-layer-load`, 2026-08-24): el
+endpoint de puntos de suelo acepta `?fields=` y existe un endpoint de estadisticas por variable.
+**Nada de eso se nota todavia**, porque el bucle que provoca la sobrecarga vive aqui, en
+`useSoilMapPoints.ts`. Contrato y trampas completas en `.CLAUDE/soilmap-load-optimization-progress.md`.
+
+**El problema, MEDIDO EN NAVEGADOR contra la sesion real de 16,944 puntos (2026-08-25):** abrir una
+sesion de Mapeo de Suelo dispara **9 peticiones encadenadas de 4 a 7 segundos cada una** — los 57
+campos de cada punto, 22.83 MB — con la UI en "cargando puntos" **entre 36 y 63 segundos** antes de
+que aparezca un solo punto, todo para pintar **una** de las **49** capas del catalogo.
+
+No es la red: se midio en localhost. Son 4-7 s de CPU del servidor armando 2.8 MB de JSON por
+pagina. La misma pagina con `fields=id,geom` tarda **0.373 s**, once veces menos.
+
+| | Hoy | Con el contrato nuevo |
+|---|---|---|
+| Por pagina | 4-7 s | 0.373 s |
+| 9 paginas en serie | **36-63 s** | ~3.4 s |
+| 9 paginas en paralelo | — | **~1 s** |
+
+Total proyectado hasta la primera capa pintada: **2-4 s en serie, ~1.5 s paralelizando**, contra los
+36-63 s de hoy. Payload: **2.90 MB contra 22.83 MB (-87.3%)**.
+
+- [ ] **SL-F1** `fetchAllSoilMapPoints` pide `fields=id,geom` en la precarga y las paginas **en
+      paralelo** tras la primera (hoy las encadena en serie, aunque la primera ya trae `count`)
+- [ ] **SL-F2** Hook nuevo para los valores de una capa: `fields=id,<campo>`, union por `id` con los
+      puntos ya en memoria, cacheado por react-query
+- [ ] **SL-F3** **BLOQUEANTE — sustituir `layerCounts`** (`SoilMap.tsx:184`): hoy recorre las 49
+      capas sobre todos los puntos para elegir la capa inicial con datos. Con la precarga `id,geom`
+      da **0 en las 49** y el `useEffect` de fallback cambiaria de capa erraticamente. Se sustituye
+      por el `count` por variable de `GET /soil-map/headers/<id>/variable-stats/`: lo mismo en
+      **5.1 KB** sin descargar un punto
+- [ ] **SL-F4** Tipo estrecho local para las respuestas parciales — los tipos generados declaran
+      todos los campos presentes y con `?fields` la respuesta es un subconjunto
+- [ ] **SL-F5** Medir el resultado real en DevTools y compararlo con los numeros del backend
+
+**Fuera de alcance de SL-F, gap aparte y ahora en SEGUNDO plano:** el tiron al **cambiar de capa**
+no lo arregla nada de esto — son los **773 ms** de `analyzeSoilSurface` (IDW de 260x260 celdas contra
+1,000 muestras) corriendo **sincronos dentro de un `useMemo`**. Con la medicion en navegador ese gap
+`GAP-SUELO-001` **bajo de alta a media**: contra 36-63 s de carga, 0.8 s es el 2% del problema y
+atacarlo primero seria optimizar lo irrelevante. Siguen siendo dos cuellos distintos; esta fase
+ataca el que pesa.
+
+**El intercambio, dicho completo:** hoy cambiar de capa cuesta 0 bytes porque todo esta en memoria;
+con este diseño cuesta 1.03 MB, cacheado. Conviene mientras se miren menos de ~20 capas por sesion.
+Con 3-8, que es lo realista, gana ampliamente.
+
+---
+
 ## GAPS ABIERTOS A LA FECHA (ver `gap_log.csv` para detalle)
 
 | ID | Categoría | Prioridad | Disparador para resolver |
