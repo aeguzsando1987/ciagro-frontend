@@ -3150,3 +3150,18 @@ catálogo se quedó en el front, así que el front es quien sabe presentar.
 10 tests. Uno hubo que rehacerlo: se llamaba "muestra la unidad del catálogo" y no verificaba
 ninguna unidad, porque la variable elegida no estaba en el fixture y el test caía por otro camino
 sin que nadie lo notara. Suite **504/504 en 87 archivos**, `tsc` limpio, build correcto.
+
+**Ajuste tras la primera prueba:** las variables categóricas mostraban solo el total de puntos con
+valor. El desarrollador señaló, con razón, que en una variable no numérica no se pueden aplicar
+análisis estadísticos tradicionales, así que lo informativo es **cuántas muestras hay de cada
+categoría**. El backend suma ahora ese reparto (`values`), y la tarjeta lo muestra con conteo y
+porcentaje; en la tabla del diálogo ocupa las cuatro celdas donde irían media, mínimo, máximo y
+desviación, que de otro modo quedan vacías.
+
+El porcentaje se reparte **sobre los puntos con valor, no sobre el total de la sesión**: si la mitad
+de los puntos no trajera clase textural, repartir sobre el total daría porcentajes que no suman 100
+y se leerían como un error. Hay un test que fija esa decisión con un caso donde ambos totales
+difieren.
+
+Datos reales: clase textural reparte 16,787 Arcilloso (99.1%), 124 Franco (0.7%) y 33 Franco limoso
+arcilloso (0.2%).

@@ -23,7 +23,19 @@ const STATS: SoilMapVariableStatsResponse = {
     // Con unidad en el catálogo (mg/100g), que el endpoint no conoce.
     { key: 'Ca', label: 'Ca', count: 100, mean: 4519.47, min: 4000, max: 5000, stddev: 120.5 },
   ],
-  text_variables: [{ key: 'classtexture', label: 'classtexture', count: 16944 }],
+  text_variables: [
+    {
+      key: 'classtexture',
+      label: 'classtexture',
+      count: 16944,
+      values: [
+        { value: 'Arcilloso', count: 16787 },
+        { value: 'Franco', count: 124 },
+        { value: 'Franco limoso arcilloso', count: 33 },
+      ],
+    },
+    { key: 'compfisic', label: 'compfisic', count: 0, values: [] },
+  ],
 }
 
 function renderCard(props: Partial<Parameters<typeof SoilMapVariableStatsCard>[0]> = {}) {
@@ -74,13 +86,55 @@ describe('SoilMapVariableStatsCard', () => {
     expect(screen.getByText(/no tiene valores en la sesión/)).toBeInTheDocument()
   })
 
-  it('en una capa categorica informa el conteo y no inventa una media', () => {
+  it('en una capa categorica informa el reparto y no inventa una media', () => {
+    // Es lo que el desarrollador pidio: en una variable no numerica lo unico
+    // informativo es cuantas muestras hay de cada categoria.
     renderCard({ activeField: 'classtexture', activeLabel: 'Clase textural' })
 
     fireEvent.click(screen.getByRole('button', { expanded: false }))
 
     expect(screen.getByText(/Variable categórica/)).toBeInTheDocument()
     expect(screen.queryByText('Media')).toBeNull()
+    expect(screen.getByText('Arcilloso')).toBeInTheDocument()
+    expect(screen.getByText(/16,787/)).toBeInTheDocument()
+    expect(screen.getByText(/99.1%/)).toBeInTheDocument()
+    expect(screen.getByText('Franco')).toBeInTheDocument()
+  })
+
+  it('el porcentaje se reparte sobre los puntos CON valor, no sobre el total', () => {
+    // Si la mitad de los puntos no trae clase textural, repartir sobre el total de
+    // la sesion daria porcentajes que no suman 100 y se leerian como un error.
+    renderCard({
+      activeField: 'classtexture',
+      activeLabel: 'Clase textural',
+      stats: {
+        ...STATS,
+        points_count: 200,
+        text_variables: [
+          {
+            key: 'classtexture',
+            label: 'classtexture',
+            count: 100,
+            values: [
+              { value: 'Arcilloso', count: 75 },
+              { value: 'Franco', count: 25 },
+            ],
+          },
+        ],
+      },
+    })
+    fireEvent.click(screen.getByRole('button', { expanded: false }))
+
+    expect(screen.getByText(/75%/)).toBeInTheDocument()
+    expect(screen.getByText(/25%/)).toBeInTheDocument()
+  })
+
+  it('una categorica sin categorias lo dice en vez de mostrar una lista vacia', () => {
+    renderCard({ activeField: 'compfisic', activeLabel: 'Compactación física' })
+
+    fireEvent.click(screen.getByRole('button', { expanded: false }))
+
+    expect(screen.getByText('Sin categorías en la sesión.')).toBeInTheDocument()
   })
 
   it('avisa cuando la variable activa no tiene valores', () => {
@@ -103,7 +157,9 @@ describe('SoilMapVariableStatsCard', () => {
     expect(screen.getByText('Límite inferior CC')).toBeInTheDocument()
     expect(screen.queryByText('lim inf CC')).toBeNull()
     expect(screen.getByText('Clase textural')).toBeInTheDocument()
-    expect(screen.getByText('categórica')).toBeInTheDocument()
+    // El reparto ocupa las celdas donde irian media, minimo, maximo y desviacion.
+    expect(screen.getByText(/Arcilloso/)).toBeInTheDocument()
+    expect(screen.getByText('sin categorías')).toBeInTheDocument()
   })
 
   it('incluye las variables que no tienen capa en el catalogo', () => {

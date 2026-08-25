@@ -55,6 +55,8 @@ const statsFromFixture = vi.hoisted(
     if (derived.stats) return derived.stats
     const numeric = new Map<string, number>()
     const text = new Map<string, number>()
+    // Reparto por categoria, igual que lo calcula el endpoint.
+    const categories = new Map<string, Map<string, number>>()
     for (const point of mocks.points) {
       for (const [key, value] of Object.entries(point)) {
         if (key === 'id' || key === 'geom' || value == null) continue
@@ -62,6 +64,9 @@ const statsFromFixture = vi.hoisted(
           numeric.set(key, (numeric.get(key) ?? 0) + 1)
         } else if (typeof value === 'string' && value.trim() !== '') {
           text.set(key, (text.get(key) ?? 0) + 1)
+          const perValue = categories.get(key) ?? new Map<string, number>()
+          perValue.set(value, (perValue.get(value) ?? 0) + 1)
+          categories.set(key, perValue)
         }
       }
     }
@@ -77,7 +82,14 @@ const statsFromFixture = vi.hoisted(
         max: null,
         stddev: null,
       })),
-      text_variables: [...text].map(([key, count]) => ({ key, label: key, count })),
+      text_variables: [...text].map(([key, count]) => ({
+        key,
+        label: key,
+        count,
+        values: [...(categories.get(key) ?? new Map())]
+          .map(([value, total]) => ({ value, count: total }))
+          .sort((left, right) => right.count - left.count),
+      })),
     }
     return derived.stats
   }
@@ -489,8 +501,13 @@ describe('SoilMap', () => {
       points_count: 3,
       variables: [],
       text_variables: [
-        { key: 'classtexture', label: 'classtexture', count: 3 },
-        { key: 'compfisic', label: 'compfisic', count: 0 },
+        {
+          key: 'classtexture',
+          label: 'classtexture',
+          count: 3,
+          values: [{ value: 'Arcilloso', count: 3 }],
+        },
+        { key: 'compfisic', label: 'compfisic', count: 0, values: [] },
       ],
     }
 

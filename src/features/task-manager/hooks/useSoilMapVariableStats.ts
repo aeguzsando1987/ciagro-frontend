@@ -27,11 +27,22 @@ export interface SoilMapVariableStat {
   stddev: number | null
 }
 
-/** Las categoricas solo llevan conteo: una media de "clase textural" no existe. */
+/** Reparto de una variable categorica, de la categoria mas frecuente a la menos. */
+export interface SoilMapCategoryCount {
+  value: string
+  count: number
+}
+
+/**
+ * Las categoricas no llevan metricas numericas: una media de "clase textural" no
+ * existe. Lo informativo es el reparto, asi que en su lugar viene `values`.
+ */
 export interface SoilMapTextVariableStat {
   key: string
   label: string
+  /** Puntos con valor, excluyendo nulos y cadenas vacias. */
   count: number
+  values: SoilMapCategoryCount[]
 }
 
 export interface SoilMapVariableStatsResponse {

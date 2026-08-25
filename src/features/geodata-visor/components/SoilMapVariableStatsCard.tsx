@@ -48,6 +48,16 @@ function formatValue(value: number | null, unit: string) {
   return unit ? `${formatted} ${unit}` : formatted
 }
 
+/** El porcentaje se calcula sobre los puntos CON valor, no sobre el total de la
+ *  sesion: si la mitad de los puntos no trae clase textural, repartir sobre el
+ *  total daria porcentajes que no suman 100 y se leerian como un error. */
+function formatShare(count: number, total: number) {
+  if (total === 0) return '0%'
+  return `${((count / total) * 100).toLocaleString('es-MX', {
+    maximumFractionDigits: 1,
+  })}%`
+}
+
 function labelFor(key: string, fallback: string) {
   return CATALOG.get(key)?.label ?? fallback
 }
@@ -93,16 +103,38 @@ export function SoilMapVariableStatsCard({ activeField, activeLabel, stats, isLo
             <p className="text-[10px] text-muted-foreground">No se pudo cargar el resumen.</p>
           )}
 
-          {/* Las categóricas no tienen media ni desviación: una clase textural no
-              promedia. Solo se informa cuántos puntos tienen valor. */}
+          {/* Una variable categórica no admite media ni desviación, así que lo que
+              se informa es el reparto: cuántos puntos hay de cada categoría y qué
+              porcentaje representan. */}
           {!isLoading && stats && activeTextStat && (
-            <p className="text-[10px] text-muted-foreground">
-              Variable categórica ·{' '}
-              <span className="font-medium text-foreground tabular-nums">
-                {activeTextStat.count.toLocaleString('es-MX')}
-              </span>{' '}
-              puntos con valor
-            </p>
+            <div className="text-[10px] text-muted-foreground">
+              <p className="mb-1">
+                Variable categórica ·{' '}
+                <span className="font-medium text-foreground tabular-nums">
+                  {activeTextStat.count.toLocaleString('es-MX')}
+                </span>{' '}
+                puntos con valor
+              </p>
+              {activeTextStat.values.length === 0 ? (
+                <p>Sin categorías en la sesión.</p>
+              ) : (
+                <ul className="space-y-0.5">
+                  {activeTextStat.values.map((category) => (
+                    <li key={category.value} className="flex justify-between gap-2">
+                      <span className="truncate" title={category.value}>
+                        {category.value}
+                      </span>
+                      <span className="shrink-0 tabular-nums text-foreground">
+                        {category.count.toLocaleString('es-MX')}
+                        <span className="ml-1 text-muted-foreground">
+                          ({formatShare(category.count, activeTextStat.count)})
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
 
           {!isLoading && stats && activeStat && (
@@ -206,10 +238,27 @@ export function SoilMapVariableStatsCard({ activeField, activeLabel, stats, isLo
                   {/* Las categóricas cierran la tabla con solo su conteo, para que el
                       resumen de la sesión no las deje fuera. */}
                   {stats.text_variables.map((variable) => (
-                    <tr key={variable.key} className="border-t">
+                    <tr key={variable.key} className="border-t align-top">
                       <td className="py-1 pr-3">{labelFor(variable.key, variable.label)}</td>
-                      <td colSpan={4} className="px-2 py-1 text-right text-muted-foreground">
-                        categórica
+                      {/* En vez de dejar cuatro celdas vacias donde irian media,
+                          minimo, maximo y desviacion, se aprovecha el ancho para el
+                          reparto, que es la estadistica que si aplica. */}
+                      <td colSpan={4} className="px-2 py-1">
+                        {variable.values.length === 0 ? (
+                          <span className="text-muted-foreground">sin categorías</span>
+                        ) : (
+                          <ul className="flex flex-wrap gap-x-3 gap-y-0.5">
+                            {variable.values.map((category) => (
+                              <li key={category.value} className="text-muted-foreground">
+                                {category.value}{' '}
+                                <span className="font-medium tabular-nums text-foreground">
+                                  {category.count.toLocaleString('es-MX')}
+                                </span>{' '}
+                                ({formatShare(category.count, variable.count)})
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </td>
                       <td className="py-1 pl-2 text-right tabular-nums text-muted-foreground">
                         {variable.count.toLocaleString('es-MX')}

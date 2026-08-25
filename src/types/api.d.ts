@@ -6499,7 +6499,7 @@ export interface paths {
          *
          *     El `count` por variable permite al Visor saber que capas tienen datos **sin descargar los puntos**, que es lo que habilita la precarga con `?fields=id,geom`.
          *
-         *     `text_variables` lleva las 3 variables categoricas con **solo `count`**: media, minimo y desviacion no significan nada sobre una clase textural. El conteo excluye las cadenas vacias, no solo los nulos.
+         *     `text_variables` lleva las 3 variables categoricas **sin metricas numericas**: media, minimo y desviacion no significan nada sobre una clase textural. En su lugar trae `count` (puntos con valor) y `values`, el reparto por categoria ordenado de la mas frecuente a la menos. Ambos conteos excluyen las cadenas vacias, no solo los nulos.
          *
          *     **Ejemplos**
          *
