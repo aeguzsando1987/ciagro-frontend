@@ -712,6 +712,10 @@ Total proyectado hasta la primera capa pintada: **2-4 s en serie, ~1.5 s paralel
 - [x] **SL-F3** `layerCounts` sustituido por el `count` por variable de `/variable-stats/`
 - [x] **SL-F4** `SoilMapPointGeom` como tipo estrecho local; `api.d.ts` no se relaja
 - [x] **SL-F5** Medido de punta a punta: **55.73 s -> ~3.7 s**, **22.87 MB -> 2.91 MB**
+- [x] **SL-W** La interpolacion sale del hilo principal (Web Worker, el primero del proyecto) mas
+      cache por capa: la app deja de congelarse y revisitar una capa es inmediato
+- [x] **SL-E** Tarjeta colapsable con las estadisticas de la capa activa y dialogo con el resumen de
+      las 53 variables. Sin peticiones nuevas: los numeros ya se descargaban para el combobox
 
 **RESUELTO EN SL-W (2026-08-25), despues de que el desarrollador lo reportara al probar SL-F:** la
 interpolacion se movio a un Web Worker (el primero del proyecto) y se cacheo por capa. La aplicacion

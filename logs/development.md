@@ -3113,3 +3113,40 @@ pestaña.
 Suite: **494/494 en 86 archivos**, `tsc` limpio. `vite build` emite
 `soilMapSurface.worker-*.js` como chunk aparte de 7.8 KB — que es la verificación real de que corre
 en otro hilo y no quedó inlineado en el bundle principal.
+
+### SL-E — Tarjeta de estadísticas por variable (2026-08-25)
+
+Petición del desarrollador tras probar SL-W. **Sale gratis en red:** los números ya se descargaban
+con `useSoilMapVariableStats` para alimentar el combobox, pero solo se usaba el `count`; media,
+mínimo, máximo y desviación se descartaban.
+
+Que salgan del **mismo endpoint** importa por una razón que no es de rendimiento: el visor y
+cualquier otra pantalla que reporte la sesión muestran los mismos números, calculados una sola vez
+en el servidor. Recalcularlos en el cliente sobre los puntos ya cargados daría diferencias de
+redondeo contra los reportes exportados.
+
+**Dos vistas, según el espacio disponible:**
+
+- En la columna del visor, la capa **activa**: cinco métricas en una tarjeta colapsable, con su
+  unidad. Cambia sola al cambiar de capa. Patrón tomado de `NdviMap`, que ya muestra así la
+  estadística de su índice activo.
+- En un **diálogo**, el resumen de las **53** variables. No va en la columna porque son 53 filas por
+  6 columnas y la columna mide **224 px** (`w-56`): ahí no se lee.
+
+Colapsada por defecto, para no quitarle espacio al mapa a quien no la necesita.
+
+**Etiquetas y unidades salen de `soilMapLayers.ts`, no del endpoint.** El backend devuelve el nombre
+crudo del modelo —"lim inf CC"— y no conoce las unidades; el catálogo del front tiene "Límite
+inferior CC" y "mg/100g". Es la consecuencia práctica de la decisión D3 de la fase de backend: el
+catálogo se quedó en el front, así que el front es quien sabe presentar.
+
+**Dos detalles de honestidad en los datos:**
+
+- Las categóricas se informan aparte, con solo su conteo. Una media de "clase textural" no existe.
+- El resumen completo incluye las 4 variables que están en los datos pero **no** tienen capa
+  pintable (`Leak`, `Loam`, `NO3N`, `N`), cayendo a la etiqueta del backend. Son parte de la sesión
+  y omitirlas daría un resumen incompleto.
+
+10 tests. Uno hubo que rehacerlo: se llamaba "muestra la unidad del catálogo" y no verificaba
+ninguna unidad, porque la variable elegida no estaba en el fixture y el test caía por otro camino
+sin que nadie lo notara. Suite **504/504 en 87 archivos**, `tsc` limpio, build correcto.

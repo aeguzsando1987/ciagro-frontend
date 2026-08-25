@@ -34,6 +34,7 @@ import {
   type MapCameraSyncBinding,
 } from '@/features/geodata-visor/lib/mapCameraSync'
 import { SoilMapStatsCard } from './SoilMapStatsCard'
+import { SoilMapVariableStatsCard } from './SoilMapVariableStatsCard'
 import { LoadingState } from '@/components/ui/loading-state'
 
 interface SoilMapProps {
@@ -390,6 +391,12 @@ export function SoilMap({
         {sessionsSlot && (
           <div className="absolute bottom-2 right-2 top-2 z-10 flex w-56 flex-col gap-2">
             {sessionsSlot}
+            <SoilMapVariableStatsCard
+              activeField={activeLayer.field}
+              activeLabel={activeLayer.label}
+              stats={variableStats}
+              isLoading={isLoadingStats}
+            />
             {legendEntries.length > 0 && (
               <SoilMapStatsCard
                 layerLabel={activeLayer.label}
