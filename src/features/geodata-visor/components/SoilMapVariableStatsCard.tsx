@@ -189,7 +189,7 @@ export function SoilMapVariableStatsCard({ activeField, activeLabel, stats, isLo
           <DialogHeader>
             <DialogTitle>Resumen estadístico de la sesión</DialogTitle>
             <DialogDescription>
-              {stats ? `${stats.points_count.toLocaleString('es-MX')} puntos importados.` : ''}{' '}
+              {stats ? `${stats.points_count.toLocaleString('es-MX')} Muestras.` : ''}{' '}
               Calculado sobre los puntos de esta sesión.
             </DialogDescription>
           </DialogHeader>
@@ -204,7 +204,6 @@ export function SoilMapVariableStatsCard({ activeField, activeLabel, stats, isLo
                     <th className="px-2 py-1 text-right font-medium">Mín</th>
                     <th className="px-2 py-1 text-right font-medium">Máx</th>
                     <th className="px-2 py-1 text-right font-medium">Desv.</th>
-                    <th className="py-1 pl-2 text-right font-medium">n</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -229,9 +228,6 @@ export function SoilMapVariableStatsCard({ activeField, activeLabel, stats, isLo
                       </td>
                       <td className="px-2 py-1 text-right tabular-nums">
                         {formatValue(variable.stddev, '')}
-                      </td>
-                      <td className="py-1 pl-2 text-right tabular-nums text-muted-foreground">
-                        {variable.count.toLocaleString('es-MX')}
                       </td>
                     </tr>
                   ))}
@@ -259,9 +255,6 @@ export function SoilMapVariableStatsCard({ activeField, activeLabel, stats, isLo
                             ))}
                           </ul>
                         )}
-                      </td>
-                      <td className="py-1 pl-2 text-right tabular-nums text-muted-foreground">
-                        {variable.count.toLocaleString('es-MX')}
                       </td>
                     </tr>
                   ))}

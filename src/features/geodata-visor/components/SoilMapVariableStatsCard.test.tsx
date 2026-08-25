@@ -152,7 +152,9 @@ describe('SoilMapVariableStatsCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ver todas las variables' }))
 
     expect(screen.getByText('Resumen estadístico de la sesión')).toBeInTheDocument()
-    expect(screen.getByText(/16,944 puntos importados/)).toBeInTheDocument()
+    // La columna "n" se omite: repetia el total de la sesion en casi toda la tabla.
+    expect(screen.queryByRole('columnheader', { name: 'n' })).toBeNull()
+    expect(screen.getByText(/16,944 Muestras/)).toBeInTheDocument()
     // Etiqueta del catalogo, no la cruda del backend.
     expect(screen.getByText('Límite inferior CC')).toBeInTheDocument()
     expect(screen.queryByText('lim inf CC')).toBeNull()
