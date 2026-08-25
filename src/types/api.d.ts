@@ -6486,6 +6486,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/soil-map/headers/{id}/variable-stats/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumen estadistico por variable de una sesion de mapeo de suelo
+         * @description Calcula al vuelo (count/media/min/max/desv. est.) sobre los puntos importados para las 50 variables numericas. Espejo de `/ndvi/headers/{id}/variable-stats/` y `/aspersion/headers/{id}/variable-stats/`. No depende de ninguna vista materializada: refleja el estado actual de los puntos. `points_count=0` si la sesion no tiene puntos. Las variables sin un solo valor salen con `count=0` y el resto en null.
+         *
+         *     El `count` por variable permite al Visor saber que capas tienen datos **sin descargar los puntos**, que es lo que habilita la precarga con `?fields=id,geom`.
+         *
+         *     `text_variables` lleva las 3 variables categoricas con **solo `count`**: media, minimo y desviacion no significan nada sobre una clase textural. El conteo excluye las cadenas vacias, no solo los nulos.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/soil-map/headers/{id}/variable-stats/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/soil-map/headers/{id}/variable-stats/")
+         *         suspend fun getSoilMapVariableStats(@Path("id") id: String): SoilMapVariableStats
+         *     }
+         *
+         *     val result = api.getSoilMapVariableStats(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_soil_map_headers_variable_stats_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/monitoring/soil-map/headers/{id}/flush/": {
         parameters: {
             query?: never;
@@ -6573,7 +6616,7 @@ export interface paths {
         };
         /**
          * Listar puntos de mapeo de suelo
-         * @description Lista puntos georreferenciados. Filtros: `?smh_header=<uuid>` y `?plot=<uuid>`.
+         * @description Lista puntos georreferenciados. Filtros: `?smh_header=<uuid>` y `?plot=<uuid>`. Con `?fields=` se devuelve solo un subconjunto de columnas: el Visor pinta una capa a la vez y no necesita las 53 restantes.
          *
          *     **Ejemplos**
          *
@@ -12100,7 +12143,19 @@ export interface components {
             /** Format: uri */
             csv_file: string;
         };
-        /** @description Punto de análisis de suelo con geometría GeoJSON. */
+        /**
+         * @description Punto de análisis de suelo con geometría GeoJSON.
+         *
+         *     Acepta el kwarg `fields` (sparse fieldset, FASE SL) para devolver solo un
+         *     subconjunto de columnas. El Visor pinta una capa de 49 a la vez, así que pedir
+         *     los 57 campos por punto significa mover el ancho completo de la tabla para usar
+         *     dos valores. La whitelist y la validación viven en la vista; aquí solo se poda.
+         *
+         *     Sin el kwarg, `self.fields` no se toca y la respuesta es idéntica a la anterior
+         *     a esta fase: la retrocompatibilidad es la ausencia de comportamiento, no un caso
+         *     especial. `Meta.fields` tampoco se toca, porque es lo que drf-spectacular lee
+         *     para generar el esquema.
+         */
         SoilMapPoints: {
             /** Format: uuid */
             readonly id: string;
@@ -16860,6 +16915,39 @@ export interface operations {
             };
         };
     };
+    v1_monitoring_soil_map_headers_variable_stats_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     v1_monitoring_soil_map_headers_flush_create: {
         parameters: {
             query?: never;
@@ -16907,6 +16995,8 @@ export interface operations {
     v1_monitoring_soil_map_points_list: {
         parameters: {
             query?: {
+                /** @description Lista separada por comas de los campos a devolver (sparse fieldset). Ej: `id,geom` para la precarga del Visor, `id,pH` para una capa. `id` se incluye siempre. Omitir el parametro devuelve todos los campos, igual que antes. Un campo fuera de la lista permitida responde 400. NOTA: con este parametro la respuesta es un SUBCONJUNTO del esquema `SoilMapPoints`; el componente se genera desde el serializer completo. */
+                fields?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
                 /** @description Number of results to return per page. */

@@ -93,13 +93,39 @@ vi.mock('@/features/task-manager/hooks/useAspersionSessionStats', () => ({
 vi.mock('@/features/task-manager/hooks/useAspersionSessionDetail', () => ({
   useAspersionSessionDetail: () => ({ data: null }),
 }))
+// El mapa de suelo carga en dos partes (geometría y valores de la capa activa) y
+// consulta un tercer endpoint para saber qué capas tienen datos. Los tres hooks
+// se mockean: sin esto llamarían a useQuery de verdad, y aquí no hay
+// QueryClientProvider porque las dependencias se sustituyen hook por hook.
 const mockSoilMapPoints = [
-  { id: 'smp-1', geom: { type: 'Point', coordinates: [-101, 20.5] }, pH: 5.5 },
-  { id: 'smp-2', geom: { type: 'Point', coordinates: [-101.01, 20.51] }, pH: 6.5 },
-  { id: 'smp-3', geom: { type: 'Point', coordinates: [-101.02, 20.52] }, pH: 7.5 },
+  { id: 'smp-1', geom: { type: 'Point', coordinates: [-101, 20.5] } },
+  { id: 'smp-2', geom: { type: 'Point', coordinates: [-101.01, 20.51] } },
+  { id: 'smp-3', geom: { type: 'Point', coordinates: [-101.02, 20.52] } },
 ]
+const mockSoilMapValues = new Map<string, number>([
+  ['smp-1', 5.5],
+  ['smp-2', 6.5],
+  ['smp-3', 7.5],
+])
+const mockSoilMapStats = {
+  header_id: 'soil-1',
+  points_count: 3,
+  variables: [
+    { key: 'pH', label: 'pH', count: 3, mean: 6.5, min: 5.5, max: 7.5, stddev: 1 },
+  ],
+  text_variables: [],
+}
 vi.mock('@/features/task-manager/hooks/useSoilMapPoints', () => ({
   useSoilMapPoints: () => ({ data: mockSoilMapPoints, isLoading: false, error: null }),
+}))
+vi.mock('@/features/task-manager/hooks/useSoilMapLayerValues', () => ({
+  useSoilMapLayerValues: () => ({ data: mockSoilMapValues, isLoading: false, error: null }),
+}))
+vi.mock('@/features/task-manager/hooks/useSoilMapVariableStats', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@/features/task-manager/hooks/useSoilMapVariableStats')
+  >()),
+  useSoilMapVariableStats: () => ({ data: mockSoilMapStats, isLoading: false, error: null }),
 }))
 
 import { GeodataDashboard } from './GeodataDashboard'

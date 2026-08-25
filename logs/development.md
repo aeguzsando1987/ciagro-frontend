@@ -2971,3 +2971,96 @@ el contrato nuevo son **2.90 MB** hasta la primera capa pintada, **−87.3%**.
 `components['schemas']['SoilMapPoints']` se genera desde el serializer completo y declara todos los
 campos presentes. Con `?fields` la respuesta es un **subconjunto**. Usar un tipo estrecho local; no
 relajar el esquema del backend para acomodar al cliente.
+
+---
+
+## Sesión `soilmap-layer-front` — FASE SL-F: carga por capa del Mapa de Suelo (2026-08-25, rama `dev-soilmap-layer-load`)
+
+La sesión de backend dejó el contrato; esta lo consume. El Visor pasa de descargar los 57 campos
+de cada punto a pedir primero **dónde** están los puntos y después **cuánto valen** en la capa que
+se está pintando.
+
+### El número, medido de punta a punta
+
+Sesión real de **16,944 puntos**, replicando exactamente lo que hace el front:
+
+| | Antes | Después |
+|---|---|---|
+| Tiempo hasta la primera capa pintada | **55.73 s** | **~3.7 s** |
+| Datos transferidos | 22.87 MB | 2.91 MB |
+
+**Quince veces más rápido.** Coincide con lo que el desarrollador midió en DevTools antes de
+empezar: 9 peticiones encadenadas de 4 a 7 segundos cada una.
+
+### La decisión que la medición tumbó
+
+El plan aprobado incluía **paralelizar las páginas** de la precarga. Se implementó, se midió, y la
+medición dijo lo contrario: **3.1 s en serie contra 4.7 s en paralelo**, consistente en tres rondas.
+
+Dos causas, y la segunda importa más que la primera:
+
+1. En desarrollo corre `manage.py runserver`: un proceso Python con GIL y `DEBUG=True` registrando
+   cada consulta. Las peticiones concurrentes no se atienden en paralelo, se estorban.
+2. En producción son **3 workers de gunicorn** (`Dockerfile`). Disparar 8 peticiones pesadas a la
+   vez los ocuparía **todos**, dejando al resto del sistema esperando por un solo usuario abriendo
+   un mapa.
+
+Se revirtió a serie, con el porqué y los números en el propio comentario del código y un test que
+verifica que nunca hay más de una petición en vuelo. **La ganancia nunca vino de la concurrencia
+sino de pedir menos columnas** — algo que solo se supo al medir, no al planear.
+
+### El riesgo real de la fase, y dónde se contuvo
+
+Unir dos respuestas por `id` puede fallar de forma **silenciosa**: si las fuentes se desalinean, el
+mapa pinta valores creíbles en los puntos equivocados y nada lo delata. Es el único fallo de esta
+sesión que no grita.
+
+Por eso la unión no quedó enterrada en el componente sino en `lib/soilMapSamples.ts`, pura,
+exportada y con test propio — incluido el caso que fallaría si se uniera por índice en vez de por
+`id`: dos puntos con los valores en orden invertido.
+
+Se conserva además el **orden de acumulación** de las páginas. `analyzeSoilSurface` submuestrea uno
+de cada N cuando hay más de 1,000 puntos, así que un orden distinto movería los cortes de la
+leyenda y las hectáreas del reporte.
+
+### `layerCounts` ya no se deduce de los puntos
+
+Recorría las 49 capas sobre todos los puntos, lo que exigía tener los 57 campos en memoria. Gobierna
+**dos** cosas —la capa inicial y qué opciones ofrece el combobox—, así que con la precarga habría
+dado 0 en las 49 y el desplegable habría quedado **vacío**.
+
+Ahora se arma del endpoint de estadísticas: lo mismo en ~5 KB sin descargar un punto. Mientras esa
+respuesta no llega, el `select` va deshabilitado con "Cargando variables…": un desplegable vacío se
+leería como "esta sesión no tiene variables". El backend sumó `text_variables` para que las 3 capas
+categóricas no desaparecieran, con el conteo excluyendo cadenas vacías y no solo nulos.
+
+### Tres estados de carga, no dos
+
+El overlay que tapa el mapa cubre **solo** la precarga. En cuanto llegan las geometrías los puntos
+se pintan en gris y aparece un aviso no bloqueante *"Cargando valores de &lt;capa&gt;, espere…"*,
+también al **cambiar** de capa y no solo al abrir. El aviso fue petición explícita del
+desarrollador: ver puntos sin color y sin explicación podría leerse como que el mapa falló.
+
+### La trampa que colgó la suite
+
+Los primeros mocks devolvían un `Map` y un objeto **nuevos en cada render**. Eso metió a la suite en
+un bucle infinito: `samples` se recalculaba siempre, `legendEntries` cambiaba de identidad y el
+efecto que marca los rangos visibles hacía `setState` sin parar.
+
+Es artefacto del mock, no del componente: react-query devuelve la **misma** referencia mientras el
+dato no cambia. Se resolvió cacheando los derivados del fixture, no contorsionando el componente
+para tolerar un mock irreal.
+
+Los 12 tests existentes se adaptaron a las tres fuentes en vez de dejar en producción un camino de
+respaldo que leyera el valor del punto — eso sería código que solo existe para que los tests pasen.
+Los tres mocks se derivan del mismo fixture, así que sigue habiendo una sola fuente de verdad.
+
+Suite: **487/487 en 85 archivos**, `tsc` limpio. El único error no manejado
+(`window.URL.createObjectURL` de `maplibre-gl` en jsdom) se verificó **preexistente** ejecutando la
+misma prueba sobre `HEAD`.
+
+### Lo que sigue sin resolverse
+
+Cambiar de capa sigue tardando **1–3 s** y no mejora con esto: es `analyzeSoilSurface`, que no
+dibuja nada — simula un ráster de 260×260 celdas para sacar los cortes de la leyenda y las hectáreas
+de la tarjeta. Corre síncrono y congela la pestaña. `GAP-SUELO-001`, prioridad alta, fase propia.

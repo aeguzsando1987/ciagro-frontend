@@ -676,7 +676,7 @@ sin el otro.
 
 ## FASE SL: CARGA POR CAPA DEL MAPA DE SUELO — FRONTEND (PENDIENTE DE PLANEAR)
 
-**Estado:** `[ ] No iniciada. El backend ya la habilito; la mejora NO es observable hasta que corra esta sesion.`
+**Estado:** `[x] Implementada (2026-08-25). Medido de punta a punta: 55.73 s -> ~3.7 s y 22.87 MB -> 2.91 MB. Pendiente validacion manual del dev en el navegador.`
 
 El backend cerro la FASE SL en `CIAgro_alpha_back` (rama `dev-soilmap-layer-load`, 2026-08-24): el
 endpoint de puntos de suelo acepta `?fields=` y existe un endpoint de estadisticas por variable.
@@ -700,25 +700,30 @@ pagina. La misma pagina con `fields=id,geom` tarda **0.373 s**, once veces menos
 Total proyectado hasta la primera capa pintada: **2-4 s en serie, ~1.5 s paralelizando**, contra los
 36-63 s de hoy. Payload: **2.90 MB contra 22.83 MB (-87.3%)**.
 
-- [ ] **SL-F1** `fetchAllSoilMapPoints` pide `fields=id,geom` en la precarga y las paginas **en
-      paralelo** tras la primera (hoy las encadena en serie, aunque la primera ya trae `count`)
-- [ ] **SL-F2** Hook nuevo para los valores de una capa: `fields=id,<campo>`, union por `id` con los
-      puntos ya en memoria, cacheado por react-query
-- [ ] **SL-F3** **BLOQUEANTE — sustituir `layerCounts`** (`SoilMap.tsx:184`): hoy recorre las 49
-      capas sobre todos los puntos para elegir la capa inicial con datos. Con la precarga `id,geom`
-      da **0 en las 49** y el `useEffect` de fallback cambiaria de capa erraticamente. Se sustituye
-      por el `count` por variable de `GET /soil-map/headers/<id>/variable-stats/`: lo mismo en
-      **5.1 KB** sin descargar un punto
-- [ ] **SL-F4** Tipo estrecho local para las respuestas parciales — los tipos generados declaran
-      todos los campos presentes y con `?fields` la respuesta es un subconjunto
-- [ ] **SL-F5** Medir el resultado real en DevTools y compararlo con los numeros del backend
+- [x] **SL-F0** Backend: `text_variables` en `/variable-stats/` para que las 3 capas categoricas no
+      desaparezcan del combobox (conteo que excluye cadenas vacias, no solo nulos)
+- [x] **SL-F1** `fetchAllSoilMapPoints` pide `fields=id,geom` y calcula las paginas desde `count`.
+      **Las paginas quedaron EN SERIE, contra lo planeado:** se implemento en paralelo y la medicion
+      lo desmintio — 3.1 s en serie contra 4.7 s en paralelo. En desarrollo corre `runserver` (un
+      proceso con GIL) y en produccion son 3 workers de gunicorn, asi que 8 peticiones simultaneas
+      los ocuparian todos. La ganancia venia de `?fields=`, no de la concurrencia
+- [x] **SL-F2** `useSoilMapLayerValues`: `fields=id,<campo>` sin repetir `geom`, union por `id`,
+      cacheado 5 min por react-query
+- [x] **SL-F3** `layerCounts` sustituido por el `count` por variable de `/variable-stats/`
+- [x] **SL-F4** `SoilMapPointGeom` como tipo estrecho local; `api.d.ts` no se relaja
+- [x] **SL-F5** Medido de punta a punta: **55.73 s -> ~3.7 s**, **22.87 MB -> 2.91 MB**
 
-**Fuera de alcance de SL-F, gap aparte y ahora en SEGUNDO plano:** el tiron al **cambiar de capa**
-no lo arregla nada de esto — son los **773 ms** de `analyzeSoilSurface` (IDW de 260x260 celdas contra
-1,000 muestras) corriendo **sincronos dentro de un `useMemo`**. Con la medicion en navegador ese gap
-`GAP-SUELO-001` **bajo de alta a media**: contra 36-63 s de carga, 0.8 s es el 2% del problema y
-atacarlo primero seria optimizar lo irrelevante. Siguen siendo dos cuellos distintos; esta fase
-ataca el que pesa.
+**Fuera de alcance de SL-F, gap aparte que SIGUE EN ALTA:** el tiron al **cambiar de capa** no lo
+arregla nada de esto. Es `analyzeSoilSurface`, que **no dibuja nada**: simula un raster de 260x260
+celdas para sacar los cortes de la leyenda y las hectareas por rango de `SoilMapStatsCard`, corre
+**sincrono dentro de un `useMemo`** y por eso congela la pestaña. **Medido en navegador: 1-3 s**
+(una estimacion previa en Node dio 773 ms y se quedo corta por un factor de 2 a 4; no repriorizar
+con mediciones tomadas fuera del entorno real).
+
+Son dos cuellos distintos y esta fase ataca el que pesa. Cambiar de capa **no mejora ni empeora**
+de forma perceptible con SL-F: la descarga de una capa suelta son decimas de segundo contra 1-3 s
+de interpolacion que dominan igual. Se ataca como fase propia DESPUES de medir SL-F. Ver
+`GAP-SUELO-001`.
 
 **El intercambio, dicho completo:** hoy cambiar de capa cuesta 0 bytes porque todo esta en memoria;
 con este diseño cuesta 1.03 MB, cacheado. Conviene mientras se miren menos de ~20 capas por sesion.

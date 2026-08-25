@@ -11,7 +11,102 @@ const mocks = vi.hoisted(() => ({
     properties?: { total_area?: string | null }
   },
   analyzeSurface: vi.fn(() => null),
+  // Permiten desacoplar la respuesta del endpoint del fixture de puntos, que es
+  // justo lo que hay que poder probar: el combobox lo gobiernan las estadisticas.
+  statsOverride: null as null | Record<string, unknown>,
+  statsLoading: false,
 }))
+
+/**
+ * Derivados del fixture, cacheados por render.
+ *
+ * Los hooks reales los sirve react-query, que devuelve la MISMA referencia entre
+ * renders mientras el dato no cambie. Devolver un objeto nuevo en cada llamada
+ * romperia esa suposicion: `samples` se recalcularia siempre, con el `legendEntries`
+ * nuevo cada vez, y el efecto que marca los rangos visibles entraria en un ciclo
+ * infinito de renders. El cache reproduce la estabilidad de react-query; se
+ * invalida con `setPoints`.
+ */
+const derived = vi.hoisted(() => ({
+  geoms: null as null | Array<Record<string, unknown>>,
+  values: new Map<string, Map<string, number | string>>(),
+  stats: null as null | Record<string, unknown>,
+}))
+
+const geomsFromFixture = vi.hoisted(
+  () => () => {
+    if (!derived.geoms) {
+      derived.geoms = mocks.points.map((point) => ({ id: point.id, geom: point.geom }))
+    }
+    return derived.geoms
+  }
+)
+
+/**
+ * Respuesta de /variable-stats/ armada a partir del fixture.
+ *
+ * Se clasifica por el tipo del valor en vez de consultar el catálogo de capas:
+ * así el helper no necesita importar nada y sigue funcionando cuando un test
+ * agrega campos nuevos al fixture. Las etiquetas no importan aquí — el combobox
+ * usa las de `soilMapLayers.ts`, no las del endpoint.
+ */
+const statsFromFixture = vi.hoisted(
+  () => () => {
+    if (derived.stats) return derived.stats
+    const numeric = new Map<string, number>()
+    const text = new Map<string, number>()
+    for (const point of mocks.points) {
+      for (const [key, value] of Object.entries(point)) {
+        if (key === 'id' || key === 'geom' || value == null) continue
+        if (typeof value === 'number') {
+          numeric.set(key, (numeric.get(key) ?? 0) + 1)
+        } else if (typeof value === 'string' && value.trim() !== '') {
+          text.set(key, (text.get(key) ?? 0) + 1)
+        }
+      }
+    }
+    derived.stats = {
+      header_id: 'soil-1',
+      points_count: mocks.points.length,
+      variables: [...numeric].map(([key, count]) => ({
+        key,
+        label: key,
+        count,
+        mean: null,
+        min: null,
+        max: null,
+        stddev: null,
+      })),
+      text_variables: [...text].map(([key, count]) => ({ key, label: key, count })),
+    }
+    return derived.stats
+  }
+)
+
+const valuesFromFixture = vi.hoisted(
+  () => (field: string | null) => {
+    if (!field) return new Map<string, number | string>()
+    const cached = derived.values.get(field)
+    if (cached) return cached
+    const values = new Map<string, number | string>(
+      mocks.points
+        .filter((point) => point[field] != null)
+        .map((point) => [point.id as string, point[field] as number | string])
+    )
+    derived.values.set(field, values)
+    return values
+  }
+)
+
+/** Reemplaza el fixture e invalida los derivados. Usar siempre en vez de asignar. */
+const setPoints = vi.hoisted(
+  () => (points: Array<Record<string, unknown>>) => {
+    mocks.points = points
+    derived.geoms = null
+    derived.values.clear()
+    derived.stats = null
+  }
+)
 
 vi.mock('react-map-gl/maplibre', async () => {
   const { forwardRef } = await import('react')
@@ -93,8 +188,36 @@ vi.mock('react-map-gl/maplibre', async () => {
   }
 })
 
+/*
+ * El Visor carga los puntos en dos partes —geometría por un lado, valores de la
+ * capa activa por otro— y pregunta a un tercer endpoint qué capas tienen datos.
+ * Los tres mocks se DERIVAN del mismo fixture `mocks.points` para que siga
+ * habiendo una sola fuente de verdad en las pruebas: un test que agrega un campo
+ * al fixture lo ve aparecer en el combobox y en el mapa, igual que antes.
+ */
 vi.mock('@/features/task-manager/hooks/useSoilMapPoints', () => ({
-  useSoilMapPoints: () => ({ data: mocks.points, isLoading: false, error: null }),
+  useSoilMapPoints: () => ({ data: geomsFromFixture(), isLoading: false, error: null }),
+}))
+
+vi.mock('@/features/task-manager/hooks/useSoilMapLayerValues', () => ({
+  useSoilMapLayerValues: (_headerId: string | null, field: string | null) => ({
+    data: valuesFromFixture(field),
+    isLoading: false,
+    error: null,
+  }),
+}))
+
+// buildLayerCountMap se deja REAL: es el que traduce la respuesta del endpoint a
+// "esta capa tiene datos", y mockearlo dejaría sin probar justo esa traducción.
+vi.mock('@/features/task-manager/hooks/useSoilMapVariableStats', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@/features/task-manager/hooks/useSoilMapVariableStats')
+  >()),
+  useSoilMapVariableStats: () => ({
+    data: mocks.statsLoading ? undefined : (mocks.statsOverride ?? statsFromFixture()),
+    isLoading: mocks.statsLoading,
+    error: null,
+  }),
 }))
 
 vi.mock('@/features/task-manager/hooks/usePlotGeometry', () => ({
@@ -133,7 +256,7 @@ function soilPoint(id: string, offset: number) {
 
 describe('SoilMap', () => {
   beforeEach(() => {
-    mocks.points = [soilPoint('point-1', 0), soilPoint('point-2', 1), soilPoint('point-3', 2)]
+    setPoints([soilPoint('point-1', 0), soilPoint('point-2', 1), soilPoint('point-3', 2)])
     mocks.plot = {
       geometry: {
         type: 'Polygon',
@@ -149,6 +272,8 @@ describe('SoilMap', () => {
       },
       properties: { total_area: '20' },
     }
+    mocks.statsOverride = null
+    mocks.statsLoading = false
     mocks.analyzeSurface.mockReset()
     mocks.analyzeSurface.mockReturnValue(null)
   })
@@ -170,12 +295,14 @@ describe('SoilMap', () => {
   })
 
   it('incorpora las capas opcionales cuando el CSV sí contiene valores', () => {
-    mocks.points = mocks.points.map((point, index) => ({
-      ...point,
-      lim_inf_CC: 10 + index,
-      Cap_efi_fert: 20 + index,
-      C_de_MO: 30 + index,
-    }))
+    setPoints(
+      mocks.points.map((point, index) => ({
+        ...point,
+        lim_inf_CC: 10 + index,
+        Cap_efi_fert: 20 + index,
+        C_de_MO: 30 + index,
+      }))
+    )
 
     render(<SoilMap sessionId="soil-1" plotId={null} />)
 
@@ -271,7 +398,7 @@ describe('SoilMap', () => {
   })
 
   it('desactiva la interpolación cuando hay menos de tres valores', () => {
-    mocks.points = [soilPoint('point-1', 0), soilPoint('point-2', 1)]
+    setPoints([soilPoint('point-1', 0), soilPoint('point-2', 1)])
 
     render(<SoilMap sessionId="soil-1" plotId={null} />)
 
@@ -310,5 +437,53 @@ describe('SoilMap', () => {
 
     expect(screen.getAllByText(/30.0% · 6 ha/).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/20.0% · 4 ha/).length).toBeGreaterThan(0)
+  })
+
+  it('oculta la capa que el endpoint reporta en cero, aunque los puntos traigan el valor', () => {
+    // El catálogo de capas disponibles ya NO se deduce de los puntos: con la
+    // precarga por campos esos valores no están en memoria. Manda el endpoint de
+    // estadísticas, y este test lo fija desacoplando ambas fuentes a propósito.
+    mocks.statsOverride = {
+      header_id: 'soil-1',
+      points_count: 3,
+      variables: [
+        { key: 'Countrate', label: 'Countrate', count: 3, mean: null, min: null, max: null, stddev: null },
+        { key: 'pH', label: 'pH', count: 0, mean: null, min: null, max: null, stddev: null },
+      ],
+      text_variables: [],
+    }
+
+    render(<SoilMap sessionId="soil-1" plotId={null} />)
+
+    expect(screen.getByRole('option', { name: 'Countrate' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'pH del suelo' })).toBeNull()
+  })
+
+  it('incluye las capas categóricas que llegan en text_variables', () => {
+    mocks.statsOverride = {
+      header_id: 'soil-1',
+      points_count: 3,
+      variables: [],
+      text_variables: [
+        { key: 'classtexture', label: 'classtexture', count: 3 },
+        { key: 'compfisic', label: 'compfisic', count: 0 },
+      ],
+    }
+
+    render(<SoilMap sessionId="soil-1" plotId={null} />)
+
+    expect(screen.getByRole('option', { name: 'Clase textural' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Compactación física' })).toBeNull()
+  })
+
+  it('deshabilita el selector mientras no sabe qué variables hay', () => {
+    // Un desplegable vacío se leería como "esta sesión no tiene variables".
+    mocks.statsLoading = true
+
+    render(<SoilMap sessionId="soil-1" plotId={null} />)
+
+    const selector = screen.getByRole('combobox', { name: 'Variable del mapa' })
+    expect(selector).toBeDisabled()
+    expect(screen.getByRole('option', { name: 'Cargando variables…' })).toBeInTheDocument()
   })
 })

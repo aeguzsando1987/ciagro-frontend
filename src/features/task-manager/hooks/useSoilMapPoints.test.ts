@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiClient } from '@/lib/api/client'
-import { fetchAllSoilMapPoints, type SoilMapPoint } from './useSoilMapPoints'
+import { fetchAllSoilMapPoints, type SoilMapPointGeom } from './useSoilMapPoints'
 
 vi.mock('@/lib/api/client', () => ({
   apiClient: { GET: vi.fn() },
@@ -8,13 +8,18 @@ vi.mock('@/lib/api/client', () => ({
 
 const getMock = vi.mocked(apiClient.GET)
 
-function makePoint(id: string): SoilMapPoint {
+const URL = '/api/v1/monitoring/soil-map/points/'
+
+function makePoint(id: string): SoilMapPointGeom {
+  return { id, geom: { type: 'Point', coordinates: [-103.3, 20.7] } }
+}
+
+/** Respuesta paginada con `count` total: es `count` quien decide cuántas páginas hay. */
+function page(count: number, ids: string[]) {
   return {
-    id,
-    smh_header: 'header-1',
-    geom: { type: 'Point', coordinates: [-103.3, 20.7] },
-    created_at: '2026-07-22T00:00:00Z',
-  }
+    data: { count, next: null, previous: null, results: ids.map(makePoint) },
+    error: undefined,
+  } as never
 }
 
 describe('fetchAllSoilMapPoints', () => {
@@ -22,37 +27,69 @@ describe('fetchAllSoilMapPoints', () => {
     getMock.mockReset()
   })
 
-  it('recorre y acumula todas las páginas del endpoint', async () => {
-    getMock
-      .mockResolvedValueOnce({
-        data: {
-          count: 3,
-          next: 'http://localhost/api/v1/monitoring/soil-map/points/?page=2',
-          previous: null,
-          results: [makePoint('point-1'), makePoint('point-2')],
-        },
-        error: undefined,
-      } as never)
-      .mockResolvedValueOnce({
-        data: {
-          count: 3,
-          next: null,
-          previous: 'http://localhost/api/v1/monitoring/soil-map/points/?page=1',
-          results: [makePoint('point-3')],
-        },
-        error: undefined,
-      } as never)
+  it('pide solo id y geom: la precarga no descarga valores de capa', async () => {
+    getMock.mockResolvedValueOnce(page(2, ['point-1', 'point-2']))
+
+    await fetchAllSoilMapPoints('header-1')
+
+    expect(getMock).toHaveBeenCalledTimes(1)
+    expect(getMock).toHaveBeenCalledWith(URL, {
+      params: {
+        query: { smh_header: 'header-1', fields: 'id,geom', page_size: 2000, page: 1 },
+      },
+    })
+  })
+
+  it('con una sola página no dispara peticiones de más', async () => {
+    getMock.mockResolvedValueOnce(page(3, ['point-1', 'point-2', 'point-3']))
 
     const points = await fetchAllSoilMapPoints('header-1')
 
     expect(points.map((point) => point.id)).toEqual(['point-1', 'point-2', 'point-3'])
-    expect(getMock).toHaveBeenCalledTimes(2)
-    expect(getMock).toHaveBeenNthCalledWith(1, '/api/v1/monitoring/soil-map/points/', {
-      params: { query: { smh_header: 'header-1', page_size: 2000, page: 1 } },
-    })
-    expect(getMock).toHaveBeenNthCalledWith(2, '/api/v1/monitoring/soil-map/points/', {
-      params: { query: { smh_header: 'header-1', page_size: 2000, page: 2 } },
-    })
+    expect(getMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('calcula las páginas desde count y las recorre en orden', async () => {
+    // 4100 puntos a 2000 por página son 3 páginas. El número no está escrito en
+    // ninguna parte: sale de count, así que sirve igual con 1 que con 20.
+    getMock
+      .mockResolvedValueOnce(page(4100, ['p1']))
+      .mockResolvedValueOnce(page(4100, ['p2']))
+      .mockResolvedValueOnce(page(4100, ['p3']))
+
+    const points = await fetchAllSoilMapPoints('header-1')
+
+    expect(points.map((point) => point.id)).toEqual(['p1', 'p2', 'p3'])
+    expect(getMock).toHaveBeenCalledTimes(3)
+    expect(getMock.mock.calls.map((call) => (call[1] as never as {
+      params: { query: { page: number } }
+    }).params.query.page)).toEqual([1, 2, 3])
+  })
+
+  it('pide las páginas en serie, no todas a la vez', async () => {
+    // Medido: 3.1 s en serie contra 4.7 s en paralelo sobre la sesión real. El
+    // runserver de desarrollo tiene un solo proceso y en producción son 3 workers
+    // de gunicorn, así que la concurrencia estorba en vez de ayudar.
+    let enVuelo = 0
+    let maxEnVuelo = 0
+    const responses = [page(6000, ['p1']), page(6000, ['p2']), page(6000, ['p3'])]
+    let indice = 0
+    getMock.mockImplementation((() => {
+      enVuelo += 1
+      maxEnVuelo = Math.max(maxEnVuelo, enVuelo)
+      const response = responses[indice++]
+      return new Promise((resolve) =>
+        setTimeout(() => {
+          enVuelo -= 1
+          resolve(response)
+        }, 1)
+      )
+    }) as never)
+
+    const points = await fetchAllSoilMapPoints('header-1')
+
+    expect(maxEnVuelo).toBe(1)
+    expect(points.map((point) => point.id)).toEqual(['p1', 'p2', 'p3'])
   })
 
   it('reporta la página que falló', async () => {
@@ -60,6 +97,17 @@ describe('fetchAllSoilMapPoints', () => {
 
     await expect(fetchAllSoilMapPoints('header-1')).rejects.toThrow(
       'Error al cargar puntos de suelo (página 1)'
+    )
+  })
+
+  it('reporta el número correcto cuando falla una página posterior', async () => {
+    getMock
+      .mockResolvedValueOnce(page(4100, ['p1']))
+      .mockResolvedValueOnce(page(4100, ['p2']))
+      .mockResolvedValueOnce({ data: undefined, error: { detail: 'Error' } } as never)
+
+    await expect(fetchAllSoilMapPoints('header-1')).rejects.toThrow(
+      'Error al cargar puntos de suelo (página 3)'
     )
   })
 })
