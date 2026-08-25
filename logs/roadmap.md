@@ -713,7 +713,16 @@ Total proyectado hasta la primera capa pintada: **2-4 s en serie, ~1.5 s paralel
 - [x] **SL-F4** `SoilMapPointGeom` como tipo estrecho local; `api.d.ts` no se relaja
 - [x] **SL-F5** Medido de punta a punta: **55.73 s -> ~3.7 s**, **22.87 MB -> 2.91 MB**
 
-**Fuera de alcance de SL-F, gap aparte que SIGUE EN ALTA:** el tiron al **cambiar de capa** no lo
+**RESUELTO EN SL-W (2026-08-25), despues de que el desarrollador lo reportara al probar SL-F:** la
+interpolacion se movio a un Web Worker (el primero del proyecto) y se cacheo por capa. La aplicacion
+ya no se congela: el calculo sigue tardando 1-3 s pero corre en otro hilo, y volver a una capa ya
+vista es inmediato. Nota importante para quien retome el tema: un bloqueo del hilo principal NO
+tiene alcance parcial —o bloquea todo o no bloquea nada—, asi que "congelar solo el visor" no era
+posible; lo que se logro es que no se congele nada. Lo que sigue pendiente si algun dia estorba es
+REDUCIR los 1-3 s, y para eso habria que bajar la malla de 260x260, que altera cortes y colores
+validados con el proveedor.
+
+**Contexto original del gap:** el tiron al **cambiar de capa** no lo
 arregla nada de esto. Es `analyzeSoilSurface`, que **no dibuja nada**: simula un raster de 260x260
 celdas para sacar los cortes de la leyenda y las hectareas por rango de `SoilMapStatsCard`, corre
 **sincrono dentro de un `useMemo`** y por eso congela la pestaña. **Medido en navegador: 1-3 s**

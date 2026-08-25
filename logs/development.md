@@ -3064,3 +3064,52 @@ misma prueba sobre `HEAD`.
 Cambiar de capa sigue tardando **1–3 s** y no mejora con esto: es `analyzeSoilSurface`, que no
 dibuja nada — simula un ráster de 260×260 celdas para sacar los cortes de la leyenda y las hectáreas
 de la tarjeta. Corre síncrono y congela la pestaña. `GAP-SUELO-001`, prioridad alta, fase propia.
+
+### SL-W — La interpolación sale del hilo principal (2026-08-25)
+
+Con la carga ya resuelta, el desarrollador reportó lo que quedaba visible: al pintar una capa **se
+congelaba toda la aplicación**, y solo el mensaje y el ícono animado seguían vivos.
+
+**Ese detalle era el diagnóstico completo.** Las animaciones CSS las maneja el compositor del
+navegador, no el hilo de JavaScript. Un spinner girando mientras todo lo demás está muerto es la
+firma inconfundible de un bloqueo del hilo principal — en este caso `analyzeSoilSurface`, 67,600
+celdas contra hasta 1,000 muestras, entre 1 y 3 segundos.
+
+**Una aclaración que hubo que hacer:** se pidió que se congelara "solo el visor y no todo el DOM".
+Eso no se puede. Un bloqueo del hilo principal no tiene alcance parcial: o bloquea todo, o no
+bloquea nada. Lo que sí se puede es que **no se congele nada**, y eso es lo que hace el worker.
+
+El cálculo **no se acelera** — sigue tardando 1–3 s. Lo que cambia es que deja de secuestrar la
+interfaz: el resto de la aplicación queda interactivo y el visor muestra "Calculando superficie de
+*&lt;capa&gt;*…" mientras tanto.
+
+**Recordatorio para quien vuelva a tocar esto:** `analyzeSoilSurface` **no dibuja nada**. El ráster
+se calcula, se mide y se tira. Sirve para los cortes de la leyenda —cuantiles de un ráster simulado,
+a propósito, porque los valores crudos conservan outliers y darían límites distintos a los reportes
+exportados— y para las hectáreas por rango de `SoilMapStatsCard`. Por eso no se puede omitir.
+
+**Caché por capa.** Volver a una capa ya vista recalculaba desde cero. Ahora es inmediato, y sumado
+al caché de datos de react-query, revisitar una capa no cuesta ni red ni cálculo. La clave es
+`sesión|capa|nº de muestras`, de modo que una reimportación la invalida sola. Cota de 120 entradas
+con desalojo del más antiguo: sin límite crecería con cada capa de cada sesión en la vida de la
+pestaña.
+
+**Dos fallos que se previnieron por diseño:**
+
+- *Carrera al cambiar de capa.* Cambiar dos veces seguidas podía pintar el resultado de la primera
+  sobre la segunda si la primera tardaba más, dejando el mapa con los cortes de **otra** variable.
+  Un contador de petición descarta las respuestas obsoletas.
+- *Worker muerto.* Si el hilo falla, las peticiones en vuelo se quedarían colgadas y el visor
+  mostraría "Calculando superficie…" para siempre. `onerror` las rechaza todas y reinicia el worker.
+
+**Dos trampas de pruebas, ambas instructivas:**
+
+1. El caché vive a nivel de módulo, así que un test recibía el análisis calculado por el anterior
+   bajo la misma clave. Se limpia en `beforeEach`.
+2. El resultado pasó a ser asíncrono y React empezó a avisar de actualizaciones de estado fuera de
+   `act()` en cada test. Se resolvió con un helper que deja resolver el cálculo antes de aseverar,
+   y se dejó en **cero avisos**: los warnings entrenan a ignorar la salida de las pruebas.
+
+Suite: **494/494 en 86 archivos**, `tsc` limpio. `vite build` emite
+`soilMapSurface.worker-*.js` como chunk aparte de 7.8 KB — que es la verificación real de que corre
+en otro hilo y no quedó inlineado en el bundle principal.

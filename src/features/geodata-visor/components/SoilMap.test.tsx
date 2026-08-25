@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -229,6 +229,7 @@ vi.mock('@/features/task-manager/lib/soilMapSurface', async (importOriginal) => 
   analyzeSoilSurface: mocks.analyzeSurface,
 }))
 
+import { resetSoilSurfaceClient } from '@/features/task-manager/lib/soilSurfaceClient'
 import { SoilMap } from './SoilMap'
 
 function soilPoint(id: string, offset: number) {
@@ -254,6 +255,19 @@ function soilPoint(id: string, offset: number) {
   }
 }
 
+/**
+ * Renderiza y deja que resuelva el analisis de superficie antes de aseverar.
+ *
+ * Desde que la interpolacion corre en un worker el resultado llega asincrono, asi
+ * que sin este flush React avisa de actualizaciones de estado fuera de act(). En
+ * el navegador pasa lo mismo: los puntos aparecen primero y los colores despues.
+ */
+async function renderMap(ui: React.ReactElement) {
+  const result = render(ui)
+  await act(async () => {})
+  return result
+}
+
 describe('SoilMap', () => {
   beforeEach(() => {
     setPoints([soilPoint('point-1', 0), soilPoint('point-2', 1), soilPoint('point-3', 2)])
@@ -274,12 +288,15 @@ describe('SoilMap', () => {
     }
     mocks.statsOverride = null
     mocks.statsLoading = false
+    // El cache del cliente de superficie vive a nivel de modulo: sin limpiarlo, un
+    // test recibiria el analisis calculado por el anterior bajo la misma clave.
+    resetSoilSurfaceClient()
     mocks.analyzeSurface.mockReset()
     mocks.analyzeSurface.mockReturnValue(null)
   })
 
-  it('muestra únicamente las capas presentes en el CSV y siete rangos para Countrate', () => {
-    render(<SoilMap sessionId="soil-1" plotId={null} sessionsSlot={<div>Sesiones</div>} />)
+  it('muestra únicamente las capas presentes en el CSV y siete rangos para Countrate', async () => {
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} sessionsSlot={<div>Sesiones</div>} />)
 
     const selector = screen.getByRole('combobox', { name: 'Variable del mapa' })
     expect(selector).toHaveValue('countrate')
@@ -294,7 +311,7 @@ describe('SoilMap', () => {
     expect(screen.getAllByText(/Área total: 20 ha/).length).toBeGreaterThan(0)
   })
 
-  it('incorpora las capas opcionales cuando el CSV sí contiene valores', () => {
+  it('incorpora las capas opcionales cuando el CSV sí contiene valores', async () => {
     setPoints(
       mocks.points.map((point, index) => ({
         ...point,
@@ -304,19 +321,21 @@ describe('SoilMap', () => {
       }))
     )
 
-    render(<SoilMap sessionId="soil-1" plotId={null} />)
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} />)
 
     expect(screen.getByRole('option', { name: 'Límite inferior CC' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Cap. efi. fert.' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'C de MO' })).toBeInTheDocument()
   })
 
-  it('cambia de variable y usa rangos interpolados sin saturar la interfaz con modos', () => {
-    render(<SoilMap sessionId="soil-1" plotId={null} />)
+  it('cambia de variable y usa rangos interpolados sin saturar la interfaz con modos', async () => {
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} />)
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Variable del mapa' }), {
       target: { value: 'manganese' },
     })
+    // Cambiar de capa dispara un analisis nuevo, tambien asincrono.
+    await act(async () => {})
     expect(screen.getByRole('combobox', { name: 'Variable del mapa' })).toHaveValue('manganese')
     expect(screen.getAllByText('MN del suelo')).toHaveLength(2)
     expect(screen.queryByRole('button', { name: 'Superficie' })).toBeNull()
@@ -327,9 +346,12 @@ describe('SoilMap', () => {
     )
   })
 
-  it('filtra los puntos al desmarcar un rango de la leyenda', () => {
-    render(<SoilMap sessionId="soil-1" plotId={null} />)
+  it('filtra los puntos al desmarcar un rango de la leyenda', async () => {
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} />)
 
+    // La superficie se calcula fuera del hilo principal, asi que la leyenda
+    // aparece un tick despues del render.
+    await waitFor(() => expect(screen.getAllByRole('checkbox').length).toBe(7))
     fireEvent.click(screen.getAllByRole('checkbox')[0]!)
 
     const filter = JSON.parse(
@@ -345,8 +367,8 @@ describe('SoilMap', () => {
     expect(mocks.analyzeSurface).toHaveBeenCalledTimes(1)
   })
 
-  it('renderiza y filtra las clases texturales como categorías', () => {
-    render(<SoilMap sessionId="soil-1" plotId={null} />)
+  it('renderiza y filtra las clases texturales como categorías', async () => {
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} />)
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Variable del mapa' }), {
       target: { value: 'texture_class' },
@@ -359,14 +381,14 @@ describe('SoilMap', () => {
     expect(screen.queryByRole('button', { name: 'Rangos' })).toBeNull()
   })
 
-  it('mantiene Ctrl + rueda para hacer zoom, igual que el visor de aspersión', () => {
-    render(<SoilMap sessionId="soil-1" plotId={null} />)
+  it('mantiene Ctrl + rueda para hacer zoom, igual que el visor de aspersión', async () => {
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} />)
 
     expect(screen.getByTestId('mock-map')).toHaveAttribute('data-cooperative-gestures', 'true')
   })
 
-  it('pinta muestras opacas y sin contorno negro', () => {
-    render(<SoilMap sessionId="soil-1" plotId={null} />)
+  it('pinta muestras opacas y sin contorno negro', async () => {
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} />)
 
     const paint = JSON.parse(screen.getByTestId('layer-soil-sample-points').dataset.paint ?? '{}')
     expect(paint['circle-opacity']).toBe(1)
@@ -374,8 +396,8 @@ describe('SoilMap', () => {
     expect(paint['circle-stroke-color']).toBeUndefined()
   })
 
-  it('muestra el valor de una muestra al pasar el cursor', () => {
-    render(<SoilMap sessionId="soil-1" plotId={null} />)
+  it('muestra el valor de una muestra al pasar el cursor', async () => {
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} />)
 
     fireEvent.mouseMove(screen.getByTestId('mock-map'))
     expect(screen.getByText('900')).toBeInTheDocument()
@@ -385,8 +407,8 @@ describe('SoilMap', () => {
     expect(screen.getByTestId('mock-popup')).toHaveAttribute('data-pointer-events', 'none')
   })
 
-  it('no fija la muestra al hacer clic y oculta el globo al salir del mapa', () => {
-    render(<SoilMap sessionId="soil-1" plotId={null} />)
+  it('no fija la muestra al hacer clic y oculta el globo al salir del mapa', async () => {
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} />)
 
     const map = screen.getByTestId('mock-map')
     fireEvent.mouseMove(map)
@@ -397,19 +419,19 @@ describe('SoilMap', () => {
     expect(screen.queryByTestId('mock-popup')).toBeNull()
   })
 
-  it('desactiva la interpolación cuando hay menos de tres valores', () => {
+  it('desactiva la interpolación cuando hay menos de tres valores', async () => {
     setPoints([soilPoint('point-1', 0), soilPoint('point-2', 1)])
 
-    render(<SoilMap sessionId="soil-1" plotId={null} />)
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} />)
 
     expect(mocks.analyzeSurface).not.toHaveBeenCalled()
     expect(screen.getByText(/Se requieren al menos 3 muestras para interpolar/)).toBeInTheDocument()
   })
 
-  it('no inventa un límite ni hectáreas cuando la parcela no tiene geometría', () => {
+  it('no inventa un límite ni hectáreas cuando la parcela no tiene geometría', async () => {
     mocks.plot = { geometry: null, properties: { total_area: null } }
 
-    render(<SoilMap sessionId="soil-1" plotId="plot-without-geometry" />)
+    await renderMap(<SoilMap sessionId="soil-1" plotId="plot-without-geometry" />)
 
     expect(mocks.analyzeSurface).not.toHaveBeenCalled()
     expect(screen.getAllByText(/Área total: — ha/).length).toBeGreaterThan(0)
@@ -417,7 +439,7 @@ describe('SoilMap', () => {
     expect(screen.queryByTestId('layer-soil-plot-line')).toBeNull()
   })
 
-  it('calcula hectáreas por celdas de la superficie, no por cantidad de muestras', () => {
+  it('calcula hectáreas por celdas de la superficie, no por cantidad de muestras', async () => {
     mocks.analyzeSurface.mockReturnValue({
       min: 899,
       max: 903,
@@ -433,13 +455,15 @@ describe('SoilMap', () => {
       },
     } as never)
 
-    render(<SoilMap sessionId="soil-1" plotId={null} sessionsSlot={<div>Sesiones</div>} />)
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} sessionsSlot={<div>Sesiones</div>} />)
 
-    expect(screen.getAllByText(/30.0% · 6 ha/).length).toBeGreaterThan(0)
+    await waitFor(() =>
+      expect(screen.getAllByText(/30.0% · 6 ha/).length).toBeGreaterThan(0)
+    )
     expect(screen.getAllByText(/20.0% · 4 ha/).length).toBeGreaterThan(0)
   })
 
-  it('oculta la capa que el endpoint reporta en cero, aunque los puntos traigan el valor', () => {
+  it('oculta la capa que el endpoint reporta en cero, aunque los puntos traigan el valor', async () => {
     // El catálogo de capas disponibles ya NO se deduce de los puntos: con la
     // precarga por campos esos valores no están en memoria. Manda el endpoint de
     // estadísticas, y este test lo fija desacoplando ambas fuentes a propósito.
@@ -453,13 +477,13 @@ describe('SoilMap', () => {
       text_variables: [],
     }
 
-    render(<SoilMap sessionId="soil-1" plotId={null} />)
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} />)
 
     expect(screen.getByRole('option', { name: 'Countrate' })).toBeInTheDocument()
     expect(screen.queryByRole('option', { name: 'pH del suelo' })).toBeNull()
   })
 
-  it('incluye las capas categóricas que llegan en text_variables', () => {
+  it('incluye las capas categóricas que llegan en text_variables', async () => {
     mocks.statsOverride = {
       header_id: 'soil-1',
       points_count: 3,
@@ -470,17 +494,17 @@ describe('SoilMap', () => {
       ],
     }
 
-    render(<SoilMap sessionId="soil-1" plotId={null} />)
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} />)
 
     expect(screen.getByRole('option', { name: 'Clase textural' })).toBeInTheDocument()
     expect(screen.queryByRole('option', { name: 'Compactación física' })).toBeNull()
   })
 
-  it('deshabilita el selector mientras no sabe qué variables hay', () => {
+  it('deshabilita el selector mientras no sabe qué variables hay', async () => {
     // Un desplegable vacío se leería como "esta sesión no tiene variables".
     mocks.statsLoading = true
 
-    render(<SoilMap sessionId="soil-1" plotId={null} />)
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} />)
 
     const selector = screen.getByRole('combobox', { name: 'Variable del mapa' })
     expect(selector).toBeDisabled()

@@ -91,7 +91,7 @@ function quantile(sorted: number[], position: number) {
   return low + (high - low) * fraction
 }
 
-interface AnalyzeSoilSurfaceOptions {
+export interface AnalyzeSoilSurfaceOptions {
   ring: number[][]
   samples: SoilSample[]
   paletteSize: number

@@ -22,7 +22,7 @@ import {
   type SoilMapCategoryLayerDef,
   type SoilMapLegendEntry,
 } from '@/features/task-manager/lib/soilMapLayers'
-import { analyzeSoilSurface } from '@/features/task-manager/lib/soilMapSurface'
+import { useSoilSurfaceAnalysis } from '@/features/task-manager/hooks/useSoilSurfaceAnalysis'
 import { ESRI_STYLE, formatHa } from '@/features/geodata-visor/lib/aspersionMap.helpers'
 import {
   buildSoilBucketAreaStats,
@@ -183,18 +183,21 @@ export function SoilMap({
     [activeLayer, layerValues, points]
   )
 
-  const surfaceAnalysis = useMemo(() => {
-    if (activeLayer.kind !== 'numeric' || !boundaryRing || samples.length < 3) return null
-    return analyzeSoilSurface({
+  // La interpolación corre en un worker: antes era un useMemo síncrono que
+  // congelaba TODA la aplicación entre 1 y 3 segundos cada vez que se pintaba una
+  // capa. La clave del caché incluye la sesión, la capa y el número de muestras,
+  // que es lo que cambia si se reimportan los puntos.
+  const surfaceCacheKey = boundaryRing
+    ? `${sessionId}|${activeLayer.key}|${samples.length}`
+    : null
+  const { analysis: surfaceAnalysis, isComputing: isComputingSurface } =
+    useSoilSurfaceAnalysis({
       ring: boundaryRing,
-      samples: samples.map((sample) => ({
-        lng: sample.lng,
-        lat: sample.lat,
-        value: Number(sample.value),
-      })),
+      samples,
       paletteSize: activeLayer.palette.length,
+      cacheKey: surfaceCacheKey,
+      enabled: activeLayer.kind === 'numeric',
     })
-  }, [activeLayer, boundaryRing, samples])
 
   const numericScale = useMemo(() => {
     if (activeLayer.kind !== 'numeric') return null
@@ -416,11 +419,15 @@ export function SoilMap({
             />
           </LoadingOverlay>
         )}
-        {!isLoading && (isLoadingValues || isLoadingStats) && (
+        {!isLoading && (isLoadingValues || isLoadingStats || isComputingSurface) && (
           <div className="pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2">
             <LoadingState
               compact
-              label={`Cargando valores de ${activeLayer.label}, espere…`}
+              label={
+                isLoadingValues || isLoadingStats
+                  ? `Cargando valores de ${activeLayer.label}, espere…`
+                  : `Calculando superficie de ${activeLayer.label}…`
+              }
               className="rounded-xl border border-default bg-white/95 shadow-sm"
             />
           </div>
