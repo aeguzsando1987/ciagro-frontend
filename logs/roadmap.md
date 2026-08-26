@@ -441,7 +441,7 @@ emitiendo `org` en cada `VisorSelection` (ver `.CLAUDE/visor-contours-tenant-pro
 
 ## FASE KM — Exportar KML del reporte + traer el clima del día (rama `dev-report-kml`, 2026-08-18)
 
-**Estado:** `[🔄] Implementada — pendiente prueba manual del desarrollador en Google Earth`.
+**Estado:** `[✅] DESPLEGADA en producción — 2026-08-24 — front 126fca0; prueba manual del desarrollador OK. Acta en logs/deploy-2026-08-24-km-ps-nv.md`.
 Dos botones nuevos en el reporte de sesión. El backend de esta fase se registra en
 `../CIAgro_alpha_back/logs/roadmap.md` (KM-1 a KM-8).
 
@@ -583,7 +583,7 @@ Dos botones nuevos en el reporte de sesión. El backend de esta fase se registra
 ---
 
 ## FASE PS: SCOPE POR PARCELA — FRONTEND
-**Estado:** `[✅] Implementada y VALIDADA manualmente — rama dev-plot-scope, 2026-08-21; pendiente homologación`
+**Estado:** `[✅] DESPLEGADA en producción — 2026-08-24 — front 126fca0, contra back f91567a (el modal de alcance necesita su endpoint). Validación manual del desarrollador OK. Acta en logs/deploy-2026-08-24-km-ps-nv.md`. Implementada y validada manualmente en rama dev-plot-scope, 2026-08-21; homologada a master.
 
 Contraparte de la fase PS del backend (ver `../../CIAgro_alpha_back/logs/roadmap.md`, PS-0 a PS-7,
 ya completos). El backend ya resuelve el alcance con dos granos: la CIAgro y, opcionalmente,
@@ -621,7 +621,7 @@ distinguir "no hay parcelas que asignar" de "todavia cargando" o de un fallo, o 
 ---
 
 ## FASE NV: EL VISOR COMO PANTALLA PRINCIPAL Y NAVEGACION EN PESTAÑA
-**Estado:** `[✅] Implementada y VALIDADA por el dev — ramas dev-plot-scope y dev-nav-entrada, 2026-08-21`
+**Estado:** `[✅] DESPLEGADA en producción — 2026-08-24 — front 126fca0; validación manual del desarrollador OK. Acta en logs/deploy-2026-08-24-km-ps-nv.md`. Implementada y validada por el dev en las ramas dev-plot-scope y dev-nav-entrada, 2026-08-21.
 
 Es el hallazgo **H9** del analisis de la fase PS ("rediseño de navegacion, sesion aparte"), que el
 desarrollador decidio hacer en la misma rama. Se dejo en commits separados para poder revertir uno
