@@ -676,7 +676,7 @@ sin el otro.
 
 ## FASE SL: CARGA POR CAPA DEL MAPA DE SUELO — FRONTEND (PENDIENTE DE PLANEAR)
 
-**Estado:** `[x] Implementada y VALIDADA en navegador por el desarrollador (2026-08-25). Homologada en dev; NO en master ni desplegada.` Medido de punta a punta: 55.73 s -> ~3.7 s y 22.87 MB -> 2.91 MB; en el navegador el desarrollador reporto cargas "casi instantaneas". Unico pendiente de validacion visual: el ajuste final de redaccion del resumen ("Muestras" y la columna n omitida), verificado solo por tests.
+**Estado:** `[x] Implementada y VALIDADA en navegador por el desarrollador (2026-08-25). Homologada en dev; NO en master ni desplegada.` Medido de punta a punta: 55.73 s -> ~3.7 s y 22.87 MB -> 2.91 MB; en el navegador el desarrollador reporto cargas "casi instantaneas". Validacion visual completa: el desarrollador confirmo tambien el ajuste final de redaccion del resumen (Muestras y la columna n omitida) el 2026-08-26.
 
 El backend cerro la FASE SL en `CIAgro_alpha_back` (rama `dev-soilmap-layer-load`, 2026-08-24): el
 endpoint de puntos de suelo acepta `?fields=` y existe un endpoint de estadisticas por variable.
