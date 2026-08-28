@@ -3165,3 +3165,59 @@ difieren.
 
 Datos reales: clase textural reparte 16,787 Arcilloso (99.1%), 124 Franco (0.7%) y 33 Franco limoso
 arcilloso (0.2%).
+
+---
+
+## Sesión `delete-cascade` — FASE BC: borrado por niveles (frontend) (2026-08-27, rama `dev-delete-cascade`)
+
+Va en pareja con la FASE BC del backend (`../CIAgro_alpha_back`, commits `7a8ba99`, `78ddb52`,
+`e6a2bdc`). Hasta este trabajo los 14 endpoints existían pero **nadie podía invocarlos desde la
+pantalla**.
+
+### Lo que NO se reescribió
+
+`FlushSessionDialog` ya traía el control de seguridad que pedía el caso de uso —código aleatorio de
+6 dígitos regenerado al abrir, botón bloqueado hasta la coincidencia exacta, sin cierre por Escape
+ni click-outside— y ya era genérico. Se **extendió** con tres props opcionales; los tres diálogos de
+flush existentes no las pasan y siguen funcionando igual, con un test que lo fija.
+
+### Decisiones
+
+**Si el backend dice que no se puede, no se pide código.** Desaparecen el input y el botón, y
+"Cancelar" pasa a "Entendido". Un código de confirmación no puede saltarse un 409.
+
+**No se anuncia la restauración.** El borrado de programas es soft y `/restore/` existe, pero el
+diálogo remite a soporte técnico. Decisión del dev: ofrecer la vuelta atrás en el mismo diálogo
+abarata una acción destructiva e invita a probar; además es exacto, porque la restauración es de
+administrador y no del usuario que borra.
+
+**Rutas literales, sin `as any`.** El primer intento armaba las URLs con plantillas, lo que colapsa a
+`string` y obliga a apagar la comprobación de tipos —justo la garantía por la que se abandonó el
+`fetch` crudo de `useFlushSession`—. Se reescribieron las doce rutas completas.
+
+### La trampa principal
+
+Los `SPECS` de `useFlushSession` **no** invalidan `['master-tree']` ni `['master-programs']`, y con
+razón: un flush cambia el contenido de una sesión, no la **estructura** del Gantt. Un borrado sí la
+cambia. Sin esas dos claves el árbol sigue pintando lo borrado y la función parece rota aunque el
+backend responda 200. Hay un test dedicado.
+
+### Los tres fallos que encontró el dev probando
+
+Ninguno lo atrapó la suite. Los tres son de la misma familia: **los tests verifican que las piezas
+funcionen, no que estén bien conectadas en la pantalla.**
+
+1. **Faltaba el botón en fito y NDVI.** Se montó "junto al de flush existente", criterio que cubre
+   exactamente los dos dominios que ya tenían uno en `SesionModal`.
+2. **El modal no se cerraba tras borrar.** El diálogo se cerraba; el modal de encima, no.
+3. **El vaciado se ofrecía sin datos que vaciar.**
+
+Al escribir el test del tercero apareció la causa común: **`renderView` nunca llegaba a
+`SUPER_ADMIN`**, que es el rol bajo el que vive todo lo construido en esta fase. Ese hueco de
+cobertura explica por qué los tres pasaron desapercibidos.
+
+### Verificación
+
+`typecheck` limpio, sin un solo `as any`. 89 archivos y 527 tests. El único error suelto de la suite
+es `window.URL.createObjectURL` de `maplibre-gl` en jsdom: se verificó con `git stash` que aparece
+igual sin estos cambios. **Prueba manual del desarrollador: VALIDADA** (2026-08-27).

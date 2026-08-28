@@ -746,7 +746,7 @@ Con 3-8, que es lo realista, gana ampliamente.
 
 ## FASE BC: BORRADO POR NIVELES DE PROGRAMAS, SUBPROGRAMAS Y SESIONES — FRONTEND
 
-**Estado:** `[ ] Planeada. Plan aprobado por el desarrollador el 2026-08-27; sin implementar.`
+**Estado:** `[x] Implementada y VALIDADA manualmente por el desarrollador (2026-08-27). Rama dev-delete-cascade; NO homologada en dev ni master, NO desplegada.`
 Rama `dev-delete-cascade`. Va en pareja con la FASE BC del backend
 (`../CIAgro_alpha_back/logs/roadmap.md`), que es donde se implementan los endpoints.
 
@@ -764,8 +764,8 @@ impacto; no se sustituye.
 - [x] **BC-F1** `DeleteImpactSummary` + `FlushSessionDialog` extendido con `impact`, `title` y `consequence` (10 tests)
 - [x] **BC-F2** `useDeleteImpact` / `useDeleteLevel` / `useRestoreLevel` por `apiClient`, con rutas literales (sin `as any`) y `api.d.ts` regenerado. 8 tests, uno dedicado a la invalidacion del arbol
 - [x] **BC-F3** `DeleteLevelDialog` + montaje en `SesionModal` (aspersion y suelo), `HijoModal` y `MaestroModal`
-- [ ] **BC-F4** Prueba manual del desarrollador
-- [ ] **BC-F5** Bitacoras
+- [x] **BC-F4** Prueba manual del desarrollador (VALIDADA, 3 fallos detectados y corregidos)
+- [x] **BC-F5** Bitacoras
 
 **TRAMPA DE INVALIDACION — es la que rompe la funcion en silencio.** Los `SPECS` de
 `useFlushSession.ts` **no** invalidan `['master-tree', masterId]` ni `['master-programs']`, y con
