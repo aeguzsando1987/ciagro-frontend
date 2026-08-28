@@ -761,9 +761,9 @@ deshabilitado hasta que el texto coincide **exacto**, y sin cierre por Escape ni
 es generico: recibe la mutacion por prop, no conoce endpoints. Se **extiende** con un resumen de
 impacto; no se sustituye.
 
-- [ ] **BC-F1** Extender `FlushSessionDialog` con resumen de impacto y lista de bloqueadores (pausa)
-- [ ] **BC-F2** Hooks tipados de borrado, preview y restauracion; regenerar `src/types/api.d.ts`
-- [ ] **BC-F3** Montaje en `SesionModal`, `HijoModal` y `MaestroModal` + invalidacion del arbol
+- [x] **BC-F1** `DeleteImpactSummary` + `FlushSessionDialog` extendido con `impact`, `title` y `consequence` (10 tests)
+- [x] **BC-F2** `useDeleteImpact` / `useDeleteLevel` / `useRestoreLevel` por `apiClient`, con rutas literales (sin `as any`) y `api.d.ts` regenerado. 8 tests, uno dedicado a la invalidacion del arbol
+- [x] **BC-F3** `DeleteLevelDialog` + montaje en `SesionModal` (aspersion y suelo), `HijoModal` y `MaestroModal`
 - [ ] **BC-F4** Prueba manual del desarrollador
 - [ ] **BC-F5** Bitacoras
 

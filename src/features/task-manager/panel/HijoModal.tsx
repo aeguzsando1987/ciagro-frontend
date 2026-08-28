@@ -40,6 +40,7 @@ import { PlotPanel } from '@/features/admin/panel/PlotPanel'
 import type { PlotFlat } from '@/features/admin/types'
 import { StatusChanger } from './StatusChanger'
 import { CreateSessionDialog } from '@/features/task-manager/dialogs/CreateSessionDialog'
+import { DeleteLevelDialog } from '../components/DeleteLevelDialog'
 import type { ProgramaTree, MasterProgram, ProgramaStatus } from '@/features/task-manager/types'
 
 const STATUS_BADGE_COLORS: Record<string, string> = {
@@ -190,6 +191,7 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [createSesionOpen, setCreateSesionOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   // Estado local del status para feedback inmediato al usuario. El prop `hijo`
   // viene del árbol del Maestro y solo se actualiza al re-abrir el modal; sin
   // este estado la Badge y el StatusChanger quedan stale hasta que el usuario
@@ -201,6 +203,9 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
 
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const isManager = roleLevel >= ROLE_LEVELS.MANAGER
+  // Mismo criterio que MaestroModal: se gatea por SUPER_ADMIN aunque el backend tambien
+  // admita al owner del DataCentralMain. Quedarse corto solo esconde un boton.
+  const canDelete = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
   const programIsOpen = localStatus !== 'completed' && localStatus !== 'cancelled'
     && master.status !== 'completed' && master.status !== 'cancelled'
   const canCreateSession = roleLevel >= ROLE_LEVELS.TECHNICIAN && programIsOpen
@@ -341,6 +346,8 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
               actualFinish={detail?.actual_finish_date ?? null}
               allSessions={allSessions}
               isManager={isManager}
+              canDelete={canDelete}
+              onDelete={() => setDeleteOpen(true)}
               canCreateSession={canCreateSession}
               isMutating={updateMutation.isPending}
               canEdit={!!detail}
@@ -559,6 +566,15 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
           datacentralId={datacentralId}
         />
       )}
+
+      {canDelete && (
+        <DeleteLevelDialog
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          level="programa"
+          id={hijo.id}
+        />
+      )}
     </>
   )
 }
@@ -571,6 +587,8 @@ function ViewMode({
   actualFinish,
   allSessions,
   isManager,
+  canDelete,
+  onDelete,
   canCreateSession,
   isMutating,
   canEdit,
@@ -586,6 +604,8 @@ function ViewMode({
   actualFinish: string | null
   allSessions: HijoSession[]
   isManager: boolean
+  canDelete: boolean
+  onDelete: () => void
   canCreateSession: boolean
   isMutating: boolean
   canEdit: boolean
@@ -646,11 +666,18 @@ function ViewMode({
           isLoading={isMutating}
         />
 
-        {isManager && (
-          <Button size="sm" variant="outline" onClick={onEdit} disabled={!canEdit}>
-            {canEdit ? 'Editar' : 'Cargando…'}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isManager && (
+            <Button size="sm" variant="outline" onClick={onEdit} disabled={!canEdit}>
+              {canEdit ? 'Editar' : 'Cargando…'}
+            </Button>
+          )}
+          {canDelete && (
+            <Button size="sm" variant="destructive" onClick={onDelete}>
+              Eliminar
+            </Button>
+          )}
+        </div>
 
         {/* Lista de sesiones */}
         <section className="flex min-h-0 flex-1 flex-col">

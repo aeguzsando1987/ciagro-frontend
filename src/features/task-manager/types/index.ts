@@ -19,3 +19,12 @@ export type ProgramaStatus = components['schemas']['Status5a4Enum']
 
 /** Lista paginada estandar DRF de Programas Maestros. */
 export type PaginatedMasterProgramList = components['schemas']['PaginatedMasterProgramList']
+
+/** Impacto de un borrado: que caeria y que lo impide (FASE BC). */
+export type DeleteImpact = components['schemas']['DeleteImpact']
+
+/** Sesion con datos cargados que impide borrar su programa. */
+export type DeleteBlockerSession = components['schemas']['DeleteBlockerSession']
+
+/** Reporte publicado que impide borrar su sesion. */
+export type DeleteBlockerReport = components['schemas']['DeleteBlockerReport']

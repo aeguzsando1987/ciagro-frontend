@@ -37,6 +37,7 @@ import { PhytoMapModal } from '../components/PhytoMapModal'
 import { usePhytoSessionStats } from '../hooks/usePhytoSessionStats'
 import { AspersionMapModal } from '../components/AspersionMapModal'
 import { FlushAspersionDialog } from '../components/FlushAspersionDialog'
+import { DeleteLevelDialog } from '../components/DeleteLevelDialog'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { SessionReportPanel } from '@/features/session-report/components/SessionReportPanel'
@@ -487,6 +488,7 @@ function AspersionView({
   const [mapOpen, setMapOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [flushOpen, setFlushOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const canViewMap =
     roleLevel >= ROLE_LEVELS.SUPERVISOR &&
@@ -572,6 +574,14 @@ function AspersionView({
                 <p className="mt-1 text-xs text-muted-foreground">
                   Acción de administrador: borra los puntos importados solo de esta sesión.
                 </p>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="mt-3"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  Eliminar la sesión completa
+                </Button>
               </div>
             )}
           </div>
@@ -591,6 +601,15 @@ function AspersionView({
               open={flushOpen}
               onClose={() => setFlushOpen(false)}
               sessionId={detail.id}
+            />
+          )}
+
+          {isSuperAdmin && (
+            <DeleteLevelDialog
+              open={deleteOpen}
+              onClose={() => setDeleteOpen(false)}
+              level="aspersion"
+              id={detail.id}
             />
           )}
         </div>
@@ -680,6 +699,7 @@ export function SoilMapView({
   const [importOpen, setImportOpen] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
   const [flushOpen, setFlushOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const canViewMap = canViewSoilMap(roleLevel, detail.import_status, detail.points_count)
   const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
@@ -763,6 +783,14 @@ export function SoilMapView({
                 <p className="mt-1 text-xs text-muted-foreground">
                   Acción de administrador: borra las muestras importadas solo de esta sesión.
                 </p>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="mt-3"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  Eliminar la sesión completa
+                </Button>
               </div>
             )}
           </div>
@@ -780,6 +808,15 @@ export function SoilMapView({
               open={flushOpen}
               onClose={() => setFlushOpen(false)}
               sessionId={detail.id}
+            />
+          )}
+
+          {isSuperAdmin && (
+            <DeleteLevelDialog
+              open={deleteOpen}
+              onClose={() => setDeleteOpen(false)}
+              level="soil_map"
+              id={detail.id}
             />
           )}
         </div>

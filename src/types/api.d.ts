@@ -4325,6 +4325,240 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/field_ops/tasks/{id}/delete-preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Impacto de eliminar un subprograma
+         * @description Devuelve que se eliminaria al borrar el subprograma y que lo impide. No modifica nada. Las sesiones con puntos cargados BLOQUEAN el borrado; las vacias se eliminarian junto con el programa.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/tasks/{id}/delete-preview/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("field_ops/tasks/{id}/delete-preview/")
+         *         suspend fun previewDeletePrograma(@Path("id") id: String): DeleteImpact
+         *     }
+         *
+         *     val result = api.previewDeletePrograma(id)
+         *     ```
+         */
+        get: operations["v1_field_ops_tasks_delete_preview_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/tasks/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar un subprograma
+         * @description Borrado LOGICO del subprograma: la fila sobrevive con `is_deleted` y es recuperable con `/restore/`. Sus sesiones vacias se eliminan fisicamente. Responde 409, sin tocar nada, si alguna sesion tiene puntos cargados o si hay un reporte publicado en el subarbol.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/field_ops/tasks/{id}/delete/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("field_ops/tasks/{id}/delete/")
+         *         suspend fun deletePrograma(@Path("id") id: String): DeleteImpact
+         *     }
+         *
+         *     val result = api.deletePrograma(id)
+         *     ```
+         */
+        delete: operations["v1_field_ops_tasks_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/tasks/{id}/restore/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restaurar un subprograma borrado
+         * @description Deshace el borrado logico de un subprograma (Programa).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/field_ops/tasks/{id}/restore/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("field_ops/tasks/{id}/restore/")
+         *         suspend fun restorePrograma(@Path("id") id: String): RestoreResult
+         *     }
+         *
+         *     val result = api.restorePrograma(id)
+         *     ```
+         */
+        post: operations["v1_field_ops_tasks_restore_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/master-programs/{id}/delete-preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Impacto de eliminar un programa maestro
+         * @description Devuelve que se eliminaria al borrar el Programa Maestro y que lo impide. No modifica nada. Recorre el arbol completo: cualquier sesion con puntos cargados bajo cualquiera de sus subprogramas bloquea la operacion.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/master-programs/{id}/delete-preview/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("field_ops/master-programs/{id}/delete-preview/")
+         *         suspend fun previewDeleteMasterProgram(@Path("id") id: String): DeleteImpact
+         *     }
+         *
+         *     val result = api.previewDeleteMasterProgram(id)
+         *     ```
+         */
+        get: operations["v1_field_ops_master_programs_delete_preview_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/master-programs/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar un programa maestro
+         * @description Borrado LOGICO del Programa Maestro y de sus subprogramas, todos con el mismo `deleted_at` para que `/restore/` pueda devolver exactamente los que cayeron en esta operacion. Las sesiones vacias del arbol se eliminan fisicamente. Responde 409, sin tocar nada, si alguna sesion del arbol tiene puntos cargados o si hay un reporte publicado.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X DELETE http://localhost:8500/api/v1/field_ops/master-programs/{id}/delete/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @DELETE("field_ops/master-programs/{id}/delete/")
+         *         suspend fun deleteMasterProgram(@Path("id") id: String): DeleteImpact
+         *     }
+         *
+         *     val result = api.deleteMasterProgram(id)
+         *     ```
+         */
+        delete: operations["v1_field_ops_master_programs_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/master-programs/{id}/restore/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restaurar un programa maestro borrado
+         * @description Deshace el borrado logico de un Programa Maestro y de los subprogramas que cayeron en la MISMA operacion (mismo `deleted_at`). Las sesiones y puntos que se hubieran eliminado NO vuelven: ese borrado es fisico.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/field_ops/master-programs/{id}/restore/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("field_ops/master-programs/{id}/restore/")
+         *         suspend fun restoreMasterProgram(@Path("id") id: String): RestoreResult
+         *     }
+         *
+         *     val result = api.restoreMasterProgram(id)
+         *     ```
+         */
+        post: operations["v1_field_ops_master_programs_restore_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/field_ops/session-reports/": {
         parameters: {
             query?: never;
@@ -8028,6 +8262,205 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/aspersion/headers/{id}/delete-preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Impacto de eliminar una sesion
+         * @description Impacto de eliminar una sesion de Aspersion.
+         */
+        get: operations["v1_monitoring_aspersion_headers_delete_preview_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/aspersion/headers/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar una sesion y sus puntos
+         * @description Elimina una sesion de Aspersion y sus puntos.
+         */
+        delete: operations["v1_monitoring_aspersion_headers_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/soil-map/headers/{id}/delete-preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Impacto de eliminar una sesion
+         * @description Impacto de eliminar una sesion de SoilMap.
+         */
+        get: operations["v1_monitoring_soil_map_headers_delete_preview_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/soil-map/headers/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar una sesion y sus puntos
+         * @description Elimina una sesion de SoilMap y sus puntos.
+         */
+        delete: operations["v1_monitoring_soil_map_headers_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/ndvi/headers/{id}/delete-preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Impacto de eliminar una sesion
+         * @description Impacto de eliminar una sesion de Ndvi.
+         */
+        get: operations["v1_monitoring_ndvi_headers_delete_preview_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/ndvi/headers/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar una sesion y sus puntos
+         * @description Elimina una sesion de Ndvi y sus puntos.
+         */
+        delete: operations["v1_monitoring_ndvi_headers_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/headers/{id}/delete-preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Impacto de eliminar una sesion
+         * @description Impacto de eliminar una sesion de Phyto.
+         */
+        get: operations["v1_monitoring_phyto_headers_delete_preview_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/headers/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar una sesion y sus puntos
+         * @description Elimina una sesion de Phyto y sus puntos.
+         */
+        delete: operations["v1_monitoring_phyto_headers_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/phyto/headers/{id}/flush/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vaciar las muestras de una sesion fitosanitaria
+         * @description Elimina los checkpoints (muestras de campo) de UNA sesion fitosanitaria y sus fotos del disco. NO toca los puntos objetivo: esa es la ruta planeada por el agronomo, no un dato capturado. Acotado a la sesion indicada; no afecta a otras sesiones de la misma parcela.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/phyto/headers/{id}/flush/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("monitoring/phyto/headers/{id}/flush/")
+         *         suspend fun flushPhytoSession(@Path("id") id: String): FlushResult
+         *     }
+         *
+         *     val result = api.flushPhytoSession(id)
+         *     ```
+         */
+        post: operations["v1_monitoring_phyto_headers_flush_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/analytics-config/ndvi/": {
         parameters: {
             query?: never;
@@ -8720,6 +9153,52 @@ export interface components {
             /** Format: uuid */
             data_central_main_id: string;
         };
+        /** @description Reporte publicado que impide borrar su sesion. */
+        DeleteBlockerReport: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            session_id: string;
+            kind: string;
+            /** Format: date */
+            report_date: string;
+        };
+        /** @description Sesion con datos cargados que impide borrar su programa. */
+        DeleteBlockerSession: {
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            label: string;
+            points: number;
+        };
+        DeleteBlockers: {
+            published_reports: components["schemas"]["DeleteBlockerReport"][];
+            sessions_with_data: components["schemas"]["DeleteBlockerSession"][];
+        };
+        /**
+         * @description Que se eliminaria y que lo impide.
+         *
+         *     Existe SOLO para documentar la forma de la respuesta en el schema OpenAPI. Las vistas
+         *     devuelven el dict de `collect_delete_impact` tal cual; este serializer no se usa para
+         *     serializar nada. Sin el, drf-spectacular no puede describir un APIView sin
+         *     serializer_class y el frontend tendria que escribir el tipo a mano, contra la
+         *     convencion 5 del proyecto (tipos generados, no escritos).
+         *
+         *     `counts` es un diccionario libre a proposito: sus llaves dependen de los dominios que
+         *     caigan (sessions, points, target_points, contours, reports, issues, attachments) y
+         *     fijarlas aqui obligaria a tocar dos sitios cada vez que entre un tipo de sesion nuevo.
+         */
+        DeleteImpact: {
+            level: components["schemas"]["LevelEnum"];
+            /** Format: uuid */
+            target_id: string;
+            target_label: string;
+            blockers: components["schemas"]["DeleteBlockers"];
+            counts: {
+                [key: string]: unknown;
+            };
+            can_delete: boolean;
+        };
         /**
          * @description Catálogo genérico de esquemas de evaluación.
          *     validate_scheme() delega al evaluador del registry para validar que los
@@ -8809,6 +9288,12 @@ export interface components {
             available_computed: {
                 [key: string]: unknown;
             };
+        };
+        /** @description Resultado de `/flush/`. Solo documenta la forma. */
+        FlushResult: {
+            deleted_points: number;
+            /** Format: uuid */
+            header_id: string;
         };
         /** @enum {string} */
         GisFeatureCollectionEnum: "FeatureCollection";
@@ -8925,6 +9410,13 @@ export interface components {
          * @enum {string}
          */
         IssueTypeEnum: "observacion" | "tema de atencion";
+        /**
+         * @description * `session` - session
+         *     * `programa` - programa
+         *     * `master` - master
+         * @enum {string}
+         */
+        LevelEnum: "session" | "programa" | "master";
         LogoutRequest: {
             /** @description Refresh token a invalidar */
             refresh: string;
@@ -11833,6 +12325,13 @@ export interface components {
          * @enum {string}
          */
         RelevanciaEnum: "alta" | "media" | "baja" | "na";
+        /** @description Resultado de `/restore/`. Solo documenta la forma. */
+        RestoreResult: {
+            /** @description Cuantos registros se restauraron. */
+            restored: number;
+            /** Format: uuid */
+            id: string;
+        };
         /**
          * @description Parcela dentro del alcance de una asignación, con sus dos ancestros.
          *
@@ -15248,6 +15747,148 @@ export interface operations {
             };
         };
     };
+    v1_field_ops_tasks_delete_preview_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_field_ops_tasks_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_field_ops_tasks_restore_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreResult"];
+                };
+            };
+        };
+    };
+    v1_field_ops_master_programs_delete_preview_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_field_ops_master_programs_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_field_ops_master_programs_restore_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreResult"];
+                };
+            };
+        };
+    };
     v1_field_ops_session_reports_list: {
         parameters: {
             query?: {
@@ -17978,6 +18619,227 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    v1_monitoring_aspersion_headers_delete_preview_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_monitoring_aspersion_headers_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_monitoring_soil_map_headers_delete_preview_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_monitoring_soil_map_headers_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_delete_preview_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_monitoring_phyto_headers_delete_preview_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_monitoring_phyto_headers_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_monitoring_phyto_headers_flush_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlushResult"];
+                };
             };
         };
     };

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { LoadingState } from '@/components/ui/loading-state'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
+import { DeleteLevelDialog } from '../components/DeleteLevelDialog'
 import { masterTreeQueryOptions } from '@/features/task-manager/hooks/useMasterTree'
 import { useUpdateMaestro } from '@/features/task-manager/hooks/useUpdateMaestro'
 import { useAgroUnits } from '@/features/task-manager/hooks/useAgroUnits'
@@ -70,9 +71,14 @@ interface MaestroModalProps {
 export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: MaestroModalProps) {
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [createHijoOpen, setCreateHijoOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const isManager = roleLevel >= ROLE_LEVELS.MANAGER
+  // El backend abre el borrado a SuperAdmin y al owner del DataCentralMain. En el front
+  // se gatea por SUPER_ADMIN: es el subconjunto que el token permite distinguir sin pedir
+  // datos extra, y quedarse corto aqui solo esconde un boton, nunca abre uno de mas.
+  const canDelete = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
 
   // Árbol lazy: si ya estaba en cache (Maestro expandido en Gantt) → hit inmediato.
   const { data: tree } = useQuery(masterTreeQueryOptions(master.id, true))
@@ -159,6 +165,8 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
                 producerName={producerName}
                 tree={tree}
                 isManager={isManager}
+                canDelete={canDelete}
+                onDelete={() => setDeleteOpen(true)}
                 isMutating={updateMutation.isPending}
                 onEdit={() => setMode('edit')}
                 onStatusChange={handleStatusChange}
@@ -241,6 +249,15 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
           producerName={producerName}
         />
       )}
+
+      {canDelete && (
+        <DeleteLevelDialog
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          level="master"
+          id={master.id}
+        />
+      )}
     </>
   )
 }
@@ -266,6 +283,8 @@ function ViewMode({
   producerName,
   tree,
   isManager,
+  canDelete,
+  onDelete,
   isMutating,
   onEdit,
   onStatusChange,
@@ -276,6 +295,8 @@ function ViewMode({
   producerName: string
   tree: { programas: ProgramaTree[] } | undefined
   isManager: boolean
+  canDelete: boolean
+  onDelete: () => void
   isMutating: boolean
   onEdit: () => void
   onStatusChange: (s: ProgramaStatus) => void
@@ -330,11 +351,18 @@ function ViewMode({
       />
 
       {/* Acciones */}
-      {isManager && (
-        <Button size="sm" variant="outline" onClick={onEdit}>
-          Editar
-        </Button>
-      )}
+      <div className="flex items-center gap-2">
+        {isManager && (
+          <Button size="sm" variant="outline" onClick={onEdit}>
+            Editar
+          </Button>
+        )}
+        {canDelete && (
+          <Button size="sm" variant="destructive" onClick={onDelete}>
+            Eliminar
+          </Button>
+        )}
+      </div>
 
       {/* Lista de Hijos */}
       <section className="flex min-h-0 flex-1 flex-col">
