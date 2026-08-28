@@ -74,6 +74,7 @@ function renderView(
   const onEdit = vi.fn()
   render(
     <SoilMapView
+      onDeleted={vi.fn()}
       detail={{ ...detail, ...detailOverrides }}
       plotId="plot-1"
       transitions={[]}

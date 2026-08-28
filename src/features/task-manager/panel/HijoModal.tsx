@@ -572,6 +572,7 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
           open={deleteOpen}
           onClose={() => setDeleteOpen(false)}
           level="programa"
+          onDeleted={onClose}
           id={hijo.id}
         />
       )}

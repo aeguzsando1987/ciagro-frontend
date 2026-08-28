@@ -178,6 +178,7 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
           open={deleteOpen}
           onClose={() => setDeleteOpen(false)}
           level="ndvi"
+          onDeleted={onClose}
           id={sesionId}
         />
       )}

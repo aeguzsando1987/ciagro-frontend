@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 
 import { DeleteImpactSummary } from './DeleteImpactSummary'
@@ -146,5 +146,30 @@ describe('FlushSessionDialog con impacto', () => {
     )
     expect(screen.getByText(/podrá recuperarse/)).toBeTruthy()
     expect(screen.queryByText(/vuelve a estado/)).toBeNull()
+  })
+})
+
+describe('FlushSessionDialog: aviso al padre tras borrar', () => {
+  it('llama onSuccess del llamador cuando la mutación tiene éxito', () => {
+    // DeleteLevelDialog encadena su `onDeleted` dentro de este onSuccess. Si el diálogo
+    // dejara de invocarlo, el modal padre quedaría abierto sobre algo ya eliminado y la
+    // acción parecería no haber surtido efecto.
+    const mutate = vi.fn((_v, opts) => opts?.onSuccess?.())
+    const onClose = vi.fn()
+    render(
+      <FlushSessionDialog
+        open
+        onClose={onClose}
+        flush={{ mutate, isPending: false }}
+        itemsLabel="x"
+      />,
+    )
+    const code = screen.getByText(/^\d{6}$/).textContent!
+    fireEvent.change(screen.getByPlaceholderText('Código de 6 dígitos'), {
+      target: { value: code },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Eliminar todo/ }))
+    expect(mutate).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalled()
   })
 })

@@ -255,6 +255,7 @@ export function MaestroModal({ master, datacentral, onClose, onNavigateHijo }: M
           open={deleteOpen}
           onClose={() => setDeleteOpen(false)}
           level="master"
+          onDeleted={onClose}
           id={master.id}
         />
       )}

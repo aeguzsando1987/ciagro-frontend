@@ -53,18 +53,39 @@ interface DeleteLevelDialogProps {
   onClose: () => void
   level: DeleteLevel
   id: string
+  /**
+   * Se dispara SOLO tras un borrado exitoso, y el modal padre lo usa para cerrarse.
+   *
+   * Sin esto el usuario se queda mirando el detalle de algo que acaba de eliminar: el
+   * dialogo se cierra, el modal no, y la accion parece no haber surtido efecto aunque el
+   * backend respondio 200. Es distinto de `onClose`, que tambien corre al cancelar.
+   */
+  onDeleted?: () => void
 }
 
-export function DeleteLevelDialog({ open, onClose, level, id }: DeleteLevelDialogProps) {
+export function DeleteLevelDialog({ open, onClose, level, id, onDeleted }: DeleteLevelDialogProps) {
   const { titulo, items, consecuencia } = TEXTOS[level]
   const { data: impact, isFetching } = useDeleteImpact(level, id, open)
   const del = useDeleteLevel(level, id)
+
+  // FlushSessionDialog cierra el dialogo en su propio onSuccess; aqui se encadena el aviso
+  // al padre sin que el dialogo tenga que saber que existe un modal por encima.
+  const flush = {
+    isPending: del.isPending,
+    mutate: (_v: undefined, opts?: { onSuccess?: () => void }) =>
+      del.mutate(undefined, {
+        onSuccess: () => {
+          opts?.onSuccess?.()
+          onDeleted?.()
+        },
+      }),
+  }
 
   return (
     <FlushSessionDialog
       open={open}
       onClose={onClose}
-      flush={del}
+      flush={flush}
       title={titulo}
       itemsLabel={items}
       consequence={consecuencia}

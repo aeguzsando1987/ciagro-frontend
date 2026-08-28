@@ -279,6 +279,7 @@ export function SesionModal({
 
         {!isLoading && !isEditing && sesionType === 'aspersion' && aspersionDetail && (
           <AspersionView
+            onDeleted={onClose}
             detail={aspersionDetail}
             plotId={plotId}
             datacentralId={datacentralId}
@@ -300,6 +301,7 @@ export function SesionModal({
 
         {!isLoading && !isEditing && sesionType === 'phyto' && phytoDetail && (
           <PhytoView
+            onDeleted={onClose}
             detail={phytoDetail}
             plotId={plotId}
             transitions={transitions}
@@ -320,6 +322,7 @@ export function SesionModal({
 
         {!isLoading && !isEditing && sesionType === 'soil_map' && soilMapDetail && (
           <SoilMapView
+            onDeleted={onClose}
             detail={soilMapDetail}
             plotId={plotId}
             transitions={transitions}
@@ -454,6 +457,8 @@ function StatusBar({
 /* ─── Aspersión view ──────────────────────────────────────────────── */
 
 interface AspersionViewProps {
+  /** Cierra el modal de la sesion tras borrarla: si no, queda abierto sobre algo inexistente. */
+  onDeleted: () => void
   detail: import('../hooks/useAspersionSessionDetail').AspersionSessionDetail
   plotId: string | null
   datacentralId: string
@@ -470,6 +475,7 @@ interface AspersionViewProps {
 }
 
 function AspersionView({
+  onDeleted,
   detail,
   plotId,
   datacentralId,
@@ -609,6 +615,7 @@ function AspersionView({
               open={deleteOpen}
               onClose={() => setDeleteOpen(false)}
               level="aspersion"
+              onDeleted={onDeleted}
               id={detail.id}
             />
           )}
@@ -666,6 +673,8 @@ function AspersionView({
 /* ─── Soil map view ───────────────────────────────────────────────── */
 
 interface SoilMapViewProps {
+  /** Cierra el modal de la sesion tras borrarla: si no, queda abierto sobre algo inexistente. */
+  onDeleted: () => void
   detail: import('../hooks/useSoilMapSessionDetail').SoilMapSessionDetail
   plotId: string | null
   transitions: string[]
@@ -688,6 +697,7 @@ function canViewSoilMap(
 }
 
 export function SoilMapView({
+  onDeleted,
   detail,
   plotId,
   transitions,
@@ -816,6 +826,7 @@ export function SoilMapView({
               open={deleteOpen}
               onClose={() => setDeleteOpen(false)}
               level="soil_map"
+              onDeleted={onDeleted}
               id={detail.id}
             />
           )}
@@ -858,6 +869,8 @@ export function SoilMapView({
 /* ─── Phyto view ──────────────────────────────────────────────────── */
 
 interface PhytoViewProps {
+  /** Cierra el modal de la sesion tras borrarla: si no, queda abierto sobre algo inexistente. */
+  onDeleted: () => void
   detail: import('../hooks/usePhytoSessionDetail').PhytoSessionDetail
   plotId: string | null
   transitions: string[]
@@ -873,6 +886,7 @@ interface PhytoViewProps {
 }
 
 function PhytoView({
+  onDeleted,
   detail,
   plotId,
   transitions,
@@ -979,6 +993,7 @@ function PhytoView({
           open={deleteOpen}
           onClose={() => setDeleteOpen(false)}
           level="phyto"
+          onDeleted={onDeleted}
           id={detail.id}
         />
       )}
