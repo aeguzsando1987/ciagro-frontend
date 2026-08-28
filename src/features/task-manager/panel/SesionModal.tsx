@@ -496,10 +496,9 @@ function AspersionView({
   const [flushOpen, setFlushOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
+  const hasPoints = parseInt(detail.points_count ?? '0', 10) > 0
   const canViewMap =
-    roleLevel >= ROLE_LEVELS.SUPERVISOR &&
-    detail.import_status === 'done' &&
-    parseInt(detail.points_count ?? '0', 10) > 0
+    roleLevel >= ROLE_LEVELS.SUPERVISOR && detail.import_status === 'done' && hasPoints
   const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
   return (
     <div className="space-y-4">
@@ -574,12 +573,16 @@ function AspersionView({
             </p>
             {isSuperAdmin && (
               <div className="mt-3 border-t border-dashed pt-3">
-                <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
-                  🗑 Eliminar los datos de esta sesión
-                </Button>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Acción de administrador: borra los puntos importados solo de esta sesión.
-                </p>
+                {hasPoints && (
+                  <>
+                    <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
+                      Eliminar los datos de esta sesión
+                    </Button>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Acción de administrador: borra los puntos importados solo de esta sesión.
+                    </p>
+                  </>
+                )}
                 <Button
                   size="sm"
                   variant="destructive"
@@ -711,6 +714,7 @@ export function SoilMapView({
   const [flushOpen, setFlushOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
+  const hasPoints = parseInt(String(detail.points_count ?? '0'), 10) > 0
   const canViewMap = canViewSoilMap(roleLevel, detail.import_status, detail.points_count)
   const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
 
@@ -787,12 +791,16 @@ export function SoilMapView({
             </p>
             {isSuperAdmin && (
               <div className="mt-3 border-t border-dashed pt-3">
-                <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
-                  🗑 Eliminar los datos de esta sesión
-                </Button>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Acción de administrador: borra las muestras importadas solo de esta sesión.
-                </p>
+                {hasPoints && (
+                  <>
+                    <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
+                      Eliminar los datos de esta sesión
+                    </Button>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Acción de administrador: borra las muestras importadas solo de esta sesión.
+                    </p>
+                  </>
+                )}
                 <Button
                   size="sm"
                   variant="destructive"

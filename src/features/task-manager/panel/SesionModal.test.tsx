@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { SoilMapView } from './SesionModal'
@@ -72,7 +73,11 @@ function renderView(
 ) {
   setRole(roleLevel)
   const onEdit = vi.fn()
+  // Con SUPER_ADMIN la vista monta los dialogos de vaciado y borrado, que usan react-query.
+  // Antes ningun test llegaba a ese rol y por eso el provider no hacia falta.
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
+    <QueryClientProvider client={qc}>
     <SoilMapView
       onDeleted={vi.fn()}
       detail={{ ...detail, ...detailOverrides }}
@@ -83,6 +88,7 @@ function renderView(
       onStatusChange={vi.fn()}
       onEdit={onEdit}
     />
+    </QueryClientProvider>
   )
   return { onEdit }
 }
@@ -143,6 +149,27 @@ describe('SoilMapView', () => {
       const readiness = screen.queryByTestId('soil-map-ready')
       if (expected) expect(readiness).toBeInTheDocument()
       else expect(readiness).not.toBeInTheDocument()
+    }
+  )
+
+  it.each([
+    ['sin puntos', '0', false],
+    ['con puntos', '3', true],
+  ] as const)(
+    'el boton de vaciar datos solo aparece %s',
+    (_caso, pointsCount, esperado) => {
+      // Una sesion recien creada no tiene nada que vaciar: ofrecerlo confunde, porque
+      // sugiere que hay datos donde no los hay. El borrado de la sesion COMPLETA si debe
+      // seguir disponible, y por eso no se gatea.
+      renderView({ points_count: pointsCount }, ROLE_LEVELS.SUPER_ADMIN)
+
+      const vaciar = screen.queryByRole('button', { name: /Eliminar los datos de esta sesión/ })
+      if (esperado) expect(vaciar).toBeInTheDocument()
+      else expect(vaciar).not.toBeInTheDocument()
+
+      expect(
+        screen.getByRole('button', { name: /Eliminar la sesión completa/ })
+      ).toBeInTheDocument()
     }
   )
 })

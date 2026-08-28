@@ -129,12 +129,16 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
 
             {isSuperAdmin && (
               <div className="mt-3 border-t border-dashed pt-3">
-                <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
-                  🗑 Eliminar los datos de esta sesión
-                </Button>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Acción de administrador: borra los puntos importados solo de esta sesión.
-                </p>
+                {points > 0 && (
+                  <>
+                    <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
+                      Eliminar los datos de esta sesión
+                    </Button>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Acción de administrador: borra los puntos importados solo de esta sesión.
+                    </p>
+                  </>
+                )}
                 <Button
                   size="sm"
                   variant="destructive"
