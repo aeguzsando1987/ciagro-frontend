@@ -887,9 +887,11 @@ function PhytoView({
   onEdit,
 }: PhytoViewProps) {
   const [mapOpen, setMapOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const { data: stats } = usePhytoSessionStats(detail.id)
   const canViewMap = roleLevel >= ROLE_LEVELS.SUPERVISOR && (stats?.checkpoints_count ?? 0) > 0
+  const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
@@ -965,7 +967,21 @@ function PhytoView({
         <Button variant="outline" size="sm" onClick={onEdit}>
           Editar
         </Button>
+        {isSuperAdmin && (
+          <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
+            Eliminar la sesión completa
+          </Button>
+        )}
       </div>
+
+      {isSuperAdmin && (
+        <DeleteLevelDialog
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          level="phyto"
+          id={detail.id}
+        />
+      )}
 
       {canViewMap && (
         <PhytoMapModal
