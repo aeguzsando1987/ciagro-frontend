@@ -744,6 +744,45 @@ Con 3-8, que es lo realista, gana ampliamente.
 
 ---
 
+## FASE BC: BORRADO POR NIVELES DE PROGRAMAS, SUBPROGRAMAS Y SESIONES — FRONTEND
+
+**Estado:** `[ ] Planeada. Plan aprobado por el desarrollador el 2026-08-27; sin implementar.`
+Rama `dev-delete-cascade`. Va en pareja con la FASE BC del backend
+(`../CIAgro_alpha_back/logs/roadmap.md`), que es donde se implementan los endpoints.
+
+Hoy el Task Manager **no sabe borrar nada** de la jerarquia. Lo unico parecido es el `flush`, que
+**no borra la sesion**: elimina sus puntos y la devuelve a "sin importar". Esta fase agrega el
+borrado real en los tres niveles.
+
+**LA MAYOR PARTE DEL TRABAJO YA ESTA HECHA Y NO HAY QUE REESCRIBIRLA.**
+`components/FlushSessionDialog.tsx` ya implementa exactamente el control de seguridad que pide el
+caso de uso: codigo aleatorio de 6 digitos regenerado en cada apertura, boton "Eliminar"
+deshabilitado hasta que el texto coincide **exacto**, y sin cierre por Escape ni click-outside. Y ya
+es generico: recibe la mutacion por prop, no conoce endpoints. Se **extiende** con un resumen de
+impacto; no se sustituye.
+
+- [ ] **BC-F1** Extender `FlushSessionDialog` con resumen de impacto y lista de bloqueadores (pausa)
+- [ ] **BC-F2** Hooks tipados de borrado, preview y restauracion; regenerar `src/types/api.d.ts`
+- [ ] **BC-F3** Montaje en `SesionModal`, `HijoModal` y `MaestroModal` + invalidacion del arbol
+- [ ] **BC-F4** Prueba manual del desarrollador
+- [ ] **BC-F5** Bitacoras
+
+**TRAMPA DE INVALIDACION — es la que rompe la funcion en silencio.** Los `SPECS` de
+`useFlushSession.ts` **no** invalidan `['master-tree', masterId]` ni `['master-programs']`, y con
+razon: un flush no cambia la estructura del arbol, solo el contenido de una sesion. Un **borrado** si
+la cambia. Sin agregar esas dos claves, el Gantt sigue mostrando programas y sesiones que ya no
+existen, y la funcion parece rota aunque el backend haya respondido 204. Ademas el modal abierto
+debe **cerrarse** tras un borrado exitoso, no solo refrescar: su entidad ya no existe.
+
+**DEUDA QUE NO SE EXTIENDE:** `useFlushSession` entra por `fetch` crudo con el token porque los
+endpoints de flush nunca se tiparon. Los endpoints nuevos **si** se tipan (`npm run types:gen`) y
+entran por `apiClient`. El `fetch` directo es deuda, no el patron a copiar.
+
+**Gate de rol:** `roleLevel >= ROLE_LEVELS.SUPER_ADMIN` como hoy, pero el backend abre ademas al
+owner del DataCentralMain; confirmar con que dato del `/me/` se refleja eso en la UI antes de BC-F3.
+
+---
+
 ## GAPS ABIERTOS A LA FECHA (ver `gap_log.csv` para detalle)
 
 | ID | Categoría | Prioridad | Disparador para resolver |
