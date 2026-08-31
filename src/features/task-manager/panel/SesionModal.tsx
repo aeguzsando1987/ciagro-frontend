@@ -37,6 +37,7 @@ import { PhytoMapModal } from '../components/PhytoMapModal'
 import { usePhytoSessionStats } from '../hooks/usePhytoSessionStats'
 import { AspersionMapModal } from '../components/AspersionMapModal'
 import { FlushAspersionDialog } from '../components/FlushAspersionDialog'
+import { DeleteLevelDialog } from '../components/DeleteLevelDialog'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { SessionReportPanel } from '@/features/session-report/components/SessionReportPanel'
@@ -278,6 +279,7 @@ export function SesionModal({
 
         {!isLoading && !isEditing && sesionType === 'aspersion' && aspersionDetail && (
           <AspersionView
+            onDeleted={onClose}
             detail={aspersionDetail}
             plotId={plotId}
             datacentralId={datacentralId}
@@ -299,6 +301,7 @@ export function SesionModal({
 
         {!isLoading && !isEditing && sesionType === 'phyto' && phytoDetail && (
           <PhytoView
+            onDeleted={onClose}
             detail={phytoDetail}
             plotId={plotId}
             transitions={transitions}
@@ -319,6 +322,7 @@ export function SesionModal({
 
         {!isLoading && !isEditing && sesionType === 'soil_map' && soilMapDetail && (
           <SoilMapView
+            onDeleted={onClose}
             detail={soilMapDetail}
             plotId={plotId}
             transitions={transitions}
@@ -453,6 +457,8 @@ function StatusBar({
 /* ─── Aspersión view ──────────────────────────────────────────────── */
 
 interface AspersionViewProps {
+  /** Cierra el modal de la sesion tras borrarla: si no, queda abierto sobre algo inexistente. */
+  onDeleted: () => void
   detail: import('../hooks/useAspersionSessionDetail').AspersionSessionDetail
   plotId: string | null
   datacentralId: string
@@ -469,6 +475,7 @@ interface AspersionViewProps {
 }
 
 function AspersionView({
+  onDeleted,
   detail,
   plotId,
   datacentralId,
@@ -487,11 +494,11 @@ function AspersionView({
   const [mapOpen, setMapOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [flushOpen, setFlushOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
+  const hasPoints = parseInt(detail.points_count ?? '0', 10) > 0
   const canViewMap =
-    roleLevel >= ROLE_LEVELS.SUPERVISOR &&
-    detail.import_status === 'done' &&
-    parseInt(detail.points_count ?? '0', 10) > 0
+    roleLevel >= ROLE_LEVELS.SUPERVISOR && detail.import_status === 'done' && hasPoints
   const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
   return (
     <div className="space-y-4">
@@ -566,12 +573,24 @@ function AspersionView({
             </p>
             {isSuperAdmin && (
               <div className="mt-3 border-t border-dashed pt-3">
-                <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
-                  🗑 Eliminar los datos de esta sesión
+                {hasPoints && (
+                  <>
+                    <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
+                      Eliminar los datos de esta sesión
+                    </Button>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Acción de administrador: borra los puntos importados solo de esta sesión.
+                    </p>
+                  </>
+                )}
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="mt-3"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  Eliminar la sesión completa
                 </Button>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Acción de administrador: borra los puntos importados solo de esta sesión.
-                </p>
               </div>
             )}
           </div>
@@ -591,6 +610,16 @@ function AspersionView({
               open={flushOpen}
               onClose={() => setFlushOpen(false)}
               sessionId={detail.id}
+            />
+          )}
+
+          {isSuperAdmin && (
+            <DeleteLevelDialog
+              open={deleteOpen}
+              onClose={() => setDeleteOpen(false)}
+              level="aspersion"
+              onDeleted={onDeleted}
+              id={detail.id}
             />
           )}
         </div>
@@ -647,6 +676,8 @@ function AspersionView({
 /* ─── Soil map view ───────────────────────────────────────────────── */
 
 interface SoilMapViewProps {
+  /** Cierra el modal de la sesion tras borrarla: si no, queda abierto sobre algo inexistente. */
+  onDeleted: () => void
   detail: import('../hooks/useSoilMapSessionDetail').SoilMapSessionDetail
   plotId: string | null
   transitions: string[]
@@ -669,6 +700,7 @@ function canViewSoilMap(
 }
 
 export function SoilMapView({
+  onDeleted,
   detail,
   plotId,
   transitions,
@@ -680,7 +712,9 @@ export function SoilMapView({
   const [importOpen, setImportOpen] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
   const [flushOpen, setFlushOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
+  const hasPoints = parseInt(String(detail.points_count ?? '0'), 10) > 0
   const canViewMap = canViewSoilMap(roleLevel, detail.import_status, detail.points_count)
   const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
 
@@ -757,12 +791,24 @@ export function SoilMapView({
             </p>
             {isSuperAdmin && (
               <div className="mt-3 border-t border-dashed pt-3">
-                <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
-                  🗑 Eliminar los datos de esta sesión
+                {hasPoints && (
+                  <>
+                    <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
+                      Eliminar los datos de esta sesión
+                    </Button>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Acción de administrador: borra las muestras importadas solo de esta sesión.
+                    </p>
+                  </>
+                )}
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="mt-3"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  Eliminar la sesión completa
                 </Button>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Acción de administrador: borra las muestras importadas solo de esta sesión.
-                </p>
               </div>
             )}
           </div>
@@ -780,6 +826,16 @@ export function SoilMapView({
               open={flushOpen}
               onClose={() => setFlushOpen(false)}
               sessionId={detail.id}
+            />
+          )}
+
+          {isSuperAdmin && (
+            <DeleteLevelDialog
+              open={deleteOpen}
+              onClose={() => setDeleteOpen(false)}
+              level="soil_map"
+              onDeleted={onDeleted}
+              id={detail.id}
             />
           )}
         </div>
@@ -821,6 +877,8 @@ export function SoilMapView({
 /* ─── Phyto view ──────────────────────────────────────────────────── */
 
 interface PhytoViewProps {
+  /** Cierra el modal de la sesion tras borrarla: si no, queda abierto sobre algo inexistente. */
+  onDeleted: () => void
   detail: import('../hooks/usePhytoSessionDetail').PhytoSessionDetail
   plotId: string | null
   transitions: string[]
@@ -836,6 +894,7 @@ interface PhytoViewProps {
 }
 
 function PhytoView({
+  onDeleted,
   detail,
   plotId,
   transitions,
@@ -850,9 +909,11 @@ function PhytoView({
   onEdit,
 }: PhytoViewProps) {
   const [mapOpen, setMapOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const { data: stats } = usePhytoSessionStats(detail.id)
   const canViewMap = roleLevel >= ROLE_LEVELS.SUPERVISOR && (stats?.checkpoints_count ?? 0) > 0
+  const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
@@ -928,7 +989,22 @@ function PhytoView({
         <Button variant="outline" size="sm" onClick={onEdit}>
           Editar
         </Button>
+        {isSuperAdmin && (
+          <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
+            Eliminar la sesión completa
+          </Button>
+        )}
       </div>
+
+      {isSuperAdmin && (
+        <DeleteLevelDialog
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          level="phyto"
+          onDeleted={onDeleted}
+          id={detail.id}
+        />
+      )}
 
       {canViewMap && (
         <PhytoMapModal

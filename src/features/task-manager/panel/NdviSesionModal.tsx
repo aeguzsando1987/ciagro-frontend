@@ -11,6 +11,7 @@ import { NdviImportDialog } from '../components/NdviImportDialog'
 import { NdviMapModal } from '../components/NdviMapModal'
 import { NdviImportSummary } from '../components/NdviImportSummary'
 import { FlushNdviDialog } from '../components/FlushNdviDialog'
+import { DeleteLevelDialog } from '../components/DeleteLevelDialog'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { PlotMiniMap } from './PlotMiniMap'
@@ -41,6 +42,7 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
   const [importOpen, setImportOpen] = useState(false)
   const [visorOpen, setVisorOpen] = useState(false)
   const [flushOpen, setFlushOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
 
@@ -127,12 +129,24 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
 
             {isSuperAdmin && (
               <div className="mt-3 border-t border-dashed pt-3">
-                <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
-                  🗑 Eliminar los datos de esta sesión
+                {points > 0 && (
+                  <>
+                    <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
+                      Eliminar los datos de esta sesión
+                    </Button>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Acción de administrador: borra los puntos importados solo de esta sesión.
+                    </p>
+                  </>
+                )}
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="mt-3"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  Eliminar la sesión completa
                 </Button>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Acción de administrador: borra los puntos importados solo de esta sesión.
-                </p>
               </div>
             )}
           </div>
@@ -161,6 +175,15 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
           open={flushOpen}
           onClose={() => setFlushOpen(false)}
           sessionId={sesionId}
+        />
+      )}
+      {isSuperAdmin && (
+        <DeleteLevelDialog
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          level="ndvi"
+          onDeleted={onClose}
+          id={sesionId}
         />
       )}
     </Dialog>

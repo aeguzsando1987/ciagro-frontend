@@ -674,6 +674,115 @@ sin el otro.
 
 ---
 
+## FASE SL: CARGA POR CAPA DEL MAPA DE SUELO — FRONTEND (PENDIENTE DE PLANEAR)
+
+**Estado:** `[x] Implementada y VALIDADA en navegador por el desarrollador (2026-08-25). Homologada en dev; NO en master ni desplegada.` Medido de punta a punta: 55.73 s -> ~3.7 s y 22.87 MB -> 2.91 MB; en el navegador el desarrollador reporto cargas "casi instantaneas". Validacion visual completa: el desarrollador confirmo tambien el ajuste final de redaccion del resumen (Muestras y la columna n omitida) el 2026-08-26.
+
+El backend cerro la FASE SL en `CIAgro_alpha_back` (rama `dev-soilmap-layer-load`, 2026-08-24): el
+endpoint de puntos de suelo acepta `?fields=` y existe un endpoint de estadisticas por variable.
+**Nada de eso se nota todavia**, porque el bucle que provoca la sobrecarga vive aqui, en
+`useSoilMapPoints.ts`. Contrato y trampas completas en `.CLAUDE/soilmap-load-optimization-progress.md`.
+
+**El problema, MEDIDO EN NAVEGADOR contra la sesion real de 16,944 puntos (2026-08-25):** abrir una
+sesion de Mapeo de Suelo dispara **9 peticiones encadenadas de 4 a 7 segundos cada una** — los 57
+campos de cada punto, 22.83 MB — con la UI en "cargando puntos" **entre 36 y 63 segundos** antes de
+que aparezca un solo punto, todo para pintar **una** de las **49** capas del catalogo.
+
+No es la red: se midio en localhost. Son 4-7 s de CPU del servidor armando 2.8 MB de JSON por
+pagina. La misma pagina con `fields=id,geom` tarda **0.373 s**, once veces menos.
+
+| | Hoy | Con el contrato nuevo |
+|---|---|---|
+| Por pagina | 4-7 s | 0.373 s |
+| 9 paginas en serie | **36-63 s** | ~3.4 s |
+| 9 paginas en paralelo | — | **~1 s** |
+
+Total proyectado hasta la primera capa pintada: **2-4 s en serie, ~1.5 s paralelizando**, contra los
+36-63 s de hoy. Payload: **2.90 MB contra 22.83 MB (-87.3%)**.
+
+- [x] **SL-F0** Backend: `text_variables` en `/variable-stats/` para que las 3 capas categoricas no
+      desaparezcan del combobox (conteo que excluye cadenas vacias, no solo nulos)
+- [x] **SL-F1** `fetchAllSoilMapPoints` pide `fields=id,geom` y calcula las paginas desde `count`.
+      **Las paginas quedaron EN SERIE, contra lo planeado:** se implemento en paralelo y la medicion
+      lo desmintio — 3.1 s en serie contra 4.7 s en paralelo. En desarrollo corre `runserver` (un
+      proceso con GIL) y en produccion son 3 workers de gunicorn, asi que 8 peticiones simultaneas
+      los ocuparian todos. La ganancia venia de `?fields=`, no de la concurrencia
+- [x] **SL-F2** `useSoilMapLayerValues`: `fields=id,<campo>` sin repetir `geom`, union por `id`,
+      cacheado 5 min por react-query
+- [x] **SL-F3** `layerCounts` sustituido por el `count` por variable de `/variable-stats/`
+- [x] **SL-F4** `SoilMapPointGeom` como tipo estrecho local; `api.d.ts` no se relaja
+- [x] **SL-F5** Medido de punta a punta: **55.73 s -> ~3.7 s**, **22.87 MB -> 2.91 MB**
+- [x] **SL-W** La interpolacion sale del hilo principal (Web Worker, el primero del proyecto) mas
+      cache por capa: la app deja de congelarse y revisitar una capa es inmediato
+- [x] **SL-E** Tarjeta colapsable con las estadisticas de la capa activa y dialogo con el resumen de
+      las 53 variables. Sin peticiones nuevas: los numeros ya se descargaban para el combobox
+
+**RESUELTO EN SL-W (2026-08-25), despues de que el desarrollador lo reportara al probar SL-F:** la
+interpolacion se movio a un Web Worker (el primero del proyecto) y se cacheo por capa. La aplicacion
+ya no se congela: el calculo sigue tardando 1-3 s pero corre en otro hilo, y volver a una capa ya
+vista es inmediato. Nota importante para quien retome el tema: un bloqueo del hilo principal NO
+tiene alcance parcial —o bloquea todo o no bloquea nada—, asi que "congelar solo el visor" no era
+posible; lo que se logro es que no se congele nada. Lo que sigue pendiente si algun dia estorba es
+REDUCIR los 1-3 s, y para eso habria que bajar la malla de 260x260, que altera cortes y colores
+validados con el proveedor.
+
+**Contexto original del gap:** el tiron al **cambiar de capa** no lo
+arregla nada de esto. Es `analyzeSoilSurface`, que **no dibuja nada**: simula un raster de 260x260
+celdas para sacar los cortes de la leyenda y las hectareas por rango de `SoilMapStatsCard`, corre
+**sincrono dentro de un `useMemo`** y por eso congela la pestaña. **Medido en navegador: 1-3 s**
+(una estimacion previa en Node dio 773 ms y se quedo corta por un factor de 2 a 4; no repriorizar
+con mediciones tomadas fuera del entorno real).
+
+Son dos cuellos distintos y esta fase ataca el que pesa. Cambiar de capa **no mejora ni empeora**
+de forma perceptible con SL-F: la descarga de una capa suelta son decimas de segundo contra 1-3 s
+de interpolacion que dominan igual. Se ataca como fase propia DESPUES de medir SL-F. Ver
+`GAP-SUELO-001`.
+
+**El intercambio, dicho completo:** hoy cambiar de capa cuesta 0 bytes porque todo esta en memoria;
+con este diseño cuesta 1.03 MB, cacheado. Conviene mientras se miren menos de ~20 capas por sesion.
+Con 3-8, que es lo realista, gana ampliamente.
+
+---
+
+## FASE BC: BORRADO POR NIVELES DE PROGRAMAS, SUBPROGRAMAS Y SESIONES — FRONTEND
+
+**Estado:** `[x] Implementada y VALIDADA manualmente por el desarrollador (2026-08-27). Rama dev-delete-cascade; NO homologada en dev ni master, NO desplegada.`
+Rama `dev-delete-cascade`. Va en pareja con la FASE BC del backend
+(`../CIAgro_alpha_back/logs/roadmap.md`), que es donde se implementan los endpoints.
+
+Hoy el Task Manager **no sabe borrar nada** de la jerarquia. Lo unico parecido es el `flush`, que
+**no borra la sesion**: elimina sus puntos y la devuelve a "sin importar". Esta fase agrega el
+borrado real en los tres niveles.
+
+**LA MAYOR PARTE DEL TRABAJO YA ESTA HECHA Y NO HAY QUE REESCRIBIRLA.**
+`components/FlushSessionDialog.tsx` ya implementa exactamente el control de seguridad que pide el
+caso de uso: codigo aleatorio de 6 digitos regenerado en cada apertura, boton "Eliminar"
+deshabilitado hasta que el texto coincide **exacto**, y sin cierre por Escape ni click-outside. Y ya
+es generico: recibe la mutacion por prop, no conoce endpoints. Se **extiende** con un resumen de
+impacto; no se sustituye.
+
+- [x] **BC-F1** `DeleteImpactSummary` + `FlushSessionDialog` extendido con `impact`, `title` y `consequence` (10 tests)
+- [x] **BC-F2** `useDeleteImpact` / `useDeleteLevel` / `useRestoreLevel` por `apiClient`, con rutas literales (sin `as any`) y `api.d.ts` regenerado. 8 tests, uno dedicado a la invalidacion del arbol
+- [x] **BC-F3** `DeleteLevelDialog` + montaje en `SesionModal` (aspersion y suelo), `HijoModal` y `MaestroModal`
+- [x] **BC-F4** Prueba manual del desarrollador (VALIDADA, 3 fallos detectados y corregidos)
+- [x] **BC-F5** Bitacoras
+
+**TRAMPA DE INVALIDACION — es la que rompe la funcion en silencio.** Los `SPECS` de
+`useFlushSession.ts` **no** invalidan `['master-tree', masterId]` ni `['master-programs']`, y con
+razon: un flush no cambia la estructura del arbol, solo el contenido de una sesion. Un **borrado** si
+la cambia. Sin agregar esas dos claves, el Gantt sigue mostrando programas y sesiones que ya no
+existen, y la funcion parece rota aunque el backend haya respondido 204. Ademas el modal abierto
+debe **cerrarse** tras un borrado exitoso, no solo refrescar: su entidad ya no existe.
+
+**DEUDA QUE NO SE EXTIENDE:** `useFlushSession` entra por `fetch` crudo con el token porque los
+endpoints de flush nunca se tiparon. Los endpoints nuevos **si** se tipan (`npm run types:gen`) y
+entran por `apiClient`. El `fetch` directo es deuda, no el patron a copiar.
+
+**Gate de rol:** `roleLevel >= ROLE_LEVELS.SUPER_ADMIN` como hoy, pero el backend abre ademas al
+owner del DataCentralMain; confirmar con que dato del `/me/` se refleja eso en la UI antes de BC-F3.
+
+---
+
 ## GAPS ABIERTOS A LA FECHA (ver `gap_log.csv` para detalle)
 
 | ID | Categoría | Prioridad | Disparador para resolver |

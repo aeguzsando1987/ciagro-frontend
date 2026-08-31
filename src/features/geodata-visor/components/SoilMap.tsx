@@ -2,7 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
 import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre'
 import { usePlotGeometry } from '@/features/task-manager/hooks/usePlotGeometry'
-import { useSoilMapPoints, type SoilMapPoint } from '@/features/task-manager/hooks/useSoilMapPoints'
+import { useSoilMapPoints } from '@/features/task-manager/hooks/useSoilMapPoints'
+import { useSoilMapLayerValues } from '@/features/task-manager/hooks/useSoilMapLayerValues'
+import {
+  buildLayerCountMap,
+  useSoilMapVariableStats,
+} from '@/features/task-manager/hooks/useSoilMapVariableStats'
+import { buildSamples, type SoilMapSample } from '@/features/task-manager/lib/soilMapSamples'
 import {
   SOIL_MAP_LAYERS,
   SOIL_MAP_LAYER_GROUPS,
@@ -14,10 +20,9 @@ import {
   normalizeSoilCategory,
   numericBucket,
   type SoilMapCategoryLayerDef,
-  type SoilMapLayerDef,
   type SoilMapLegendEntry,
 } from '@/features/task-manager/lib/soilMapLayers'
-import { analyzeSoilSurface } from '@/features/task-manager/lib/soilMapSurface'
+import { useSoilSurfaceAnalysis } from '@/features/task-manager/hooks/useSoilSurfaceAnalysis'
 import { ESRI_STYLE, formatHa } from '@/features/geodata-visor/lib/aspersionMap.helpers'
 import {
   buildSoilBucketAreaStats,
@@ -29,6 +34,7 @@ import {
   type MapCameraSyncBinding,
 } from '@/features/geodata-visor/lib/mapCameraSync'
 import { SoilMapStatsCard } from './SoilMapStatsCard'
+import { SoilMapVariableStatsCard } from './SoilMapVariableStatsCard'
 import { LoadingState } from '@/components/ui/loading-state'
 
 interface SoilMapProps {
@@ -41,13 +47,6 @@ interface SoilMapProps {
   sessionsSlot?: React.ReactNode
   className?: string
   mapSync?: MapCameraSyncBinding
-}
-
-interface SoilMapSample {
-  id: string
-  lng: number
-  lat: number
-  value: number | string
 }
 
 interface AnnotatedSoilMapSample extends SoilMapSample {
@@ -65,45 +64,6 @@ function bboxFromCoords(coords: number[][]): [number, number, number, number] {
     Math.max(...longitudes),
     Math.max(...latitudes),
   ]
-}
-
-function samplesForLayer(points: SoilMapPoint[] | undefined, layer: SoilMapLayerDef) {
-  if (!points) return []
-  const samples: SoilMapSample[] = []
-
-  for (const point of points) {
-    const coordinates = point.geom.coordinates
-    if (
-      !coordinates ||
-      coordinates.length < 2 ||
-      !Number.isFinite(coordinates[0]) ||
-      !Number.isFinite(coordinates[1])
-    ) {
-      continue
-    }
-
-    const rawValue = point[layer.field]
-    if (layer.kind === 'numeric') {
-      if (typeof rawValue !== 'number' || !Number.isFinite(rawValue)) continue
-      samples.push({
-        id: point.id,
-        lng: coordinates[0]!,
-        lat: coordinates[1]!,
-        value: rawValue,
-      })
-      continue
-    }
-
-    if (typeof rawValue !== 'string' || rawValue.trim() === '') continue
-    samples.push({
-      id: point.id,
-      lng: coordinates[0]!,
-      lat: coordinates[1]!,
-      value: rawValue.trim(),
-    })
-  }
-
-  return samples
 }
 
 function buildCategoryEntries(
@@ -162,6 +122,18 @@ export function SoilMap({
   const { data: points, isLoading, error } = useSoilMapPoints(sessionId, enabled)
   const { data: plot } = usePlotGeometry(plotId)
   const activeLayer = SOIL_MAP_LAYERS[activeLayerIndex]!
+  // Los valores de la capa activa viajan aparte de la geometría: la precarga trae
+  // dónde están los puntos y esto trae cuánto valen. Cambiar de capa dispara una
+  // petición nueva, y react-query devuelve sin red las capas ya visitadas.
+  const {
+    data: layerValues,
+    isLoading: isLoadingValues,
+    error: valuesError,
+  } = useSoilMapLayerValues(sessionId, activeLayer.field, enabled && !!points)
+  const { data: variableStats, isLoading: isLoadingStats } = useSoilMapVariableStats(
+    sessionId,
+    enabled
+  )
   const plotGeometry = plot?.geometry
   const plotRing = plotGeometry?.coordinates?.[0] ?? null
   const boundary = useMemo(
@@ -181,36 +153,52 @@ export function SoilMap({
     [boundaryRing]
   )
 
-  const layerCounts = useMemo(
-    () => SOIL_MAP_LAYERS.map((layer) => samplesForLayer(points, layer).length),
-    [points]
-  )
+  /**
+   * Cuántos valores tiene cada capa, según el endpoint de estadísticas.
+   *
+   * Antes esto se calculaba recorriendo las 49 capas sobre todos los puntos, lo
+   * que exigía tener los 57 campos de cada punto en memoria. Ahora llega en ~5 KB
+   * sin descargar un solo punto — y es lo que hace posible la precarga por campos:
+   * gobierna tanto la capa inicial como qué opciones ofrece el combobox.
+   */
+  const layerCounts = useMemo(() => {
+    const counts = buildLayerCountMap(variableStats)
+    return SOIL_MAP_LAYERS.map((layer) => counts.get(layer.field) ?? 0)
+  }, [variableStats])
+
+  const hasLayerCounts = !!variableStats
 
   useEffect(() => {
-    if (!points || layerCounts[activeLayerIndex]! > 0) return
+    if (!hasLayerCounts || layerCounts[activeLayerIndex]! > 0) return
     const firstAvailable = layerCounts.findIndex((count) => count > 0)
     if (firstAvailable >= 0) setActiveLayerIndex(firstAvailable)
-  }, [activeLayerIndex, layerCounts, points])
+  }, [activeLayerIndex, hasLayerCounts, layerCounts])
 
   useEffect(() => {
     setCheckedBuckets(null)
     setHoveredSample(null)
   }, [activeLayer])
 
-  const samples = useMemo(() => samplesForLayer(points, activeLayer), [activeLayer, points])
+  const samples = useMemo(
+    () => buildSamples(points, layerValues, activeLayer),
+    [activeLayer, layerValues, points]
+  )
 
-  const surfaceAnalysis = useMemo(() => {
-    if (activeLayer.kind !== 'numeric' || !boundaryRing || samples.length < 3) return null
-    return analyzeSoilSurface({
+  // La interpolación corre en un worker: antes era un useMemo síncrono que
+  // congelaba TODA la aplicación entre 1 y 3 segundos cada vez que se pintaba una
+  // capa. La clave del caché incluye la sesión, la capa y el número de muestras,
+  // que es lo que cambia si se reimportan los puntos.
+  const surfaceCacheKey = boundaryRing
+    ? `${sessionId}|${activeLayer.key}|${samples.length}`
+    : null
+  const { analysis: surfaceAnalysis, isComputing: isComputingSurface } =
+    useSoilSurfaceAnalysis({
       ring: boundaryRing,
-      samples: samples.map((sample) => ({
-        lng: sample.lng,
-        lat: sample.lat,
-        value: Number(sample.value),
-      })),
+      samples,
       paletteSize: activeLayer.palette.length,
+      cacheKey: surfaceCacheKey,
+      enabled: activeLayer.kind === 'numeric',
     })
-  }, [activeLayer, boundaryRing, samples])
 
   const numericScale = useMemo(() => {
     if (activeLayer.kind !== 'numeric') return null
@@ -347,13 +335,21 @@ export function SoilMap({
         Variable
         <select
           aria-label="Variable del mapa"
-          className="h-7 max-w-[min(26rem,60vw)] rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus:ring-2 focus:ring-ring"
+          className="h-7 max-w-[min(26rem,60vw)] rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
           value={activeLayer.key}
+          disabled={!hasLayerCounts}
           onChange={(event) => {
             const nextIndex = SOIL_MAP_LAYERS.findIndex((layer) => layer.key === event.target.value)
             if (nextIndex >= 0) setActiveLayerIndex(nextIndex)
           }}
         >
+          {/*
+            Qué capas tienen datos lo dice el endpoint de estadísticas, no los
+            puntos. Mientras esa respuesta no llega no se puede saber, y un
+            desplegable vacío se leería como "esta sesión no tiene variables":
+            se deshabilita y se dice que está cargando.
+          */}
+          {!hasLayerCounts && <option value={activeLayer.key}>Cargando variables…</option>}
           {SOIL_MAP_LAYER_GROUPS.map((group) =>
             SOIL_MAP_LAYERS.some(
               (layer, index) => layer.group === group && layerCounts[index]! > 0
@@ -395,6 +391,12 @@ export function SoilMap({
         {sessionsSlot && (
           <div className="absolute bottom-2 right-2 top-2 z-10 flex w-56 flex-col gap-2">
             {sessionsSlot}
+            <SoilMapVariableStatsCard
+              activeField={activeLayer.field}
+              activeLabel={activeLayer.label}
+              stats={variableStats}
+              isLoading={isLoadingStats}
+            />
             {legendEntries.length > 0 && (
               <SoilMapStatsCard
                 layerLabel={activeLayer.label}
@@ -408,6 +410,13 @@ export function SoilMap({
           </div>
         )}
 
+        {/*
+          Tres estados, no dos. La precarga trae dónde están los puntos y una
+          segunda petición trae cuánto valen: en cuanto llega la primera hay algo
+          que enseñar, así que el overlay que tapa el mapa solo cubre esa etapa.
+          Mientras llega la capa los puntos se ven en gris con un aviso visible,
+          en vez de seguir escondiendo un mapa que ya se puede mirar.
+        */}
         {isLoading && (
           <LoadingOverlay>
             <LoadingState
@@ -417,12 +426,29 @@ export function SoilMap({
             />
           </LoadingOverlay>
         )}
-        {!isLoading && error && (
+        {!isLoading && (isLoadingValues || isLoadingStats || isComputingSurface) && (
+          <div className="pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2">
+            <LoadingState
+              compact
+              label={
+                isLoadingValues || isLoadingStats
+                  ? `Cargando valores de ${activeLayer.label}, espere…`
+                  : `Calculando superficie de ${activeLayer.label}…`
+              }
+              className="rounded-xl border border-default bg-white/95 shadow-sm"
+            />
+          </div>
+        )}
+        {!isLoading && (error || valuesError) && (
           <LoadingOverlay>No se pudieron cargar las muestras de suelo.</LoadingOverlay>
         )}
-        {!isLoading && !error && samples.length === 0 && (
-          <LoadingOverlay>Esta variable no tiene valores en la sesión.</LoadingOverlay>
-        )}
+        {!isLoading &&
+          !isLoadingValues &&
+          !error &&
+          !valuesError &&
+          samples.length === 0 && (
+            <LoadingOverlay>Esta variable no tiene valores en la sesión.</LoadingOverlay>
+          )}
 
         <MapGL
           ref={mapRef}

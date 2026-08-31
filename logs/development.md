@@ -2924,3 +2924,300 @@ de un nivel con el título de otro. Tiene test.
 ignorar el destino o forzar la decisión hace fallar los casos que los ejercitan.
 
 Suite completa: 83 archivos, 468 tests. `tsc --noEmit` limpio, build correcto, lint sin errores.
+
+---
+
+## Sesión `soilmap-layer-load` — FASE SL: contrato de carga por capa (2026-08-24)
+
+**Esta sesión no tocó código de frontend.** Se registra aquí porque el backend cerró el contrato que
+la sesión de front va a consumir, y porque el análisis se hizo leyendo este repo.
+
+### Qué habilitó el backend
+
+`GET /soil-map/points/` acepta `?fields=` (sparse fieldset) y existe
+`GET /soil-map/headers/<id>/variable-stats/` con `count/mean/min/max/stddev` por variable. Detalle
+en `CIAgro_alpha_back/logs/development.md`, sesión homónima.
+
+### Por qué todavía no se nota nada
+
+El bucle que provoca la sobrecarga vive aquí, en `fetchAllSoilMapPoints`. Medido contra la sesión
+real de **16,944 puntos**: abrir una sesión de Mapeo de Suelo descarga **22.83 MB** en 9 peticiones
+encadenadas —los 57 campos de cada punto— para pintar **una** de las **49** capas del catálogo. Con
+el contrato nuevo son **2.90 MB** hasta la primera capa pintada, **−87.3%**.
+
+### Tres hallazgos de este repo que condicionan la sesión SL-F
+
+1. **`SOIL_MAP_LAYERS` tiene 49 capas**, no 10 como decía el prompt de arranque (46 numéricas + 3
+   categóricas). Ese número es el que descartó la alternativa de una ruta de API por capa.
+
+2. **`layerCounts` (`SoilMap.tsx:184`) es bloqueante.** Recorre las 49 capas sobre todos los puntos
+   para elegir la capa inicial con datos. Con precarga `id,geom` da **0 en las 49** y el `useEffect`
+   de fallback cambiaría de capa erráticamente. Hay que sustituirlo por el `count` por variable del
+   endpoint nuevo: lo mismo en **5.1 KB** sin descargar un punto. Es lo que le da al endpoint de
+   estadísticas una razón funcional y no solo de reporte.
+
+3. **El tirón al cambiar de capa no lo arregla el backend.** Son los **773 ms** medidos de
+   `analyzeSoilSurface`: IDW sobre 260×260 celdas contra 1,000 muestras, **síncrono dentro de un
+   `useMemo`**, o sea que congela la pestaña. Son dos cuellos distintos y separables: los 22.83 MB
+   dominan el tiempo hasta que aparecen los puntos, el IDW domina el lag al colorearlos. Se le dijo
+   al desarrollador antes de escribir nada: esta fase quita la espera larga, no el tirón al pintar.
+   `GAP-SUELO-001`.
+
+   Nota para quien busque: `kriging.ts` existe en el repo pero **no está en esta ruta de render**.
+   El costo real es el IDW de `soilMapSurface.ts`.
+
+### Aviso sobre los tipos generados
+
+`components['schemas']['SoilMapPoints']` se genera desde el serializer completo y declara todos los
+campos presentes. Con `?fields` la respuesta es un **subconjunto**. Usar un tipo estrecho local; no
+relajar el esquema del backend para acomodar al cliente.
+
+---
+
+## Sesión `soilmap-layer-front` — FASE SL-F: carga por capa del Mapa de Suelo (2026-08-25, rama `dev-soilmap-layer-load`)
+
+La sesión de backend dejó el contrato; esta lo consume. El Visor pasa de descargar los 57 campos
+de cada punto a pedir primero **dónde** están los puntos y después **cuánto valen** en la capa que
+se está pintando.
+
+### El número, medido de punta a punta
+
+Sesión real de **16,944 puntos**, replicando exactamente lo que hace el front:
+
+| | Antes | Después |
+|---|---|---|
+| Tiempo hasta la primera capa pintada | **55.73 s** | **~3.7 s** |
+| Datos transferidos | 22.87 MB | 2.91 MB |
+
+**Quince veces más rápido.** Coincide con lo que el desarrollador midió en DevTools antes de
+empezar: 9 peticiones encadenadas de 4 a 7 segundos cada una.
+
+### La decisión que la medición tumbó
+
+El plan aprobado incluía **paralelizar las páginas** de la precarga. Se implementó, se midió, y la
+medición dijo lo contrario: **3.1 s en serie contra 4.7 s en paralelo**, consistente en tres rondas.
+
+Dos causas, y la segunda importa más que la primera:
+
+1. En desarrollo corre `manage.py runserver`: un proceso Python con GIL y `DEBUG=True` registrando
+   cada consulta. Las peticiones concurrentes no se atienden en paralelo, se estorban.
+2. En producción son **3 workers de gunicorn** (`Dockerfile`). Disparar 8 peticiones pesadas a la
+   vez los ocuparía **todos**, dejando al resto del sistema esperando por un solo usuario abriendo
+   un mapa.
+
+Se revirtió a serie, con el porqué y los números en el propio comentario del código y un test que
+verifica que nunca hay más de una petición en vuelo. **La ganancia nunca vino de la concurrencia
+sino de pedir menos columnas** — algo que solo se supo al medir, no al planear.
+
+### El riesgo real de la fase, y dónde se contuvo
+
+Unir dos respuestas por `id` puede fallar de forma **silenciosa**: si las fuentes se desalinean, el
+mapa pinta valores creíbles en los puntos equivocados y nada lo delata. Es el único fallo de esta
+sesión que no grita.
+
+Por eso la unión no quedó enterrada en el componente sino en `lib/soilMapSamples.ts`, pura,
+exportada y con test propio — incluido el caso que fallaría si se uniera por índice en vez de por
+`id`: dos puntos con los valores en orden invertido.
+
+Se conserva además el **orden de acumulación** de las páginas. `analyzeSoilSurface` submuestrea uno
+de cada N cuando hay más de 1,000 puntos, así que un orden distinto movería los cortes de la
+leyenda y las hectáreas del reporte.
+
+### `layerCounts` ya no se deduce de los puntos
+
+Recorría las 49 capas sobre todos los puntos, lo que exigía tener los 57 campos en memoria. Gobierna
+**dos** cosas —la capa inicial y qué opciones ofrece el combobox—, así que con la precarga habría
+dado 0 en las 49 y el desplegable habría quedado **vacío**.
+
+Ahora se arma del endpoint de estadísticas: lo mismo en ~5 KB sin descargar un punto. Mientras esa
+respuesta no llega, el `select` va deshabilitado con "Cargando variables…": un desplegable vacío se
+leería como "esta sesión no tiene variables". El backend sumó `text_variables` para que las 3 capas
+categóricas no desaparecieran, con el conteo excluyendo cadenas vacías y no solo nulos.
+
+### Tres estados de carga, no dos
+
+El overlay que tapa el mapa cubre **solo** la precarga. En cuanto llegan las geometrías los puntos
+se pintan en gris y aparece un aviso no bloqueante *"Cargando valores de &lt;capa&gt;, espere…"*,
+también al **cambiar** de capa y no solo al abrir. El aviso fue petición explícita del
+desarrollador: ver puntos sin color y sin explicación podría leerse como que el mapa falló.
+
+### La trampa que colgó la suite
+
+Los primeros mocks devolvían un `Map` y un objeto **nuevos en cada render**. Eso metió a la suite en
+un bucle infinito: `samples` se recalculaba siempre, `legendEntries` cambiaba de identidad y el
+efecto que marca los rangos visibles hacía `setState` sin parar.
+
+Es artefacto del mock, no del componente: react-query devuelve la **misma** referencia mientras el
+dato no cambia. Se resolvió cacheando los derivados del fixture, no contorsionando el componente
+para tolerar un mock irreal.
+
+Los 12 tests existentes se adaptaron a las tres fuentes en vez de dejar en producción un camino de
+respaldo que leyera el valor del punto — eso sería código que solo existe para que los tests pasen.
+Los tres mocks se derivan del mismo fixture, así que sigue habiendo una sola fuente de verdad.
+
+Suite: **487/487 en 85 archivos**, `tsc` limpio. El único error no manejado
+(`window.URL.createObjectURL` de `maplibre-gl` en jsdom) se verificó **preexistente** ejecutando la
+misma prueba sobre `HEAD`.
+
+### Lo que sigue sin resolverse
+
+Cambiar de capa sigue tardando **1–3 s** y no mejora con esto: es `analyzeSoilSurface`, que no
+dibuja nada — simula un ráster de 260×260 celdas para sacar los cortes de la leyenda y las hectáreas
+de la tarjeta. Corre síncrono y congela la pestaña. `GAP-SUELO-001`, prioridad alta, fase propia.
+
+### SL-W — La interpolación sale del hilo principal (2026-08-25)
+
+Con la carga ya resuelta, el desarrollador reportó lo que quedaba visible: al pintar una capa **se
+congelaba toda la aplicación**, y solo el mensaje y el ícono animado seguían vivos.
+
+**Ese detalle era el diagnóstico completo.** Las animaciones CSS las maneja el compositor del
+navegador, no el hilo de JavaScript. Un spinner girando mientras todo lo demás está muerto es la
+firma inconfundible de un bloqueo del hilo principal — en este caso `analyzeSoilSurface`, 67,600
+celdas contra hasta 1,000 muestras, entre 1 y 3 segundos.
+
+**Una aclaración que hubo que hacer:** se pidió que se congelara "solo el visor y no todo el DOM".
+Eso no se puede. Un bloqueo del hilo principal no tiene alcance parcial: o bloquea todo, o no
+bloquea nada. Lo que sí se puede es que **no se congele nada**, y eso es lo que hace el worker.
+
+El cálculo **no se acelera** — sigue tardando 1–3 s. Lo que cambia es que deja de secuestrar la
+interfaz: el resto de la aplicación queda interactivo y el visor muestra "Calculando superficie de
+*&lt;capa&gt;*…" mientras tanto.
+
+**Recordatorio para quien vuelva a tocar esto:** `analyzeSoilSurface` **no dibuja nada**. El ráster
+se calcula, se mide y se tira. Sirve para los cortes de la leyenda —cuantiles de un ráster simulado,
+a propósito, porque los valores crudos conservan outliers y darían límites distintos a los reportes
+exportados— y para las hectáreas por rango de `SoilMapStatsCard`. Por eso no se puede omitir.
+
+**Caché por capa.** Volver a una capa ya vista recalculaba desde cero. Ahora es inmediato, y sumado
+al caché de datos de react-query, revisitar una capa no cuesta ni red ni cálculo. La clave es
+`sesión|capa|nº de muestras`, de modo que una reimportación la invalida sola. Cota de 120 entradas
+con desalojo del más antiguo: sin límite crecería con cada capa de cada sesión en la vida de la
+pestaña.
+
+**Dos fallos que se previnieron por diseño:**
+
+- *Carrera al cambiar de capa.* Cambiar dos veces seguidas podía pintar el resultado de la primera
+  sobre la segunda si la primera tardaba más, dejando el mapa con los cortes de **otra** variable.
+  Un contador de petición descarta las respuestas obsoletas.
+- *Worker muerto.* Si el hilo falla, las peticiones en vuelo se quedarían colgadas y el visor
+  mostraría "Calculando superficie…" para siempre. `onerror` las rechaza todas y reinicia el worker.
+
+**Dos trampas de pruebas, ambas instructivas:**
+
+1. El caché vive a nivel de módulo, así que un test recibía el análisis calculado por el anterior
+   bajo la misma clave. Se limpia en `beforeEach`.
+2. El resultado pasó a ser asíncrono y React empezó a avisar de actualizaciones de estado fuera de
+   `act()` en cada test. Se resolvió con un helper que deja resolver el cálculo antes de aseverar,
+   y se dejó en **cero avisos**: los warnings entrenan a ignorar la salida de las pruebas.
+
+Suite: **494/494 en 86 archivos**, `tsc` limpio. `vite build` emite
+`soilMapSurface.worker-*.js` como chunk aparte de 7.8 KB — que es la verificación real de que corre
+en otro hilo y no quedó inlineado en el bundle principal.
+
+### SL-E — Tarjeta de estadísticas por variable (2026-08-25)
+
+Petición del desarrollador tras probar SL-W. **Sale gratis en red:** los números ya se descargaban
+con `useSoilMapVariableStats` para alimentar el combobox, pero solo se usaba el `count`; media,
+mínimo, máximo y desviación se descartaban.
+
+Que salgan del **mismo endpoint** importa por una razón que no es de rendimiento: el visor y
+cualquier otra pantalla que reporte la sesión muestran los mismos números, calculados una sola vez
+en el servidor. Recalcularlos en el cliente sobre los puntos ya cargados daría diferencias de
+redondeo contra los reportes exportados.
+
+**Dos vistas, según el espacio disponible:**
+
+- En la columna del visor, la capa **activa**: cinco métricas en una tarjeta colapsable, con su
+  unidad. Cambia sola al cambiar de capa. Patrón tomado de `NdviMap`, que ya muestra así la
+  estadística de su índice activo.
+- En un **diálogo**, el resumen de las **53** variables. No va en la columna porque son 53 filas por
+  6 columnas y la columna mide **224 px** (`w-56`): ahí no se lee.
+
+Colapsada por defecto, para no quitarle espacio al mapa a quien no la necesita.
+
+**Etiquetas y unidades salen de `soilMapLayers.ts`, no del endpoint.** El backend devuelve el nombre
+crudo del modelo —"lim inf CC"— y no conoce las unidades; el catálogo del front tiene "Límite
+inferior CC" y "mg/100g". Es la consecuencia práctica de la decisión D3 de la fase de backend: el
+catálogo se quedó en el front, así que el front es quien sabe presentar.
+
+**Dos detalles de honestidad en los datos:**
+
+- Las categóricas se informan aparte, con solo su conteo. Una media de "clase textural" no existe.
+- El resumen completo incluye las 4 variables que están en los datos pero **no** tienen capa
+  pintable (`Leak`, `Loam`, `NO3N`, `N`), cayendo a la etiqueta del backend. Son parte de la sesión
+  y omitirlas daría un resumen incompleto.
+
+10 tests. Uno hubo que rehacerlo: se llamaba "muestra la unidad del catálogo" y no verificaba
+ninguna unidad, porque la variable elegida no estaba en el fixture y el test caía por otro camino
+sin que nadie lo notara. Suite **504/504 en 87 archivos**, `tsc` limpio, build correcto.
+
+**Ajuste tras la primera prueba:** las variables categóricas mostraban solo el total de puntos con
+valor. El desarrollador señaló, con razón, que en una variable no numérica no se pueden aplicar
+análisis estadísticos tradicionales, así que lo informativo es **cuántas muestras hay de cada
+categoría**. El backend suma ahora ese reparto (`values`), y la tarjeta lo muestra con conteo y
+porcentaje; en la tabla del diálogo ocupa las cuatro celdas donde irían media, mínimo, máximo y
+desviación, que de otro modo quedan vacías.
+
+El porcentaje se reparte **sobre los puntos con valor, no sobre el total de la sesión**: si la mitad
+de los puntos no trajera clase textural, repartir sobre el total daría porcentajes que no suman 100
+y se leerían como un error. Hay un test que fija esa decisión con un caso donde ambos totales
+difieren.
+
+Datos reales: clase textural reparte 16,787 Arcilloso (99.1%), 124 Franco (0.7%) y 33 Franco limoso
+arcilloso (0.2%).
+
+---
+
+## Sesión `delete-cascade` — FASE BC: borrado por niveles (frontend) (2026-08-27, rama `dev-delete-cascade`)
+
+Va en pareja con la FASE BC del backend (`../CIAgro_alpha_back`, commits `7a8ba99`, `78ddb52`,
+`e6a2bdc`). Hasta este trabajo los 14 endpoints existían pero **nadie podía invocarlos desde la
+pantalla**.
+
+### Lo que NO se reescribió
+
+`FlushSessionDialog` ya traía el control de seguridad que pedía el caso de uso —código aleatorio de
+6 dígitos regenerado al abrir, botón bloqueado hasta la coincidencia exacta, sin cierre por Escape
+ni click-outside— y ya era genérico. Se **extendió** con tres props opcionales; los tres diálogos de
+flush existentes no las pasan y siguen funcionando igual, con un test que lo fija.
+
+### Decisiones
+
+**Si el backend dice que no se puede, no se pide código.** Desaparecen el input y el botón, y
+"Cancelar" pasa a "Entendido". Un código de confirmación no puede saltarse un 409.
+
+**No se anuncia la restauración.** El borrado de programas es soft y `/restore/` existe, pero el
+diálogo remite a soporte técnico. Decisión del dev: ofrecer la vuelta atrás en el mismo diálogo
+abarata una acción destructiva e invita a probar; además es exacto, porque la restauración es de
+administrador y no del usuario que borra.
+
+**Rutas literales, sin `as any`.** El primer intento armaba las URLs con plantillas, lo que colapsa a
+`string` y obliga a apagar la comprobación de tipos —justo la garantía por la que se abandonó el
+`fetch` crudo de `useFlushSession`—. Se reescribieron las doce rutas completas.
+
+### La trampa principal
+
+Los `SPECS` de `useFlushSession` **no** invalidan `['master-tree']` ni `['master-programs']`, y con
+razón: un flush cambia el contenido de una sesión, no la **estructura** del Gantt. Un borrado sí la
+cambia. Sin esas dos claves el árbol sigue pintando lo borrado y la función parece rota aunque el
+backend responda 200. Hay un test dedicado.
+
+### Los tres fallos que encontró el dev probando
+
+Ninguno lo atrapó la suite. Los tres son de la misma familia: **los tests verifican que las piezas
+funcionen, no que estén bien conectadas en la pantalla.**
+
+1. **Faltaba el botón en fito y NDVI.** Se montó "junto al de flush existente", criterio que cubre
+   exactamente los dos dominios que ya tenían uno en `SesionModal`.
+2. **El modal no se cerraba tras borrar.** El diálogo se cerraba; el modal de encima, no.
+3. **El vaciado se ofrecía sin datos que vaciar.**
+
+Al escribir el test del tercero apareció la causa común: **`renderView` nunca llegaba a
+`SUPER_ADMIN`**, que es el rol bajo el que vive todo lo construido en esta fase. Ese hueco de
+cobertura explica por qué los tres pasaron desapercibidos.
+
+### Verificación
+
+`typecheck` limpio, sin un solo `as any`. 89 archivos y 527 tests. El único error suelto de la suite
+es `window.URL.createObjectURL` de `maplibre-gl` en jsdom: se verificó con `git stash` que aparece
+igual sin estos cambios. **Prueba manual del desarrollador: VALIDADA** (2026-08-27).
