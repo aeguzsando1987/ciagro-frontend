@@ -58,31 +58,27 @@ export function useUploadReportAssets(
 }
 
 /**
- * Abre el PDF del reporte en una pestaña nueva.
+ * Descarga el PDF del reporte.
+ *
+ * DESCARGA y ya no abre pestaña. La versión anterior abría la pestaña dentro del
+ * clic —obligada por el bloqueador de popups, que corta cualquier ventana abierta
+ * después de un `await`— y el usuario se quedaba mirando una pestaña EN BLANCO
+ * varios segundos mientras WeasyPrint maquetaba. Descargar no necesita ese truco:
+ * el enlace se dispara cuando el archivo ya existe, así que la espera se puede
+ * mostrar donde el usuario está mirando. Mismo camino que el KMZ y el CSV.
  *
  * El endpoint es autenticado, así que no se puede enlazar la URL directo (no
- * llevaría el Bearer): se baja como blob y se muestra desde memoria.
- *
- * La pestaña se abre en el **manejador del clic** y se pasa aquí ya creada; si se
- * abriera después del `await`, los bloqueadores de popups la cortarían por no venir
- * de un gesto del usuario. Si no hay pestaña (bloqueada), se cae a descarga.
+ * llevaría el Bearer): se baja como blob y se guarda desde memoria.
  */
-export function useOpenReportPdf(reportId: string) {
+export function useDownloadReportPdf(reportId: string) {
   return useMutation({
-    mutationFn: async (target?: Window | null): Promise<void> => {
-      let res: Response
-      try {
-        res = await fetch(`${baseUrl}/field_ops/session-reports/${reportId}/pdf/`, {
-          headers: authHeaders(),
-        })
-      } catch (e) {
-        target?.close()
-        throw e
-      }
+    mutationFn: async (): Promise<void> => {
+      const res = await fetch(`${baseUrl}/field_ops/session-reports/${reportId}/pdf/`, {
+        headers: authHeaders(),
+      })
       if (!res.ok) {
-        target?.close()
-        // El backend explica por qué (p. ej. reporte sin captura de mapa);
-        // se propaga su mensaje en vez de uno genérico.
+        // El backend explica por qué (p. ej. reporte sin capas preparadas); se
+        // propaga su mensaje en vez de uno genérico.
         const detail = await res
           .json()
           .then((body: { detail?: string }) => body.detail)
@@ -94,19 +90,52 @@ export function useOpenReportPdf(reportId: string) {
       const filename =
         res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ??
         'reporte.pdf'
-      const url = URL.createObjectURL(blob)
 
-      if (target) {
-        target.location.href = url
-      } else {
-        const link = document.createElement('a')
-        link.href = url
-        link.download = filename
-        link.click()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      link.click()
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    },
+  })
+}
+
+/**
+ * Descarga el CSV del reporte (FASE RS, D7).
+ *
+ * El backend lo sirve en streaming, asi que la primera fila sale en 0.076 s aunque
+ * el archivo completo pese 11.5 MB. Aqui se espera al blob de todos modos: el
+ * navegador no puede iniciar una descarga autenticada sin tener el cuerpo.
+ *
+ * Sin `?layers=` el backend exporta TODAS las capas con datos, no solo las
+ * publicadas — al reves que el KMZ. En CSV las capas son columnas (un solo
+ * recorrido), y truncar una exportacion de datos crudos en silencio sorprenderia.
+ */
+export function useDownloadReportCsv(reportId: string) {
+  return useMutation({
+    mutationFn: async (): Promise<void> => {
+      const res = await fetch(`${baseUrl}/field_ops/session-reports/${reportId}/csv/`, {
+        headers: authHeaders(),
+      })
+      if (!res.ok) {
+        const detail = await res
+          .json()
+          .then((body: { detail?: string }) => body.detail)
+          .catch(() => undefined)
+        throw new Error(detail ?? 'No se pudo generar el CSV del reporte.')
       }
 
-      // No se revoca de inmediato: la pestaña aún está cargando el blob y se
-      // quedaría en blanco. Se libera cuando ya no puede estar en uso.
+      const blob = await res.blob()
+      const filename =
+        res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ??
+        'reporte.csv'
+
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      link.click()
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
     },
   })
@@ -118,7 +147,7 @@ export function useOpenReportPdf(reportId: string) {
  * A diferencia del PDF, esto **siempre** descarga y nunca abre pestaña: un KMZ
  * mostrado en el navegador no sirve de nada, el usuario necesita el archivo en
  * disco. Por eso tampoco hace falta el baile con el bloqueador de popups que sí
- * necesita `useOpenReportPdf`.
+ * necesitaba la version anterior del PDF, que abria pestaña.
  *
  * El endpoint es autenticado, así que no se puede enlazar la URL directo (no
  * llevaría el Bearer): se baja como blob y se dispara la descarga desde memoria.

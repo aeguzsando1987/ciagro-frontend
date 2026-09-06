@@ -325,6 +325,7 @@ export function SesionModal({
             onDeleted={onClose}
             detail={soilMapDetail}
             plotId={plotId}
+            datacentralId={datacentralId}
             transitions={transitions}
             isMutatingStatus={isMutatingStatus}
             statusError={statusError}
@@ -680,6 +681,7 @@ interface SoilMapViewProps {
   onDeleted: () => void
   detail: import('../hooks/useSoilMapSessionDetail').SoilMapSessionDetail
   plotId: string | null
+  datacentralId: string
   transitions: string[]
   isMutatingStatus: boolean
   statusError: string | null
@@ -703,6 +705,7 @@ export function SoilMapView({
   onDeleted,
   detail,
   plotId,
+  datacentralId,
   transitions,
   isMutatingStatus,
   statusError,
@@ -868,6 +871,7 @@ export function SoilMapView({
           onClose={() => setMapOpen(false)}
           sessionId={detail.id}
           plotId={plotId}
+          datacentralId={datacentralId}
         />
       )}
     </div>

@@ -70,6 +70,10 @@ export function ReportCard({ report }: { report: SessionReport }) {
     s.proporcion_meta && s.proporcion_meta.length > 0
       ? s.proporcion_meta.map((p) => num(p)).join(' · ')
       : '—'
+  // Dosis, volumen y semaforo son de aspersion: en suelo saldrian todos en "—".
+  // El tipo viene en el propio reporte, asi que no hace falta un prop nuevo.
+  const esSuelo = report.session_type === 'soilmap'
+  const conDatos = (s.layers_summary ?? []).filter((l) => l.count > 0).length
 
   return (
     <Card>
@@ -86,17 +90,29 @@ export function ReportCard({ report }: { report: SessionReport }) {
           <Field label="Cultivo" value={g.cultivo} />
           <Field label="Área parcela (ha)" value={num(g.superficie_parcela_ha)} />
           <Field label="Ubicación" value={g.ubicacion} />
-          <Field label="Fecha de aplicación" value={g.fecha_aplicacion} />
-          <Field label="Proporción meta" value={proporcion} />
+          <Field
+            label={esSuelo ? 'Fecha de muestreo' : 'Fecha de aplicación'}
+            value={g.fecha_aplicacion}
+          />
+          {!esSuelo && <Field label="Proporción meta" value={proporcion} />}
         </dl>
 
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-3">
-          <Field label="Puntos" value={num(s.points_count, 0)} />
-          <Field label="Área de cobertura (ha)" value={num(s.area_cobertura_ha)} />
-          <Field label="Dosis promedio (L/ha)" value={num(s.dosis_promedio_l)} />
-          <Field label="Volumen total (L)" value={num(s.volumen_total_l)} />
-          <Field label="Fecha inicio" value={s.fecha_inicio} />
-          <Field label="Fecha fin" value={s.fecha_fin} />
+          <Field label={esSuelo ? 'Muestras' : 'Puntos'} value={num(s.points_count, 0)} />
+          {esSuelo ? (
+            <Field
+              label="Capas con datos"
+              value={`${conDatos} de ${s.layers_summary?.length ?? 0}`}
+            />
+          ) : (
+            <>
+              <Field label="Área de cobertura (ha)" value={num(s.area_cobertura_ha)} />
+              <Field label="Dosis promedio (L/ha)" value={num(s.dosis_promedio_l)} />
+              <Field label="Volumen total (L)" value={num(s.volumen_total_l)} />
+              <Field label="Fecha inicio" value={s.fecha_inicio} />
+              <Field label="Fecha fin" value={s.fecha_fin} />
+            </>
+          )}
         </dl>
 
         {s.variables && (
@@ -110,8 +126,18 @@ export function ReportCard({ report }: { report: SessionReport }) {
           </div>
         )}
 
+        {/* En suelo no hay una clasificacion unica: son 49 capas, cada una con la
+            suya. La nota de escala (P2) sustituye al semaforo hasta que RS-13 monte
+            el selector de capas. */}
         <div className="border-t pt-3">
-          <SemaforoBadges stats={s} />
+          {esSuelo ? (
+            <p className="text-xs text-muted-foreground">
+              {s.scale_note ??
+                'Los cortes se calculan por cuantiles sobre los datos de este mapeo.'}
+            </p>
+          ) : (
+            <SemaforoBadges stats={s} />
+          )}
         </div>
       </CardContent>
     </Card>

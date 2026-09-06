@@ -90,8 +90,13 @@ vi.mock('@/features/task-manager/hooks/useAspersionSessionStats', () => ({
 }))
 // SessionReportToggle (toolbarEnd del visor a nivel sesión) consulta el detalle de la sesión;
 // se mockea para no requerir QueryClientProvider (sin datos → el toggle no renderiza).
+// Ambos, no solo el de aspersion: el toggle consulta los dos hooks siempre —no se
+// pueden llamar condicionalmente— y pasa null al que no aplica (RS-12).
 vi.mock('@/features/task-manager/hooks/useAspersionSessionDetail', () => ({
   useAspersionSessionDetail: () => ({ data: null }),
+}))
+vi.mock('@/features/task-manager/hooks/useSoilMapSessionDetail', () => ({
+  useSoilMapSessionDetail: () => ({ data: null }),
 }))
 // El mapa de suelo carga en dos partes (geometría y valores de la capa activa) y
 // consulta un tercer endpoint para saber qué capas tienen datos. Los tres hooks
