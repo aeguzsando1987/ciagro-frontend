@@ -1,15 +1,23 @@
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { SoilMap } from '@/features/geodata-visor/components/SoilMap'
+import { SessionReportToggle } from '@/features/session-report/components/SessionReportToggle'
 
 interface SoilMapMapModalProps {
   open: boolean
   onClose: () => void
   sessionId: string
   plotId: string | null
+  datacentralId?: string | null
 }
 
-export function SoilMapMapModal({ open, onClose, sessionId, plotId }: SoilMapMapModalProps) {
+export function SoilMapMapModal({
+  open,
+  onClose,
+  sessionId,
+  plotId,
+  datacentralId,
+}: SoilMapMapModalProps) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent
@@ -29,9 +37,17 @@ export function SoilMapMapModal({ open, onClose, sessionId, plotId }: SoilMapMap
             <DialogTitle className="mr-2 text-base font-semibold">Mapa de suelo</DialogTitle>
           }
           toolbarEnd={
-            <Button size="sm" variant="outline" onClick={onClose}>
-              ✕ Cerrar
-            </Button>
+            <>
+              <SessionReportToggle
+                objectId={sessionId}
+                plotId={plotId}
+                datacentralId={datacentralId}
+                sessionType="soilmap"
+              />
+              <Button size="sm" variant="outline" onClick={onClose}>
+                ✕ Cerrar
+              </Button>
+            </>
           }
         />
       </DialogContent>

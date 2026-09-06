@@ -4,7 +4,8 @@
  * Reutilizable desde el visor (`AspersionMapModal`) y desde el Task Manager (`SesionModal`).
  * Recibe la sesión (`objectId` = UUID del header) y resuelve su reporte único. Estados:
  * cargando / sin reporte (botón "Generar reporte de actividad") / con reporte (tarjeta +
- * formulario + issues + sync). Por GAP-AC-001 el reporteador es solo para aspersión.
+ * formulario + issues + sync). Atiende aspersión y mapeo de suelo; fitosanitario y NDVI
+ * siguen pendientes (GAP-AC-001).
  *
  * El acceso ya viene gated (datos cargados + `role_level>=SUPERVISOR`); aquí calculamos
  * `canWrite` (>=TECHNICIAN) para habilitar acciones de escritura. El backend revalida permisos.
@@ -19,6 +20,7 @@ import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { AspersionMap } from '@/features/geodata-visor/components/AspersionMap'
 import { useSessionReport } from '../hooks/useSessionReport'
 import { ReportCard } from './ReportCard'
+import { SoilLayerSection } from './SoilLayerSection'
 import { ReportForm } from './ReportForm'
 import { SessionIssuesTable } from './SessionIssuesTable'
 import { ReportDeliverables } from './ReportDeliverables'
@@ -66,13 +68,18 @@ export function SessionReportPanel({
     >
       <SheetContent
         side="right"
-        className="flex w-full flex-col gap-0 p-0 sm:max-w-xl lg:max-w-2xl"
+        // Suelo va mas ancho: sin el drawer de mapa nada compite por el espacio, y
+        // el panel lleva mapa, leyenda de 8 clases e histograma por capa.
+        className={`flex w-full flex-col gap-0 p-0 ${
+          sessionType === 'soilmap' ? 'sm:max-w-3xl lg:max-w-5xl' : 'sm:max-w-xl lg:max-w-2xl'
+        }`}
       >
         {/* Cabecera fija: título + Sincronizar (no scrollea con el contenido). */}
         <div className="shrink-0 space-y-2 border-b px-6 py-4">
           <SheetTitle>Reporte de sesión</SheetTitle>
           <SheetDescription>
-            Resumen, diagnóstico y temas de atención de la actividad de aspersión.
+            Resumen, diagnóstico y temas de atención de la actividad de{' '}
+            {sessionType === 'soilmap' ? 'mapeo de suelo' : 'aspersión'}.
           </SheetDescription>
           {!isLoading && !isError && report && (
             <SyncReportButton
@@ -115,6 +122,17 @@ export function SessionReportPanel({
           {!isLoading && !isError && report && (
             <div className="space-y-4">
               <ReportCard report={report} />
+              {/* La unidad de analisis de suelo es la capa, y hay 49: sustituye al
+                  semaforo de aspersion en vez de sumarse. */}
+              {sessionType === 'soilmap' && (
+                <SoilLayerSection
+                  report={report}
+                  sessionType={sessionType}
+                  objectId={objectId}
+                  plotId={plotId}
+                  canWrite={canWrite}
+                />
+              )}
               <ReportForm
                 mode="edit"
                 sessionType={sessionType}
@@ -140,8 +158,12 @@ export function SessionReportPanel({
 
         {/* Mapa satelital de la parcela (referencia visual). Botón vertical en el borde
             izquierdo del panel; despliega un drawer bloqueado (sin zoom/rotación) a la
-            izquierda. Montaje lazy: solo carga datos con el drawer abierto. Oculto en móvil. */}
-        {plotId && (
+            izquierda. Montaje lazy: solo carga datos con el drawer abierto. Oculto en móvil.
+
+            NO en suelo: monta AspersionMap con el object_id de la sesión de suelo, que
+            no tiene puntos de aspersión y responde "sin datos". Ahí la referencia visual
+            es la captura congelada de cada capa, que ya vive junto a su histograma. */}
+        {plotId && sessionType !== 'soilmap' && (
           <>
             <button
               type="button"

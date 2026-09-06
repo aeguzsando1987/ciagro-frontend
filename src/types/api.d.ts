@@ -4839,6 +4839,10 @@ export interface paths {
          *
          *     A diferencia del PDF, **no** exige `map_snapshot`: el archivo no depende de la captura del mapa. Un reporte cuyo tipo de sesión aún no exporta telemetría devuelve **200** con la parcela y los temas de atención, no un error.
          *
+         *     **Mapeo de suelo (FASE RS)**: una carpeta por capa y, dentro, una por clase, con los puntos coloreados con los **cortes congelados** del reporte. `?layers=ph,cec` acota la exportación; **sin el parámetro NO se exportan las 49**, se usan las publicadas (R4). Cada capa añade un placemark por punto, así que el archivo crece de forma lineal con las capas seleccionadas.
+         *
+         *     **409** si el reporte está `cancelado` (R2). **400** si `layers` trae una clave que no existe en el catálogo.
+         *
          *     **Ejemplos**
          *
          *     *curl*
@@ -4848,6 +4852,136 @@ export interface paths {
          *     ```
          */
         get: operations["v1_field_ops_session_reports_kml_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/session-reports/{id}/layers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Congelar UNA capa de suelo en el reporte (IsTechnician)
+         * @description Recibe del frontend lo que el backend no puede calcular: los **cortes** de las clases y las **hectareas por clase**, que salen del raster IDW interpolado en el navegador. `SoilMapPoints` no tiene campo de area, asi que no hay SQL que los produzca.
+         *
+         *     Se llama una vez por capa **antes de publicar**. Lo recibido queda congelado en `stats_snapshot['layers']` y el PDF lo lee sin recalcular nunca.
+         *
+         *     Acepta **multipart** con `image`: el PNG del mapa de esa capa, que se guarda como `Attachment` del reporte.
+         *
+         *     Cada entrada de `classes` lleva **las dos bases de reparto** que usa el Visor (`soilMapArea.ts`), porque miden cosas distintas:
+         *     ```
+         *     {"index": 0, "label": "33.0 - 35.1",
+         *      "by_points": {"count": 170, "pct": 1.0, "area_ha": 0.07},
+         *      "by_area":   {"pct": 0.6, "area_ha": 0.04}}
+         *     ```
+         *     `by_points` reparte por **muestras analizadas**; `by_area` por **superficie** (celdas del raster interpolado). Ambas expresan las ha sobre la superficie de la parcela. Con cortes por cuantiles `by_points` tiende a ser parejo por construccion, asi que es `by_area` la que revela si una clase ocupa mas terreno del que sugieren sus muestras.
+         *
+         *     **409** si el reporte ya esta `publicado` (congelado) o `cancelado`. **400** si `breaks` no trae exactamente `break_count` valores o `classes` no trae `class_count`: hay capas de 1, 7 y 8 clases y una longitud equivocada produce un semaforo que no cuadra con su propia leyenda.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/field_ops/session-reports/{id}/layers/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         */
+        post: operations["v1_field_ops_session_reports_layers_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/session-reports/{id}/published-layers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Elegir las capas del entregable (IsTechnician)
+         * @description Fija QUE capas de suelo salen en el PDF y en el KMZ.
+         *
+         *     Preparar una capa (`/layers/`) NO la publica: se preparan solas al abrirlas en el panel, porque calcular el raster y mostrarlo es el mismo trabajo. Este endpoint es la eleccion explicita del usuario, y por eso admite quitar, no solo agregar.
+         *
+         *     Solo se aceptan capas ya preparadas: publicar una sin cortes ni imagen daria una hoja vacia en el PDF.
+         *
+         *     El orden lo impone el catalogo (D5), no el del arreglo recibido: define el orden de las paginas.
+         *
+         *     **409** si el reporte esta publicado o cancelado: ambos congelan el contenido.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/field_ops/session-reports/{id}/published-layers/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "layers": [
+         *         "ph",
+         *         "cec"
+         *       ]
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("field_ops/session-reports/{id}/published-layers/")
+         *         suspend fun setPublishedLayers(@Path("id") id: String, @Body body: PublishedLayersReq): PublishedLayers
+         *     }
+         *
+         *     val result = api.setPublishedLayers(id)
+         *     ```
+         */
+        post: operations["v1_field_ops_session_reports_published_layers_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/session-reports/{id}/csv/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exportar los puntos de la sesión en CSV
+         * @description Descarga los puntos georreferenciados de la sesión del reporte. **Aplica a aspersión y a mapeo de suelo**: las columnas las define el adapter de cada tipo, no un `if` en la vista.
+         *
+         *     Se sirve en **streaming**: una sesión de suelo tiene 16,944 puntos y armar el archivo completo en memoria antes de responder no aporta nada.
+         *
+         *     En **suelo** las capas son COLUMNAS, no copias del juego de puntos como en el KMZ, así que por omisión se exportan **todas las capas con datos**; `?layers=` acota si se quiere un subconjunto. En **aspersión** el parámetro no aplica.
+         *
+         *     **409** si el reporte está `cancelado` (R2).
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/session-reports/{id}/csv/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         */
+        get: operations["v1_field_ops_session_reports_csv_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6467,6 +6601,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/soil-map/layers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Catalogo de capas de mapeo de suelo (FASE RS)
+         * @description Las 49 capas con su identidad, unidad, paleta y grupo, agrupadas y en el orden de despliegue del reporte (D5). No depende de ninguna sesion: es una constante del sistema.
+         *
+         *     El PDF y la liga publica se renderizan server-side, asi que el backend necesita la paleta; este endpoint la expone para que el frontend consuma **el mismo** catalogo en vez de declarar el suyo.
+         *
+         *     **La agrupacion NO es la del Visor.** El reporte agrupa por criterio agronomico (D5) y `soilMapLayers.ts` por elemento; la divergencia es deliberada.
+         *
+         *     `class_count` y `break_count` **varian por capa**: hay paletas de 1, 7 y 8 colores. Nada debe asumir 7 clases.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/soil-map/layers/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/soil-map/layers/")
+         *         suspend fun getSoilMapLayerCatalog(): SoilMapLayerCatalog
+         *     }
+         *
+         *     val result = api.getSoilMapLayerCatalog()
+         *     ```
+         */
+        get: operations["v1_monitoring_soil_map_layers_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/monitoring/soil-map/headers/": {
         parameters: {
             query?: never;
@@ -6755,6 +6934,55 @@ export interface paths {
          *     ```
          */
         get: operations["v1_monitoring_soil_map_headers_variable_stats_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/soil-map/headers/{id}/layer-stats/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Estadisticos de UNA capa de mapeo de suelo (FASE RS)
+         * @description Detalle de una sola capa, para el reporteador. Endpoint aparte de `/variable-stats/` a proposito: aquel es la llamada barata de ~5 KB con la que el Visor decide que capas tienen datos, y cargarla con este detalle lo haria pagar por algo que no usa.
+         *
+         *     Ademas de count/media/min/max/desv, devuelve **mediana y P10/P90** (resisten los outliers, habituales en suelo) y **coeficiente de variacion** (heterogeneidad de la parcela). `layer` trae la identidad y la **paleta** de la capa, para que el front pinte la leyenda sin un segundo catalogo.
+         *
+         *     Las capas **categoricas** no llevan medias ni percentiles —no significan nada sobre una clase textural—: devuelven `values`, el reparto por categoria.
+         *
+         *     `histogram` trae los bins del eje X (D3): `lower`, `upper` y **conteo de puntos**. Son [lower, upper) salvo el ultimo, que cierra por la derecha para no dejar fuera el valor maximo. Si la capa es constante devuelve un solo bin.
+         *
+         *     **No devuelve hectareas.** `SoilMapPoints` no tiene campo de area: el eje Y en Ha lo produce el frontend desde su raster interpolado, y por eso el backend entrega DATOS y no un grafico — el filtro cruzado necesita que el front conozca los rangos.
+         *
+         *     **400** si falta `layer`, si la clave no existe en el catalogo o si `bins` esta fuera de rango.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/soil-map/headers/{id}/layer-stats/?layer=ph \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/soil-map/headers/{id}/layer-stats/")
+         *         suspend fun getSoilMapLayerStats(@Path("id") id: String): SoilMapLayerStats
+         *     }
+         *
+         *     val result = api.getSoilMapLayerStats(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_soil_map_headers_layer_stats_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -12552,9 +12780,10 @@ export interface components {
         SessionReportStatusEnum: "en_proceso" | "finalizado" | "cancelado" | "publicado";
         /**
          * @description * `aspersion` - aspersion
+         *     * `soilmap` - soilmap
          * @enum {string}
          */
-        SessionTypeEnum: "aspersion";
+        SessionTypeEnum: "aspersion" | "soilmap";
         /**
          * @description * `low` - Baja
          *     * `medium` - Media
@@ -16114,7 +16343,10 @@ export interface operations {
     };
     v1_field_ops_session_reports_kml_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Capas de suelo separadas por coma. Por omisión, las publicadas. */
+                layers?: string;
+            };
             header?: never;
             path: {
                 id: string;
@@ -16131,7 +16363,173 @@ export interface operations {
                     "application/json": string;
                 };
             };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_field_ops_session_reports_layers_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_field_ops_session_reports_published_layers_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    layers: string[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_field_ops_session_reports_csv_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Solo suelo: capas separadas por coma. Por omisión, todas con datos. */
+                layers?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17338,6 +17736,27 @@ export interface operations {
             };
         };
     };
+    v1_monitoring_soil_map_layers_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     v1_monitoring_soil_map_headers_list: {
         parameters: {
             query?: {
@@ -17568,6 +17987,54 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_soil_map_headers_layer_stats_retrieve: {
+        parameters: {
+            query: {
+                /** @description Barras del histograma. Default 20 (D3); rango 5-50. */
+                bins?: number;
+                /** @description Clave de la capa, p. ej. `ph`. Ver `/soil-map/layers/`. */
+                layer: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

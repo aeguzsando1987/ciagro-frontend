@@ -82,6 +82,7 @@ function renderView(
       onDeleted={vi.fn()}
       detail={{ ...detail, ...detailOverrides }}
       plotId="plot-1"
+      datacentralId="dc-1"
       transitions={[]}
       isMutatingStatus={false}
       statusError={null}

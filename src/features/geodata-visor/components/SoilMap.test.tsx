@@ -15,6 +15,10 @@ const mocks = vi.hoisted(() => ({
   // justo lo que hay que poder probar: el combobox lo gobiernan las estadisticas.
   statsOverride: null as null | Record<string, unknown>,
   statsLoading: false,
+  // Campo que el mapa pide para pintar: indicador real de la capa activa. El
+  // combobox no sirve para eso —no lista las capas sin datos, ni existe con
+  // `locked`— y es justo el caso que hay que poder comprobar.
+  lastField: null as string | null,
 }))
 
 /**
@@ -212,11 +216,10 @@ vi.mock('@/features/task-manager/hooks/useSoilMapPoints', () => ({
 }))
 
 vi.mock('@/features/task-manager/hooks/useSoilMapLayerValues', () => ({
-  useSoilMapLayerValues: (_headerId: string | null, field: string | null) => ({
-    data: valuesFromFixture(field),
-    isLoading: false,
-    error: null,
-  }),
+  useSoilMapLayerValues: (_headerId: string | null, field: string | null) => {
+    mocks.lastField = field
+    return { data: valuesFromFixture(field), isLoading: false, error: null }
+  },
 }))
 
 // buildLayerCountMap se deja REAL: es el que traduce la respuesta del endpoint a
@@ -300,6 +303,7 @@ describe('SoilMap', () => {
     }
     mocks.statsOverride = null
     mocks.statsLoading = false
+    mocks.lastField = null
     // El cache del cliente de superficie vive a nivel de modulo: sin limpiarlo, un
     // test recibiria el analisis calculado por el anterior bajo la misma clave.
     resetSoilSurfaceClient()
@@ -526,5 +530,83 @@ describe('SoilMap', () => {
     const selector = screen.getByRole('combobox', { name: 'Variable del mapa' })
     expect(selector).toBeDisabled()
     expect(screen.getByRole('option', { name: 'Cargando variables…' })).toBeInTheDocument()
+  })
+
+  /**
+   * Modo captura (FASE RS, RS-15). Cuatro props APAGADOS por defecto que permiten
+   * fotografiar el mapa para el PDF. El visor no cambia si nadie los pasa: eso es
+   * lo primero que se fija aqui.
+   */
+  describe('modo captura', () => {
+    it('sin los props nuevos el visor se comporta igual que antes', async () => {
+      await renderMap(<SoilMap sessionId="soil-1" plotId={null} sessionsSlot={<div>Sesiones</div>} />)
+
+      expect(screen.getByRole('combobox', { name: 'Variable del mapa' })).toBeInTheDocument()
+      expect(screen.getByText('Sesiones')).toBeInTheDocument()
+    })
+
+    it('locked quita la barra y las tarjetas: la foto es del terreno', async () => {
+      // Si no, el combobox y la leyenda saldrian dibujados DENTRO de la imagen del PDF.
+      await renderMap(
+        <SoilMap sessionId="soil-1" plotId={null} locked sessionsSlot={<div>Sesiones</div>} />
+      )
+
+      expect(screen.queryByRole('combobox', { name: 'Variable del mapa' })).toBeNull()
+      expect(screen.queryByText('Sesiones')).toBeNull()
+    })
+
+    it('activeLayerKey manda sobre el selector interno', async () => {
+      await renderMap(<SoilMap sessionId="soil-1" plotId={null} activeLayerKey="ph" />)
+
+      // Sin el prop la capa por defecto es countrate (ver el primer test).
+      expect(screen.getByRole('combobox', { name: 'Variable del mapa' })).toHaveValue('ph')
+    })
+
+    it('con capa controlada NO salta a otra capa aunque la pedida no tenga datos', async () => {
+      // EL RIESGO DEL CAMBIO: el efecto que auto-selecciona la primera capa con
+      // datos existia antes y, sin condicionar, pisaria la capa pedida. Capturar
+      // entonces daria la imagen de la VARIABLE EQUIVOCADA, y el PDF mostraria un
+      // mapa que no corresponde a su titulo — un error invisible en la pantalla.
+      mocks.statsOverride = {
+        header_id: 'soil-1',
+        points_count: 3,
+        variables: [
+          { key: 'Countrate', label: 'Countrate', count: 3, mean: null, min: null, max: null, stddev: null },
+          { key: 'pH', label: 'pH', count: 0, mean: null, min: null, max: null, stddev: null },
+        ],
+        text_variables: [],
+      }
+
+      // Se comprueba con `locked`, que es como se usa de verdad al capturar: sin
+      // combobox, el campo pedido es la unica senal de que capa se esta pintando.
+      await renderMap(<SoilMap sessionId="soil-1" plotId={null} activeLayerKey="ph" locked />)
+
+      expect(mocks.lastField).toBe('pH')
+    })
+
+    it('sin capa controlada sigue saltando a la primera con datos', async () => {
+      // Contraparte del anterior: el comportamiento original no se perdio.
+      mocks.statsOverride = {
+        header_id: 'soil-1',
+        points_count: 3,
+        variables: [
+          { key: 'Countrate', label: 'Countrate', count: 0, mean: null, min: null, max: null, stddev: null },
+          { key: 'pH', label: 'pH', count: 3, mean: null, min: null, max: null, stddev: null },
+        ],
+        text_variables: [],
+      }
+
+      await renderMap(<SoilMap sessionId="soil-1" plotId={null} />)
+
+      await waitFor(() =>
+        expect(screen.getByRole('combobox', { name: 'Variable del mapa' })).toHaveValue('ph')
+      )
+    })
+
+    it('una clave inexistente no rompe el mapa: cae al selector interno', async () => {
+      await renderMap(<SoilMap sessionId="soil-1" plotId={null} activeLayerKey="no-existe" />)
+
+      expect(screen.getByRole('combobox', { name: 'Variable del mapa' })).toHaveValue('countrate')
+    })
   })
 })

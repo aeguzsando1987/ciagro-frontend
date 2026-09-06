@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
 import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre'
+import type { Map as MapLibreMap } from 'maplibre-gl'
 import { usePlotGeometry } from '@/features/task-manager/hooks/usePlotGeometry'
 import { useSoilMapPoints } from '@/features/task-manager/hooks/useSoilMapPoints'
 import { useSoilMapLayerValues } from '@/features/task-manager/hooks/useSoilMapLayerValues'
@@ -47,6 +48,45 @@ interface SoilMapProps {
   sessionsSlot?: React.ReactNode
   className?: string
   mapSync?: MapCameraSyncBinding
+
+  // ── Modo captura (FASE RS, RS-15) ──
+  // Cuatro interruptores APAGADOS por defecto: sin ellos el visor se comporta
+  // exactamente igual. Son los mismos que AspersionMap recibio en la FASE RP.
+  /** Mapa estatico acotado a la parcela, sin toolbar ni tarjetas: solo el terreno. */
+  locked?: boolean
+  /**
+   * Conserva el buffer de WebGL para poder leer el canvas con `toBlob()`. Degrada
+   * el rendimiento, asi que solo se activa donde se va a capturar.
+   */
+  preserveDrawingBuffer?: boolean
+  /** Se dispara cuando el mapa termina de renderizar. `e.target` es el mapa nativo. */
+  onIdle?: (event: { target: MapLibreMap }) => void
+  /** Encuadre cerrado: el terreno vecino solo resta tamaño a lo que interesa. */
+  tightFrame?: boolean
+  /**
+   * Capa a pintar, por `key`. Con este prop la capa la manda quien monta el mapa y
+   * el selector interno deja de decidir; sin el, todo sigue como estaba.
+   */
+  activeLayerKey?: string
+  /**
+   * Emite lo que el mapa ya calculo de la capa activa: bandas, cortes, celdas del
+   * raster y la banda de cada muestra. Lo consume el reporteador para congelar la
+   * capa sin reimplementar la cadena de interpolacion — una segunda version
+   * clasificaria distinto, que es H4.
+   */
+  onLayerComputed?: (result: SoilLayerComputed) => void
+}
+
+/** Resultado del pintado de una capa, para quien necesite congelarlo. */
+export interface SoilLayerComputed {
+  layerKey: string
+  entries: SoilMapLegendEntry[]
+  breaks: number[]
+  /** Banda de cada muestra, como `band-{i}`. */
+  sampleBuckets: string[]
+  /** Celdas por banda. `null` en categoricas, que no interpolan. */
+  bucketCellCounts: Record<string, number> | null
+  totalAreaHa: number | null
 }
 
 interface AnnotatedSoilMapSample extends SoilMapSample {
@@ -112,8 +152,22 @@ export function SoilMap({
   sessionsSlot,
   className,
   mapSync,
+  locked = false,
+  preserveDrawingBuffer = false,
+  onIdle,
+  tightFrame = false,
+  activeLayerKey,
+  onLayerComputed,
 }: SoilMapProps) {
-  const [activeLayerIndex, setActiveLayerIndex] = useState(0)
+  const [internalLayerIndex, setInternalLayerIndex] = useState(0)
+  // Capa CONTROLADA: si viene `activeLayerKey`, manda quien monta el mapa. Se
+  // resuelve aqui y no en el estado para que el prop siempre gane, incluso si el
+  // selector interno hubiera guardado otra cosa antes.
+  const controlledIndex = activeLayerKey
+    ? SOIL_MAP_LAYERS.findIndex((l) => l.key === activeLayerKey)
+    : -1
+  const activeLayerIndex = controlledIndex >= 0 ? controlledIndex : internalLayerIndex
+  const setActiveLayerIndex = setInternalLayerIndex
   const [checkedBuckets, setCheckedBuckets] = useState<Set<string> | null>(null)
   const [hoveredSample, setHoveredSample] = useState<PopupInfo | null>(null)
   const mapRef = useRef<MapRef>(null)
@@ -169,10 +223,14 @@ export function SoilMap({
   const hasLayerCounts = !!variableStats
 
   useEffect(() => {
+    // Con capa controlada NO se salta: si quien monta el mapa pidio una capa sin
+    // datos, la respuesta correcta es un mapa vacio, no otra capa a sus espaldas —
+    // capturarla daria una imagen de la variable equivocada.
+    if (controlledIndex >= 0) return
     if (!hasLayerCounts || layerCounts[activeLayerIndex]! > 0) return
     const firstAvailable = layerCounts.findIndex((count) => count > 0)
     if (firstAvailable >= 0) setActiveLayerIndex(firstAvailable)
-  }, [activeLayerIndex, hasLayerCounts, layerCounts])
+  }, [activeLayerIndex, controlledIndex, hasLayerCounts, layerCounts])
 
   useEffect(() => {
     setCheckedBuckets(null)
@@ -241,6 +299,28 @@ export function SoilMap({
     [activeLayer, numericScale, samples]
   )
 
+  // Se emite cuando la capa ya esta clasificada. Sin bandas todavia no hay nada
+  // util que entregar, y avisar a medias haria congelar una capa incompleta.
+  useEffect(() => {
+    if (!onLayerComputed || legendEntries.length === 0) return
+    onLayerComputed({
+      layerKey: activeLayer.key,
+      entries: legendEntries,
+      breaks: numericScale?.breaks ?? [],
+      sampleBuckets: annotatedSamples.map((s) => s.bucket),
+      bucketCellCounts: surfaceAnalysis?.bucketCellCounts ?? null,
+      totalAreaHa: boundary?.totalAreaHa ?? null,
+    })
+  }, [
+    activeLayer.key,
+    annotatedSamples,
+    boundary?.totalAreaHa,
+    legendEntries,
+    numericScale,
+    onLayerComputed,
+    surfaceAnalysis,
+  ])
+
   const pointCollection = useMemo<GeoJSON.FeatureCollection<GeoJSON.Point>>(
     () => ({
       type: 'FeatureCollection',
@@ -293,7 +373,12 @@ export function SoilMap({
 
   useEffect(() => {
     if (!mapRef.current || !mapBounds) return
-    mapRef.current.fitBounds(mapBounds, { padding: 56, duration: 600, maxZoom: 18 })
+    mapRef.current.fitBounds(mapBounds, {
+      padding: tightFrame ? 12 : 56,
+      // Sin animacion en captura: `idle` llegaria antes de terminar el encuadre.
+      duration: tightFrame ? 0 : 600,
+      maxZoom: 18,
+    })
   }, [mapBounds])
 
   function toggleBucket(key: string) {
@@ -375,20 +460,22 @@ export function SoilMap({
 
   return (
     <div className={`flex h-full min-h-0 flex-col overflow-hidden ${className ?? ''}`}>
-      {!floatingToolbar && (
+      {/* En captura no va cromo: la foto es del terreno, y el combobox o la tarjeta
+          de clases saldrian dibujados dentro de la imagen del PDF. */}
+      {!floatingToolbar && !locked && (
         <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b px-3 py-1.5">
           {toolbar}
         </div>
       )}
 
       <div className="relative min-h-0 flex-1">
-        {floatingToolbar && (
+        {floatingToolbar && !locked && (
           <div className="absolute left-2 top-2 z-20 flex flex-wrap items-center gap-1.5">
             {toolbar}
           </div>
         )}
 
-        {sessionsSlot && (
+        {sessionsSlot && !locked && (
           <div className="absolute bottom-2 right-2 top-2 z-10 flex w-56 flex-col gap-2">
             {sessionsSlot}
             <SoilMapVariableStatsCard
@@ -455,16 +542,24 @@ export function SoilMap({
           onMove={mapSync ? handleCameraMove : undefined}
           initialViewState={
             mapBounds
-              ? { bounds: mapBounds, fitBoundsOptions: { padding: 56, maxZoom: 18 } }
+              ? {
+                  bounds: mapBounds,
+                  fitBoundsOptions: { padding: tightFrame ? 12 : 56, maxZoom: 18 },
+                }
               : { longitude: -101, latitude: 20.5, zoom: 6 }
           }
           maxZoom={20}
           mapStyle={ESRI_STYLE}
-          cooperativeGestures
+          cooperativeGestures={!locked}
           attributionControl={false}
-          interactiveLayerIds={samples.length > 0 ? ['soil-sample-points'] : []}
-          onMouseMove={handleMapHover}
-          onMouseLeave={() => setHoveredSample(null)}
+          preserveDrawingBuffer={preserveDrawingBuffer}
+          onIdle={onIdle}
+          // En captura el mapa es una foto: sin paneo, zoom ni rotacion, y sin
+          // popups, que saldrian dibujados en la imagen.
+          interactive={!locked}
+          interactiveLayerIds={!locked && samples.length > 0 ? ['soil-sample-points'] : []}
+          onMouseMove={locked ? undefined : handleMapHover}
+          onMouseLeave={locked ? undefined : () => setHoveredSample(null)}
           style={{ width: '100%', height: '100%' }}
         >
           {displayBoundaryGeometry && (
