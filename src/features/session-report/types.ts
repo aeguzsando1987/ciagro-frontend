@@ -64,6 +64,48 @@ export interface StatsSnapshot {
   variables?: Partial<Record<'velocidad' | 'flujo_liquido' | 'presion', StatsVariable>>
   proporcion_meta?: Array<number | string>
   semaforo?: Partial<Record<SemaforoBucketKey, SemaforoBucket>>
+
+  // ── Mapeo de suelo (FASE RS) ──
+  /** Nota de escala relativa (P2): los cortes son cuantiles de ESTA sesión. */
+  scale_note?: string | null
+  /** Las 49 capas, congeladas al sincronizar. Sin paleta: los colores son del catálogo. */
+  layers_summary?: SoilLayerSummary[]
+  /** Capas congeladas al publicar, en orden del catálogo. Definen las páginas del PDF. */
+  published_layers?: string[]
+  /** Cortes, clases e histograma por capa publicada. Los produce el front (P1). */
+  layers?: Record<string, SoilFrozenLayer>
+}
+
+/** Descriptivos de una capa. Las categóricas no traen media ni desviación. */
+export interface SoilLayerSummary {
+  key: string
+  label: string
+  field: string
+  group: string
+  unit: string
+  kind: 'numeric' | 'category'
+  class_count: number
+  count: number
+  mean?: number | null
+  min?: number | null
+  max?: number | null
+  stddev?: number | null
+  values?: Array<{ value: string; count: number }>
+}
+
+/** Lo que el front congela por capa al publicar. `breaks` tiene `class_count - 1`. */
+export interface SoilFrozenLayer {
+  /** Captura del mapa de la capa. La sirve el backend desde su Attachment. */
+  image_url?: string | null
+  breaks?: number[]
+  classes?: Array<{
+    index: number
+    label?: string
+    by_points?: { count?: number; pct?: number; area_ha?: number }
+    by_area?: { pct?: number; area_ha?: number }
+  }>
+  histogram?: { bins?: Array<{ lower: number; upper: number; count: number }> }
+  computed_at?: string
 }
 
 /** Acceso tipado a los snapshots de un reporte (el schema los expone como `unknown`). */

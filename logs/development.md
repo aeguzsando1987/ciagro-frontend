@@ -3221,3 +3221,50 @@ cobertura explica por qué los tres pasaron desapercibidos.
 `typecheck` limpio, sin un solo `as any`. 89 archivos y 527 tests. El único error suelto de la suite
 es `window.URL.createObjectURL` de `maplibre-gl` en jsdom: se verificó con `git stash` que aparece
 igual sin estos cambios. **Prueba manual del desarrollador: VALIDADA** (2026-08-27).
+
+---
+
+## Sesión `soilmap-report` — FASE RS: reporteador de sesiones de Mapeo de Suelo (2026-09-01/04, rama `dev-soilmap-report`)
+
+Lado frontend de la fase. El backend cierra en RS-11 (`schema.yml` + `types:gen`) y solo entonces
+arranca el front: los tipos se **generan, no se escriben** (convención 5), y `SessionType` es
+literalmente `components['schemas']['SessionTypeEnum']`, así que el alias `soilmap` llegó solo hasta
+el prop del panel.
+
+### Lo construido
+
+- **Hooks** con `apiClient` y no `fetch` a mano: valida ruta y query params contra el schema, y
+  reintenta con refresh en 401. El hook espejo del visor no hace ninguna de las dos.
+- **Selector agrupado** que lee el **catálogo del backend**, no `soilMapLayers.ts`: la agrupación del
+  reporte sigue D5 y **diverge a propósito** de la del visor. Hay test que fija ese orden.
+- **Histograma en SVG a mano.** No hay librería de gráficos en el proyecto (verificado contra
+  `package.json`), y el único `<svg>` escrito a mano era un icono. El argumento no es el peso: el PDF
+  lo dibuja `report_charts.py` en el backend, que no puede correr Recharts. **El test clave no se
+  escribió a mano**: los valores esperados salieron de correr el módulo Python con la misma entrada,
+  y coinciden al centésimo.
+- **Preparación de capas** (montar mapa → esperar raster → capturar → congelar) extraída a un hook,
+  porque la usan dos sitios: el panel prepara una al elegirla, el selector de entregables prepara las
+  que falten. Siempre **de una en una**: N mapas WebGL simultáneos agotan los contextos del navegador.
+- **Exportación** de PDF, KMZ y CSV con gating de R2 en la interfaz, en vez de dejar que el 409 del
+  backend salga como error suelto tras esperar la descarga.
+
+### Lo que hubo que corregir tras la prueba manual
+
+- **El panel mentía.** Escrito para aspersión, con un reporte de suelo mostraba Dosis promedio,
+  Volumen total y semáforo, todos en `—`. No truena, pero no es cierto.
+- **"Ver mapa" montaba `AspersionMap`** con el `object_id` de una sesión de suelo. Se retiró; la
+  referencia visual es la captura congelada, **en la misma fila que el histograma** — son las dos
+  vistas de la misma capa y se leen juntas.
+- **La imagen no se veía**: Django devuelve rutas relativas y el front vive en otro origen, así que
+  el navegador las pedía a su propio host. 404 silencioso. La app **nunca había renderizado un archivo
+  de `media/`**, por eso no existía helper ni precedente.
+- **El PDF abría una pestaña en blanco** varios segundos. Se abría dentro del clic por obligación —el
+  bloqueador de popups corta cualquier ventana abierta tras un `await`—, pero **descargar no necesita
+  ese truco**. Se cambió también en aspersión, que tenía el defecto idéntico.
+
+### Verificación
+
+- **638 tests**, 100 archivos, cero fallos. `tsc --noEmit` limpio.
+- Los **15 tests originales de `SoilMap`** siguen pasando sin tocarlos, tras agregarle 6 props.
+- **Prueba manual del desarrollador: iterada 5 veces.** Cada ronda encontró defectos reales que los
+  tests no veían, casi siempre por probar la pieza y no el cableado.

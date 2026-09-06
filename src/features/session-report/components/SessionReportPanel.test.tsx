@@ -24,8 +24,19 @@ vi.mock('../hooks/useSessionReport', async () => {
 // Los entregables (FASE RP) usan mutaciones propias; se mockean por lo mismo.
 vi.mock('../hooks/useReportAssets', () => ({
   useUploadReportAssets: () => ({ mutate: vi.fn(), isPending: false }),
-  useOpenReportPdf: () => ({ mutate: vi.fn(), isPending: false }),
+  useDownloadReportPdf: () => ({ mutate: vi.fn(), isPending: false }),
   useDownloadReportKmz: () => ({ mutate: vi.fn(), isPending: false }),
+  useDownloadReportCsv: () => ({ mutate: vi.fn(), isPending: false }),
+}))
+// El flujo de publicacion por capas consulta catalogo y stats con react-query; se
+// prueba aparte, en SoilPublishFlow.test.tsx.
+vi.mock('./SoilPublishFlow', () => ({
+  SoilPublishFlow: () => <div data-testid="soil-publish-flow" />,
+}))
+// La seccion de capas consulta catalogo y estadisticos con react-query; aqui las
+// dependencias se sustituyen hook por hook y no hay QueryClientProvider.
+vi.mock('./SoilLayerSection', () => ({
+  SoilLayerSection: () => <div data-testid="soil-layer-block" />,
 }))
 // El formulario consulta el clima con su propia mutación (FASE KM); sin mock
 // pediría un QueryClient que este test no monta.
@@ -41,6 +52,9 @@ vi.mock('../hooks/useSessionIssues', () => ({
 vi.mock('@/features/geodata-visor/components/AspersionMap', () => ({
   AspersionMap: () => <div data-testid="aspersion-map" />,
 }))
+// El bloque de capas consulta el catalogo y los estadisticos con react-query; aqui
+// las dependencias se sustituyen hook por hook y no hay QueryClientProvider. Su
+// contenido se prueba en SoilLayerBlock.test.tsx; al panel solo le toca montarlo.
 
 import { SessionReportPanel } from './SessionReportPanel'
 
@@ -63,9 +77,33 @@ const REPORT: SessionReport = {
   created_at: '2026-06-30T00:00:00Z', updated_at: '2026-06-30T00:00:00Z',
 } as unknown as SessionReport
 
-function renderPanel() {
+/** Reporte de suelo: sin semáforo ni telemetría, con las 49 capas resumidas. */
+const REPORT_SUELO: SessionReport = {
+  ...REPORT,
+  id: 'r2', session_type: 'soilmap', activity_label: 'Mapeo de Suelo',
+  general_snapshot: { productor: 'Productor X', rancho: 'Rancho Y' },
+  stats_snapshot: {
+    points_count: 16944,
+    scale_note: 'Escala relativa a esta sesión.',
+    layers_summary: [
+      { key: 'ph', label: 'pH del suelo', kind: 'numeric', count: 16944 },
+      { key: 'clay', label: 'Arcilla', kind: 'numeric', count: 16944 },
+      { key: 'leak', label: 'Fuga', kind: 'numeric', count: 0 },
+    ],
+    published_layers: [],
+    layers: {},
+  },
+} as unknown as SessionReport
+
+function renderPanel(sessionType: 'aspersion' | 'soilmap' = 'aspersion') {
   return render(
-    <SessionReportPanel open onClose={vi.fn()} objectId="h1" plotId="p1" />
+    <SessionReportPanel
+      open
+      onClose={vi.fn()}
+      objectId="h1"
+      plotId="p1"
+      sessionType={sessionType}
+    />
   )
 }
 
@@ -99,6 +137,41 @@ describe('SessionReportPanel', () => {
     expect(screen.getByText('Temas de atención y observaciones')).toBeTruthy()
   })
 
+  // RS-12: el panel se escribio para aspersion. Con un reporte de suelo mostraba
+  // dosis, volumen y semaforo, todos en "—": no truena, pero miente.
+  it('reporte de suelo: cambia la ficha y no muestra la telemetría de aspersión', () => {
+    setRole(3)
+    mockReport.mockReturnValue({
+      data: REPORT_SUELO, isLoading: false, isError: false, refetch: vi.fn(),
+    })
+    renderPanel('soilmap')
+
+    // Sale dos veces: en la descripcion del panel y en el titulo de la tarjeta.
+    expect(screen.getAllByText(/mapeo de suelo/i).length).toBeGreaterThan(1)
+    expect(screen.getByText('Muestras')).toBeTruthy()
+    // 2 de 3 capas con datos: `leak` viene con count 0.
+    expect(screen.getByText('2 de 3')).toBeTruthy()
+    expect(screen.getByText('Escala relativa a esta sesión.')).toBeTruthy()
+
+    expect(screen.queryByText('Dosis promedio (L/ha)')).toBeNull()
+    expect(screen.queryByText('Volumen total (L)')).toBeNull()
+    expect(screen.queryByText('Proporción meta')).toBeNull()
+    expect(screen.queryByText('Clasificación de cobertura')).toBeNull()
+    // La unidad de analisis de suelo es la capa: el bloque sustituye al semaforo.
+    expect(screen.getByTestId('soil-layer-block')).toBeTruthy()
+  })
+
+  it('aspersión conserva su ficha completa', () => {
+    setRole(3)
+    mockReport.mockReturnValue({ data: REPORT, isLoading: false, isError: false, refetch: vi.fn() })
+    renderPanel()
+
+    expect(screen.getByText('Dosis promedio (L/ha)')).toBeTruthy()
+    expect(screen.getByText('Proporción meta')).toBeTruthy()
+    expect(screen.queryByText('Capas con datos')).toBeNull()
+    expect(screen.queryByTestId('soil-layer-block')).toBeNull()
+  })
+
   it('reporte NO publicado: ofrece Publicar y no muestra la liga pública', () => {
     setRole(3)
     mockReport.mockReturnValue({ data: REPORT, isLoading: false, isError: false, refetch: vi.fn() })
@@ -128,7 +201,7 @@ describe('SessionReportPanel', () => {
     renderPanel()
     const kml = screen.getByRole('button', { name: /Exportar KML/i })
     expect((kml as HTMLButtonElement).disabled).toBe(false)
-    expect((screen.getByRole('button', { name: /Ver PDF/i }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: /Descargar PDF/i }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('con reporte: al pulsar Generar en estado vacío aparece el formulario de creación', () => {

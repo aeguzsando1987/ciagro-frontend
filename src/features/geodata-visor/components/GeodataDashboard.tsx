@@ -423,6 +423,14 @@ function RanchView({
                 )
               }
               toolbarStart={backToPlotButton}
+              toolbarEnd={
+                <SessionReportToggle
+                  objectId={selection.session!.id}
+                  plotId={selection.plot!.id}
+                  datacentralId={selection.datacentral?.id ?? null}
+                  sessionType="soilmap"
+                />
+              }
             />
           ) : (
             /* Sesión de aspersión: las 5 capas heatmap sobre la parcela (reuso Fase 6).

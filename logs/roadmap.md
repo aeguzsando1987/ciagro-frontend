@@ -783,6 +783,60 @@ owner del DataCentralMain; confirmar con que dato del `/me/` se refleja eso en l
 
 ---
 
+## FASE RS: REPORTEADOR DE SESIONES DE MAPEO DE SUELO — FRONTEND
+
+**Estado:** `[x] COMPLETADA 2026-09-04. 638 tests en 100 archivos; tsc --noEmit limpio. Prueba manual del dev VALIDADA tras 5 rondas. Pendiente SOLO el merge a dev/master, que requiere confirmacion explicita.`
+Va en pareja con la FASE RS del backend (`../CIAgro_alpha_back/logs/roadmap.md`). **Los dos lados
+se PLANEARON JUNTOS en una sola sesion** —P1 es una decision de frontera— pero se **implementan en
+orden: backend primero**, porque el front consume sus endpoints.
+
+**NO EMPEZAR ANTES DE RS-11** (`contrato-api*` en el back). Ahi se regenera `schema.yml` y se corre
+`npm run types:gen`: `SessionType` es literalmente `components['schemas']['SessionTypeEnum']`
+(`session-report/types.ts:16`), asi que el alias `soilmap` **aparece solo** al regenerar. Los tipos
+se **generan, no se escriben a mano** (convencion 5).
+
+**EL FRONT ES DUENO DEL RASTER, Y ESO ES UNA DECISION DE ARQUITECTURA (P1), NO UNA COMODIDAD.**
+Los cortes de las clases y las hectareas por clase **no los puede calcular el backend**: salen de
+`analyzeSoilSurface` (IDW sobre malla de hasta 260x260, cuantiles del raster, recorte por poligono)
+y de `buildSoilRasterAreaStats`, que reparte `plot.total_area` entre las celdas. `SoilMapPoints`
+**no tiene campo de area**, asi que no hay SQL que produzca el eje Y del histograma. El front los
+calcula **al publicar** y los sube; el backend los **congela** en `stats_snapshot` y el PDF los lee
+sin recalcular nunca.
+
+**LA MAYOR PARTE DEL TRABAJO YA ESTA HECHA Y NO HAY QUE REESCRIBIRLA.** `soilMapLayers.ts` (49
+capas, paletas, grupos), `soilMapSurface.ts` + el worker, `soilMapArea.ts`, `useSoilMapVariableStats`
+y **todo `src/features/session-report/`** se reutilizan. **El reporte NO reimplementa el visor.**
+El limite exacto: el visor pinta **una capa a la vez, en memoria, y la tira al cambiar de capa**;
+el reporte necesita **N capas congeladas y persistidas**.
+
+- [ ] **RS-F1** Hooks `useSoilLayerStats` / `useSoilLayerHistogram` + **cablear el toggle de reporte
+  en el visor de suelo**, que hoy NO existe: `SessionReportToggle` solo esta montado para aspersion,
+  aunque `<SoilMap>` ya acepta `toolbarEnd`. Sin esto no hay entrada a la funcionalidad
+- [ ] **RS-F2** Combobox agrupado (D5) reutilizando `SOIL_MAP_LAYERS` y `buildLayerCountMap`, que ya
+  oculta las capas sin datos
+- [ ] **RS-F3** Histograma en **SVG a mano** (pausa): 20 barras, eje Y en Ha acumuladas,
+  **`len(palette)-1` lineas verticales — NO 7 fijas**, curva de distribucion, tooltips y filtro
+  cruzado que repinta los puntos
+- [ ] **RS-F4** Selector de capas para PDF/KMZ/CSV (R4), flujo de publicacion por capa con progreso
+  visible, y gating de R2 por estado del reporte
+- [ ] **RS-F5** Tests (Vitest)
+- [ ] **RS-F6** Prueba manual del desarrollador (regla 8)
+
+**POR QUE SVG A MANO Y NO UNA LIBRERIA.** No hay ninguna libreria de graficos en el proyecto (ni d3,
+ni recharts, ni visx) ni un solo `<svg>` escrito a mano. Recharts resolveria barras y tooltips casi
+gratis, pero **el PDF lo dibuja el backend en SVG inline** (WeasyPrint no corre Recharts), asi que
+pantalla y papel se verian distintos. Si el grafico publicado no coincide con el de la app, el
+reporte pierde credibilidad justo donde se publica. La geometria vive en `lib/histogram.ts` como
+funciones puras, testeables y espejo de `report_charts.py`.
+
+**RIESGO PRINCIPAL — el flujo de publicacion.** Por cada capa seleccionada hay que correr el worker,
+convertir a hectareas, capturar el PNG del mapa y subirlo, antes de marcar `publicado`. La unica
+referencia de tiempo es una **observacion, no un benchmark**: 1-3 s por capa (`SoilMap.tsx:187`).
+Hace falta **progreso visible por capa** y **medir el tiempo real en la pausa RS-F3**, porque ese
+numero —no la estimacion— es lo que hay que enseñarle al usuario antes de que publique.
+
+---
+
 ## GAPS ABIERTOS A LA FECHA (ver `gap_log.csv` para detalle)
 
 | ID | Categoría | Prioridad | Disparador para resolver |
