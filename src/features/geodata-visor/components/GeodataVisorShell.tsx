@@ -4,8 +4,9 @@
  * Se mantiene separado del panel general para reservar el ancho disponible al
  * explorador y al contenido analítico. Ningún estilo interno de mapa vive aquí.
  */
-import { useCallback, useMemo, useState, useEffect, useRef } from 'react'
+import { useCallback, useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
+import { createPortal } from 'react-dom'
 import {
   Columns2,
   FolderTree,
@@ -89,6 +90,7 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
   const [explorerWidth, setExplorerWidth] = useState(300)
   const [explorerHidden, setExplorerHidden] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [headerPortalTarget, setHeaderPortalTarget] = useState<HTMLElement | null>(null)
   const cameraSyncGroup = useMemo(() => createMapCameraSyncGroup(), [])
   const primaryMapSync = useMemo<MapCameraSyncBinding>(
     () => ({ group: cameraSyncGroup, pane: 'primary' }),
@@ -146,6 +148,13 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
     setComparisonSelection(null)
   }, [navigate])
 
+  // El ProductHeader expone un slot para las acciones propias de la pantalla.
+  // Portamos ahí el título del Visor y Comparar para eliminar la segunda cabecera
+  // y devolver esos ~56 px al mapa. useLayoutEffect evita un salto visual al montar.
+  useLayoutEffect(() => {
+    setHeaderPortalTarget(document.getElementById('product-header-workspace-tools'))
+  }, [])
+
   // La CIAgro se resuelve por HTTP, asi que `initialSelection` llega DESPUES del
   // primer render. Se aplica solo mientras el usuario no haya elegido nada, para no
   // pisarle la navegacion si ya se movio por el arbol.
@@ -190,53 +199,64 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
     // que imponer el alto de la ventana lo desbordaba justo esos pixeles y sacaba una
     // barra de desplazamiento vertical. Cada contenedor define el alto.
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-default bg-surface px-3 sm:px-4">
-        {/* Sin boton de "volver": el Visor es la pantalla principal, no hay nada
-            detras. Llevaba al selector de CIAgro, que desde esta fase solo aparece en
-            el camino del Task Manager. */}
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-hover">
-            <Map className="h-[18px] w-[18px]" aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold leading-5 text-foreground">
-              Visor agrícola
-            </h1>
-            <p className="truncate text-xs leading-4 text-muted">{contextLabel}</p>
-          </div>
-        </div>
+      {(() => {
+        const visorHeader = (
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-hover sm:flex">
+                <Map className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <span className="block truncate text-sm font-semibold leading-4 text-foreground">
+                  Visor agrícola
+                </span>
+                <span className="hidden truncate text-[11px] leading-4 text-muted lg:block">
+                  {contextLabel}
+                </span>
+              </div>
+            </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          {comparisonEnabled && (
-            <span className="hidden text-xs font-medium text-success lg:inline">
-              Mapas sincronizados
-            </span>
-          )}
-          <Button
-            type="button"
-            variant={comparisonEnabled ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={toggleComparison}
-            disabled={!selection && !comparisonEnabled}
-            aria-pressed={comparisonEnabled}
-            title={
-              selection || comparisonEnabled
-                ? comparisonEnabled
-                  ? 'Cerrar comparación'
-                  : 'Comparar en vista dividida'
-                : 'Selecciona primero una sesión o elemento'
-            }
-            className={
-              comparisonEnabled ? 'border-primary/25 bg-primary-soft text-primary-hover' : ''
-            }
-          >
-            <Columns2 />
-            <span className="hidden sm:inline">
-              {comparisonEnabled ? 'Cerrar comparación' : 'Comparar'}
-            </span>
-          </Button>
-        </div>
-      </header>
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              {comparisonEnabled && (
+                <span className="hidden text-xs font-medium text-success 2xl:inline">
+                  Mapas sincronizados
+                </span>
+              )}
+              <Button
+                type="button"
+                variant={comparisonEnabled ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={toggleComparison}
+                disabled={!selection && !comparisonEnabled}
+                aria-pressed={comparisonEnabled}
+                title={
+                  selection || comparisonEnabled
+                    ? comparisonEnabled
+                      ? 'Cerrar comparación'
+                      : 'Comparar en vista dividida'
+                    : 'Selecciona primero una sesión o elemento'
+                }
+                className={
+                  comparisonEnabled ? 'border-primary/25 bg-primary-soft text-primary-hover' : ''
+                }
+              >
+                <Columns2 />
+                <span className="hidden sm:inline">
+                  {comparisonEnabled ? 'Cerrar comparación' : 'Comparar'}
+                </span>
+              </Button>
+            </div>
+          </div>
+        )
+
+        return headerPortalTarget ? (
+          createPortal(visorHeader, headerPortalTarget)
+        ) : (
+          <header className="flex h-14 shrink-0 items-center gap-3 border-b border-default bg-surface px-3 sm:px-4">
+            {visorHeader}
+          </header>
+        )
+      })()}
 
       <main className="flex min-h-0 flex-1 overflow-hidden">
         {explorerHidden ? (

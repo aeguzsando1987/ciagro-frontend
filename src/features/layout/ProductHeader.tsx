@@ -86,6 +86,15 @@ export function ProductHeader({ contextLabel, currentDcId, onOpenNavigation }: P
           </>
         )}
 
+        {/* Slot contextual de la pantalla activa. El Visor lo usa para subir
+            "Visor agrícola" y "Comparar" a esta misma cabecera y así recuperar
+            la altura que antes consumía una segunda barra completa. */}
+        <div
+          id="product-header-workspace-tools"
+          className="ml-3 flex min-w-0 flex-1 items-center"
+          aria-live="polite"
+        />
+
         <div className="ml-auto flex items-center gap-1.5">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

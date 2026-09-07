@@ -18,9 +18,7 @@ import Map, { Layer, Source, Popup } from 'react-map-gl/maplibre'
 import type { MapRef } from 'react-map-gl/maplibre'
 import { usePlotGeometry } from '@/features/task-manager/hooks/usePlotGeometry'
 import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
-import { useMapMode } from '../lib/mapModes'
 import { useMapCameraSync, type MapCameraSyncBinding } from '../lib/mapCameraSync'
-import { MapModeSelector } from './MapModeSelector'
 import { useNdviPoints, type NdviPoint } from '../hooks/useNdviPoints'
 import {
   buildInterpolatedImage,
@@ -39,6 +37,7 @@ import { useNdviVariableStats } from '@/features/task-manager/hooks/useNdviVaria
 import { buildNdviClassAreas, type ClassBand } from '../lib/ndviClassArea'
 import { NdviClassAreaCard } from './NdviClassAreaCard'
 import { GpaLoader } from '@/components/ui/gpa-loader'
+import { CloudOff } from 'lucide-react'
 
 const INDICES: { key: keyof NdviPoint; label: string }[] = [
   { key: 'ndvi', label: 'NDVI' },
@@ -89,6 +88,8 @@ interface NdviMapProps {
    */
   dcId?: string
   mapSync?: MapCameraSyncBinding
+  /** Informa al reproductor cuando los datos de la sesión actual ya terminaron de cargar. */
+  onReadyChange?: (ready: boolean) => void
 }
 
 /** Propiedades que viajan en cada feature de punto (obj_id + índices). */
@@ -102,20 +103,26 @@ interface PointSelection {
 
 const POINTS_LAYER_ID = 'ndvi-points'
 
-export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync }: NdviMapProps) {
+export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyChange }: NdviMapProps) {
   const mapRef = useRef<MapRef>(null)
-  const { mapMode, setMapMode } = useMapMode(mapRef)
+  const containerRef = useRef<HTMLDivElement>(null)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
-  const { data: plot } = usePlotGeometry(plotId ?? null)
-  const { data: points, isLoading } = useNdviPoints(sessionId)
+  const { data: plot, isLoading: isPlotLoading } = usePlotGeometry(plotId ?? null)
+  const { data: points, isLoading: isPointsLoading } = useNdviPoints(sessionId)
+
+  // Una fecha SIN NDVI puede tener cero puntos o puntos cuyo NDVI venga en null.
+  // Importante: NDVI = 0 SI es un dato real y por eso `typeof 0 === 'number'` lo conserva.
+  // Esta bandera controla el sombreado oscuro del polígono y el mensaje central.
+  const hasNdviValues = (points ?? []).some((point) => typeof point.ndvi === 'number')
+  const noSessionData = !isPointsLoading && !hasNdviValues
   // Config de umbrales de la organización desde la que se consulta (resuelta en el
   // servidor). Un mismo productor puede estar asignado a CIAgros de organizaciones
   // distintas, así que sin ámbito el backend caería a la asignación más antigua y ambas
   // verían la misma config. Si no hay alcance/config, el visor usa el gradiente.
-  const { data: varConfig } = useNdviSessionVariableConfig(sessionId, { tenantId, dcId })
+  const { data: varConfig, isLoading: isConfigLoading } = useNdviSessionVariableConfig(sessionId, { tenantId, dcId })
   // Mismo endpoint que la tabla de resumen de la sesion en el task-manager.
-  const { data: varStats } = useNdviVariableStats(sessionId)
+  const { data: varStats, isLoading: isStatsLoading } = useNdviVariableStats(sessionId)
 
   const [indexKey, setIndexKey] = useState<keyof NdviPoint>('ndvi')
   // El tooltip se abre al hacer clic en un punto (no al pasar el cursor): con la
@@ -123,7 +130,92 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync }: NdviMapP
   const [selected, setSelected] = useState<PointSelection | null>(null)
   // Solo para el cursor "pointer" sobre un punto clicable.
   const [hoveringPoint, setHoveringPoint] = useState(false)
-  const [areaCardOpen, setAreaCardOpen] = useState(true)
+  const [areaCardOpen, setAreaCardOpen] = useState(false)
+
+  /* =====================================================
+     SINCRONIZACIÓN ESTRICTA CON PLAY
+
+     No marcamos el mapa como listo solamente porque terminó
+     el fetch. El reproductor debe esperar a que:
+
+     1. geometría, puntos, configuración y estadísticas hayan
+        terminado de cargar;
+     2. MapLibre haya renderizado las fuentes/capas de la sesión;
+     3. el mapa emita `idle`, que significa que ya no tiene
+        trabajo de renderizado pendiente para ese cuadro.
+
+     Así evitamos brincar al siguiente NDVI mientras todavía se
+     está dibujando el mapa actual.
+     ===================================================== */
+
+  const readySessionRef = useRef<string | null>(null)
+
+  const mapDataReady =
+    !isPlotLoading &&
+    !isPointsLoading &&
+    !isConfigLoading &&
+    !isStatsLoading &&
+    plot !== undefined &&
+    points !== undefined
+
+  useEffect(() => {
+    readySessionRef.current = null
+    onReadyChange?.(false)
+  }, [sessionId, onReadyChange])
+
+  const handleMapIdle = () => {
+    if (!mapDataReady) return
+
+    if (readySessionRef.current === sessionId) {
+      return
+    }
+
+    readySessionRef.current = sessionId
+    onReadyChange?.(true)
+  }
+
+  /*
+   * Caso importante para Play:
+   * puede ocurrir que MapLibre haya emitido `idle` ANTES de que la última
+   * consulta de React Query termine. En ese caso no necesariamente habrá otro
+   * evento `idle` y el reproductor se quedaría esperando para siempre.
+   *
+   * Cuando todos los datos pasan a ready, comprobamos el estado actual del
+   * mapa. Si ya está cargado lo marcamos listo en el siguiente frame; si aún
+   * está procesando, esperamos explícitamente al próximo `idle`.
+   */
+  useEffect(() => {
+    if (!mapDataReady || readySessionRef.current === sessionId) return
+
+    const map = mapRef.current?.getMap()
+    if (!map) return
+
+    let cancelled = false
+    let frame: number | null = null
+
+    const markReady = () => {
+      if (cancelled || readySessionRef.current === sessionId) return
+      readySessionRef.current = sessionId
+      onReadyChange?.(true)
+    }
+
+    frame = window.requestAnimationFrame(() => {
+      if (cancelled) return
+
+      if (map.loaded() && !map.isMoving()) {
+        markReady()
+        return
+      }
+
+      map.once('idle', markReady)
+    })
+
+    return () => {
+      cancelled = true
+      if (frame !== null) window.cancelAnimationFrame(frame)
+      map.off('idle', markReady)
+    }
+  }, [mapDataReady, onReadyChange, sessionId])
 
   const activeStat = useMemo(
     () => varStats?.variables.find((v) => v.key === (indexKey as string)) ?? null,
@@ -263,11 +355,44 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync }: NdviMapP
     mapRef.current.fitBounds(mapBounds, { padding: 40, duration: 600, maxZoom: 18 })
   }, [mapBounds])
 
+  // El mapa cambia de ancho cuando se oculta/muestra la evaluación del programa.
+  // ResizeObserver obliga a MapLibre a recalcular su canvas y vuelve a encuadrar
+  // la parcela para aprovechar todo el espacio disponible.
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    let frame: number | null = null
+
+    const observer = new ResizeObserver(() => {
+      if (frame !== null) cancelAnimationFrame(frame)
+
+      frame = requestAnimationFrame(() => {
+        const map = mapRef.current
+        if (!map) return
+
+        map.resize()
+
+        if (mapBounds) {
+          map.fitBounds(mapBounds, { padding: 40, duration: 0, maxZoom: 18 })
+        }
+      })
+    })
+
+    observer.observe(container)
+
+    return () => {
+      observer.disconnect()
+      if (frame !== null) cancelAnimationFrame(frame)
+    }
+  }, [mapBounds])
+
   return (
-    <div className="relative h-full w-full">
+    <div ref={containerRef} className="relative h-full w-full">
       <Map
         ref={mapRef}
         onMove={mapSync ? handleCameraMove : undefined}
+        onIdle={handleMapIdle}
         initialViewState={
           mapBounds
             ? { bounds: mapBounds, fitBoundsOptions: { padding: 40, maxZoom: 18 } }
@@ -312,13 +437,24 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync }: NdviMapP
           </Source>
         )}
 
-        {/* Contorno de la parcela por encima. */}
+        {/* Parcela. Si la fecha no tiene NDVI, se rellena en gris oscuro para que
+            quede visualmente separada del rojo de bajo vigor. */}
         {plotGeojson && (
           <Source id="ndvi-plot" type="geojson" data={plotGeojson}>
+            {noSessionData && (
+              <Layer
+                id="ndvi-plot-no-data"
+                type="fill"
+                paint={{ 'fill-color': '#3f3f46', 'fill-opacity': 0.78 }}
+              />
+            )}
             <Layer
               id="ndvi-plot-outline"
               type="line"
-              paint={{ 'line-color': '#16a34a', 'line-width': 2 }}
+              paint={{
+                'line-color': noSessionData ? '#e4e4e7' : '#16a34a',
+                'line-width': noSessionData ? 2.5 : 2,
+              }}
             />
           </Source>
         )}
@@ -386,9 +522,17 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync }: NdviMapP
         )}
       </Map>
 
-      <div className="absolute right-3 top-3 z-10">
-        <MapModeSelector active={mapMode} onChange={setMapMode} />
-      </div>
+      {/* Mensaje explícito para una fecha sin información. El mapa permanece visible
+          y centrado en la parcela, pero no inventa una superficie con valor cero. */}
+      {noSessionData && ring && (
+        <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
+          <div className="flex max-w-xs items-center gap-2 rounded-lg bg-zinc-900/90 px-4 py-3 text-sm font-medium text-white shadow-xl backdrop-blur-sm">
+            <CloudOff className="h-5 w-5 shrink-0" />
+            <span>No hay información NDVI para esta fecha</span>
+          </div>
+        </div>
+      )}
+
 
       {/* Superficie por clase. Va abajo a la derecha: arriba a la derecha esta el selector
           de modo y abajo a la izquierda la leyenda, asi que es la unica esquina libre. */}
@@ -424,15 +568,31 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync }: NdviMapP
       </div>
 
       <div className="absolute bottom-3 left-3 z-10 w-56 rounded-md bg-white/90 p-3 shadow">
-        {isLoading ? (
+        {isPointsLoading ? (
           <div role="status" className="flex items-center gap-2 text-sm font-medium text-secondary">
             <GpaLoader size="sm" />
             <span>Cargando puntos NDVI…</span>
           </div>
         ) : !surface ? (
-          <p className="text-sm text-gray-500">
-            {ring ? 'Sin datos para este índice.' : 'La parcela no tiene polígono para interpolar.'}
-          </p>
+          <div>
+            <p className="mb-2 text-xs font-semibold text-gray-700">
+              {INDICES.find((i) => i.key === indexKey)?.label}
+            </p>
+            <dl className="mb-2 grid grid-cols-3 gap-x-2 gap-y-0.5 rounded bg-gray-100/70 px-2 py-1 text-[10px] text-gray-600">
+              <div className="flex justify-between gap-1"><dt>Media</dt><dd>—</dd></div>
+              <div className="flex justify-between gap-1"><dt>Mín</dt><dd>—</dd></div>
+              <div className="flex justify-between gap-1"><dt>Máx</dt><dd>—</dd></div>
+            </dl>
+            <div className="flex items-center gap-2 border-t pt-2 text-xs text-gray-700">
+              <span className="inline-block h-3 w-4 rounded-sm border border-black/10 bg-zinc-700" />
+              <span>Sin datos</span>
+            </div>
+            {!ring && (
+              <p className="mt-2 text-[10px] text-gray-500">
+                La parcela no tiene polígono para interpolar.
+              </p>
+            )}
+          </div>
         ) : (
           <div>
             <p className="mb-2 text-xs font-semibold text-gray-700">
@@ -443,16 +603,12 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync }: NdviMapP
                 de la sesion: asi el visor y el task-manager nunca muestran numeros
                 distintos para la misma sesion. */}
             {activeStat && (
-              <dl className="mb-2 grid grid-cols-2 gap-x-2 gap-y-0.5 rounded bg-gray-100/70 px-2 py-1 text-[10px] text-gray-600">
+              <dl className="mb-2 grid grid-cols-3 gap-x-2 gap-y-0.5 rounded bg-gray-100/70 px-2 py-1 text-[10px] text-gray-600">
                 <div className="flex justify-between gap-1">
                   <dt>Media</dt>
                   <dd className="font-medium tabular-nums text-gray-800">
                     {fmtStat(activeStat.mean)}
                   </dd>
-                </div>
-                <div className="flex justify-between gap-1">
-                  <dt>Desv.</dt>
-                  <dd className="tabular-nums">{fmtStat(activeStat.stddev)}</dd>
                 </div>
                 <div className="flex justify-between gap-1">
                   <dt>Mín</dt>
@@ -550,6 +706,13 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync }: NdviMapP
                 </div>
               </>
             )}
+
+            {/* El gris oscuro no pertenece a la escala NDVI 0..1. Es un estado
+                independiente para ausencia de información. */}
+            <div className="mt-2 flex items-center gap-2 border-t pt-2 text-xs text-gray-700">
+              <span className="inline-block h-3 w-4 rounded-sm border border-black/10 bg-zinc-700" />
+              <span>Sin datos</span>
+            </div>
           </div>
         )}
       </div>

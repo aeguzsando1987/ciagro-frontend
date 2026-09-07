@@ -35,8 +35,7 @@ import { PlotSessionsPanel } from './PlotSessionsPanel'
 import { SessionInfoCard } from './SessionInfoCard'
 import { SoilMapSessionInfoCard } from './SoilMapSessionInfoCard'
 import { AspersionMap } from './AspersionMap'
-import { NdviMap } from './NdviMap'
-import { NdviSessionsPanel } from './NdviSessionsPanel'
+import { NdviTimelineView } from './NdviTimelineView'
 import { SoilMap as SoilMapMap } from './SoilMap'
 import { PhytoMap } from '@/features/task-manager/components/PhytoMap'
 import { PhytoStatsCard } from '@/features/task-manager/components/PhytoStatsCard'
@@ -353,34 +352,26 @@ function RanchView({
           datacentralId={selection.datacentral?.id}
         />
       )}
-      <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-lg border">
+      <div
+        className={`relative min-h-[320px] flex-1 rounded-lg border ${
+          isNdviSession && !comparisonMode
+            ? 'overflow-y-auto overflow-x-hidden'
+            : 'overflow-hidden'
+        }`}
+      >
         {isSessionLevel ? (
           isNdviSession ? (
-            /* Sesión NDVI: puntos de muestreo coloreados por clase (cuartiles) sobre la
-               parcela. La lista de sesiones NDVI va en la columna derecha. */
-            <div className="flex h-full">
-              <div className="relative flex-1">
-                <NdviMap
-                  sessionId={selection.session!.id}
-                  plotId={selection.plot!.id}
-                  /* La organización del árbol define de quién son los umbrales: el
-                     productor puede estar compartido con otra organización. */
-                  tenantId={selection.org.id}
-                  mapSync={mapSync}
-                />
-              </div>
-              {!comparisonMode && (
-                <div className="w-56 shrink-0 border-l bg-background/60 p-2">
-                  <NdviSessionsPanel
-                    floating={false}
-                    plotId={selection.plot!.id}
-                    selectedSessionId={selection.session?.id ?? null}
-                    onSelectSession={(session) => onSelect(selectSession(selection, session))}
-                    allowedIds={allowed.ndvi}
-                  />
-                </div>
-              )}
-            </div>
+            /* NDVI temporal: mapa + línea de tiempo + evolución + distribución Gauss +
+               observación. La vista es autocontenida para no afectar aspersión, fito ni suelo. */
+            <NdviTimelineView
+              sessionId={selection.session!.id}
+              plotId={selection.plot!.id}
+              tenantId={selection.org.id}
+              mapSync={mapSync}
+              comparisonMode={comparisonMode}
+              allowedIds={allowed.ndvi}
+              onSelectSession={(session) => onSelect(selectSession(selection, session))}
+            />
           ) : isPhytoSession ? (
             /* Sesión fitosanitaria: mapa de calor de checkpoints sobre la parcela (reuso
                del PhytoMap del task-manager). La lista de sesiones fitosanitarias va en la
@@ -565,7 +556,7 @@ export function GeodataDashboard({
   comparisonMode = false,
   mapSync,
 }: DashboardProps) {
-  const [statsHidden, setStatsHidden] = useState(false)
+  const [statsHidden, setStatsHidden] = useState(true)
   // El toggle de estadísticas solo aplica en niveles con mapa (gana alto el mapa).
   const hasMap =
     selection.level === 'producer' ||
