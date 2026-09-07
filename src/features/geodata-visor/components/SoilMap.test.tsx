@@ -37,14 +37,12 @@ const derived = vi.hoisted(() => ({
   stats: null as null | Record<string, unknown>,
 }))
 
-const geomsFromFixture = vi.hoisted(
-  () => () => {
-    if (!derived.geoms) {
-      derived.geoms = mocks.points.map((point) => ({ id: point.id, geom: point.geom }))
-    }
-    return derived.geoms
+const geomsFromFixture = vi.hoisted(() => () => {
+  if (!derived.geoms) {
+    derived.geoms = mocks.points.map((point) => ({ id: point.id, geom: point.geom }))
   }
-)
+  return derived.geoms
+})
 
 /**
  * Respuesta de /variable-stats/ armada a partir del fixture.
@@ -54,75 +52,69 @@ const geomsFromFixture = vi.hoisted(
  * agrega campos nuevos al fixture. Las etiquetas no importan aquí — el combobox
  * usa las de `soilMapLayers.ts`, no las del endpoint.
  */
-const statsFromFixture = vi.hoisted(
-  () => () => {
-    if (derived.stats) return derived.stats
-    const numeric = new Map<string, number>()
-    const text = new Map<string, number>()
-    // Reparto por categoria, igual que lo calcula el endpoint.
-    const categories = new Map<string, Map<string, number>>()
-    for (const point of mocks.points) {
-      for (const [key, value] of Object.entries(point)) {
-        if (key === 'id' || key === 'geom' || value == null) continue
-        if (typeof value === 'number') {
-          numeric.set(key, (numeric.get(key) ?? 0) + 1)
-        } else if (typeof value === 'string' && value.trim() !== '') {
-          text.set(key, (text.get(key) ?? 0) + 1)
-          const perValue = categories.get(key) ?? new Map<string, number>()
-          perValue.set(value, (perValue.get(value) ?? 0) + 1)
-          categories.set(key, perValue)
-        }
+const statsFromFixture = vi.hoisted(() => () => {
+  if (derived.stats) return derived.stats
+  const numeric = new Map<string, number>()
+  const text = new Map<string, number>()
+  // Reparto por categoria, igual que lo calcula el endpoint.
+  const categories = new Map<string, Map<string, number>>()
+  for (const point of mocks.points) {
+    for (const [key, value] of Object.entries(point)) {
+      if (key === 'id' || key === 'geom' || value == null) continue
+      if (typeof value === 'number') {
+        numeric.set(key, (numeric.get(key) ?? 0) + 1)
+      } else if (typeof value === 'string' && value.trim() !== '') {
+        text.set(key, (text.get(key) ?? 0) + 1)
+        const perValue = categories.get(key) ?? new Map<string, number>()
+        perValue.set(value, (perValue.get(value) ?? 0) + 1)
+        categories.set(key, perValue)
       }
     }
-    derived.stats = {
-      header_id: 'soil-1',
-      points_count: mocks.points.length,
-      variables: [...numeric].map(([key, count]) => ({
-        key,
-        label: key,
-        count,
-        mean: null,
-        min: null,
-        max: null,
-        stddev: null,
-      })),
-      text_variables: [...text].map(([key, count]) => ({
-        key,
-        label: key,
-        count,
-        values: [...(categories.get(key) ?? new Map())]
-          .map(([value, total]) => ({ value, count: total }))
-          .sort((left, right) => right.count - left.count),
-      })),
-    }
-    return derived.stats
   }
-)
+  derived.stats = {
+    header_id: 'soil-1',
+    points_count: mocks.points.length,
+    variables: [...numeric].map(([key, count]) => ({
+      key,
+      label: key,
+      count,
+      mean: null,
+      min: null,
+      max: null,
+      stddev: null,
+    })),
+    text_variables: [...text].map(([key, count]) => ({
+      key,
+      label: key,
+      count,
+      values: [...(categories.get(key) ?? new Map())]
+        .map(([value, total]) => ({ value, count: total }))
+        .sort((left, right) => right.count - left.count),
+    })),
+  }
+  return derived.stats
+})
 
-const valuesFromFixture = vi.hoisted(
-  () => (field: string | null) => {
-    if (!field) return new Map<string, number | string>()
-    const cached = derived.values.get(field)
-    if (cached) return cached
-    const values = new Map<string, number | string>(
-      mocks.points
-        .filter((point) => point[field] != null)
-        .map((point) => [point.id as string, point[field] as number | string])
-    )
-    derived.values.set(field, values)
-    return values
-  }
-)
+const valuesFromFixture = vi.hoisted(() => (field: string | null) => {
+  if (!field) return new Map<string, number | string>()
+  const cached = derived.values.get(field)
+  if (cached) return cached
+  const values = new Map<string, number | string>(
+    mocks.points
+      .filter((point) => point[field] != null)
+      .map((point) => [point.id as string, point[field] as number | string])
+  )
+  derived.values.set(field, values)
+  return values
+})
 
 /** Reemplaza el fixture e invalida los derivados. Usar siempre en vez de asignar. */
-const setPoints = vi.hoisted(
-  () => (points: Array<Record<string, unknown>>) => {
-    mocks.points = points
-    derived.geoms = null
-    derived.values.clear()
-    derived.stats = null
-  }
-)
+const setPoints = vi.hoisted(() => (points: Array<Record<string, unknown>>) => {
+  mocks.points = points
+  derived.geoms = null
+  derived.values.clear()
+  derived.stats = null
+})
 
 vi.mock('react-map-gl/maplibre', async () => {
   const { forwardRef } = await import('react')
@@ -216,6 +208,7 @@ vi.mock('@/features/task-manager/hooks/useSoilMapPoints', () => ({
 }))
 
 vi.mock('@/features/task-manager/hooks/useSoilMapLayerValues', () => ({
+  useSoilMapRelativeElevations: () => ({ data: valuesFromFixture('elevation_relative_pct') }),
   useSoilMapLayerValues: (_headerId: string | null, field: string | null) => {
     mocks.lastField = field
     return { data: valuesFromFixture(field), isLoading: false, error: null }
@@ -237,6 +230,12 @@ vi.mock('@/features/task-manager/hooks/useSoilMapVariableStats', async (importOr
 
 vi.mock('@/features/task-manager/hooks/usePlotGeometry', () => ({
   usePlotGeometry: () => ({ data: mocks.plot }),
+}))
+
+vi.mock('./SoilElevationSummary', () => ({
+  SoilElevationSummary: ({ sessionId }: { sessionId: string }) => (
+    <div data-testid="soil-elevation-summary">{sessionId}</div>
+  ),
 }))
 
 vi.mock('@/features/task-manager/lib/soilMapSurface', async (importOriginal) => ({
@@ -326,6 +325,62 @@ describe('SoilMap', () => {
     expect(screen.getByText(/% de superficie · Countrate/)).toBeInTheDocument()
     expect(screen.getAllByText(/Área total: 20 ha/).length).toBeGreaterThan(0)
   })
+
+  it('muestra metros en leyendas y popup, con elevación relativa independiente', async () => {
+    setPoints(
+      mocks.points.map((point, index) => ({
+        ...point,
+        Elevation: 900 + index * 10,
+        elevation_relative_pct: index * 50,
+      }))
+    )
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} sessionsSlot={<div>Sesiones</div>} />)
+    fireEvent.change(screen.getByRole('combobox', { name: 'Variable del mapa' }), {
+      target: { value: 'elevation' },
+    })
+    await act(async () => {})
+    expect(screen.getByText(/% de superficie · Elevación/)).toBeInTheDocument()
+    for (const checkbox of screen.getAllByRole('checkbox')) {
+      expect(checkbox.getAttribute('aria-label')).toContain(' m')
+    }
+    fireEvent.mouseMove(screen.getByTestId('mock-map'))
+    expect(screen.getByText('900 m')).toBeInTheDocument()
+    expect(screen.getByText(/Elevación relativa: 0 %/)).toBeInTheDocument()
+    expect(screen.getByText(/no es pendiente/)).toBeInTheDocument()
+  })
+
+  it.each([true, false])(
+    'limita el resumen a Elevación, con barra flotante=%s',
+    async (floatingToolbar) => {
+      setPoints(mocks.points.map((point, index) => ({ ...point, Elevation: 1524 + index })))
+      const { rerender } = await renderMap(
+        <SoilMap sessionId="soil-1" plotId={null} floatingToolbar={floatingToolbar} />
+      )
+      const selector = screen.getByRole('combobox', { name: 'Variable del mapa' })
+      expect(screen.queryByTestId('soil-elevation-summary')).not.toBeInTheDocument()
+
+      fireEvent.change(selector, { target: { value: 'elevation' } })
+      await act(async () => {})
+      expect(screen.getByTestId('soil-elevation-summary')).toHaveTextContent('soil-1')
+
+      fireEvent.change(selector, { target: { value: 'ph' } })
+      await act(async () => {})
+      expect(selector).toHaveDisplayValue('pH del suelo')
+      expect(screen.queryByTestId('soil-elevation-summary')).not.toBeInTheDocument()
+
+      fireEvent.change(selector, { target: { value: 'elevation' } })
+      await act(async () => {})
+      rerender(
+        <SoilMap
+          sessionId="soil-1"
+          plotId={null}
+          enabled={false}
+          floatingToolbar={floatingToolbar}
+        />
+      )
+      expect(screen.queryByTestId('soil-elevation-summary')).not.toBeInTheDocument()
+    }
+  )
 
   it('incorpora las capas opcionales cuando el CSV sí contiene valores', async () => {
     setPoints(
@@ -473,9 +528,7 @@ describe('SoilMap', () => {
 
     await renderMap(<SoilMap sessionId="soil-1" plotId={null} sessionsSlot={<div>Sesiones</div>} />)
 
-    await waitFor(() =>
-      expect(screen.getAllByText(/30.0% · 6 ha/).length).toBeGreaterThan(0)
-    )
+    await waitFor(() => expect(screen.getAllByText(/30.0% · 6 ha/).length).toBeGreaterThan(0))
     expect(screen.getAllByText(/20.0% · 4 ha/).length).toBeGreaterThan(0)
   })
 
@@ -487,7 +540,15 @@ describe('SoilMap', () => {
       header_id: 'soil-1',
       points_count: 3,
       variables: [
-        { key: 'Countrate', label: 'Countrate', count: 3, mean: null, min: null, max: null, stddev: null },
+        {
+          key: 'Countrate',
+          label: 'Countrate',
+          count: 3,
+          mean: null,
+          min: null,
+          max: null,
+          stddev: null,
+        },
         { key: 'pH', label: 'pH', count: 0, mean: null, min: null, max: null, stddev: null },
       ],
       text_variables: [],

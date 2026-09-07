@@ -22,14 +22,11 @@ interface Params {
   enabled: boolean
 }
 
-export function useSoilSurfaceAnalysis({
-  ring,
-  samples,
-  paletteSize,
-  cacheKey,
-  enabled,
-}: Params) {
-  const [analysis, setAnalysis] = useState<SoilSurfaceAnalysis | null>(null)
+export function useSoilSurfaceAnalysis({ ring, samples, paletteSize, cacheKey, enabled }: Params) {
+  const [result, setResult] = useState<{
+    key: string | null
+    analysis: SoilSurfaceAnalysis | null
+  } | null>(null)
   const [isComputing, setIsComputing] = useState(false)
   // Distingue la petición vigente de las anteriores. Sin esto, cambiar de capa
   // dos veces seguidas puede pintar el resultado de la primera sobre la segunda
@@ -37,13 +34,13 @@ export function useSoilSurfaceAnalysis({
   const requestRef = useRef(0)
 
   useEffect(() => {
+    const requestId = ++requestRef.current
     if (!enabled || !ring || samples.length < 3 || paletteSize === 0) {
-      setAnalysis(null)
+      setResult(null)
       setIsComputing(false)
       return
     }
 
-    const requestId = ++requestRef.current
     setIsComputing(true)
 
     runSoilSurfaceAnalysis(
@@ -60,17 +57,22 @@ export function useSoilSurfaceAnalysis({
     )
       .then((result) => {
         if (requestRef.current !== requestId) return
-        setAnalysis(result)
+        setResult({ key: cacheKey, analysis: result })
         setIsComputing(false)
       })
       .catch(() => {
         if (requestRef.current !== requestId) return
         // Sin superficie el mapa no se queda en blanco: los cortes se calculan
         // desde los valores crudos, que es el camino que ya existía como respaldo.
-        setAnalysis(null)
+        setResult(null)
         setIsComputing(false)
       })
+    return () => {
+      requestRef.current += 1
+    }
   }, [cacheKey, enabled, paletteSize, ring, samples])
 
-  return { analysis, isComputing }
+  // Nunca reutiliza rangos de otra variable mientras termina el worker: una
+  // leyenda de elevación no puede mostrar cortes de pH con la unidad «m».
+  return { analysis: enabled && result?.key === cacheKey ? result.analysis : null, isComputing }
 }

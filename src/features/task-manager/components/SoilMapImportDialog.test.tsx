@@ -81,4 +81,36 @@ describe('SoilMapImportDialog', () => {
     expect(mocks.importData).toHaveBeenCalledWith({ headerId: 'header-1', file })
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
+
+  it('revalida y envía la unidad explícita sin transformar el archivo', async () => {
+    mocks.preview.mockResolvedValue({
+      matched: ['Elevation'],
+      unmatched: [],
+      col_map: { Elevation: 'Elevation' },
+      elevation_source_unit: 'm',
+    })
+    mocks.importData.mockResolvedValue({ header_id: 'header-1' })
+    const user = userEvent.setup()
+    renderDialog()
+    const file = csvFile()
+    await user.upload(screen.getByLabelText(/Archivo CSV/i), file)
+    await user.selectOptions(screen.getByLabelText('Unidad de elevación del CSV'), 'm')
+    await user.click(screen.getByRole('button', { name: 'Importar' }))
+    expect(mocks.importData).toHaveBeenCalledWith({
+      headerId: 'header-1',
+      file,
+      elevationUnit: 'm',
+    })
+  })
+
+  it('bloquea importar si la unidad contradice el encabezado', async () => {
+    mocks.preview.mockRejectedValue({
+      detail: 'La unidad elegida no coincide con el encabezado de elevación.',
+    })
+    const user = userEvent.setup()
+    renderDialog()
+    await user.upload(screen.getByLabelText(/Archivo CSV/i), csvFile())
+    expect(await screen.findByRole('alert')).toHaveTextContent('no coincide')
+    expect(screen.getByRole('button', { name: 'Importar' })).toBeDisabled()
+  })
 })

@@ -60,6 +60,11 @@ vi.mock('./SessionInfoCard', () => ({
 vi.mock('./SoilMapSessionInfoCard', () => ({
   SoilMapSessionInfoCard: () => <div data-testid="soil-map-session-info-card" />,
 }))
+vi.mock('./SoilElevationSummary', () => ({
+  SoilElevationSummary: ({ sessionId }: { sessionId: string }) => (
+    <div data-testid="soil-elevation-summary">{sessionId}</div>
+  ),
+}))
 // Hooks del visor de aspersión (usados por AspersionMap en nivel sesión).
 // La referencia del array DEBE ser estable: si cambia en cada render, el useMemo/effect
 // de AspersionMap entra en bucle infinito (recalcula capas y resetea checkboxes sin fin).
@@ -115,15 +120,14 @@ const mockSoilMapValues = new Map<string, number>([
 const mockSoilMapStats = {
   header_id: 'soil-1',
   points_count: 3,
-  variables: [
-    { key: 'pH', label: 'pH', count: 3, mean: 6.5, min: 5.5, max: 7.5, stddev: 1 },
-  ],
+  variables: [{ key: 'pH', label: 'pH', count: 3, mean: 6.5, min: 5.5, max: 7.5, stddev: 1 }],
   text_variables: [],
 }
 vi.mock('@/features/task-manager/hooks/useSoilMapPoints', () => ({
   useSoilMapPoints: () => ({ data: mockSoilMapPoints, isLoading: false, error: null }),
 }))
 vi.mock('@/features/task-manager/hooks/useSoilMapLayerValues', () => ({
+  useSoilMapRelativeElevations: () => ({ data: undefined }),
   useSoilMapLayerValues: () => ({ data: mockSoilMapValues, isLoading: false, error: null }),
 }))
 vi.mock('@/features/task-manager/hooks/useSoilMapVariableStats', async (importOriginal) => ({
@@ -165,6 +169,7 @@ describe('GeodataDashboard', () => {
     expect(screen.getByText(/4.5 ha/)).toBeTruthy()
     expect(screen.getAllByText('Sesiones de mapeo de suelo').length).toBeGreaterThan(0)
     expect(screen.getAllByText('1').length).toBeGreaterThan(0)
+    expect(screen.queryByTestId('soil-elevation-summary')).not.toBeInTheDocument()
   })
 
   it('nivel sesión: monta el visor de capas (AspersionMap) con el botón Parcela', () => {
@@ -197,5 +202,6 @@ describe('GeodataDashboard', () => {
     expect(screen.getByRole('button', { name: /Parcela/ })).toBeTruthy()
     expect(screen.queryByTestId('session-info-card')).toBeNull()
     expect(screen.getByTestId('soil-map-session-info-card')).toBeInTheDocument()
+    expect(screen.queryByTestId('soil-elevation-summary')).not.toBeInTheDocument()
   })
 })

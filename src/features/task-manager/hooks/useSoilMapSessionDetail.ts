@@ -1,4 +1,5 @@
-import { queryOptions, useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/client'
 import type { components } from '@/types/api'
 
@@ -21,5 +22,23 @@ export function soilMapSessionDetailQueryOptions(id: string | null) {
 }
 
 export function useSoilMapSessionDetail(id: string | null) {
-  return useQuery(soilMapSessionDetailQueryOptions(id))
+  const client = useQueryClient()
+  const query = useQuery(soilMapSessionDetailQueryOptions(id))
+  const importedAt = query.data?.imported_at
+  useEffect(() => {
+    if (!id || !importedAt) return
+    // El import es asíncrono: invalidar al encolarlo no alcanza. Refresca cuando
+    // el polling confirma una nueva importación terminada.
+    for (const key of [
+      'soil-map-points',
+      'soil-map-layer-values',
+      'soil-map-variable-stats',
+      'soil-map-session-stats',
+      'soil-map-elevation',
+    ]) {
+      void client.invalidateQueries({ queryKey: [key, id] })
+    }
+    void client.invalidateQueries({ queryKey: ['soil-map', 'headers'] })
+  }, [client, id, importedAt])
+  return query
 }

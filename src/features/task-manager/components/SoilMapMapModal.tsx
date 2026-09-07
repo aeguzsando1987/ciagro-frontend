@@ -21,7 +21,7 @@ export function SoilMapMapModal({
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent
-        className="h-[92vh] w-full max-w-6xl gap-0 overflow-hidden p-0"
+        className="flex h-[92vh] w-full max-w-6xl flex-col gap-0 overflow-hidden p-0"
         onInteractOutside={(event) => event.preventDefault()}
         onPointerDownOutside={(event) => event.preventDefault()}
         onEscapeKeyDown={(event) => event.preventDefault()}
@@ -33,6 +33,7 @@ export function SoilMapMapModal({
           sessionId={sessionId}
           plotId={plotId}
           enabled={open}
+          className="flex-1"
           toolbarStart={
             <DialogTitle className="mr-2 text-base font-semibold">Mapa de suelo</DialogTitle>
           }

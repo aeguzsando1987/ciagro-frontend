@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -36,6 +36,9 @@ export function SoilMapImportDialog({
 }: SoilMapImportDialogProps) {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<SoilMapPreviewResult | null>(null)
+  const [elevationUnit, setElevationUnit] = useState<'' | 'ft' | 'm'>('')
+  const [previewError, setPreviewError] = useState<string | null>(null)
+  const previewRequest = useRef(0)
   const previewMutation = usePreviewSoilMapColumns()
   const importMutation = useImportSoilMapData()
   const isProcessing = importStatus === 'processing'
@@ -43,6 +46,9 @@ export function SoilMapImportDialog({
   function resetState() {
     setFile(null)
     setPreview(null)
+    setElevationUnit('')
+    setPreviewError(null)
+    previewRequest.current += 1
   }
 
   function handleClose() {
@@ -53,22 +59,42 @@ export function SoilMapImportDialog({
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const selectedFile = event.target.files?.[0] ?? null
     setFile(selectedFile)
+    await updatePreview(selectedFile, elevationUnit)
+  }
+
+  async function updatePreview(selectedFile: File | null, unit: '' | 'ft' | 'm') {
+    const requestId = ++previewRequest.current
     setPreview(null)
+    setPreviewError(null)
     if (!selectedFile) return
 
     try {
-      const result = await previewMutation.mutateAsync({ headerId, file: selectedFile })
-      setPreview(result)
-    } catch {
-      toast.error('No se pudo leer el archivo. Verifica que sea un CSV válido.')
+      const result = await previewMutation.mutateAsync({
+        headerId,
+        file: selectedFile,
+        ...(unit ? { elevationUnit: unit } : {}),
+      })
+      if (requestId === previewRequest.current) setPreview(result)
+    } catch (error) {
+      if (requestId !== previewRequest.current) return
+      const message =
+        error && typeof error === 'object' && 'detail' in error
+          ? String(error.detail)
+          : 'No se pudo leer el CSV. Revisa sus columnas y la unidad de elevación.'
+      setPreviewError(message)
+      toast.error(message)
     }
   }
 
   async function handleImport() {
-    if (!file) return
+    if (!file || !preview) return
 
     try {
-      await importMutation.mutateAsync({ headerId, file })
+      await importMutation.mutateAsync({
+        headerId,
+        file,
+        ...(elevationUnit ? { elevationUnit } : {}),
+      })
       toast.success('Importación encolada. El estado se actualizará automáticamente.')
       handleClose()
     } catch {
@@ -119,6 +145,42 @@ export function SoilMapImportDialog({
                 accept=".csv,.txt"
                 onChange={handleFileChange}
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="soil-elevation-unit">Unidad de elevación del CSV</Label>
+              <select
+                id="soil-elevation-unit"
+                value={elevationUnit}
+                className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                onChange={(event) => {
+                  const unit = event.target.value as '' | 'ft' | 'm'
+                  setElevationUnit(unit)
+                  void updatePreview(file, unit)
+                }}
+              >
+                <option value="">Según encabezado (sin unidad: pies)</option>
+                <option value="ft">Pies (ft)</option>
+                <option value="m">Metros (m)</option>
+              </select>
+              <p className="text-[11px] text-muted-foreground">
+                La elevación se guardará y mostrará en metros. Los datos en pies se convierten al
+                importar.
+              </p>
+              {preview?.elevation_source_unit && (
+                <p className="text-xs">
+                  Elevación detectada:{' '}
+                  {preview.elevation_source_unit === 'ft'
+                    ? 'pies (ft) → metros (m)'
+                    : 'metros (m), sin conversión'}
+                  .
+                </p>
+              )}
+              {previewError && (
+                <p role="alert" className="text-xs text-destructive">
+                  {previewError}
+                </p>
+              )}
             </div>
 
             {previewMutation.isPending && (
@@ -175,7 +237,10 @@ export function SoilMapImportDialog({
             {isProcessing ? 'Cerrar' : 'Cancelar'}
           </Button>
           {!isProcessing && (
-            <Button onClick={handleImport} disabled={!file || importMutation.isPending}>
+            <Button
+              onClick={handleImport}
+              disabled={!file || !preview || previewMutation.isPending || importMutation.isPending}
+            >
               {importMutation.isPending && <GpaLoader size="xs" />}
               {importMutation.isPending ? 'Importando…' : 'Importar'}
             </Button>

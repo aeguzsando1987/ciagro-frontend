@@ -4,7 +4,10 @@ import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { usePlotGeometry } from '@/features/task-manager/hooks/usePlotGeometry'
 import { useSoilMapPoints } from '@/features/task-manager/hooks/useSoilMapPoints'
-import { useSoilMapLayerValues } from '@/features/task-manager/hooks/useSoilMapLayerValues'
+import {
+  useSoilMapLayerValues,
+  useSoilMapRelativeElevations,
+} from '@/features/task-manager/hooks/useSoilMapLayerValues'
 import {
   buildLayerCountMap,
   useSoilMapVariableStats,
@@ -36,6 +39,7 @@ import {
 } from '@/features/geodata-visor/lib/mapCameraSync'
 import { SoilMapStatsCard } from './SoilMapStatsCard'
 import { SoilMapVariableStatsCard } from './SoilMapVariableStatsCard'
+import { SoilElevationSummary } from './SoilElevationSummary'
 import { LoadingState } from '@/components/ui/loading-state'
 
 interface SoilMapProps {
@@ -181,9 +185,14 @@ export function SoilMap({
   // petición nueva, y react-query devuelve sin red las capas ya visitadas.
   const {
     data: layerValues,
+    dataUpdatedAt: valuesUpdatedAt,
     isLoading: isLoadingValues,
     error: valuesError,
   } = useSoilMapLayerValues(sessionId, activeLayer.field, enabled && !!points)
+  const { data: relativeElevations } = useSoilMapRelativeElevations(
+    sessionId,
+    enabled && !!points && activeLayer.field === 'Elevation'
+  )
   const { data: variableStats, isLoading: isLoadingStats } = useSoilMapVariableStats(
     sessionId,
     enabled
@@ -247,16 +256,15 @@ export function SoilMap({
   // capa. La clave del caché incluye la sesión, la capa y el número de muestras,
   // que es lo que cambia si se reimportan los puntos.
   const surfaceCacheKey = boundaryRing
-    ? `${sessionId}|${activeLayer.key}|${samples.length}`
+    ? `${sessionId}|${activeLayer.key}|${activeLayer.unit}|${samples.length}${activeLayer.field === 'Elevation' ? `|${valuesUpdatedAt}` : ''}`
     : null
-  const { analysis: surfaceAnalysis, isComputing: isComputingSurface } =
-    useSoilSurfaceAnalysis({
-      ring: boundaryRing,
-      samples,
-      paletteSize: activeLayer.palette.length,
-      cacheKey: surfaceCacheKey,
-      enabled: activeLayer.kind === 'numeric',
-    })
+  const { analysis: surfaceAnalysis, isComputing: isComputingSurface } = useSoilSurfaceAnalysis({
+    ring: boundaryRing,
+    samples,
+    paletteSize: activeLayer.palette.length,
+    cacheKey: surfaceCacheKey,
+    enabled: activeLayer.kind === 'numeric',
+  })
 
   const numericScale = useMemo(() => {
     if (activeLayer.kind !== 'numeric') return null
@@ -469,11 +477,16 @@ export function SoilMap({
       )}
 
       <div className="relative min-h-0 flex-1">
-        {floatingToolbar && !locked && (
-          <div className="absolute left-2 top-2 z-20 flex flex-wrap items-center gap-1.5">
-            {toolbar}
-          </div>
-        )}
+        <div className="pointer-events-none absolute bottom-2 left-2 top-2 z-20 flex max-w-[calc(100%-1rem)] flex-col items-start gap-2">
+          {floatingToolbar && !locked && (
+            <div className="pointer-events-auto flex shrink-0 flex-wrap items-center gap-1.5">
+              {toolbar}
+            </div>
+          )}
+          {enabled && !locked && activeLayer.field === 'Elevation' && (
+            <SoilElevationSummary key={sessionId} sessionId={sessionId} />
+          )}
+        </div>
 
         {sessionsSlot && !locked && (
           <div className="absolute bottom-2 right-2 top-2 z-10 flex w-56 flex-col gap-2">
@@ -529,13 +542,9 @@ export function SoilMap({
         {!isLoading && (error || valuesError) && (
           <LoadingOverlay>No se pudieron cargar las muestras de suelo.</LoadingOverlay>
         )}
-        {!isLoading &&
-          !isLoadingValues &&
-          !error &&
-          !valuesError &&
-          samples.length === 0 && (
-            <LoadingOverlay>Esta variable no tiene valores en la sesión.</LoadingOverlay>
-          )}
+        {!isLoading && !isLoadingValues && !error && !valuesError && samples.length === 0 && (
+          <LoadingOverlay>Esta variable no tiene valores en la sesión.</LoadingOverlay>
+        )}
 
         <MapGL
           ref={mapRef}
@@ -608,6 +617,17 @@ export function SoilMap({
                     ? formatSoilValue(hoveredSample.value, activeLayer.unit)
                     : hoveredSample.value}
                 </p>
+                {activeLayer.field === 'Elevation' && (
+                  <p className="text-[11px]">
+                    Elevación relativa:{' '}
+                    {relativeElevations?.has(hoveredSample.id)
+                      ? formatSoilValue(relativeElevations.get(hoveredSample.id)!, '%')
+                      : '—'}
+                    <span className="block text-muted-foreground">
+                      Posición en el rango de la parcela; no es pendiente.
+                    </span>
+                  </p>
+                )}
                 <p className="text-[11px] text-muted-foreground">
                   {hoveredSample.lat.toFixed(6)}, {hoveredSample.lng.toFixed(6)}
                 </p>

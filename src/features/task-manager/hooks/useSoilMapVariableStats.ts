@@ -25,6 +25,7 @@ export interface SoilMapVariableStat {
   min: number | null
   max: number | null
   stddev: number | null
+  unit?: string
 }
 
 /** Reparto de una variable categorica, de la categoria mas frecuente a la menos. */
@@ -54,10 +55,7 @@ export interface SoilMapVariableStatsResponse {
 
 export const SOIL_MAP_VARIABLE_STATS_KEY = 'soil-map-variable-stats'
 
-export function useSoilMapVariableStats(
-  headerId: string | null | undefined,
-  enabled = true
-) {
+export function useSoilMapVariableStats(headerId: string | null | undefined, enabled = true) {
   return useQuery({
     queryKey: [SOIL_MAP_VARIABLE_STATS_KEY, headerId] as const,
     enabled: !!headerId && enabled,
@@ -65,10 +63,18 @@ export function useSoilMapVariableStats(
       const baseUrl = import.meta.env.VITE_API_BASE_URL
       const res = await fetch(
         `${baseUrl}/monitoring/soil-map/headers/${headerId}/variable-stats/`,
-        { headers: { Authorization: `Bearer ${tokens.getAccess() ?? ''}` } },
+        { headers: { Authorization: `Bearer ${tokens.getAccess() ?? ''}` } }
       )
       if (!res.ok) throw new Error('No se pudo cargar el resumen de la sesion de suelo')
-      return (await res.json()) as SoilMapVariableStatsResponse
+      const data = (await res.json()) as SoilMapVariableStatsResponse
+      // Un servidor anterior devuelve pies sin metadatos. No los presenta como
+      // metros; el resto de las variables conserva su contrato y disponibilidad.
+      data.variables = data.variables.map((variable) =>
+        variable.key === 'Elevation' && variable.unit !== 'm'
+          ? { ...variable, count: 0, min: null, max: null, mean: null, stddev: null }
+          : variable
+      )
+      return data
     },
     staleTime: 60_000,
   })

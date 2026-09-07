@@ -218,7 +218,7 @@ export const SOIL_MAP_LAYERS: SoilMapLayerDef[] = [
     palette: ['#0000A0'],
     kind: 'category',
   },
-  numericLayer('elevation', 'Elevación', 'Elevation', 'Propiedades generales', '', ELEVATION),
+  numericLayer('elevation', 'Elevación', 'Elevation', 'Propiedades generales', 'm', ELEVATION),
   numericLayer(
     'available_water',
     'Agua disponible',

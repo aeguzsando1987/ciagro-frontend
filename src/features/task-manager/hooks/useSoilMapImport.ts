@@ -5,24 +5,29 @@ export interface SoilMapPreviewResult {
   matched: string[]
   unmatched: string[]
   col_map: Record<string, string>
+  elevation_source_unit?: 'ft' | 'm' | null
+  elevation_unit?: 'm'
 }
 
 interface SoilMapFileRequest {
   headerId: string
   file: File
+  elevationUnit?: 'ft' | 'm'
 }
 
-function toFormData(file: File) {
+function toFormData(file: File, elevationUnit?: 'ft' | 'm') {
   const formData = new FormData()
   formData.append('csv_file', file)
+  if (elevationUnit) formData.append('elevation_unit', elevationUnit)
   return formData
 }
 
 export async function previewSoilMapColumns({
   headerId,
   file,
+  elevationUnit,
 }: SoilMapFileRequest): Promise<SoilMapPreviewResult> {
-  const formData = toFormData(file)
+  const formData = toFormData(file, elevationUnit)
   const { data, error } = await apiClient.POST(
     '/api/v1/monitoring/soil-map/headers/{id}/preview-columns/',
     {
@@ -35,8 +40,8 @@ export async function previewSoilMapColumns({
   return data as unknown as SoilMapPreviewResult
 }
 
-export async function importSoilMapCsv({ headerId, file }: SoilMapFileRequest) {
-  const formData = toFormData(file)
+export async function importSoilMapCsv({ headerId, file, elevationUnit }: SoilMapFileRequest) {
+  const formData = toFormData(file, elevationUnit)
   const { data, error } = await apiClient.POST('/api/v1/monitoring/soil-map/headers/{id}/import/', {
     params: { path: { id: headerId } },
     body: formData as never,

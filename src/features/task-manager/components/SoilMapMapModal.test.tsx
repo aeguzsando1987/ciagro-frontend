@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
 
+vi.mock('@/features/geodata-visor/components/SoilElevationSummary', () => ({
+  SoilElevationSummary: () => <div data-testid="soil-elevation-summary" />,
+}))
+
 vi.mock('@/features/geodata-visor/components/SoilMap', () => ({
   SoilMap: ({
     toolbarStart,
@@ -68,6 +72,7 @@ describe('SoilMapMapModal', () => {
     renderModal({ onClose })
 
     expect(screen.getByTestId('soil-map')).toBeInTheDocument()
+    expect(screen.queryByTestId('soil-elevation-summary')).not.toBeInTheDocument()
     expect(screen.getByText('Mapa de suelo')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '✕ Cerrar' }))
     expect(onClose).toHaveBeenCalledOnce()

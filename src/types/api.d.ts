@@ -7108,6 +7108,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/soil-map/headers/{id}/elevation/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Elevación y relieve de la parcela en la sesión de suelo
+         * @description Alturas en metros, tendencia por regresión plana y pendiente local TIN. Solo muestras dentro de la parcela. La media de pendiente pondera área horizontal cubierta; no extrapola a zonas sin muestras. Rangos configurables en SOIL_ELEVATION. Los estados sin cálculo no contienen pendientes ficticias.
+         */
+        get: operations["v1_monitoring_soil_map_headers_elevation_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/monitoring/ndvi/headers/": {
         parameters: {
             query?: never;
@@ -9427,6 +9447,12 @@ export interface components {
             };
             can_delete: boolean;
         };
+        /**
+         * @description * `ft` - ft
+         *     * `m` - m
+         * @enum {string}
+         */
+        ElevationUnitEnum: "ft" | "m";
         /**
          * @description Catálogo genérico de esquemas de evaluación.
          *     validate_scheme() delega al evaluador del registry para validar que los
@@ -12870,6 +12896,13 @@ export interface components {
         SoilMapImportRequest: {
             /** Format: uri */
             csv_file: string;
+            /**
+             * @description Unidad del CSV. Sin indicar: se lee del encabezado; sin sufijo usa ft.
+             *
+             *     * `ft` - ft
+             *     * `m` - m
+             */
+            elevation_unit?: components["schemas"]["ElevationUnitEnum"];
         };
         /**
          * @description Punto de análisis de suelo con geometría GeoJSON.
@@ -12927,10 +12960,21 @@ export interface components {
             Cond?: number | null;
             /** Format: double */
             Cu?: number | null;
-            /** Format: double */
+            /**
+             * Elevación (m)
+             * Format: double
+             * @description Altura canónica en metros; el importador normaliza ft/m.
+             */
             Elevation?: number | null;
             /** Format: double */
             Fe?: number | null;
+            /** @default m */
+            readonly elevation_unit: string;
+            /**
+             * Format: double
+             * @description Posición 0–100 en el rango de la parcela y sesión; plana=0. No es pendiente.
+             */
+            readonly elevation_relative_pct: number | null;
             /** Format: double */
             K?: number | null;
             /** Format: double */
@@ -13016,6 +13060,7 @@ export interface components {
         SoilMapPreviewColumnsRequest: {
             /** Format: uri */
             csv_file: string;
+            elevation_unit?: components["schemas"]["ElevationUnitEnum"];
         };
         SoilMapSessionSummary: {
             /** Format: uuid */
@@ -18126,6 +18171,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedSoilMapPointsList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_soil_map_headers_elevation_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Incluye los polígonos GeoJSON de pendiente local. */
+                include_zones?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

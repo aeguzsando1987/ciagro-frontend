@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiClient } from '@/lib/api/client'
-import { fetchSoilMapLayerValues } from './useSoilMapLayerValues'
+import { fetchSoilMapLayerValues, fetchSoilMapLayerData } from './useSoilMapLayerValues'
 
 vi.mock('@/lib/api/client', () => ({
   apiClient: { GET: vi.fn() },
@@ -16,6 +16,25 @@ function page(count: number, results: Record<string, unknown>[]) {
 describe('fetchSoilMapLayerValues', () => {
   beforeEach(() => {
     getMock.mockReset()
+  })
+
+  it('trae metros y elevación relativa juntos, sin convertir en cliente', async () => {
+    getMock.mockResolvedValueOnce(
+      page(2, [
+        { id: 'a', Elevation: 1524, elevation_unit: 'm', elevation_relative_pct: 0 },
+        { id: 'b', Elevation: 1600, elevation_unit: 'm', elevation_relative_pct: 100 },
+      ])
+    )
+    const data = await fetchSoilMapLayerData('header-1', 'Elevation')
+    expect(data.values.get('a')).toBe(1524)
+    expect(data.relativeElevations.get('a')).toBe(0)
+    expect(data.relativeElevations.get('b')).toBe(100)
+    expect(getMock).toHaveBeenCalledOnce()
+  })
+
+  it('no interpreta alturas de un backend antiguo como metros', async () => {
+    getMock.mockResolvedValueOnce(page(1, [{ id: 'a', Elevation: 5000 }]))
+    await expect(fetchSoilMapLayerData('header-1', 'Elevation')).rejects.toThrow('metros')
   })
 
   it('pide id y el campo, sin geometría', () => {

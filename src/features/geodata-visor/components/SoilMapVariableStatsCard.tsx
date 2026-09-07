@@ -218,16 +218,16 @@ export function SoilMapVariableStatsCard({ activeField, activeLabel, stats, isLo
                         )}
                       </td>
                       <td className="px-2 py-1 text-right font-medium tabular-nums">
-                        {formatValue(variable.mean, '')}
+                        {formatValue(variable.mean, variable.key === 'Elevation' ? 'm' : '')}
                       </td>
                       <td className="px-2 py-1 text-right tabular-nums">
-                        {formatValue(variable.min, '')}
+                        {formatValue(variable.min, variable.key === 'Elevation' ? 'm' : '')}
                       </td>
                       <td className="px-2 py-1 text-right tabular-nums">
-                        {formatValue(variable.max, '')}
+                        {formatValue(variable.max, variable.key === 'Elevation' ? 'm' : '')}
                       </td>
                       <td className="px-2 py-1 text-right tabular-nums">
-                        {formatValue(variable.stddev, '')}
+                        {formatValue(variable.stddev, variable.key === 'Elevation' ? 'm' : '')}
                       </td>
                     </tr>
                   ))}

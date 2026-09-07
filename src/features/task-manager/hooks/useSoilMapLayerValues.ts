@@ -11,7 +11,7 @@
  * repetirla en cada cambio de capa duplicaría el payload. La unión se hace por
  * `id`, que el backend incluye siempre aunque no se pida.
  */
-import { useQuery } from '@tanstack/react-query'
+import { queryOptions, useQuery } from '@tanstack/react-query'
 import { fetchSoilMapPointPages } from './useSoilMapPoints'
 
 /** Valor crudo de una capa: número en las numéricas, texto en las categóricas. */
@@ -22,14 +22,19 @@ type SoilMapValueRow = { id: string } & Record<string, unknown>
 
 export const SOIL_MAP_LAYER_VALUES_KEY = 'soil-map-layer-values'
 
-export async function fetchSoilMapLayerValues(
-  headerId: string,
-  field: string
-): Promise<Map<string, SoilMapLayerValue>> {
-  const rows = await fetchSoilMapPointPages<SoilMapValueRow>(headerId, `id,${field}`)
+export async function fetchSoilMapLayerData(headerId: string, field: string) {
+  const fields =
+    field === 'Elevation' ? 'id,Elevation,elevation_unit,elevation_relative_pct' : `id,${field}`
+  const rows = await fetchSoilMapPointPages<SoilMapValueRow>(headerId, fields)
 
   const values = new Map<string, SoilMapLayerValue>()
+  const relativeElevations = new Map<string, number>()
   for (const row of rows) {
+    // Un backend anterior no declara metros: evita etiquetar pies como metros
+    // durante un despliegue con versiones diferentes.
+    if (field === 'Elevation' && row.elevation_unit !== 'm') {
+      throw new Error('La API de elevación debe actualizarse a metros.')
+    }
     const raw = row[field]
     // Los nulos no se guardan: `buildSamples` trata "sin entrada en el Map" y
     // "valor nulo" como lo mismo —el punto no se pinta— y una sola forma de
@@ -37,8 +42,27 @@ export async function fetchSoilMapLayerValues(
     if (typeof raw === 'number' || typeof raw === 'string') {
       values.set(row.id, raw)
     }
+    if (
+      typeof row.elevation_relative_pct === 'number' &&
+      Number.isFinite(row.elevation_relative_pct)
+    ) {
+      relativeElevations.set(row.id, row.elevation_relative_pct)
+    }
   }
-  return values
+  return { values, relativeElevations }
+}
+
+export async function fetchSoilMapLayerValues(headerId: string, field: string) {
+  return (await fetchSoilMapLayerData(headerId, field)).values
+}
+
+function layerDataOptions(headerId: string | null, field: string | null, enabled: boolean) {
+  return queryOptions({
+    queryKey: [SOIL_MAP_LAYER_VALUES_KEY, headerId, field] as const,
+    enabled: !!headerId && !!field && enabled,
+    queryFn: () => fetchSoilMapLayerData(headerId!, field!),
+    staleTime: 5 * 60_000,
+  })
 }
 
 /**
@@ -51,9 +75,15 @@ export function useSoilMapLayerValues(
   enabled = true
 ) {
   return useQuery({
-    queryKey: [SOIL_MAP_LAYER_VALUES_KEY, headerId, field] as const,
-    enabled: !!headerId && !!field && enabled,
-    queryFn: () => fetchSoilMapLayerValues(headerId!, field!),
-    staleTime: 5 * 60_000,
+    ...layerDataOptions(headerId, field, enabled),
+    select: (data) => data.values,
+  })
+}
+
+/** Comparte petición y caché con Elevation: no descarga otra copia de los puntos. */
+export function useSoilMapRelativeElevations(headerId: string | null, enabled: boolean) {
+  return useQuery({
+    ...layerDataOptions(headerId, 'Elevation', enabled),
+    select: (data) => data.relativeElevations,
   })
 }
