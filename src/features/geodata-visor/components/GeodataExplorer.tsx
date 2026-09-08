@@ -8,7 +8,7 @@
  * Reutiliza los hooks de la jerarquía (regla de reuso del contrato) y emite una
  * VisorSelection con la ruta completa al hacer clic en cualquier nodo.
  */
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import {
   Building2, Bug, ChevronDown, ChevronRight, FlaskConical, Layers, Leaf,
   MapPin, RefreshCw, Sprout, Tractor,
@@ -24,7 +24,8 @@ import { useRanches } from '@/features/admin/hooks/useRanches'
 import { usePlots } from '@/features/admin/hooks/usePlots'
 import { useAspersionSessionHeaders } from '../hooks/useAspersionSessionHeaders'
 import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
-import { useNdviSessionHeaders } from '../hooks/useNdviSessionHeaders'
+import { useNdviTimeline } from '../hooks/useNdviTimeline'
+import { groupSessionsByCycle, type NdviCycleGroup } from '../lib/ndviCycleTimeline'
 import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
 import {
   activeIdFor,
@@ -222,7 +223,184 @@ function PhytoSessionList({ depth, plot, base, selection, onSelect }: {
   )
 }
 
-/** Lista de sesiones de NDVI de la parcela. */
+/** Formatea una fecha del ciclo para mostrarla compacta dentro del árbol. */
+function formatExplorerCycleDate(value: string | null | undefined): string {
+  if (!value) return '—'
+
+  const date = new Date(`${value}T12:00:00`)
+  if (Number.isNaN(date.getTime())) return value
+
+  return new Intl.DateTimeFormat('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+    .format(date)
+    .replace('.', '')
+}
+
+/** Rango visible de un subciclo productivo (Programa hijo). */
+function cycleRangeLabel(group: NdviCycleGroup): string {
+  return `${formatExplorerCycleDate(group.cycle_start)} → ${formatExplorerCycleDate(group.cycle_end)}`
+}
+
+/**
+ * Fila expandible del subciclo productivo dentro del grupo NDVI.
+ * No cambia la selección actual: únicamente abre/cierra sus sesiones.
+ */
+function NdviCycleRow({
+  depth,
+  group,
+  expanded,
+  active,
+  onToggle,
+}: {
+  depth: number
+  group: NdviCycleGroup
+  expanded: boolean
+  active: boolean
+  onToggle: () => void
+}) {
+  const subtitle = cycleRangeLabel(group)
+
+  return (
+    <div
+      role="treeitem"
+      aria-expanded={expanded}
+      onClick={onToggle}
+      className={`mx-1 flex min-h-12 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 transition-colors duration-150 hover:bg-surface-secondary ${
+        active ? 'bg-primary-soft/70 text-brand' : 'text-secondary'
+      }`}
+      style={{ paddingLeft: depth * 14 + 8 }}
+      title={subtitle}
+    >
+      <button
+        type="button"
+        aria-label={expanded ? 'Contraer subciclo productivo' : 'Expandir subciclo productivo'}
+        onClick={(event) => {
+          event.stopPropagation()
+          onToggle()
+        }}
+        className="flex h-6 w-5 shrink-0 items-center justify-center rounded text-muted hover:bg-surface hover:text-foreground"
+      >
+        {expanded ? (
+          <ChevronDown className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5" />
+        )}
+      </button>
+
+      <span className={active ? 'shrink-0 text-brand' : 'shrink-0 text-muted'}>
+        <Layers className="h-3.5 w-3.5" />
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-semibold leading-4">
+          {group.program_name || 'Subciclo productivo'}
+        </span>
+        <span className="block truncate text-[11px] leading-4 text-muted">
+          {subtitle}
+        </span>
+      </span>
+    </div>
+  )
+}
+
+/** Un subciclo NDVI (Programa hijo) y sus sesiones. */
+function NdviCycleBranch({
+  depth,
+  group,
+  plot,
+  base,
+  selection,
+  onSelect,
+  defaultExpanded = false,
+}: {
+  depth: number
+  group: NdviCycleGroup
+  plot: { id: string; name: string }
+  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+  defaultExpanded?: boolean
+}) {
+  const activeId = activeIdFor(selection)
+
+  const containsSelectedSession =
+    selection?.level === 'session' &&
+    selection.session?.kind === 'ndvi' &&
+    group.sessions.some((session) => session.id === activeId)
+
+  /**
+   * El subciclo que contiene la sesión seleccionada inicia abierto.
+   * Si la selección cambia a otra sesión del mismo subciclo, también se vuelve a abrir.
+   */
+  const [expanded, setExpanded] = useState(containsSelectedSession || defaultExpanded)
+
+  useEffect(() => {
+    if (containsSelectedSession) setExpanded(true)
+  }, [containsSelectedSession, activeId])
+
+  /** En el árbol mostramos primero la imagen NDVI más reciente. */
+  const orderedSessions = useMemo(
+    () =>
+      [...group.sessions].sort((a, b) =>
+        (b.session_date ?? '').localeCompare(a.session_date ?? '')
+      ),
+    [group.sessions]
+  )
+
+  return (
+    <>
+      <NdviCycleRow
+        depth={depth}
+        group={group}
+        expanded={expanded}
+        active={containsSelectedSession}
+        onToggle={() => setExpanded((value) => !value)}
+      />
+
+      {expanded && (
+        <>
+          {orderedSessions.map((session) => (
+            <TreeRow
+              key={session.id}
+              depth={depth + 1}
+              icon={<Leaf className="h-3.5 w-3.5" />}
+              label={`${session.session_date ?? 'Sin fecha'}${
+                session.points_count ? ` · ${session.points_count} pts` : ''
+              }`}
+              selected={
+                selection?.level === 'session' &&
+                selection.session?.kind === 'ndvi' &&
+                activeId === session.id
+              }
+              onSelect={() =>
+                onSelect({
+                  ...base,
+                  plot,
+                  session: {
+                    id: session.id,
+                    date: session.session_date,
+                    kind: 'ndvi',
+                  },
+                  level: 'session',
+                })
+              }
+            />
+          ))}
+        </>
+      )}
+    </>
+  )
+}
+
+/**
+ * Lista de sesiones NDVI agrupadas por subciclo productivo (Programa hijo).
+ *
+ * Usa el mismo endpoint temporal que alimenta la línea de tiempo porque, además de la
+ * fecha y los puntos, ya trae program_id, program_name, cycle_start y cycle_end.
+ */
 function NdviSessionList({ depth, plot, base, selection, onSelect }: {
   depth: number
   plot: { id: string; name: string }
@@ -230,26 +408,46 @@ function NdviSessionList({ depth, plot, base, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const { data, isLoading, isError, refetch } = useNdviSessionHeaders(plot.id)
+  const { data, isLoading, isError, refetch } = useNdviTimeline(plot.id)
+
+  /**
+   * El helper ya separa por programa + cycle_start + cycle_end.
+   * En el explorador mostramos primero el subciclo más reciente.
+   */
+  const groups = useMemo(
+    () =>
+      groupSessionsByCycle(data ?? [])
+        .slice()
+        .sort((a, b) =>
+          (b.cycle_start ?? '').localeCompare(a.cycle_start ?? '')
+        ),
+    [data]
+  )
+
   if (isLoading) return <Loading depth={depth} />
-  if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones." onRetry={() => void refetch()} />
+  if (isError) {
+    return (
+      <InlineError
+        depth={depth}
+        text="No pudimos cargar las sesiones NDVI."
+        onRetry={() => void refetch()}
+      />
+    )
+  }
   if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones de NDVI." />
-  const activeId = activeIdFor(selection)
+  if (groups.length === 0) return <Empty depth={depth} text="Sin subciclos productivos NDVI." />
+
   return (
     <>
-      {data.map((s) => (
-        <TreeRow
-          key={s.id}
+      {groups.map((group) => (
+        <NdviCycleBranch
+          key={group.key}
           depth={depth}
-          icon={<Leaf className="h-3.5 w-3.5" />}
-          label={`${s.session_date ?? 'Sin fecha'}${s.points_count ? ` · ${s.points_count} pts` : ''}`}
-          selected={selection?.level === 'session' && selection.session?.kind === 'ndvi' && activeId === s.id}
-          onSelect={() => onSelect({
-            ...base,
-            plot,
-            session: { id: s.id, date: s.session_date ?? null, kind: 'ndvi' },
-            level: 'session',
-          })}
+          group={group}
+          plot={plot}
+          base={base}
+          selection={selection}
+          onSelect={onSelect}
         />
       ))}
     </>
@@ -716,6 +914,95 @@ function SearchRanchBranch({ ranch, base, selection, onSelect }: {
   )
 }
 
+/**
+ * Resultados NDVI de una parcela en búsqueda avanzada, agrupados por subciclo productivo.
+ *
+ * El endpoint de búsqueda avanzada devuelve los ids que coincidieron con el filtro, pero
+ * no incluye todavía program_id/cycle_start/cycle_end. Para no perder la clasificación
+ * por subciclo, aquí consultamos la línea de tiempo de ESA parcela y conservamos únicamente
+ * los ids que vinieron en la búsqueda.
+ *
+ * Si la línea de tiempo no pudiera cargarse, se conserva un fallback plano para que la
+ * búsqueda siga siendo navegable y nunca oculte coincidencias.
+ */
+function SearchNdviCycleResults({
+  depth,
+  plot,
+  matches,
+  base,
+  selection,
+  onSelect,
+}: {
+  depth: number
+  plot: { id: string; name: string }
+  matches: SearchSessionRef[]
+  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+}) {
+  const { data, isLoading, isError } = useNdviTimeline(plot.id)
+  const activeId = activeIdFor(selection)
+
+  const matchingIds = useMemo(() => new Set(matches.map((session) => session.id)), [matches])
+
+  const groups = useMemo(
+    () =>
+      groupSessionsByCycle((data ?? []).filter((session) => matchingIds.has(session.id)))
+        .slice()
+        .sort((a, b) => (b.cycle_start ?? '').localeCompare(a.cycle_start ?? '')),
+    [data, matchingIds]
+  )
+
+  if (isLoading) return <Loading depth={depth} />
+
+  // Fallback deliberado: una falla del endpoint temporal no debe volver inútil la
+  // búsqueda avanzada. Se muestran las coincidencias NDVI tal como llegaron.
+  if (isError || groups.length === 0) {
+    return (
+      <>
+        {matches.map((session) => (
+          <TreeRow
+            key={session.id}
+            depth={depth}
+            icon={<Leaf className="h-3.5 w-3.5" />}
+            label={sessionLabel(session)}
+            selected={
+              selection?.level === 'session' &&
+              selection.session?.kind === 'ndvi' &&
+              activeId === session.id
+            }
+            onSelect={() =>
+              onSelect({
+                ...base,
+                plot,
+                session: { id: session.id, date: session.date, kind: 'ndvi' },
+                level: 'session',
+              })
+            }
+          />
+        ))}
+      </>
+    )
+  }
+
+  return (
+    <>
+      {groups.map((group) => (
+        <NdviCycleBranch
+          key={group.key}
+          depth={depth}
+          group={group}
+          plot={plot}
+          base={base}
+          selection={selection}
+          onSelect={onSelect}
+          defaultExpanded
+        />
+      ))}
+    </>
+  )
+}
+
 function SearchPlotBranch({ plot, base, selection, onSelect }: {
   plot: SearchProducerNode['ranches'][number]['plots'][number]
   base: Pick<VisorSelection, 'org' | 'producer' | 'ranch'>
@@ -725,6 +1012,9 @@ function SearchPlotBranch({ plot, base, selection, onSelect }: {
   const [expanded, setExpanded] = useState(true)
   const activeId = activeIdFor(selection)
   const plotRef = { id: plot.id, name: plot.code }
+
+  const ndviSessions = plot.sessions.filter((session) => session.kind === 'ndvi')
+  const otherSessions = plot.sessions.filter((session) => session.kind !== 'ndvi')
 
   return (
     <>
@@ -738,29 +1028,50 @@ function SearchPlotBranch({ plot, base, selection, onSelect }: {
         selected={selection?.level === 'plot' && activeId === plot.id}
         onSelect={() => onSelect({ ...base, plot: plotRef, level: 'plot' })}
       />
-      {expanded &&
-        plot.sessions.map((session) => (
-          <TreeRow
-            key={`${session.kind}-${session.id}`}
-            depth={3}
-            icon={SESSION_ICONS[session.kind]}
-            label={sessionLabel(session)}
-            badge={SESSION_KIND_TEXT[session.kind]}
-            selected={
-              selection?.level === 'session' &&
-              selection.session?.kind === session.kind &&
-              activeId === session.id
-            }
-            onSelect={() =>
-              onSelect({
-                ...base,
-                plot: plotRef,
-                session: { id: session.id, date: session.date, kind: session.kind },
-                level: 'session',
-              })
-            }
-          />
-        ))}
+
+      {expanded && (
+        <>
+          {/* Los otros tipos conservan exactamente el comportamiento anterior. */}
+          {otherSessions.map((session) => (
+            <TreeRow
+              key={`${session.kind}-${session.id}`}
+              depth={3}
+              icon={SESSION_ICONS[session.kind]}
+              label={sessionLabel(session)}
+              badge={SESSION_KIND_TEXT[session.kind]}
+              selected={
+                selection?.level === 'session' &&
+                selection.session?.kind === session.kind &&
+                activeId === session.id
+              }
+              onSelect={() =>
+                onSelect({
+                  ...base,
+                  plot: plotRef,
+                  session: { id: session.id, date: session.date, kind: session.kind },
+                  level: 'session',
+                })
+              }
+            />
+          ))}
+
+          {/* NDVI mantiene la misma jerarquía que el explorador normal:
+              NDVI → Subciclo productivo → sesiones que coincidieron con la búsqueda. */}
+          {ndviSessions.length > 0 && (
+            <>
+              <GroupLabel depth={3} icon={<Leaf className="h-3 w-3" />} text="NDVI" />
+              <SearchNdviCycleResults
+                depth={4}
+                plot={plotRef}
+                matches={ndviSessions}
+                base={base}
+                selection={selection}
+                onSelect={onSelect}
+              />
+            </>
+          )}
+        </>
+      )}
     </>
   )
 }
