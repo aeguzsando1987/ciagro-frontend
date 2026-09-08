@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+#
+# Verificacion previa al push: la suite y el typecheck tienen que pasar.
+#
+# Existe por un incidente concreto: el merge de la linea de tiempo NDVI
+# (102d30b, septiembre 2026) llego a origin/dev con 7 tests en rojo, y el
+# commit siguiente edito uno de los archivos de test EN ROJO sin que nadie
+# corriera la suite. Un rojo en el remoto hace imposible distinguir "lo rompi
+# yo" de "ya estaba roto", asi que bloquear el push es mas barato que la
+# arqueologia posterior.
+#
+# Se activa una vez por clon (ver README, Setup local):
+#   git config core.hooksPath .githooks
+#
+# Para saltarlo en un caso justificado: git push --no-verify
+# No es trampa, es una decision consciente; el hook no puede juzgar el contexto.
+
+set -euo pipefail
+
+# Git manda las refs a empujar por stdin: "<ref local> <sha local> <ref remota> <sha remoto>".
+# En un BORRADO de rama el sha local es todo ceros y no hay arbol que verificar,
+# asi que no tiene sentido gastar el minuto de suite.
+solo_borrados=1
+while read -r _ sha_local _ _; do
+  if [ "$sha_local" != "0000000000000000000000000000000000000000" ]; then
+    solo_borrados=0
+  fi
+done
+
+if [ "$solo_borrados" -eq 1 ]; then
+  exit 0
+fi
+
+cd "$(git rev-parse --show-toplevel)"
+
+echo "pre-push: corriendo la suite y el typecheck (~36 s)..."
+
+if ! npm test --silent; then
+  echo ""
+  echo "pre-push ABORTADO: la suite esta en rojo."
+  echo "Arreglala antes de empujar, o usa --no-verify si sabes lo que haces."
+  exit 1
+fi
+
+if ! npm run typecheck --silent; then
+  echo ""
+  echo "pre-push ABORTADO: el typecheck falla."
+  echo "Arreglalo antes de empujar, o usa --no-verify si sabes lo que haces."
+  exit 1
+fi
+
+echo "pre-push: verde. Empujando."
