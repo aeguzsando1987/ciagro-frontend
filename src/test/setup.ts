@@ -19,6 +19,15 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {}
 }
 
+// jsdom tampoco implementa createObjectURL. maplibre-gl la llama al importarse, para
+// armar su worker, así que cualquier test que arrastre el mapa (aunque lo mockee en el
+// componente) reventaba con una unhandled rejection al cargar el módulo. No tumbaba
+// tests, pero vitest avisa de que puede causar falsos positivos.
+if (!window.URL.createObjectURL) {
+  window.URL.createObjectURL = () => ''
+  window.URL.revokeObjectURL = () => {}
+}
+
 // Setup compartido de Vitest. Se ejecuta antes de cualquier test (configurado
 // en vite.config.ts → test.setupFiles).
 //

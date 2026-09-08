@@ -48,6 +48,11 @@ vi.mock('../hooks/useAspersionSessionHeaders', () => ({
 vi.mock('../hooks/usePhytoSessionHeaders', () => ({
   usePhytoSessionHeaders: () => ({ data: [], isLoading: false }),
 }))
+// NdviSessionList dejó de leer useNdviSessionHeaders y pasó a useNdviTimeline, que es
+// un useQuery: sin este mock el árbol pide un QueryClient que estos tests no montan.
+vi.mock('../hooks/useNdviTimeline', () => ({
+  useNdviTimeline: () => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() }),
+}))
 vi.mock('../hooks/useNdviSessionHeaders', () => ({
   useNdviSessionHeaders: () => ({ data: [], isLoading: false }),
 }))
