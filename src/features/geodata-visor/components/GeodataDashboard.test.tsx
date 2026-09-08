@@ -2,8 +2,12 @@
  * Tests del GeodataDashboard: las tarjetas de estadísticas cambian según el nivel
  * seleccionado. Hooks de datos mockeados. El nivel DataCentral (que usa useQueries
  * para agregar) se cubre indirectamente vía las funciones puras en visorStats.test.
+ *
+ * El panel de estadísticas arranca COLAPSADO (el mapa y la línea de tiempo ganan alto),
+ * así que los tests que aseveran sobre las tarjetas abren el panel primero con
+ * `showStats()`. Ese contrato lo fija `arranca con las estadísticas ocultas`.
  */
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('react-map-gl/maplibre', () => ({
@@ -142,10 +146,31 @@ import type { VisorSelection } from '../types'
 
 const org = { id: 'org-1', name: 'Org' }
 
+/** Despliega el panel de estadísticas, que nace colapsado en los niveles con mapa. */
+function showStats() {
+  fireEvent.click(screen.getByRole('button', { name: 'Mostrar estadísticas' }))
+}
+
 describe('GeodataDashboard', () => {
+  // Este test existe porque el default de statsHidden pasó de false a true dentro del
+  // merge de la línea de tiempo NDVI sin quedar declarado en ningún lado, y dejó tres
+  // tests en rojo. Si el default vuelve a cambiar, que lo diga la suite.
+  it('arranca con las estadísticas ocultas y las despliega con el toggle', () => {
+    const sel: VisorSelection = { level: 'ranch', org, ranch: { id: 'r1', name: 'Rancho Norte' } }
+    render(<GeodataDashboard selection={sel} onSelect={vi.fn()} />)
+
+    expect(screen.queryByText('Parcelas')).toBeNull()
+
+    showStats()
+
+    expect(screen.getByText('Parcelas')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Ocultar estadísticas' })).toBeTruthy()
+  })
+
   it('nivel rancho: muestra Parcelas y Superficie + el mapa', () => {
     const sel: VisorSelection = { level: 'ranch', org, ranch: { id: 'r1', name: 'Rancho Norte' } }
     render(<GeodataDashboard selection={sel} onSelect={vi.fn()} />)
+    showStats()
     // Aparece en el título y en la tarjeta flotante del mapa
     expect(screen.getAllByText('Rancho Norte').length).toBeGreaterThan(0)
     expect(screen.getByText('Parcelas')).toBeTruthy()
@@ -163,7 +188,9 @@ describe('GeodataDashboard', () => {
       plot: { id: 'p1', name: 'P-01' },
     }
     render(<GeodataDashboard selection={sel} onSelect={vi.fn()} />)
-    // "Sesiones de aspersión" aparece como tarjeta de stat y como título del panel
+    showStats()
+    // "Sesiones de aspersión" es la tarjeta de stat. El panel de este nivel es
+    // PlotSessionsPanel, que titula "Sesiones" y etiqueta la sección "Aspersión".
     expect(screen.getAllByText('Sesiones de aspersión').length).toBeGreaterThan(0)
     expect(screen.getAllByText('3').length).toBeGreaterThan(0) // 3 sesiones (stat y listado)
     expect(screen.getByText(/4.5 ha/)).toBeTruthy()
@@ -195,6 +222,7 @@ describe('GeodataDashboard', () => {
     }
 
     render(<GeodataDashboard selection={sel} onSelect={vi.fn()} />)
+    showStats()
 
     expect(screen.getByText('Sesión de mapeo de suelo')).toBeTruthy()
     expect(screen.getByRole('combobox', { name: 'Variable del mapa' })).toBeTruthy()

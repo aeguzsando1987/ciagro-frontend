@@ -30,6 +30,13 @@ vi.mock('../hooks/useAspersionSessionHeaders', () => ({
 vi.mock('../hooks/usePhytoSessionHeaders', () => ({
   usePhytoSessionHeaders: vi.fn(() => ({ data: [], isLoading: false })),
 }))
+// SearchNdviCycleResults usa useNdviTimeline (un useQuery) para agrupar por subciclo.
+// Sin este mock el árbol pide un QueryClient que estos tests no montan. Con data vacía
+// el componente cae en su fallback deliberado y pinta las coincidencias tal como llegaron,
+// que es lo que estos tests aseveran.
+vi.mock('../hooks/useNdviTimeline', () => ({
+  useNdviTimeline: vi.fn(() => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() })),
+}))
 vi.mock('../hooks/useNdviSessionHeaders', () => ({
   useNdviSessionHeaders: vi.fn(() => ({ data: [], isLoading: false })),
 }))
