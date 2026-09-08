@@ -22,21 +22,35 @@ backend Django (`CIAgro_alpha_backend`).
 # 1. Instalar dependencias
 npm install
 
-# 2. Copiar variables de entorno y completar
+# 2. Activar los hooks de git versionados (sólo la primera vez, ver más abajo)
+git config core.hooksPath .githooks
+
+# 3. Copiar variables de entorno y completar
 cp .env.example .env.local
 #   - VITE_API_BASE_URL: URL del backend (default OK para dev local)
 #   - VITE_MAPTILER_KEY: API key de https://cloud.maptiler.com (free tier)
 
-# 3. Levantar dev server (puerto 5173)
+# 4. Levantar dev server (puerto 5173)
 npm run dev
 
-# 4. (Opcional) Generar tipos TypeScript desde el OpenAPI del backend.
+# 5. (Opcional) Generar tipos TypeScript desde el OpenAPI del backend.
 #    Requiere el backend corriendo.
 npm run types:gen
 
-# 5. Instalar navegadores de Playwright (sólo la primera vez)
+# 6. Instalar navegadores de Playwright (sólo la primera vez)
 npx playwright install
 ```
+
+### Hooks de git
+
+Los hooks viven en `.githooks/` y están versionados, pero git **no** los usa hasta que
+apuntas `core.hooksPath` a esa carpeta (paso 2). Es un comando por clon; si se olvida, el
+repo funciona igual pero sin red de seguridad.
+
+`pre-push` corre la suite y el typecheck (~36 s) y aborta el push si algo falla. Existe
+porque un merge llegó a `origin/dev` con 7 tests en rojo y el rojo sobrevivió a un commit
+más: con la suite rota en el remoto es imposible distinguir lo que rompiste tú de lo que ya
+estaba roto. Para saltarlo en un caso justificado, `git push --no-verify`.
 
 ---
 
