@@ -1,16 +1,4 @@
-/**
- * Suavizado del campo interpolado: la corrección del efecto "bulletshot".
- *
- * Medido sobre la sesión NDVI real de desarrollo (1024 puntos en 9.50 ha, malla regular
- * de ~9.5 m tipo Sentinel-2): la diferencia media entre vecinos es 0.0313, mientras que
- * la banda superior por cuartiles mide apenas 0.0247 de ancho. Como el ruido supera al
- * ancho de banda, celdas contiguas cruzan la frontera de clase sin parar y la mancha se
- * rompe en islas (en el backend esa banda salió en 243 polígonos sobre 0.27 ha).
- *
- * Interpoladores EXACTOS —IDW, y el kriging del cliente cuando el nugget ajustado es
- * bajo— reproducen ese ruido, así que el arreglo no está en el motor sino en suavizar el
- * campo a la escala del muestreo. Estos tests lo verifican con una métrica, no a ojo.
- */
+
 import { describe, it, expect } from 'vitest'
 import {
   blurGrid,
