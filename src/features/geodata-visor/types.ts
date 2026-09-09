@@ -8,7 +8,7 @@
 export type VisorLevel = 'org' | 'datacentral' | 'producer' | 'ranch' | 'plot' | 'session'
 
 /** Tipo de sesión seleccionada a nivel 'session' — decide qué mapa/stats renderiza el dashboard. */
-export type SessionKind = 'aspersion' | 'phyto' | 'ndvi' | 'soil_map'
+export type SessionKind = 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' | 'yield_map'
 
 /**
  * Resultado de la búsqueda avanzada (fase AS).
@@ -16,7 +16,7 @@ export type SessionKind = 'aspersion' | 'phyto' | 'ndvi' | 'soil_map'
  * El backend devuelve la jerarquía ya armada, así que el explorador en modo resultados
  * no vuelve a pedir nada por nivel: pinta este árbol tal cual. `kind` es el mismo
  * `SessionKind` de la selección, por lo que el dashboard existente renderiza cualquiera
- * de los cuatro tipos sin cambios.
+ * de los cinco tipos sin cambios.
  */
 export interface SearchSessionRef {
   id: string

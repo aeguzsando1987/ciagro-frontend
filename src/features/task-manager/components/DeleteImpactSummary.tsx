@@ -10,12 +10,13 @@
  */
 import type { DeleteImpact } from '@/features/task-manager/types'
 
-/** Etiquetas de los cuatro dominios. Sin esto el resumen dice "soil_map" al usuario. */
+/** Etiquetas de los cinco dominios. Sin esto el resumen dice "soil_map" al usuario. */
 const DOMINIOS: Record<string, string> = {
   aspersion: 'aspersión',
   soil_map: 'mapeo de suelo',
   ndvi: 'NDVI',
   phyto: 'fitosanitario',
+  yield_map: 'rendimiento',
 }
 
 /** Claves sueltas de `counts` que no son por dominio, en el orden en que se muestran. */

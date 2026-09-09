@@ -11,13 +11,14 @@
 import { useEffect, useState, useMemo } from 'react'
 import {
   Building2, Bug, ChevronDown, ChevronRight, FlaskConical, Layers, Leaf,
-  MapPin, RefreshCw, Sprout, Tractor,
+  MapPin, RefreshCw, Sprout, Tractor, Wheat,
   LayoutDashboard,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SiloIcon } from '@/components/ui/silo-icon'
 import { resolveExplorerRoot } from '../lib/explorerRoot'
 import { useAuthStore } from '@/features/auth/useAuthStore'
+import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { useDataCentralMains, useDataCentrals } from '@/features/admin/hooks/useDataCentrals'
 import { useProducers } from '@/features/admin/hooks/useProducers'
 import { useRanches } from '@/features/admin/hooks/useRanches'
@@ -27,6 +28,7 @@ import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
 import { useNdviTimeline } from '../hooks/useNdviTimeline'
 import { groupSessionsByCycle, type NdviCycleGroup } from '../lib/ndviCycleTimeline'
 import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
+import { useYieldMapHeaders } from '@/features/yield-map/hooks/useYieldMapHeaders'
 import {
   activeIdFor,
   type AdvancedSearchResult,
@@ -50,6 +52,12 @@ interface ExplorerProps {
   searchLoading?: boolean
   searchError?: boolean
   onRetrySearch?: () => void
+}
+
+
+function codeLabel(value: string | null | undefined, id: string) {
+  const trimmed = value?.trim()
+  return trimmed || id.slice(0, 8)
 }
 
 // ─── Fila presentacional compartida ──────────────────────────────────────────
@@ -491,6 +499,43 @@ function SoilMapSessionList({ depth, plot, base, selection, onSelect }: {
   )
 }
 
+/** Lista de sesiones de rendimiento de la parcela. */
+function YieldMapSessionList({ depth, plot, base, selection, onSelect }: {
+  depth: number
+  plot: { id: string; name: string }
+  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+}) {
+  const { data, isLoading, isError, refetch } = useYieldMapHeaders(plot.id)
+  if (isLoading) return <Loading depth={depth} />
+  if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones de rendimiento." onRetry={() => void refetch()} />
+  if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones de rendimiento." />
+  const activeId = activeIdFor(selection)
+  return (
+    <>
+      {data.map((session) => {
+        const count = Number(session.points_count ?? 0)
+        return (
+          <TreeRow
+            key={session.id}
+            depth={depth}
+            icon={<Wheat className="h-3.5 w-3.5" />}
+            label={`${session.harvest_date ?? 'Sin fecha'}${count ? ` · ${count} pts` : ''}`}
+            selected={selection?.level === 'session' && selection.session?.kind === 'yield_map' && activeId === session.id}
+            onSelect={() => onSelect({
+              ...base,
+              plot,
+              session: { id: session.id, date: session.harvest_date ?? null, kind: 'yield_map' },
+              level: 'session',
+            })}
+          />
+        )
+      })}
+    </>
+  )
+}
+
 /** Grupos de sesiones de la parcela, cada uno bajo su encabezado. */
 function SessionGroups({ depth, plot, base, selection, onSelect }: {
   depth: number
@@ -509,6 +554,8 @@ function SessionGroups({ depth, plot, base, selection, onSelect }: {
       <NdviSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
       <GroupLabel depth={depth} icon={<FlaskConical className="h-3 w-3" />} text="Mapeo de suelo" />
       <SoilMapSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
+      <GroupLabel depth={depth} icon={<Wheat className="h-3 w-3" />} text="Rendimiento" />
+      <YieldMapSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
     </>
   )
 }
@@ -691,6 +738,8 @@ function ProducerList({ depth, datacentral, base, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
+  const roleLevel = useAuthStore((st) => st.user?.role_level)
+  const codeOnlyViewer = roleLevel === ROLE_LEVELS.GUEST
   const { data, isLoading, isError, refetch } = useProducers(datacentral.id)
   const idsProductores = useMemo(() => (data ?? []).map((p) => p.id), [data])
   // Los ranchos de TODA la CIAgro en una sola peticion. Sirve para dos cosas: evita
@@ -707,7 +756,7 @@ function ProducerList({ depth, datacentral, base, selection, onSelect }: {
   for (const r of ranchos.data ?? []) {
     if (!r.producer) continue
     const lista = porProductor.get(r.producer) ?? []
-    lista.push({ id: r.id, name: r.name ?? r.code ?? r.id.slice(0, 8) })
+    lista.push({ id: r.id, name: codeOnlyViewer ? codeLabel(r.code, r.id) : (r.name ?? r.code ?? r.id.slice(0, 8)) })
     porProductor.set(r.producer, lista)
   }
   // Poda: un productor sin ranchos no tiene nada que explorar en el Visor. Se omite
@@ -722,7 +771,7 @@ function ProducerList({ depth, datacentral, base, selection, onSelect }: {
         <ProducerNode
           key={p.id}
           depth={depth}
-          producerRef={{ id: p.id, name: p.commercial_name ?? p.code ?? p.id.slice(0, 8) }}
+          producerRef={{ id: p.id, name: codeOnlyViewer ? codeLabel(p.code, p.id) : (p.commercial_name ?? p.code ?? p.id.slice(0, 8)) }}
           ranches={porProductor.get(p.id) ?? []}
           base={childBase}
           selection={selection}
@@ -768,6 +817,8 @@ function DataCentralList({ depth, org, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
+  const roleLevel = useAuthStore((st) => st.user?.role_level)
+  const codeOnlyViewer = roleLevel === ROLE_LEVELS.GUEST
   const { data, isLoading, isError, refetch } = useDataCentrals(org.id)
   if (isLoading) return <Loading depth={depth} />
   if (isError) return <InlineError depth={depth} text="No pudimos cargar las CIAgros." onRetry={() => void refetch()} />
@@ -778,7 +829,7 @@ function DataCentralList({ depth, org, selection, onSelect }: {
         <DataCentralNode
           key={dc.id}
           depth={depth}
-          dcRef={{ id: dc.id, name: dc.name }}
+          dcRef={{ id: dc.id, name: codeOnlyViewer ? codeLabel(dc.slug, dc.id) : dc.name }}
           org={org}
           selection={selection}
           onSelect={onSelect}
@@ -824,6 +875,7 @@ const SESSION_ICONS: Record<SessionKind, React.ReactNode> = {
   phyto: <Bug className="h-3.5 w-3.5" />,
   ndvi: <Leaf className="h-3.5 w-3.5" />,
   soil_map: <FlaskConical className="h-3.5 w-3.5" />,
+  yield_map: <Wheat className="h-3.5 w-3.5" />,
 }
 
 const SESSION_KIND_TEXT: Record<SessionKind, string> = {
@@ -831,6 +883,7 @@ const SESSION_KIND_TEXT: Record<SessionKind, string> = {
   phyto: 'Fitosanitaria',
   ndvi: 'NDVI',
   soil_map: 'Mapeo de suelo',
+  yield_map: 'Rendimiento',
 }
 
 function sessionLabel(session: SearchSessionRef): string {
@@ -1122,13 +1175,15 @@ export function GeodataExplorer({
   // las organizaciones que posee más las que tiene asignadas, sin las de
   // organizaciones inactivas. Decidir la raíz no cuesta ni una petición extra.
   const misDatacentrals = useAuthStore((st) => st.user?.datacentrals)
+  const roleLevel = useAuthStore((st) => st.user?.role_level)
+  const codeOnlyViewer = roleLevel === ROLE_LEVELS.GUEST
 
   const raiz = resolveExplorerRoot({
     orgs: orgs?.length ?? 0,
     datacentrals: misDatacentrals?.length ?? 0,
   })
 
-  if (searchActive) {
+  if (searchActive && !codeOnlyViewer) {
     if (searchLoading) return <Loading depth={0} />
     if (searchError) {
       return (
@@ -1166,8 +1221,8 @@ export function GeodataExplorer({
       return (
         <ProducerList
           depth={0}
-          datacentral={{ id: unicaDc.id, name: unicaDc.name }}
-          base={{ org: { id: unicaOrg.id, name: unicaOrg.name } }}
+          datacentral={{ id: unicaDc.id, name: codeOnlyViewer ? codeLabel(unicaDc.slug, unicaDc.id) : unicaDc.name }}
+          base={{ org: { id: unicaOrg.id, name: codeOnlyViewer ? codeLabel(unicaOrg.slug, unicaOrg.id) : unicaOrg.name } }}
           selection={selection}
           onSelect={onSelect}
         />
@@ -1177,7 +1232,7 @@ export function GeodataExplorer({
       return (
         <DataCentralList
           depth={0}
-          org={{ id: unicaOrg.id, name: unicaOrg.name }}
+          org={{ id: unicaOrg.id, name: codeOnlyViewer ? codeLabel(unicaOrg.slug, unicaOrg.id) : unicaOrg.name }}
           selection={selection}
           onSelect={onSelect}
         />
@@ -1186,7 +1241,7 @@ export function GeodataExplorer({
     return orgs.map((o) => (
       <OrgNode
         key={o.id}
-        orgRef={{ id: o.id, name: o.name, count: `${o.datacentrals_count} CIAgros` }}
+        orgRef={{ id: o.id, name: codeOnlyViewer ? codeLabel(o.slug, o.id) : o.name, count: `${o.datacentrals_count} CIAgros` }}
         selection={selection}
         onSelect={onSelect}
       />
@@ -1201,8 +1256,8 @@ export function GeodataExplorer({
           pinten. */}
       {unicaOrg && unicaDc && raiz !== 'org' && (
         <DashboardRow
-          org={{ id: unicaOrg.id, name: unicaOrg.name }}
-          datacentral={{ id: unicaDc.id, name: unicaDc.name }}
+          org={{ id: unicaOrg.id, name: codeOnlyViewer ? codeLabel(unicaOrg.slug, unicaOrg.id) : unicaOrg.name }}
+          datacentral={{ id: unicaDc.id, name: codeOnlyViewer ? codeLabel(unicaDc.slug, unicaDc.id) : unicaDc.name }}
           selection={selection}
           onSelect={onSelect}
         />

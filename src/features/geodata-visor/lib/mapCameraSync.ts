@@ -59,7 +59,7 @@ export function createMapCameraSyncGroup(): MapCameraSyncGroup {
  * aplican con jumpTo para que no haya retraso visual ni animaciones encadenadas.
  */
 export function useMapCameraSync(mapRef: RefObject<MapRef | null>, binding?: MapCameraSyncBinding) {
-  const applyingRemoteCamera = useRef(false)
+  const remoteTarget = useRef<MapCameraSnapshot | null>(null)
 
   useEffect(() => {
     if (!binding) return
@@ -68,21 +68,34 @@ export function useMapCameraSync(mapRef: RefObject<MapRef | null>, binding?: Map
       const map = mapRef.current?.getMap()
       if (!map) return
 
-      applyingRemoteCamera.current = true
+      // Guardamos el destino hasta recibir el onMove generado por jumpTo. Poner un
+      // booleano a false justo después de jumpTo era demasiado pronto en algunos
+      // navegadores y podía provocar rebote A -> B -> A entre los dos mapas.
+      remoteTarget.current = camera
       map.jumpTo({
         center: [camera.longitude, camera.latitude],
         zoom: camera.zoom,
         bearing: camera.bearing,
         pitch: camera.pitch,
       })
-      applyingRemoteCamera.current = false
     })
   }, [binding, mapRef])
 
   return useCallback(
     (event: ViewStateChangeEvent) => {
-      if (!binding || applyingRemoteCamera.current) return
+      if (!binding) return
       const { longitude, latitude, zoom, bearing, pitch } = event.viewState
+      const remote = remoteTarget.current
+      if (remote) {
+        const same =
+          Math.abs(longitude - remote.longitude) < 1e-7 &&
+          Math.abs(latitude - remote.latitude) < 1e-7 &&
+          Math.abs(zoom - remote.zoom) < 1e-5 &&
+          Math.abs(bearing - remote.bearing) < 1e-5 &&
+          Math.abs(pitch - remote.pitch) < 1e-5
+        remoteTarget.current = null
+        if (same) return
+      }
       binding.group.publish(binding.pane, { longitude, latitude, zoom, bearing, pitch })
     },
     [binding]

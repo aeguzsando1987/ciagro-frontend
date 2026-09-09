@@ -16,6 +16,7 @@ import { useAspersionSessionHeaders } from '../hooks/useAspersionSessionHeaders'
 import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
 import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
 import { useNdviSessionHeaders } from '../hooks/useNdviSessionHeaders'
+import { useYieldMapHeaders } from '@/features/yield-map/hooks/useYieldMapHeaders'
 import {
   type StatEntry,
   sumArea,
@@ -37,6 +38,7 @@ import { SoilMapSessionInfoCard } from './SoilMapSessionInfoCard'
 import { AspersionMap } from './AspersionMap'
 import { NdviTimelineView } from './NdviTimelineView'
 import { SoilMap as SoilMapMap } from './SoilMap'
+import { YieldMap } from './YieldMap'
 import { PhytoMap } from '@/features/task-manager/components/PhytoMap'
 import { PhytoStatsCard } from '@/features/task-manager/components/PhytoStatsCard'
 import { SessionReportToggle } from '@/features/session-report/components/SessionReportToggle'
@@ -62,6 +64,7 @@ function levelTitle(selection: VisorSelection): string {
     if (kind === 'phyto') return 'Sesión fitosanitaria'
     if (kind === 'ndvi') return 'Sesión NDVI'
     if (kind === 'soil_map') return 'Sesión de mapeo de suelo'
+    if (kind === 'yield_map') return 'Sesión de rendimiento'
     return 'Sesión de aspersión'
   }
   return LEVEL_TITLE[selection.level]
@@ -318,12 +321,14 @@ function RanchView({
     phyto: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'phyto') : null,
     ndvi: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'ndvi') : null,
     soil_map: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'soil_map') : null,
+    yield_map: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'yield_map') : null,
   }
 
   const stats = isPlotLevel ? null : ranchStats(visiblePlots.length, areaHa)
   const isPhytoSession = isSessionLevel && selection.session?.kind === 'phyto'
   const isNdviSession = isSessionLevel && selection.session?.kind === 'ndvi'
   const isSoilMapSession = isSessionLevel && selection.session?.kind === 'soil_map'
+  const isYieldMapSession = isSessionLevel && selection.session?.kind === 'yield_map'
 
   const backToPlotButton = (
     <button
@@ -339,7 +344,7 @@ function RanchView({
     <div className="flex h-full flex-col gap-2.5">
       {!statsHidden && stats && <StatGrid loading={plots.isLoading} stats={stats} />}
       {!statsHidden && isPlotLevel && <PlotStats plotId={selection.plot!.id} />}
-      {!statsHidden && isSessionLevel && !isPhytoSession && !isNdviSession && !isSoilMapSession && (
+      {!statsHidden && isSessionLevel && !isPhytoSession && !isNdviSession && !isSoilMapSession && !isYieldMapSession && (
         <SessionInfoCard
           sessionId={selection.session!.id}
           datacentralId={selection.datacentral?.id}
@@ -423,6 +428,15 @@ function RanchView({
                 />
               }
             />
+          ) : isYieldMapSession ? (
+            /* Rendimiento es el quinto dominio. El índice de sus cinco vistas rápidas
+               vive dentro del propio mapa; las sesiones siguen naciendo en Task Manager. */
+            <YieldMap
+              sessionId={selection.session!.id}
+              plotId={selection.plot!.id}
+              mapSync={mapSync}
+              toolbarStart={backToPlotButton}
+            />
           ) : (
             /* Sesión de aspersión: las 5 capas heatmap sobre la parcela (reuso Fase 6).
                La lista de sesiones va en la columna derecha del mapa, y debajo de ella la
@@ -489,18 +503,21 @@ function PlotStats({ plotId }: { plotId: string }) {
   const phytoSessions = usePhytoSessionHeaders(plotId)
   const ndviSessions = useNdviSessionHeaders(plotId)
   const soilMapSessions = useSoilMapSessionHeaders(plotId)
+  const yieldMapSessions = useYieldMapHeaders(plotId)
   const loading =
     plot.isLoading ||
     sessions.isLoading ||
     phytoSessions.isLoading ||
     ndviSessions.isLoading ||
-    soilMapSessions.isLoading
+    soilMapSessions.isLoading ||
+    yieldMapSessions.isLoading
   const officialAreaHa = parseArea(plot.data?.total_area)
   const stats = [
     ...plotStats(officialAreaHa, sessions.data?.length ?? 0),
     { label: 'Sesiones fitosanitarias', value: String(phytoSessions.data?.length ?? 0) },
     { label: 'Sesiones NDVI', value: String(ndviSessions.data?.length ?? 0) },
     { label: 'Sesiones de mapeo de suelo', value: String(soilMapSessions.data?.length ?? 0) },
+    { label: 'Sesiones de rendimiento', value: String(yieldMapSessions.data?.length ?? 0) },
   ]
   return <StatGrid loading={loading} stats={stats} />
 }

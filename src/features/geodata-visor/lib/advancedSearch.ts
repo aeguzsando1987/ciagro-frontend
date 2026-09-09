@@ -13,13 +13,14 @@
  */
 import type { AdvancedSearchResult, SessionKind } from '../types'
 
-export const SESSION_KINDS: SessionKind[] = ['aspersion', 'phyto', 'ndvi', 'soil_map']
+export const SESSION_KINDS: SessionKind[] = ['aspersion', 'phyto', 'ndvi', 'soil_map', 'yield_map']
 
 export const SESSION_KIND_LABELS: Record<SessionKind, string> = {
   aspersion: 'Aspersión',
   phyto: 'Fitosanitaria',
   ndvi: 'NDVI',
   soil_map: 'Mapeo de suelo',
+  yield_map: 'Rendimiento',
 }
 
 export type DateMode = 'planned' | 'actual'
@@ -133,7 +134,7 @@ export function criteriaToQuery(criteria: AdvancedSearchCriteria): Record<string
   if (criteria.producers.length) query.producer = criteria.producers.join(',')
   if (criteria.ranches.length) query.ranch = criteria.ranches.join(',')
   if (criteria.plots.length) query.plot = criteria.plots.join(',')
-  // Los cuatro tipos equivalen a no filtrar por tipo: se omite para que el backend
+  // Los cinco tipos equivalen a no filtrar por tipo: se omite para que el backend
   // aplique su propio default y la query quede más corta.
   if (criteria.types.length && criteria.types.length < SESSION_KINDS.length) {
     query.type = criteria.types.join(',')
@@ -175,7 +176,7 @@ export function plotIdsFromResult(result: AdvancedSearchResult | null): string[]
  * ¿Esta sesión sobrevive al filtro de búsqueda?
  *
  * `allowedIds` nulo o indefinido = no hay búsqueda, pasa todo. Se comparte entre los
- * cuatro paneles de sesiones para no repetir la misma condición (y su caso nulo) en
+ * cinco paneles de sesiones para no repetir la misma condición (y su caso nulo) en
  * cada uno.
  */
 export function isAllowedSession(

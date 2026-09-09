@@ -22,6 +22,46 @@ vi.mock('../hooks/useDatacentralUsers', () => ({
   useDatacentralUsers: () => ({ data: [] }),
 }))
 
+vi.mock('../hooks/useRanches', () => ({
+  useRanches: () => ({
+    data: [
+      {
+        id: '44444444-4444-4444-8444-444444444444',
+        properties: { name: 'Rancho Norte', code: 'RN-01' },
+      },
+    ],
+    isLoading: false,
+  }),
+}))
+
+vi.mock('../hooks/usePlots', () => ({
+  usePlots: () => ({
+    data: [
+      {
+        id: '33333333-3333-4333-8333-333333333333',
+        properties: {
+          code: 'Parcela 1',
+          description: 'Parcela Norte',
+          ranch: '44444444-4444-4444-8444-444444444444',
+        },
+      },
+    ],
+    isLoading: false,
+  }),
+  usePlotsByProducer: () => ({
+    data: [
+      {
+        id: '33333333-3333-4333-8333-333333333333',
+        properties: {
+          code: 'Parcela 1',
+          description: 'Parcela Norte',
+          ranch: '44444444-4444-4444-8444-444444444444',
+        },
+      },
+    ],
+  }),
+}))
+
 const PROGRAM_ID = '11111111-1111-4111-8111-111111111111'
 const MASTER_ID = '22222222-2222-4222-8222-222222222222'
 const PLOT_ID = '33333333-3333-4333-8333-333333333333'
@@ -68,10 +108,7 @@ function renderDialog(plot: string | null = PLOT_ID) {
 }
 
 /** Elige un tipo de sesión en el select del encabezado del diálogo. */
-async function selectSessionType(
-  user: ReturnType<typeof userEvent.setup>,
-  label: string,
-) {
+async function selectSessionType(user: ReturnType<typeof userEvent.setup>, label: string) {
   await user.click(screen.getByRole('combobox', { name: /Tipo de sesión/i }))
   await user.click(await screen.findByRole('option', { name: label }))
 }
@@ -127,5 +164,19 @@ describe('CreateSessionDialog — mapeo de suelo', () => {
     await selectSessionType(user, 'Mapeo de suelo')
 
     expect(screen.getByText(/no tiene parcela asignada/i)).toBeInTheDocument()
+  })
+})
+
+describe('CreateSessionDialog — rendimiento', () => {
+  it('muestra Rancho, Parcela y Fecha de cosecha para el quinto dominio', async () => {
+    const user = userEvent.setup()
+    renderDialog()
+
+    await selectSessionType(user, 'Rendimiento')
+
+    expect(screen.getByText('Rancho *')).toBeInTheDocument()
+    expect(screen.getByText('Parcela *')).toBeInTheDocument()
+    expect(screen.getByLabelText('Fecha de cosecha *')).toBeInTheDocument()
+    expect(screen.getByText(/dominio independiente/i)).toBeInTheDocument()
   })
 })

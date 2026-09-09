@@ -23,6 +23,7 @@ import { AdvancedSearchModal } from './AdvancedSearchModal'
 import { useAdvancedSessionSearch } from '../hooks/useAdvancedSessionSearch'
 import {
   criteriaFromSearch,
+  EMPTY_CRITERIA,
   isSearchActive,
   searchFromCriteria,
   type AdvancedSearchCriteria,
@@ -35,6 +36,8 @@ import {
 import type { VisorSelection } from '../types'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { useAuthStore } from '@/features/auth/useAuthStore'
+import { ROLE_LEVELS } from '@/lib/auth/roles'
 
 const MIN_EXPLORER_WIDTH = 160
 
@@ -69,6 +72,7 @@ function selectionLevelLabel(selection: VisorSelection | null): string {
     phyto: 'Fitosanitario',
     ndvi: 'NDVI',
     soil_map: 'Mapeo de suelo',
+    yield_map: 'Rendimiento',
   }
   return labels[selection.session?.kind ?? 'aspersion']
 }
@@ -83,6 +87,8 @@ interface GeodataVisorShellProps {
 }
 
 export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShellProps = {}) {
+  const roleLevel = useAuthStore((state) => state.user?.role_level)
+  const codeOnlyViewer = roleLevel === ROLE_LEVELS.GUEST
   const [selection, setSelection] = useState<VisorSelection | null>(initialSelection)
   const [comparisonSelection, setComparisonSelection] = useState<VisorSelection | null>(null)
   const [comparisonEnabled, setComparisonEnabled] = useState(false)
@@ -107,8 +113,14 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
   const search = useSearch({ strict: false }) as Record<string, string | undefined>
   const navigate = useNavigate()
   const criteria = useMemo(() => criteriaFromSearch(search), [search])
-  const searchActive = isSearchActive(criteria)
-  const results = useAdvancedSessionSearch(criteria)
+  // Guest es un visor de códigos: no se ejecuta la búsqueda avanzada porque sus
+  // resultados incluyen nombres descriptivos. El árbol perezoso ya respeta su scope.
+  const effectiveCriteria = useMemo<AdvancedSearchCriteria>(
+    () => (codeOnlyViewer ? EMPTY_CRITERIA : criteria),
+    [codeOnlyViewer, criteria]
+  )
+  const searchActive = !codeOnlyViewer && isSearchActive(criteria)
+  const results = useAdvancedSessionSearch(effectiveCriteria)
   const contextLabel =
     selection?.datacentral?.name ?? selection?.org.name ?? 'Todas las organizaciones'
 
@@ -281,6 +293,7 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
                     Explorador agrícola
                   </span>
                   <span className="flex items-center gap-1">
+                    {!codeOnlyViewer && (
                     <button
                       type="button"
                       aria-label="Búsqueda avanzada"
@@ -292,6 +305,7 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
                     >
                       <Search className="h-4 w-4" />
                     </button>
+                    )}
                     {searchActive && (
                       <button
                         type="button"
@@ -454,12 +468,14 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
         </section>
       </main>
 
-      <AdvancedSearchModal
-        open={searchOpen}
-        onOpenChange={setSearchOpen}
-        criteria={criteria}
-        onApply={applySearch}
-      />
+      {!codeOnlyViewer && (
+        <AdvancedSearchModal
+          open={searchOpen}
+          onOpenChange={setSearchOpen}
+          criteria={criteria}
+          onApply={applySearch}
+        />
+      )}
     </div>
   )
 }

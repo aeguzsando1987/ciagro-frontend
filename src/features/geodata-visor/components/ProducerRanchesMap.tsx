@@ -13,6 +13,8 @@ import type { MapRef } from 'react-map-gl/maplibre'
 import { MapModeSelector } from './MapModeSelector'
 import { useMapMode } from '../lib/mapModes'
 import { useMapCameraSync, type MapCameraSyncBinding } from '../lib/mapCameraSync'
+import { useAuthStore } from '@/features/auth/useAuthStore'
+import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import type { RanchFlat, PlotFlat } from '@/features/admin/types'
 
@@ -83,6 +85,10 @@ export function ProducerRanchesMap({
   producerName,
   mapSync,
 }: ProducerRanchesMapProps) {
+  const roleLevel = useAuthStore((state) => state.user?.role_level)
+  const codeOnlyViewer = roleLevel === ROLE_LEVELS.GUEST
+  const ranchLabel = (ranch: RanchFlat) =>
+    codeOnlyViewer ? (ranch.code ?? ranch.id.slice(0, 8)) : (ranch.name ?? ranch.code ?? ranch.id.slice(0, 8))
   const mapRef = useRef<MapRef>(null)
   const { mapMode, setMapMode } = useMapMode(mapRef)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
@@ -196,7 +202,7 @@ export function ProducerRanchesMap({
           if (!ranch) return
           onSelectRanch({
             id: ranch.id,
-            name: ranch.name ?? ranch.code ?? ranch.id.slice(0, 8),
+            name: ranchLabel(ranch),
           })
         }}
         cooperativeGestures
@@ -226,18 +232,18 @@ export function ProducerRanchesMap({
           <Marker key={ranch.id} longitude={coord[0]} latitude={coord[1]} anchor="bottom">
             <button
               type="button"
-              title={`Ver parcelas de ${ranch.name ?? ranch.code ?? ''}`}
+              title={`Ver parcelas de ${ranchLabel(ranch)}`}
               onClick={() =>
                 onSelectRanch({
                   id: ranch.id,
-                  name: ranch.name ?? ranch.code ?? ranch.id.slice(0, 8),
+                  name: ranchLabel(ranch),
                 })
               }
               className="flex flex-col items-center"
               style={{ cursor: 'pointer' }}
             >
               <span className="whitespace-nowrap rounded-md bg-emerald-800/90 px-2 py-1 text-[11px] font-semibold text-white shadow-md hover:bg-emerald-700">
-                📍 {ranch.name ?? ranch.code ?? ranch.id.slice(0, 8)}
+                📍 {ranchLabel(ranch)}
               </span>
               <span className="h-2 w-0.5 bg-emerald-800/90" />
             </button>

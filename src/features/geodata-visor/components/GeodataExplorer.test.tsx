@@ -69,6 +69,13 @@ vi.mock('../hooks/useSoilMapSessionHeaders', () => ({
   }),
 }))
 
+vi.mock('@/features/yield-map/hooks/useYieldMapHeaders', () => ({
+  useYieldMapHeaders: () => ({
+    data: [{ id: 'yield-session-1', harvest_date: '2024-10-12', points_count: 1594 }],
+    isLoading: false, isError: false, refetch: vi.fn(),
+  }),
+}))
+
 import { GeodataExplorer } from './GeodataExplorer'
 
 describe('GeodataExplorer', () => {

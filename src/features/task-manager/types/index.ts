@@ -8,11 +8,26 @@ import type { components } from '@/types/api'
 /** Programa Maestro (nivel superior del Gantt). */
 export type MasterProgram = components['schemas']['MasterProgram']
 
-/** Arbol completo Maestro + Hijos + Sesiones (endpoint /tree/). */
-export type MasterProgramTree = components['schemas']['MasterProgramTree']
-
 /** Programa Hijo anidado bajo un Maestro. */
-export type ProgramaTree = components['schemas']['ProgramaTree']
+export type YieldMapSessionSummary = {
+  id: string
+  type: 'yield_map'
+  harvest_date: string
+  import_status: string
+  status: string
+}
+
+export type ProgramaTree = components['schemas']['ProgramaTree'] & {
+  yield_map_headers?: YieldMapSessionSummary[]
+}
+
+/** Arbol completo Maestro + Hijos + Sesiones (endpoint /tree/).
+ * El schema generado todavía no conoce Rendimiento; reemplazamos solo `programas`
+ * para conservar el contrato OpenAPI y sumar el quinto dominio sin usar `any`.
+ */
+export type MasterProgramTree = Omit<components['schemas']['MasterProgramTree'], 'programas'> & {
+  programas: ProgramaTree[]
+}
 
 /** Estados validos del Programa Maestro y Programa Hijo. */
 export type ProgramaStatus = components['schemas']['Status5a4Enum']

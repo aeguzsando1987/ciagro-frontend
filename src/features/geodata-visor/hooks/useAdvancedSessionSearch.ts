@@ -4,7 +4,7 @@
  * GET /api/v1/monitoring/sessions/advanced-search/
  *
  * Una sola llamada devuelve la jerarquía completa productor → rancho → parcela →
- * sesiones de los cuatro tipos. El scope multi-tenant lo resuelve el backend (regla
+ * sesiones de los cinco tipos. El scope multi-tenant lo resuelve el backend (regla
  * crítica: no se reimplementa en cliente).
  *
  * A diferencia de los demás hooks del visor, aquí los query params SÍ están tipados
@@ -24,7 +24,7 @@ export function advancedSessionSearchQueryOptions(criteria: AdvancedSearchCriter
   const query = criteriaToQuery(criteria)
   return queryOptions({
     // La query normalizada es la clave: dos criterios que producen la misma petición
-    // comparten caché (p. ej. elegir los cuatro tipos o ninguno).
+    // comparten caché (p. ej. elegir los cinco tipos o ninguno).
     queryKey: [...ADVANCED_SEARCH_KEY, query] as const,
     // Sin criterios no se pide nada: el explorador sigue en su modo perezoso.
     enabled: isSearchActive(criteria),

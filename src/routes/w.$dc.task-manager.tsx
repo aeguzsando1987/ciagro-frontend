@@ -16,6 +16,7 @@ import { MaestroModal } from '@/features/task-manager/panel/MaestroModal'
 import { HijoModal } from '@/features/task-manager/panel/HijoModal'
 import { SesionModal } from '@/features/task-manager/panel/SesionModal'
 import { NdviSesionModal } from '@/features/task-manager/panel/NdviSesionModal'
+import { YieldSesionModal } from '@/features/task-manager/panel/YieldSesionModal'
 import { Button } from '@/components/ui/button'
 import { LoadingState } from '@/components/ui/loading-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -27,7 +28,7 @@ type ModalFrame =
   | {
       type: 'sesion'
       sesionId: string
-      sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map'
+      sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' | 'yield_map'
       hijoId: string
       masterId: string
     }
@@ -49,7 +50,7 @@ const taskManagerSearchSchema = z.object({
   openMaster: z.string().optional().catch(undefined),
   openHijo: z.string().optional().catch(undefined),
   openSesion: z.string().optional().catch(undefined),
-  openSesionType: z.enum(['aspersion', 'phyto', 'ndvi', 'soil_map']).optional().catch(undefined),
+  openSesionType: z.enum(['aspersion', 'phyto', 'ndvi', 'soil_map', 'yield_map']).optional().catch(undefined),
 })
 
 /**
@@ -146,7 +147,7 @@ function TaskManagerPage() {
     id: string,
     level: 'master' | 'hijo' | 'sesion',
     masterId: string,
-    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' } | null
+    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' | 'yield_map' } | null
   ) {
     if (level === 'master') {
       pushModal({ type: 'master', masterId: id })
@@ -223,8 +224,8 @@ function TaskManagerPage() {
               <li className="flex gap-2.5">
                 <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
                 <span>
-                  <strong>Sesión</strong> — evento de campo ejecutado: aspersión con telemetría GPS
-                  o monitoreo fitosanitario.
+                  <strong>Sesión</strong> — evento o capa agrícola registrada en el subprograma:
+                  aspersión, monitoreo fitosanitario, índices vegetativos, mapeo de suelo o rendimiento.
                 </span>
               </li>
             </ul>
@@ -295,10 +296,19 @@ function TaskManagerPage() {
           onBack={popModal}
         />
       )}
-      {topFrame?.type === 'sesion' && topFrame.sesionType !== 'ndvi' && (
+      {topFrame?.type === 'sesion' && topFrame.sesionType === 'yield_map' && (
+        <YieldSesionModal
+          sesionId={topFrame.sesionId}
+          hijoId={topFrame.hijoId}
+          masterId={topFrame.masterId}
+          onClose={clearModal}
+          onBack={popModal}
+        />
+      )}
+      {topFrame?.type === 'sesion' && topFrame.sesionType !== 'ndvi' && topFrame.sesionType !== 'yield_map' && (
         <SesionModal
           sesionId={topFrame.sesionId}
-          sesionType={topFrame.sesionType as 'aspersion' | 'phyto'}
+          sesionType={topFrame.sesionType as 'aspersion' | 'phyto' | 'soil_map'}
           hijoId={topFrame.hijoId}
           masterId={topFrame.masterId}
           datacentralId={dc}
@@ -334,7 +344,7 @@ function HijoModalWrapper({
   onBack: () => void
   onNavigateSesion: (ref: {
     sesionId: string
-    sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map'
+    sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' | 'yield_map'
   }) => void
 }) {
   const { data: tree, isLoading } = useMasterTree(masterId, true)
