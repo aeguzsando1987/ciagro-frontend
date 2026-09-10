@@ -58,6 +58,10 @@ vi.mock('../hooks/useSoilMapSessionHeaders', () => ({
   useSoilMapSessionHeaders: () => ({ data: [], isLoading: false }),
 }))
 
+vi.mock('@/features/yield-map/hooks/useYieldMapHeaders', () => ({
+  useYieldMapHeaders: () => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() }),
+}))
+
 import { GeodataExplorer } from './GeodataExplorer'
 
 const BASE_USER: AuthUser = {

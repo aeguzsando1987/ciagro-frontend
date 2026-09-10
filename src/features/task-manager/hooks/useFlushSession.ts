@@ -10,7 +10,7 @@ export interface FlushResult {
 }
 
 /** Tipos de sesión que admiten borrado de puntos. */
-export type FlushKind = 'aspersion' | 'ndvi' | 'soil_map'
+export type FlushKind = 'aspersion' | 'ndvi' | 'soil_map' | 'yield_map'
 
 interface FlushSpec {
   /** Segmento del endpoint bajo /monitoring/<segment>/headers/<id>/flush/ */
@@ -62,6 +62,16 @@ const SPECS: Record<FlushKind, FlushSpec> = {
       ['soil-map'],
     ],
   },
+  yield_map: {
+    segment: 'yield-map',
+    noun: 'datos de rendimiento',
+    invalidate: (id) => [
+      ['yield-map-detail', id],
+      ['yield-map-points', id],
+      ['yield-map-stats', id],
+      ['yield-map', 'headers'],
+    ],
+  },
 }
 
 /**
@@ -80,13 +90,10 @@ export function useFlushSession(kind: FlushKind, sessionId: string) {
   return useMutation({
     mutationFn: async (): Promise<FlushResult> => {
       const baseUrl = import.meta.env.VITE_API_BASE_URL
-      const res = await fetch(
-        `${baseUrl}/monitoring/${spec.segment}/headers/${sessionId}/flush/`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${tokens.getAccess() ?? ''}` },
-        },
-      )
+      const res = await fetch(`${baseUrl}/monitoring/${spec.segment}/headers/${sessionId}/flush/`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokens.getAccess() ?? ''}` },
+      })
       if (!res.ok) throw new Error(`No se pudo eliminar los ${spec.noun}`)
       return (await res.json()) as FlushResult
     },

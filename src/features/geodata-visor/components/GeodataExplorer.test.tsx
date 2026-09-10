@@ -69,6 +69,30 @@ vi.mock('../hooks/useSoilMapSessionHeaders', () => ({
   }),
 }))
 
+vi.mock('@/features/task-manager/hooks/useHijoDetail', () => ({
+  useHijoDetail: (id: string) => ({
+    data: id === 'program-yield-1'
+      ? {
+          id,
+          title: 'Subprograma Cosecha 2024',
+          voucher_code: 'SC-2024',
+          cycle: 'Otoño-Invierno-2024',
+          est_start_date: '2024-10-01T00:00:00Z',
+          est_finish_date: '2024-12-31T00:00:00Z',
+        }
+      : null,
+    isLoading: false,
+    isError: false,
+  }),
+}))
+
+vi.mock('@/features/yield-map/hooks/useYieldMapHeaders', () => ({
+  useYieldMapHeaders: () => ({
+    data: [{ id: 'yield-session-1', program: 'program-yield-1', harvest_date: '2024-10-12', points_count: 1594 }],
+    isLoading: false, isError: false, refetch: vi.fn(),
+  }),
+}))
+
 import { GeodataExplorer } from './GeodataExplorer'
 
 describe('GeodataExplorer', () => {
@@ -119,6 +143,29 @@ describe('GeodataExplorer', () => {
       datacentral: { id: 'dc-1', name: 'CIAgro Hija A' },
       level: 'datacentral',
     })
+  })
+
+  it('agrupa Rendimiento por subprograma antes de mostrar sus sesiones', async () => {
+    render(<GeodataExplorer selection={null} onSelect={vi.fn()} />)
+
+    fireEvent.doubleClick(screen.getByText('Organización Uno'))
+    await waitFor(() => screen.getByText('CIAgro Hija A'))
+    fireEvent.doubleClick(screen.getByText('CIAgro Hija A'))
+    await waitFor(() => screen.getByText('Productor X'))
+    fireEvent.doubleClick(screen.getByText('Productor X'))
+    await waitFor(() => screen.getByText('Rancho Norte'))
+    fireEvent.doubleClick(screen.getByText('Rancho Norte'))
+    await waitFor(() => screen.getByText('P-01'))
+    fireEvent.doubleClick(screen.getByText('P-01'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Rendimiento')).toBeInTheDocument()
+      expect(screen.getByText('Subprograma Cosecha 2024')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText('2024-10-12 · 1594 pts')).toBeNull()
+    fireEvent.click(screen.getByText('Subprograma Cosecha 2024'))
+    expect(screen.getByText('2024-10-12 · 1594 pts')).toBeInTheDocument()
   })
 
   it('agrupa las sesiones de suelo y conserva la ruta completa al seleccionarlas', async () => {

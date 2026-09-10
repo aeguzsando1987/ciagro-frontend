@@ -31,6 +31,11 @@ const TEXTOS: Record<DeleteLevel, { titulo: string; items: string; consecuencia:
     items: 'la sesión, sus puntos y su coropleta',
     consecuencia: 'Los datos se eliminan de forma permanente.',
   },
+  yield_map: {
+    titulo: 'Eliminar sesión de rendimiento',
+    items: 'la sesión de rendimiento y todas sus lecturas de cosecha',
+    consecuencia: 'Los datos se eliminan de forma permanente y desaparecen del visor agrícola.',
+  },
   phyto: {
     titulo: 'Eliminar sesión fitosanitaria',
     items: 'la sesión y sus muestras',

@@ -8,6 +8,7 @@ import {
   Layers,
   Leaf,
   RotateCw,
+  Wheat,
 } from 'lucide-react'
 
 import { Skeleton } from '@/components/ui/skeleton'
@@ -16,6 +17,7 @@ import { useAspersionSessionHeaders } from '../hooks/useAspersionSessionHeaders'
 import { useNdviSessionHeaders } from '../hooks/useNdviSessionHeaders'
 import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
 import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
+import { useYieldMapHeaders } from '@/features/yield-map/hooks/useYieldMapHeaders'
 import { isAllowedSession } from '../lib/advancedSearch'
 import type { SessionKind, VisorSession } from '../types'
 
@@ -24,6 +26,7 @@ interface AllowedSessions {
   phyto?: string[] | null
   ndvi?: string[] | null
   soil_map?: string[] | null
+  yield_map?: string[] | null
 }
 
 interface PlotSessionsPanelProps {
@@ -90,6 +93,7 @@ export function PlotSessionsPanel({
   const phyto = usePhytoSessionHeaders(plotId)
   const ndvi = useNdviSessionHeaders(plotId)
   const soilMap = useSoilMapSessionHeaders(plotId)
+  const yieldMap = useYieldMapHeaders(plotId)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -98,6 +102,7 @@ export function PlotSessionsPanel({
     phyto: false,
     ndvi: false,
     soil_map: false,
+    yield_map: false,
   })
 
   const sections = useMemo<SessionSection[]>(() => {
@@ -173,8 +178,25 @@ export function PlotSessionsPanel({
         error: soilMap.isError,
         retry: () => void soilMap.refetch(),
       },
+      {
+        kind: 'yield_map',
+        label: 'Rendimiento',
+        emptyDescription: 'Esta parcela todavía no cuenta con mapas de rendimiento.',
+        icon: <Wheat className="h-4 w-4" />,
+        items: (yieldMap.data ?? [])
+          .map((session) => ({
+            id: session.id,
+            kind: 'yield_map' as const,
+            date: session.harvest_date ?? null,
+            detail: withStatus(pointDetail(session.points_count), session.import_status, 'done'),
+          }))
+          .filter(filter),
+        loading: yieldMap.isLoading,
+        error: yieldMap.isError,
+        retry: () => void yieldMap.refetch(),
+      },
     ]
-  }, [allowedIds, aspersion, from, ndvi, phyto, soilMap, to])
+  }, [allowedIds, aspersion, from, ndvi, phyto, soilMap, to, yieldMap])
 
   const total = sections.reduce((sum, section) => sum + section.items.length, 0)
   const hasDateFilter = Boolean(from || to)

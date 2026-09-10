@@ -6,6 +6,8 @@ import { workspaceDcRoute } from './w.$dc'
 import { GeodataVisorShell } from '@/features/geodata-visor/components/GeodataVisorShell'
 import { useDataCentralDetail } from '@/features/admin/hooks/useDataCentrals'
 import type { VisorSelection } from '@/features/geodata-visor/types'
+import { useAuthStore } from '@/features/auth/useAuthStore'
+import { ROLE_LEVELS } from '@/lib/auth/roles'
 
 /**
  * Contrato de la búsqueda avanzada, que vive en la URL para poder compartirse.
@@ -48,6 +50,8 @@ export const workspaceVisorRoute = createRoute({
 function WorkspaceVisorPage() {
   const { dc } = useParams({ from: '/_authenticated/w/$dc/visor' })
   const { data } = useDataCentralDetail(dc)
+  const roleLevel = useAuthStore((state) => state.user?.role_level)
+  const codeOnlyViewer = roleLevel === ROLE_LEVELS.GUEST
 
   // El árbol cuelga de Organización -> CIAgro, así que la selección necesita las dos.
   // Mientras la petición está en vuelo se pasa `null` y el visor se comporta como
@@ -56,10 +60,16 @@ function WorkspaceVisorPage() {
     if (!data?.data_central_main) return null
     return {
       level: 'datacentral',
-      org: { id: data.data_central_main.id, name: data.data_central_main.name },
-      datacentral: { id: data.id, name: data.name },
+      org: {
+        id: data.data_central_main.id,
+        name: codeOnlyViewer ? data.data_central_main.slug : data.data_central_main.name,
+      },
+      datacentral: {
+        id: data.id,
+        name: codeOnlyViewer ? data.slug : data.name,
+      },
     }
-  }, [data])
+  }, [codeOnlyViewer, data])
 
   return <GeodataVisorShell initialSelection={seleccionInicial} />
 }

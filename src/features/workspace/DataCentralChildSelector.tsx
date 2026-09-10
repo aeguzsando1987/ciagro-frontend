@@ -10,6 +10,8 @@ import type { DataCentral } from '@/types/workspace'
 import type { WorkspaceDataCentral } from '@/types/auth'
 
 import { targetRouteFor, type EntryTarget } from './entryTarget'
+import { useAuthStore } from '@/features/auth/useAuthStore'
+import { ROLE_LEVELS } from '@/lib/auth/roles'
 
 interface Props {
   datacentrals: Array<DataCentral | WorkspaceDataCentral>
@@ -29,6 +31,8 @@ export function DataCentralChildSelector({
   next,
 }: Props) {
   const navigate = useNavigate()
+  const roleLevel = useAuthStore((state) => state.user?.role_level)
+  const codeOnlyViewer = roleLevel === ROLE_LEVELS.GUEST
   const selectedDc = useWorkspaceStore((state) => state.selectedDc)
   const setSelectedDc = useWorkspaceStore((state) => state.setSelectedDc)
   const [search, setSearch] = useState('')
@@ -36,10 +40,11 @@ export function DataCentralChildSelector({
   const filtered = useMemo(() => {
     const query = search.trim().toLocaleLowerCase('es-MX')
     if (!query) return datacentrals
-    return datacentrals.filter((dc) =>
-      `${dc.name} ${dc.slug}`.toLocaleLowerCase('es-MX').includes(query)
-    )
-  }, [datacentrals, search])
+    return datacentrals.filter((dc) => {
+      const searchable = codeOnlyViewer ? dc.slug : `${dc.name} ${dc.slug}`
+      return searchable.toLocaleLowerCase('es-MX').includes(query)
+    })
+  }, [codeOnlyViewer, datacentrals, search])
 
   return (
     <div className="w-full space-y-7">
@@ -80,7 +85,7 @@ export function DataCentralChildSelector({
                   index > 0 ? 'border-t border-border-light' : ''
                 } ${active ? 'bg-primary-soft' : ''}`}
                 onClick={() => {
-                  setSelectedDc({ id: dc.id, name: dc.name })
+                  setSelectedDc({ id: dc.id, name: codeOnlyViewer ? dc.slug : dc.name })
                   void navigate(targetRouteFor(dc.id, next))
                 }}
               >
@@ -89,7 +94,7 @@ export function DataCentralChildSelector({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-base font-semibold text-foreground">
-                    {dc.name}
+                    {codeOnlyViewer ? dc.slug : dc.name}
                   </span>
                   <span className="mt-0.5 block text-[15px] text-secondary">
                     {'is_primary' in dc && dc.is_primary ? 'CIAgro principal' : '1 CIAgro'}

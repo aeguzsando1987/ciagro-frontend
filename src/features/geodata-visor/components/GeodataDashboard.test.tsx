@@ -57,6 +57,15 @@ vi.mock('../hooks/useSoilMapSessionHeaders', () => ({
     isLoading: false,
   }),
 }))
+vi.mock('@/features/yield-map/hooks/useYieldMapHeaders', () => ({
+  useYieldMapHeaders: () => ({
+    data: [{ id: 'ym1', harvest_date: '2024-10-12', points_count: 1594, import_status: 'done' }],
+    isLoading: false, isError: false, refetch: vi.fn(),
+  }),
+}))
+vi.mock('./YieldMap', () => ({
+  YieldMap: ({ sessionId }: { sessionId: string }) => <div data-testid="yield-map">{sessionId}<button>Parcela</button><span>Vista rápida</span></div>,
+}))
 // SessionInfoCard tiene su propio test (resuelve hooks + Link de router); aquí se aísla.
 vi.mock('./SessionInfoCard', () => ({
   SessionInfoCard: () => <div data-testid="session-info-card" />,
@@ -195,6 +204,7 @@ describe('GeodataDashboard', () => {
     expect(screen.getAllByText('3').length).toBeGreaterThan(0) // 3 sesiones (stat y listado)
     expect(screen.getByText(/4.5 ha/)).toBeTruthy()
     expect(screen.getAllByText('Sesiones de mapeo de suelo').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Sesiones de rendimiento').length).toBeGreaterThan(0)
     expect(screen.getAllByText('1').length).toBeGreaterThan(0)
     expect(screen.queryByTestId('soil-elevation-summary')).not.toBeInTheDocument()
   })
@@ -227,9 +237,25 @@ describe('GeodataDashboard', () => {
     expect(screen.getByText('Sesión de mapeo de suelo')).toBeTruthy()
     expect(screen.getByRole('combobox', { name: 'Variable del mapa' })).toBeTruthy()
     expect(screen.getAllByText('Sesiones de mapeo de suelo').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Sesiones de rendimiento').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: /Parcela/ })).toBeTruthy()
     expect(screen.queryByTestId('session-info-card')).toBeNull()
     expect(screen.getByTestId('soil-map-session-info-card')).toBeInTheDocument()
     expect(screen.queryByTestId('soil-elevation-summary')).not.toBeInTheDocument()
   })
+
+  it('nivel sesión de rendimiento: monta el quinto dominio con el índice dentro del mapa', () => {
+    const sel: VisorSelection = {
+      level: 'session',
+      org,
+      ranch: { id: 'r1', name: 'Rancho Norte' },
+      plot: { id: 'p1', name: 'P-01' },
+      session: { id: 'ym1', date: '2024-10-12', kind: 'yield_map' },
+    }
+
+    render(<GeodataDashboard selection={sel} onSelect={vi.fn()} />)
+    expect(screen.getByTestId('yield-map')).toBeInTheDocument()
+    expect(screen.getByText('Vista rápida')).toBeInTheDocument()
+  })
+
 })

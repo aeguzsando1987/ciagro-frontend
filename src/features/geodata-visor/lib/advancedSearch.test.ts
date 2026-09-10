@@ -101,11 +101,11 @@ describe('criteriaToQuery', () => {
     })
   })
 
-  it('omite el tipo cuando están los cuatro (equivale a no filtrar)', () => {
+  it('omite el tipo cuando están los cinco (equivale a no filtrar)', () => {
     const query = criteriaToQuery({
       ...EMPTY_CRITERIA,
       from: '2025-01-01',
-      types: ['aspersion', 'phyto', 'ndvi', 'soil_map'],
+      types: ['aspersion', 'phyto', 'ndvi', 'soil_map', 'yield_map'],
     })
     expect(query.type).toBeUndefined()
   })
@@ -113,8 +113,8 @@ describe('criteriaToQuery', () => {
 
 describe('filtrado de sesiones por resultado', () => {
   const result: AdvancedSearchResult = {
-    count: 2,
-    total: 2,
+    count: 3,
+    total: 3,
     truncated: false,
     plot_ids: ['plot-1'],
     producers: [
@@ -133,6 +133,7 @@ describe('filtrado de sesiones por resultado', () => {
                 sessions: [
                   { id: 's-asp', kind: 'aspersion', date: '2025-03-10', points_count: 5 },
                   { id: 's-ndvi', kind: 'ndvi', date: '2024-11-05', points_count: 1024 },
+                  { id: 's-yield', kind: 'yield_map', date: '2024-10-12', points_count: 1594 },
                 ],
               },
             ],
@@ -144,6 +145,10 @@ describe('filtrado de sesiones por resultado', () => {
 
   it('devuelve los ids del tipo pedido para la parcela', () => {
     expect(sessionIdsForPlot(result, 'plot-1', 'ndvi')).toEqual(['s-ndvi'])
+  })
+
+  it('devuelve rendimiento como quinto dominio', () => {
+    expect(sessionIdsForPlot(result, 'plot-1', 'yield_map')).toEqual(['s-yield'])
   })
 
   it('devuelve lista vacía para una parcela ausente del resultado', () => {
