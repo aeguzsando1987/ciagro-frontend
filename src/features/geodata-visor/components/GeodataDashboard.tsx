@@ -435,6 +435,7 @@ function RanchView({
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               mapSync={mapSync}
+              comparisonMode={comparisonMode}
               toolbarStart={backToPlotButton}
             />
           ) : (

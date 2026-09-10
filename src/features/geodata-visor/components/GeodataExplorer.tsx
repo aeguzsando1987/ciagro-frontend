@@ -29,6 +29,8 @@ import { useNdviTimeline } from '../hooks/useNdviTimeline'
 import { groupSessionsByCycle, type NdviCycleGroup } from '../lib/ndviCycleTimeline'
 import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
 import { useYieldMapHeaders } from '@/features/yield-map/hooks/useYieldMapHeaders'
+import type { YieldMapHeader } from '@/features/yield-map/types'
+import { useHijoDetail } from '@/features/task-manager/hooks/useHijoDetail'
 import {
   activeIdFor,
   type AdvancedSearchResult,
@@ -499,7 +501,175 @@ function SoilMapSessionList({ depth, plot, base, selection, onSelect }: {
   )
 }
 
-/** Lista de sesiones de rendimiento de la parcela. */
+/** Grupo de sesiones de rendimiento que pertenecen al mismo Programa hijo. */
+interface YieldProgramGroup {
+  key: string
+  programId: string
+  sessions: YieldMapHeader[]
+  latestHarvestDate: string
+}
+
+/** Rendimiento se clasifica por Programa hijo, igual que NDVI por subciclo productivo. */
+function groupYieldSessionsByProgram(sessions: YieldMapHeader[]): YieldProgramGroup[] {
+  const groups = new Map<string, YieldMapHeader[]>()
+
+  for (const session of sessions) {
+    const programId = session.program
+    const current = groups.get(programId) ?? []
+    current.push(session)
+    groups.set(programId, current)
+  }
+
+  return Array.from(groups.entries())
+    .map(([programId, groupedSessions]) => {
+      const ordered = [...groupedSessions].sort((a, b) =>
+        (b.harvest_date ?? '').localeCompare(a.harvest_date ?? '')
+      )
+      return {
+        key: `yield-program:${programId}`,
+        programId,
+        sessions: ordered,
+        latestHarvestDate: ordered[0]?.harvest_date ?? '',
+      }
+    })
+    .sort((a, b) => b.latestHarvestDate.localeCompare(a.latestHarvestDate))
+}
+
+function yieldProgramSubtitle(program: ReturnType<typeof useHijoDetail>['data'], sessionCount: number) {
+  const start = program?.est_start_date?.slice(0, 10) ?? null
+  const end = program?.est_finish_date?.slice(0, 10) ?? null
+  const range = start || end
+    ? `${formatExplorerCycleDate(start)} → ${formatExplorerCycleDate(end)}`
+    : null
+  const pieces = [program?.cycle?.trim() || null, range]
+    .filter((value): value is string => Boolean(value))
+
+  return pieces.length > 0
+    ? pieces.join(' · ')
+    : `${sessionCount} ${sessionCount === 1 ? 'sesión' : 'sesiones'}`
+}
+
+/**
+ * Un Programa hijo de Rendimiento y sus cosechas.
+ *
+ * El header de rendimiento ya trae `program` (UUID). Solo consultamos el detalle una
+ * vez por subprograma para mostrar su nombre/ciclo; TanStack Query lo deja cacheado.
+ */
+function YieldProgramBranch({
+  depth,
+  group,
+  plot,
+  base,
+  selection,
+  onSelect,
+  defaultExpanded = false,
+}: {
+  depth: number
+  group: YieldProgramGroup
+  plot: { id: string; name: string }
+  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+  defaultExpanded?: boolean
+}) {
+  const activeId = activeIdFor(selection)
+  const programQuery = useHijoDetail(group.programId)
+  const containsSelectedSession =
+    selection?.level === 'session' &&
+    selection.session?.kind === 'yield_map' &&
+    group.sessions.some((session) => session.id === activeId)
+
+  const [expanded, setExpanded] = useState(containsSelectedSession || defaultExpanded)
+
+  useEffect(() => {
+    if (containsSelectedSession) setExpanded(true)
+  }, [containsSelectedSession, activeId])
+
+  const programName =
+    programQuery.data?.title?.trim() ||
+    programQuery.data?.voucher_code?.trim() ||
+    `Subprograma ${group.programId.slice(0, 8)}`
+  const subtitle = yieldProgramSubtitle(programQuery.data, group.sessions.length)
+
+  return (
+    <>
+      <div
+        role="treeitem"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((value) => !value)}
+        className={`mx-1 flex min-h-12 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 transition-colors duration-150 hover:bg-surface-secondary ${
+          containsSelectedSession ? 'bg-primary-soft/70 text-brand' : 'text-secondary'
+        }`}
+        style={{ paddingLeft: depth * 14 + 8 }}
+        title={subtitle}
+      >
+        <button
+          type="button"
+          aria-label={expanded ? 'Contraer subprograma de rendimiento' : 'Expandir subprograma de rendimiento'}
+          onClick={(event) => {
+            event.stopPropagation()
+            setExpanded((value) => !value)
+          }}
+          className="flex h-6 w-5 shrink-0 items-center justify-center rounded text-muted hover:bg-surface hover:text-foreground"
+        >
+          {expanded ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
+        </button>
+
+        <span className={containsSelectedSession ? 'shrink-0 text-brand' : 'shrink-0 text-muted'}>
+          <Layers className="h-3.5 w-3.5" />
+        </span>
+
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-semibold leading-4">
+            {programQuery.isLoading ? 'Cargando subprograma…' : programName}
+          </span>
+          <span className="block truncate text-[11px] leading-4 text-muted">
+            {subtitle}
+          </span>
+        </span>
+      </div>
+
+      {expanded && (
+        <>
+          {group.sessions.map((session) => {
+            const count = Number(session.points_count ?? 0)
+            return (
+              <TreeRow
+                key={session.id}
+                depth={depth + 1}
+                icon={<Wheat className="h-3.5 w-3.5" />}
+                label={`${session.harvest_date ?? 'Sin fecha'}${count ? ` · ${count} pts` : ''}`}
+                selected={
+                  selection?.level === 'session' &&
+                  selection.session?.kind === 'yield_map' &&
+                  activeId === session.id
+                }
+                onSelect={() =>
+                  onSelect({
+                    ...base,
+                    plot,
+                    session: {
+                      id: session.id,
+                      date: session.harvest_date ?? null,
+                      kind: 'yield_map',
+                    },
+                    level: 'session',
+                  })
+                }
+              />
+            )
+          })}
+        </>
+      )}
+    </>
+  )
+}
+
+/** Lista de sesiones de rendimiento de la parcela, agrupadas por Programa hijo. */
 function YieldMapSessionList({ depth, plot, base, selection, onSelect }: {
   depth: number
   plot: { id: string; name: string }
@@ -508,30 +678,26 @@ function YieldMapSessionList({ depth, plot, base, selection, onSelect }: {
   onSelect: (sel: VisorSelection) => void
 }) {
   const { data, isLoading, isError, refetch } = useYieldMapHeaders(plot.id)
+  const groups = useMemo(() => groupYieldSessionsByProgram(data ?? []), [data])
+
   if (isLoading) return <Loading depth={depth} />
   if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones de rendimiento." onRetry={() => void refetch()} />
   if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones de rendimiento." />
-  const activeId = activeIdFor(selection)
+  if (groups.length === 0) return <Empty depth={depth} text="Sin subprogramas de rendimiento." />
+
   return (
     <>
-      {data.map((session) => {
-        const count = Number(session.points_count ?? 0)
-        return (
-          <TreeRow
-            key={session.id}
-            depth={depth}
-            icon={<Wheat className="h-3.5 w-3.5" />}
-            label={`${session.harvest_date ?? 'Sin fecha'}${count ? ` · ${count} pts` : ''}`}
-            selected={selection?.level === 'session' && selection.session?.kind === 'yield_map' && activeId === session.id}
-            onSelect={() => onSelect({
-              ...base,
-              plot,
-              session: { id: session.id, date: session.harvest_date ?? null, kind: 'yield_map' },
-              level: 'session',
-            })}
-          />
-        )
-      })}
+      {groups.map((group) => (
+        <YieldProgramBranch
+          key={group.key}
+          depth={depth}
+          group={group}
+          plot={plot}
+          base={base}
+          selection={selection}
+          onSelect={onSelect}
+        />
+      ))}
     </>
   )
 }
@@ -1056,6 +1222,78 @@ function SearchNdviCycleResults({
   )
 }
 
+/** Resultados de Rendimiento agrupados por Programa hijo, igual que el árbol normal. */
+function SearchYieldProgramResults({
+  depth,
+  plot,
+  matches,
+  base,
+  selection,
+  onSelect,
+}: {
+  depth: number
+  plot: { id: string; name: string }
+  matches: SearchSessionRef[]
+  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+}) {
+  const { data, isLoading, isError } = useYieldMapHeaders(plot.id)
+  const activeId = activeIdFor(selection)
+  const matchingIds = useMemo(() => new Set(matches.map((session) => session.id)), [matches])
+  const groups = useMemo(
+    () => groupYieldSessionsByProgram((data ?? []).filter((session) => matchingIds.has(session.id))),
+    [data, matchingIds]
+  )
+
+  if (isLoading) return <Loading depth={depth} />
+
+  if (isError || groups.length === 0) {
+    return (
+      <>
+        {matches.map((session) => (
+          <TreeRow
+            key={session.id}
+            depth={depth}
+            icon={<Wheat className="h-3.5 w-3.5" />}
+            label={sessionLabel(session)}
+            selected={
+              selection?.level === 'session' &&
+              selection.session?.kind === 'yield_map' &&
+              activeId === session.id
+            }
+            onSelect={() =>
+              onSelect({
+                ...base,
+                plot,
+                session: { id: session.id, date: session.date, kind: 'yield_map' },
+                level: 'session',
+              })
+            }
+          />
+        ))}
+      </>
+    )
+  }
+
+  return (
+    <>
+      {groups.map((group) => (
+        <YieldProgramBranch
+          key={group.key}
+          depth={depth}
+          group={group}
+          plot={plot}
+          base={base}
+          selection={selection}
+          onSelect={onSelect}
+          defaultExpanded
+        />
+      ))}
+    </>
+  )
+}
+
 function SearchPlotBranch({ plot, base, selection, onSelect }: {
   plot: SearchProducerNode['ranches'][number]['plots'][number]
   base: Pick<VisorSelection, 'org' | 'producer' | 'ranch'>
@@ -1067,7 +1305,10 @@ function SearchPlotBranch({ plot, base, selection, onSelect }: {
   const plotRef = { id: plot.id, name: plot.code }
 
   const ndviSessions = plot.sessions.filter((session) => session.kind === 'ndvi')
-  const otherSessions = plot.sessions.filter((session) => session.kind !== 'ndvi')
+  const yieldSessions = plot.sessions.filter((session) => session.kind === 'yield_map')
+  const otherSessions = plot.sessions.filter(
+    (session) => session.kind !== 'ndvi' && session.kind !== 'yield_map'
+  )
 
   return (
     <>
@@ -1117,6 +1358,22 @@ function SearchPlotBranch({ plot, base, selection, onSelect }: {
                 depth={4}
                 plot={plotRef}
                 matches={ndviSessions}
+                base={base}
+                selection={selection}
+                onSelect={onSelect}
+              />
+            </>
+          )}
+
+          {/* Rendimiento también se ordena por Programa hijo para no mezclar cosechas
+              de subprogramas distintos dentro de la misma parcela. */}
+          {yieldSessions.length > 0 && (
+            <>
+              <GroupLabel depth={3} icon={<Wheat className="h-3 w-3" />} text="Rendimiento" />
+              <SearchYieldProgramResults
+                depth={4}
+                plot={plotRef}
+                matches={yieldSessions}
                 base={base}
                 selection={selection}
                 onSelect={onSelect}

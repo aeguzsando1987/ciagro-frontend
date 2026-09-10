@@ -25,6 +25,8 @@ interface YieldMapProps {
   toolbarEnd?: React.ReactNode
   className?: string
   mapSync?: MapCameraSyncBinding
+  /** En comparación A/B el resumen inicia contraído para no tapar el mapa. */
+  comparisonMode?: boolean
 }
 
 const LAYER_ICONS: Record<YieldLayerKey, React.ReactNode> = {
@@ -78,7 +80,15 @@ function asFeature(geometry: unknown): GeoJSON.Feature | null {
   return { type: 'Feature', geometry: geometry as GeoJSON.Geometry, properties: {} }
 }
 
-export function YieldMap({ sessionId, plotId, toolbarStart, toolbarEnd, className, mapSync }: YieldMapProps) {
+export function YieldMap({
+  sessionId,
+  plotId,
+  toolbarStart,
+  toolbarEnd,
+  className,
+  mapSync,
+  comparisonMode = false,
+}: YieldMapProps) {
   const instanceId = useId().replace(/:/g, '')
   const plotSourceId = `yield-plot-${instanceId}`
   const plotLayerId = `yield-plot-outline-${instanceId}`
@@ -91,6 +101,7 @@ export function YieldMap({ sessionId, plotId, toolbarStart, toolbarEnd, classNam
   const [layerMenuOpen, setLayerMenuOpen] = useState(false)
   const [visibleBuckets, setVisibleBuckets] = useState<Set<string>>(new Set())
   const [popup, setPopup] = useState<{ lng: number; lat: number; point: YieldMapPoint } | null>(null)
+  const [summaryCollapsed, setSummaryCollapsed] = useState(comparisonMode)
   const mapRef = useRef<MapRef>(null)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
@@ -110,6 +121,12 @@ export function YieldMap({ sessionId, plotId, toolbarStart, toolbarEnd, classNam
     setVisibleBuckets(new Set(classes.map((entry) => entry.key)))
     setPopup(null)
   }, [classes])
+
+  // Una sola pantalla conserva el resumen abierto. En A/B inicia cerrado y el usuario
+  // puede desplegarlo solo cuando lo necesite, dejando libre el ancho del mapa.
+  useEffect(() => {
+    setSummaryCollapsed(comparisonMode)
+  }, [comparisonMode])
 
   const rectangles = useMemo(
     () => yieldPointsToRectangles(points, (point) => point[activeKey] as number | null, classes),
@@ -229,12 +246,10 @@ export function YieldMap({ sessionId, plotId, toolbarStart, toolbarEnd, classNam
           >
             <div className="min-w-48 space-y-1 text-xs text-slate-900">
               <p className="font-semibold">Lectura de cosecha</p>
-              <PopupRow label="Rendimiento" value={`${formatYieldValue(popup.point.yield_t_ha)} t/ha`} />
-              <PopupRow label="Humedad" value={`${formatYieldValue(popup.point.moisture_pct)} %`} />
-              <PopupRow label="Velocidad" value={`${formatYieldValue(popup.point.speed_kmh)} km/h`} />
-              <PopupRow label="Producción" value={`${formatYieldValue(popup.point.grain_flow_t_h)} t/h`} />
-              <PopupRow label="Elevación" value={`${formatYieldValue(popup.point.elevation_m)} m`} />
-              {popup.point.pass_number != null && <PopupRow label="Pasada" value={String(popup.point.pass_number)} />}
+              <PopupRow
+                label={activeLayer.shortLabel}
+                value={`${formatYieldValue(popup.point[activeKey] as number | null)} ${activeLayer.unit}`}
+              />
             </div>
           </Popup>
         )}
@@ -278,17 +293,33 @@ export function YieldMap({ sessionId, plotId, toolbarStart, toolbarEnd, classNam
         {toolbarEnd}
       </div>
 
-      <div className="absolute bottom-3 left-3 z-20 w-64 rounded-xl border border-white/30 bg-white/95 p-3 shadow-lg backdrop-blur-sm dark:bg-slate-950/95">
-        <div className="mb-2">
-          <p className="text-sm font-semibold">{activeLayer.shortLabel}</p>
-          <p className="text-[11px] text-muted-foreground">{activeLayer.description}</p>
+      <div
+        className={`absolute bottom-3 left-3 z-20 rounded-xl border border-white/30 bg-white/95 shadow-lg backdrop-blur-sm dark:bg-slate-950/95 ${
+          comparisonMode ? 'w-48 p-2' : 'w-64 p-3'
+        }`}
+      >
+        <div className={comparisonMode ? 'mb-1.5' : 'mb-2'}>
+          <p className={comparisonMode ? 'text-xs font-semibold' : 'text-sm font-semibold'}>{activeLayer.shortLabel}</p>
+          <p
+            className={
+              comparisonMode
+                ? 'text-[9px] leading-tight text-muted-foreground'
+                : 'text-[11px] text-muted-foreground'
+            }
+          >
+            {activeLayer.description}
+          </p>
           {usePointFallback && (
-            <p className="mt-1 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+            <p
+              className={`${
+                comparisonMode ? 'mt-0.5 text-[9px] leading-tight' : 'mt-1 text-[10px]'
+              } font-medium text-amber-700 dark:text-amber-300`}
+            >
               Vista por puntos: el CSV no trae ancho/distancia suficientes para formar pasadas.
             </p>
           )}
         </div>
-        <div className="space-y-1.5">
+        <div className={comparisonMode ? 'space-y-0.5' : 'space-y-1.5'}>
           {classes.map((entry) => {
             const checked = visibleBuckets.has(entry.key)
             return (
@@ -301,28 +332,74 @@ export function YieldMap({ sessionId, plotId, toolbarStart, toolbarEnd, classNam
                   else next.add(entry.key)
                   return next
                 })}
-                className="flex w-full items-center gap-2 rounded px-1 py-0.5 text-left text-[11px] hover:bg-muted"
+                className={`flex w-full items-center rounded text-left hover:bg-muted ${
+                  comparisonMode
+                    ? 'gap-1.5 px-0.5 py-0 text-[9px] leading-4'
+                    : 'gap-2 px-1 py-0.5 text-[11px]'
+                }`}
               >
-                <span className={`flex h-4 w-4 items-center justify-center rounded border text-[9px] ${checked ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-300'}`}>
+                <span
+                  className={`flex shrink-0 items-center justify-center rounded border ${
+                    comparisonMode ? 'h-3.5 w-3.5 text-[8px]' : 'h-4 w-4 text-[9px]'
+                  } ${
+                    checked
+                      ? 'border-emerald-600 bg-emerald-600 text-white'
+                      : 'border-slate-300'
+                  }`}
+                >
                   {checked ? '✓' : ''}
                 </span>
-                <span className="h-3.5 w-3.5 rounded-sm" style={{ backgroundColor: entry.color }} />
+                <span
+                  className={`shrink-0 rounded-sm ${
+                    comparisonMode ? 'h-3 w-3' : 'h-3.5 w-3.5'
+                  }`}
+                  style={{ backgroundColor: entry.color }}
+                />
                 <span className="truncate">{entry.label}</span>
               </button>
             )
           })}
-          {classes.length === 0 && <p className="text-xs text-muted-foreground">Esta variable no tiene datos.</p>}
+          {classes.length === 0 && (
+            <p
+              className={
+                comparisonMode
+                  ? 'text-[9px] text-muted-foreground'
+                  : 'text-xs text-muted-foreground'
+              }
+            >
+              Esta variable no tiene datos.
+            </p>
+          )}
         </div>
       </div>
 
       {stats && (
-        <div className="absolute right-3 top-3 z-20 hidden w-56 space-y-2 rounded-xl border border-white/30 bg-white/95 p-3 text-xs shadow-lg backdrop-blur-sm xl:block dark:bg-slate-950/95">
-          <p className="font-semibold">Resumen del rendimiento</p>
-          <SummaryRow label="Promedio" value={`${formatYieldValue(stats.yield_avg)} t/ha`} />
-          <SummaryRow label="Máximo" value={`${formatYieldValue(stats.yield_max)} t/ha`} />
-          <SummaryRow label="Mínimo" value={`${formatYieldValue(stats.yield_min)} t/ha`} />
-          <SummaryRow label="Producción" value={`${formatYieldValue(stats.production_total_t)} t`} />
-          <SummaryRow label="Superficie" value={`${formatYieldValue(stats.surface_total_ha)} ha`} />
+        <div
+          className={`absolute right-3 top-3 z-20 hidden rounded-xl border border-white/30 bg-white/95 text-xs shadow-lg backdrop-blur-sm xl:block dark:bg-slate-950/95 ${
+            summaryCollapsed ? 'w-52' : 'w-56'
+          }`}
+        >
+          <button
+            type="button"
+            onClick={() => setSummaryCollapsed((value) => !value)}
+            className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+            aria-expanded={!summaryCollapsed}
+          >
+            <span className="font-semibold">Resumen del rendimiento</span>
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 transition-transform ${summaryCollapsed ? '' : 'rotate-180'}`}
+            />
+          </button>
+
+          {!summaryCollapsed && (
+            <div className="space-y-2 border-t px-3 pb-3 pt-2">
+              <SummaryRow label="Promedio" value={`${formatYieldValue(stats.yield_avg)} t/ha`} />
+              <SummaryRow label="Máximo" value={`${formatYieldValue(stats.yield_max)} t/ha`} />
+              <SummaryRow label="Mínimo" value={`${formatYieldValue(stats.yield_min)} t/ha`} />
+              <SummaryRow label="Producción" value={`${formatYieldValue(stats.production_total_t)} t`} />
+              <SummaryRow label="Superficie" value={`${formatYieldValue(stats.surface_total_ha)} ha`} />
+            </div>
+          )}
         </div>
       )}
 
