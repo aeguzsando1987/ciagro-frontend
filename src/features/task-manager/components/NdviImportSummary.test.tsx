@@ -40,7 +40,9 @@ describe('NdviImportSummary', () => {
     // Tres decimales: con dos, indices de rango estrecho saldrian iguales.
     expect(screen.getByText('0.724')).toBeInTheDocument()
     expect(screen.getByText('0.364')).toBeInTheDocument()
-    expect(screen.getByText(/1,024 puntos/)).toBeInTheDocument()
+    // El conteo de puntos ya no vive aqui: subio a las tarjetas de titulares
+    // (SesionVariableMetrics), y esta tabla quedo como el DETALLE por indice.
+    expect(screen.getByText('Detalle por índice')).toBeInTheDocument()
   })
 
   it('muestra un guion en los índices sin datos en vez de omitir la fila', () => {

@@ -8,26 +8,19 @@ import type { components } from '@/types/api'
 /** Programa Maestro (nivel superior del Gantt). */
 export type MasterProgram = components['schemas']['MasterProgram']
 
-/** Programa Hijo anidado bajo un Maestro. */
-export type YieldMapSessionSummary = {
-  id: string
-  type: 'yield_map'
-  harvest_date: string
-  import_status: string
-  status: string
-}
-
-export type ProgramaTree = components['schemas']['ProgramaTree'] & {
-  yield_map_headers?: YieldMapSessionSummary[]
-}
-
-/** Arbol completo Maestro + Hijos + Sesiones (endpoint /tree/).
- * El schema generado todavía no conoce Rendimiento; reemplazamos solo `programas`
- * para conservar el contrato OpenAPI y sumar el quinto dominio sin usar `any`.
+/** Sesion de Rendimiento resumida dentro del arbol.
+ * Antes se declaraba a mano porque el schema no conocia Rendimiento. Desde la FASE CL-F
+ * (2026-09-14) si lo conoce: al regenerar los tipos entraron los diez endpoints de
+ * yield-map que nunca se habian publicado, y con ellos este componente. Se deriva del
+ * schema para no mantener dos definiciones que se desincronizan en silencio.
  */
-export type MasterProgramTree = Omit<components['schemas']['MasterProgramTree'], 'programas'> & {
-  programas: ProgramaTree[]
-}
+export type YieldMapSessionSummary = components['schemas']['YieldMapSessionSummary']
+
+/** Programa Hijo anidado bajo un Maestro. */
+export type ProgramaTree = components['schemas']['ProgramaTree']
+
+/** Arbol completo Maestro + Hijos + Sesiones (endpoint /tree/). */
+export type MasterProgramTree = components['schemas']['MasterProgramTree']
 
 /** Estados validos del Programa Maestro y Programa Hijo. */
 export type ProgramaStatus = components['schemas']['Status5a4Enum']

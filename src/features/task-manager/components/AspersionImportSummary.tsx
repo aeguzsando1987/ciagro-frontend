@@ -9,7 +9,11 @@ function fmt(v: number | null): string {
   return v === null ? '—' : v.toLocaleString('es-MX', { maximumFractionDigits: 2 })
 }
 
-/** Resumen estadístico de la importación (variables clave de aspersión). */
+/**
+ * Detalle estadistico por variable de aspersion.
+ * El titular (las tarjetas) lo pinta SesionVariableMetrics justo encima; esta tabla es el
+ * desglose, por eso ya no repite el conteo de puntos ni se llama "resumen".
+ */
 export function AspersionImportSummary({ headerId }: Props) {
   const { data, isLoading, error } = useAspersionVariableStats(headerId)
 
@@ -23,9 +27,9 @@ export function AspersionImportSummary({ headerId }: Props) {
   return (
     <div className="space-y-2 rounded border p-3">
       <p className="text-sm font-medium">
-        Resumen de la importación
+        Detalle por variable
         <span className="ml-2 text-xs font-normal text-muted-foreground">
-          {data.points_count.toLocaleString('es-MX')} puntos
+          media, mínimo, máximo y desviación de cada variable
         </span>
       </p>
       <div className="overflow-x-auto">

@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQueryClient } from '@tanstack/react-query'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Droplets, Layers, Microscope } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -12,7 +12,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LoadingState } from '@/components/ui/loading-state'
@@ -26,12 +25,26 @@ import { useUpdateSoilMapSession } from '../hooks/useUpdateSoilMapSession'
 import { useEvaluations } from '../hooks/useEvaluations'
 import { useDatacentralUsers } from '../hooks/useDatacentralUsers'
 import type { MasterProgramTree } from '@/features/task-manager/types'
-import { PlotMiniMap } from './PlotMiniMap'
+import {
+  AdminActions,
+  DatosSesionCard,
+  FichaImportStatus,
+  FichaItem,
+  ImportStatusPanels,
+  SesionActions,
+  SesionBody,
+  SesionFicha,
+  SesionShell,
+} from './SesionShell'
+import { pointsCount, sesionStatusLabel } from '../lib/sesionLabels'
 import { AspersionImportDialog } from '../components/AspersionImportDialog'
 import { SoilMapImportDialog } from '../components/SoilMapImportDialog'
 import { FlushSoilMapDialog } from '../components/FlushSoilMapDialog'
 import { SoilMapMapModal } from '../components/SoilMapMapModal'
 import { AspersionImportSummary } from '../components/AspersionImportSummary'
+import { SesionVariableMetrics } from '../components/SesionVariableMetrics'
+import { useAspersionVariableStats } from '../hooks/useAspersionVariableStats'
+import { useSoilMapVariableStats } from '../hooks/useSoilMapVariableStats'
 import { PhytoStatsCard } from '../components/PhytoStatsCard'
 import { PhytoMapModal } from '../components/PhytoMapModal'
 import { usePhytoSessionStats } from '../hooks/usePhytoSessionStats'
@@ -43,30 +56,6 @@ import { ROLE_LEVELS } from '@/lib/auth/roles'
 import { SessionReportPanel } from '@/features/session-report/components/SessionReportPanel'
 
 /* ─── Constants ───────────────────────────────────────────────────── */
-
-const IMPORT_STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  processing: 'Procesando',
-  done: 'Cargado',
-  error: 'Error',
-  pending_mapping: 'Mapeo pendiente',
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  in_progress: 'En progreso',
-  loaded: 'Cargado',
-  completed: 'Completado',
-  cancelled: 'Cancelado',
-}
-
-const STATUS_BADGE: Record<string, string> = {
-  pending: 'bg-slate-100 text-slate-800',
-  in_progress: 'bg-blue-100 text-blue-800',
-  loaded: 'bg-purple-100 text-purple-800',
-  completed: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
-}
 
 // Valid next statuses per current status — aspersion follows full lifecycle
 const ASPERSION_TRANSITIONS: Record<string, string[]> = {
@@ -245,36 +234,29 @@ export function SesionModal({
     (aspersionMutation.isPending || phytoMutation.isPending || soilMapMutation.isPending) &&
     !isEditing
 
-  const title = sesionType === 'aspersion' ? 'Sesión de Aspersión' : 'Sesión Fitosanitaria'
-  const fecha =
-    sesionType === 'aspersion'
-      ? aspersionDetail?.aspersion_date
-      : sesionType === 'phyto'
-        ? phytoDetail?.estimated_start_date
-        : soilMapDetail?.mapping_date
+  const SESION_META = {
+    aspersion: {
+      title: 'Sesión de Aspersión',
+      icon: <Droplets className="h-4 w-4 text-sky-600" />,
+    },
+    phyto: {
+      title: 'Sesión Fitosanitaria',
+      icon: <Microscope className="h-4 w-4 text-lime-600" />,
+    },
+    soil_map: {
+      title: 'Sesión de Mapeo de Suelo',
+      icon: <Layers className="h-4 w-4 text-amber-600" />,
+    },
+  }[sesionType]
 
   return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose()
-      }}
+    <SesionShell
+      icon={SESION_META.icon}
+      title={SESION_META.title}
+      status={currentStatus}
+      onBack={onBack}
+      onClose={onClose}
     >
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onBack}
-              className="mr-1 text-sm text-muted-foreground hover:text-foreground"
-            >
-              ← Volver
-            </button>
-            {sesionType === 'soil_map' ? 'Sesión de Mapeo de Suelo' : title}
-            {fecha && <span className="text-sm font-normal text-muted-foreground">— {fecha}</span>}
-          </DialogTitle>
-        </DialogHeader>
-
         {isLoading && <LoadingState label="Cargando sesión…" />}
 
         {!isLoading && !isEditing && sesionType === 'aspersion' && aspersionDetail && (
@@ -296,6 +278,7 @@ export function SesionModal({
             statusError={statusError}
             onStatusChange={handleStatusChange}
             onEdit={() => setIsEditing(true)}
+            onBack={onBack}
           />
         )}
 
@@ -317,6 +300,7 @@ export function SesionModal({
             statusError={statusError}
             onStatusChange={handleStatusChange}
             onEdit={() => setIsEditing(true)}
+            onBack={onBack}
           />
         )}
 
@@ -331,6 +315,7 @@ export function SesionModal({
             statusError={statusError}
             onStatusChange={handleStatusChange}
             onEdit={() => setIsEditing(true)}
+            onBack={onBack}
           />
         )}
 
@@ -366,15 +351,13 @@ export function SesionModal({
             onSaved={() => setIsEditing(false)}
           />
         )}
-      </DialogContent>
-    </Dialog>
+    </SesionShell>
   )
 }
 
 /* ─── Shared status/cancel fragment ──────────────────────────────── */
 
 interface StatusBarProps {
-  currentStatus: string
   transitions: string[]
   isMutating: boolean
   cancelPromptOpen: boolean
@@ -387,7 +370,6 @@ interface StatusBarProps {
 }
 
 function StatusBar({
-  currentStatus,
   transitions,
   isMutating,
   cancelPromptOpen,
@@ -400,27 +382,22 @@ function StatusBar({
 }: StatusBarProps) {
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge className={STATUS_BADGE[currentStatus]}>
-          {STATUS_LABELS[currentStatus] ?? currentStatus}
-        </Badge>
-        {transitions.length > 0 && (
-          <>
-            <span className="text-xs text-muted-foreground">Cambiar a:</span>
-            {transitions.map((s) => (
-              <Button
-                key={s}
-                size="sm"
-                variant="outline"
-                disabled={isMutating}
-                onClick={() => onStatusChange(s)}
-              >
-                {STATUS_LABELS[s]}
-              </Button>
-            ))}
-          </>
-        )}
-      </div>
+      {transitions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">Cambiar estado a:</span>
+          {transitions.map((s) => (
+            <Button
+              key={s}
+              size="sm"
+              variant="outline"
+              disabled={isMutating}
+              onClick={() => onStatusChange(s)}
+            >
+              {sesionStatusLabel(s)}
+            </Button>
+          ))}
+        </div>
+      )}
 
       {cancelPromptOpen && (
         <div className="space-y-2 rounded border border-destructive/30 bg-destructive/5 p-3">
@@ -473,6 +450,8 @@ interface AspersionViewProps {
   statusError: string | null
   onStatusChange: (s: string) => void
   onEdit: () => void
+  /** Cierra la sesion y vuelve al subprograma, como en Rendimiento y NDVI. */
+  onBack: () => void
 }
 
 function AspersionView({
@@ -490,6 +469,7 @@ function AspersionView({
   statusError,
   onStatusChange,
   onEdit,
+  onBack,
 }: AspersionViewProps) {
   const [importOpen, setImportOpen] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
@@ -497,161 +477,140 @@ function AspersionView({
   const [flushOpen, setFlushOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
-  const hasPoints = parseInt(detail.points_count ?? '0', 10) > 0
-  const canViewMap =
-    roleLevel >= ROLE_LEVELS.SUPERVISOR && detail.import_status === 'done' && hasPoints
+  const points = pointsCount(detail.points_count)
+  const hasPoints = points > 0
+  // El rol decide si la accion EXISTE; los datos deciden si esta habilitada. Ofrecer un
+  // visor deshabilitado a quien nunca podra abrirlo solo genera preguntas.
+  const canSeeVisor = roleLevel >= ROLE_LEVELS.SUPERVISOR
+  const canOpenVisor = canSeeVisor && detail.import_status === 'done' && hasPoints
   const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
+  // Las tarjetas y la tabla de detalle comparten esta query: react-query la resuelve una vez.
+  const varStats = useAspersionVariableStats(detail.id, detail.import_status === 'done')
+
   return (
-    <div className="space-y-4">
-      <div className="flex gap-4">
-        <div className="min-w-0 flex-1 space-y-4">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <div>
-              <dt className="text-xs text-muted-foreground">Fecha de aspersión</dt>
-              <dd>{detail.aspersion_date}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Evaluación</dt>
-              <dd className="text-xs text-muted-foreground">{detail.evaluation ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Inicio estimado</dt>
-              <dd>{detail.est_start_date ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Fin estimado</dt>
-              <dd>{detail.est_finish_date ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Inicio real</dt>
-              <dd>{detail.act_start_date ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Fin real</dt>
-              <dd>{detail.act_finish_date ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Responsable</dt>
-              <dd>
-                {typeof detail.assigned_to === 'object' && detail.assigned_to !== null
-                  ? (detail.assigned_to as { username: string }).username
-                  : '—'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Importación</dt>
-              <dd>
-                <Badge variant="outline">
-                  {IMPORT_STATUS_LABELS[detail.import_status] ?? detail.import_status}
-                </Badge>
-              </dd>
-            </div>
-          </dl>
+    <SesionBody>
+      <SesionFicha plotId={plotId}>
+        <FichaItem label="Fecha de aspersión">{detail.aspersion_date}</FichaItem>
+        <FichaImportStatus status={detail.import_status} />
+        <FichaItem label="Puntos cargados">{points.toLocaleString('es-MX')}</FichaItem>
+        <FichaItem label="Responsable">
+          {typeof detail.assigned_to === 'object' && detail.assigned_to !== null
+            ? (detail.assigned_to as { username: string }).username
+            : 'Sin asignar'}
+        </FichaItem>
+        <FichaItem label="Evaluación">{detail.evaluation ?? '—'}</FichaItem>
+        <FichaItem label="Inicio estimado">{detail.est_start_date ?? '—'}</FichaItem>
+        <FichaItem label="Fin estimado">{detail.est_finish_date ?? '—'}</FichaItem>
+        <FichaItem label="Inicio real">{detail.act_start_date ?? '—'}</FichaItem>
+        <FichaItem label="Fin real">{detail.act_finish_date ?? '—'}</FichaItem>
+      </SesionFicha>
 
-          <StatusBar
-            currentStatus={detail.status ?? 'pending'}
-            transitions={transitions}
-            isMutating={isMutatingStatus}
-            cancelPromptOpen={cancelPromptOpen}
-            cancelNotes={cancelNotes}
-            onCancelNotesChange={onCancelNotesChange}
-            onCancelConfirm={onCancelConfirm}
-            onCancelDismiss={onCancelDismiss}
-            statusError={statusError}
-            onStatusChange={onStatusChange}
+      <StatusBar
+        transitions={transitions}
+        isMutating={isMutatingStatus}
+        cancelPromptOpen={cancelPromptOpen}
+        cancelNotes={cancelNotes}
+        onCancelNotesChange={onCancelNotesChange}
+        onCancelConfirm={onCancelConfirm}
+        onCancelDismiss={onCancelDismiss}
+        statusError={statusError}
+        onStatusChange={onStatusChange}
+      />
+
+      <DatosSesionCard
+        description="Puedes corregir fechas, evaluación y responsable sin tocar el CSV ya importado."
+        canEdit
+        onEdit={onEdit}
+      />
+
+      <ImportStatusPanels
+        status={detail.import_status}
+        errors={detail.import_errors}
+        processingLabel="Procesando CSV de aspersión…"
+        mappingHint="El archivo no pudo mapearse automáticamente. Verifica que incluya las columnas de longitud y latitud de cada punto."
+      />
+
+      {detail.import_status === 'done' && (
+        <>
+          <SesionVariableMetrics
+            title="Resumen de la aplicación"
+            type="aspersion"
+            variables={varStats.data?.variables}
+            pointsCount={varStats.data?.points_count}
+            isLoading={varStats.isLoading}
+            error={varStats.error}
           />
+          <AspersionImportSummary headerId={detail.id} />
+        </>
+      )}
 
-          <div className="rounded border border-dashed p-3">
-            <p className="mb-1 text-sm font-medium">Importar puntos georeferenciados</p>
-            <p className="mb-2 text-xs text-muted-foreground">
-              Carga un archivo CSV con los puntos de aspersión de esta sesión.
-            </p>
-            <Button size="sm" onClick={() => setImportOpen(true)}>
-              {detail.import_status === 'done' ? 'Reimportar datos' : 'Importar datos'}
-            </Button>
-            <p className="mt-2 text-xs text-muted-foreground">
-              La reimportación <strong>añade</strong> puntos a los existentes (no reemplaza).
-            </p>
-            {isSuperAdmin && (
-              <div className="mt-3 border-t border-dashed pt-3">
-                {hasPoints && (
-                  <>
-                    <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
-                      Eliminar los datos de esta sesión
-                    </Button>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Acción de administrador: borra los puntos importados solo de esta sesión.
-                    </p>
-                  </>
-                )}
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="mt-3"
-                  onClick={() => setDeleteOpen(true)}
-                >
-                  Eliminar la sesión completa
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {detail.import_status === 'done' && <AspersionImportSummary headerId={detail.id} />}
-
-          <AspersionImportDialog
-            headerId={detail.id}
-            importStatus={detail.import_status}
-            importErrors={detail.import_errors}
-            open={importOpen}
-            onOpenChange={setImportOpen}
-          />
-
-          {isSuperAdmin && (
-            <FlushAspersionDialog
-              open={flushOpen}
-              onClose={() => setFlushOpen(false)}
-              sessionId={detail.id}
-            />
-          )}
-
-          {isSuperAdmin && (
-            <DeleteLevelDialog
-              open={deleteOpen}
-              onClose={() => setDeleteOpen(false)}
-              level="aspersion"
-              onDeleted={onDeleted}
-              id={detail.id}
-            />
-          )}
-        </div>
-
-        <div className="w-72 shrink-0 space-y-2">
-          <PlotMiniMap plotId={plotId} />
-          {canViewMap && (
-            <Button size="sm" variant="outline" className="w-full" onClick={() => setMapOpen(true)}>
-              📍 Abrir visor de datos de aspersión
-            </Button>
-          )}
-          {canViewMap && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full"
-              onClick={() => setReportOpen(true)}
-            >
-              📋 Reportes
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={onEdit}>
-          Editar
+      <SesionActions note="La reimportación añade puntos a los existentes, no los reemplaza.">
+        <Button
+          onClick={() => setImportOpen(true)}
+          disabled={detail.import_status === 'processing'}
+        >
+          {detail.import_status === 'done' ? 'Reimportar datos' : 'Importar datos'}
         </Button>
-      </div>
+        {canSeeVisor && (
+          <Button
+            variant="outline"
+            disabled={!canOpenVisor}
+            onClick={() => setMapOpen(true)}
+            title={canOpenVisor ? '' : 'Importa datos para habilitar el visor'}
+          >
+            Abrir visor de datos de aspersión
+          </Button>
+        )}
+        {canSeeVisor && (
+          <Button variant="outline" disabled={!canOpenVisor} onClick={() => setReportOpen(true)}>
+            Reportes
+          </Button>
+        )}
+        <Button className="ml-auto" variant="ghost" onClick={onBack}>
+          Volver al subprograma
+        </Button>
+      </SesionActions>
 
-      {canViewMap && (
+      {isSuperAdmin && (
+        <AdminActions>
+          {hasPoints && (
+            <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
+              Eliminar los datos de esta sesión
+            </Button>
+          )}
+          <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>
+            Eliminar la sesión completa
+          </Button>
+        </AdminActions>
+      )}
+
+      <AspersionImportDialog
+        headerId={detail.id}
+        importStatus={detail.import_status}
+        importErrors={detail.import_errors}
+        open={importOpen}
+        onOpenChange={setImportOpen}
+      />
+
+      {isSuperAdmin && (
+        <FlushAspersionDialog
+          open={flushOpen}
+          onClose={() => setFlushOpen(false)}
+          sessionId={detail.id}
+        />
+      )}
+
+      {isSuperAdmin && (
+        <DeleteLevelDialog
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          level="aspersion"
+          onDeleted={onDeleted}
+          id={detail.id}
+        />
+      )}
+
+      {canOpenVisor && (
         <AspersionMapModal
           open={mapOpen}
           onClose={() => setMapOpen(false)}
@@ -661,7 +620,7 @@ function AspersionView({
         />
       )}
 
-      {canViewMap && (
+      {canOpenVisor && (
         <SessionReportPanel
           open={reportOpen}
           onClose={() => setReportOpen(false)}
@@ -670,7 +629,7 @@ function AspersionView({
           datacentralId={datacentralId}
         />
       )}
-    </div>
+    </SesionBody>
   )
 }
 
@@ -687,6 +646,7 @@ interface SoilMapViewProps {
   statusError: string | null
   onStatusChange: (s: string) => void
   onEdit: () => void
+  onBack: () => void
 }
 
 function canViewSoilMap(
@@ -711,161 +671,136 @@ export function SoilMapView({
   statusError,
   onStatusChange,
   onEdit,
+  onBack,
 }: SoilMapViewProps) {
   const [importOpen, setImportOpen] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
   const [flushOpen, setFlushOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
-  const hasPoints = parseInt(String(detail.points_count ?? '0'), 10) > 0
-  const canViewMap = canViewSoilMap(roleLevel, detail.import_status, detail.points_count)
+  const points = pointsCount(detail.points_count)
+  const hasPoints = points > 0
+  const canSeeVisor = roleLevel >= ROLE_LEVELS.SUPERVISOR
+  const canOpenVisor = canViewSoilMap(roleLevel, detail.import_status, detail.points_count)
   const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
+  const varStats = useSoilMapVariableStats(detail.id, detail.import_status === 'done')
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-4">
-        <div className="min-w-0 flex-1 space-y-4">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <div>
-              <dt className="text-xs text-muted-foreground">Fecha del mapeo</dt>
-              <dd>{detail.mapping_date}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Responsable</dt>
-              <dd>
-                {typeof detail.assigned_to === 'object' && detail.assigned_to !== null
-                  ? (detail.assigned_to.username ?? '—')
-                  : '—'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Inicio estimado</dt>
-              <dd>{detail.est_init_date ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Fin estimado</dt>
-              <dd>{detail.est_finish_date ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Inicio real</dt>
-              <dd>{detail.real_init_date ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Fin real</dt>
-              <dd>{detail.real_finish_date ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Importación</dt>
-              <dd>
-                <Badge variant="outline">
-                  {IMPORT_STATUS_LABELS[detail.import_status] ?? detail.import_status}
-                </Badge>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Puntos importados</dt>
-              <dd>{detail.points_count ?? '0'}</dd>
-            </div>
-          </dl>
+    <SesionBody>
+      <SesionFicha plotId={plotId}>
+        <FichaItem label="Fecha del mapeo">{detail.mapping_date}</FichaItem>
+        <FichaImportStatus status={detail.import_status} />
+        <FichaItem label="Puntos importados">{points.toLocaleString('es-MX')}</FichaItem>
+        <FichaItem label="Responsable">
+          {typeof detail.assigned_to === 'object' && detail.assigned_to !== null
+            ? (detail.assigned_to.username ?? 'Sin asignar')
+            : 'Sin asignar'}
+        </FichaItem>
+        <FichaItem label="Inicio estimado">{detail.est_init_date ?? '—'}</FichaItem>
+        <FichaItem label="Fin estimado">{detail.est_finish_date ?? '—'}</FichaItem>
+        <FichaItem label="Inicio real">{detail.real_init_date ?? '—'}</FichaItem>
+        <FichaItem label="Fin real">{detail.real_finish_date ?? '—'}</FichaItem>
+      </SesionFicha>
 
-          <StatusBar
-            currentStatus={detail.status ?? 'pending'}
-            transitions={transitions}
-            isMutating={isMutatingStatus}
-            cancelPromptOpen={false}
-            cancelNotes=""
-            onCancelNotesChange={() => undefined}
-            onCancelConfirm={() => undefined}
-            onCancelDismiss={() => undefined}
-            statusError={statusError}
-            onStatusChange={onStatusChange}
-          />
+      <StatusBar
+        transitions={transitions}
+        isMutating={isMutatingStatus}
+        cancelPromptOpen={false}
+        cancelNotes=""
+        onCancelNotesChange={() => undefined}
+        onCancelConfirm={() => undefined}
+        onCancelDismiss={() => undefined}
+        statusError={statusError}
+        onStatusChange={onStatusChange}
+      />
 
-          <div className="rounded border border-dashed p-3">
-            <p className="mb-1 text-sm font-medium">Importar muestras georreferenciadas</p>
-            <p className="mb-2 text-xs text-muted-foreground">
-              Carga un archivo CSV con las coordenadas y variables de análisis de suelo.
-            </p>
-            <Button size="sm" onClick={() => setImportOpen(true)}>
-              {detail.import_status === 'done' ? 'Reimportar datos' : 'Importar datos'}
-            </Button>
-            <p className="mt-2 text-xs text-muted-foreground">
-              La reimportación <strong>añade</strong> muestras a las existentes (no reemplaza).
-            </p>
-            {isSuperAdmin && (
-              <div className="mt-3 border-t border-dashed pt-3">
-                {hasPoints && (
-                  <>
-                    <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
-                      Eliminar los datos de esta sesión
-                    </Button>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Acción de administrador: borra las muestras importadas solo de esta sesión.
-                    </p>
-                  </>
-                )}
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="mt-3"
-                  onClick={() => setDeleteOpen(true)}
-                >
-                  Eliminar la sesión completa
-                </Button>
-              </div>
-            )}
-          </div>
+      <DatosSesionCard
+        description="Puedes corregir fechas y responsable sin tocar el CSV ya importado."
+        canEdit
+        onEdit={onEdit}
+      />
 
-          <SoilMapImportDialog
-            headerId={detail.id}
-            importStatus={detail.import_status}
-            importErrors={detail.import_errors}
-            open={importOpen}
-            onOpenChange={setImportOpen}
-          />
+      <ImportStatusPanels
+        status={detail.import_status}
+        errors={detail.import_errors}
+        processingLabel="Procesando CSV de suelo…"
+        mappingHint="El archivo no pudo mapearse automáticamente. Verifica que incluya las coordenadas y las variables de análisis de suelo."
+      />
 
-          {isSuperAdmin && (
-            <FlushSoilMapDialog
-              open={flushOpen}
-              onClose={() => setFlushOpen(false)}
-              sessionId={detail.id}
-            />
-          )}
+      {detail.import_status === 'done' && (
+        <SesionVariableMetrics
+          title="Resumen del análisis de suelo"
+          type="soil_map"
+          variables={varStats.data?.variables}
+          pointsCount={varStats.data?.points_count}
+          isLoading={varStats.isLoading}
+          error={varStats.error}
+        />
+      )}
 
-          {isSuperAdmin && (
-            <DeleteLevelDialog
-              open={deleteOpen}
-              onClose={() => setDeleteOpen(false)}
-              level="soil_map"
-              onDeleted={onDeleted}
-              id={detail.id}
-            />
-          )}
-        </div>
-
-        <div className="w-72 shrink-0 space-y-2">
-          <PlotMiniMap plotId={plotId} />
-          {canViewMap && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full"
-              onClick={() => setMapOpen(true)}
-              data-testid="soil-map-ready"
-            >
-              Abrir visor de datos de suelo
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={onEdit}>
-          Editar
+      <SesionActions note="La reimportación añade muestras a las existentes, no las reemplaza.">
+        <Button
+          onClick={() => setImportOpen(true)}
+          disabled={detail.import_status === 'processing'}
+        >
+          {detail.import_status === 'done' ? 'Reimportar datos' : 'Importar datos'}
         </Button>
-      </div>
+        {canSeeVisor && (
+          <Button
+            variant="outline"
+            disabled={!canOpenVisor}
+            onClick={() => setMapOpen(true)}
+            title={canOpenVisor ? '' : 'Importa datos para habilitar el visor'}
+            data-testid="soil-map-ready"
+          >
+            Abrir visor de datos de suelo
+          </Button>
+        )}
+        <Button className="ml-auto" variant="ghost" onClick={onBack}>
+          Volver al subprograma
+        </Button>
+      </SesionActions>
 
-      {canViewMap && (
+      {isSuperAdmin && (
+        <AdminActions>
+          {hasPoints && (
+            <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
+              Eliminar los datos de esta sesión
+            </Button>
+          )}
+          <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>
+            Eliminar la sesión completa
+          </Button>
+        </AdminActions>
+      )}
+
+      <SoilMapImportDialog
+        headerId={detail.id}
+        importStatus={detail.import_status}
+        importErrors={detail.import_errors}
+        open={importOpen}
+        onOpenChange={setImportOpen}
+      />
+
+      {isSuperAdmin && (
+        <FlushSoilMapDialog
+          open={flushOpen}
+          onClose={() => setFlushOpen(false)}
+          sessionId={detail.id}
+        />
+      )}
+
+      {isSuperAdmin && (
+        <DeleteLevelDialog
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          level="soil_map"
+          onDeleted={onDeleted}
+          id={detail.id}
+        />
+      )}
+
+      {canOpenVisor && (
         <SoilMapMapModal
           open={mapOpen}
           onClose={() => setMapOpen(false)}
@@ -874,7 +809,7 @@ export function SoilMapView({
           datacentralId={datacentralId}
         />
       )}
-    </div>
+    </SesionBody>
   )
 }
 
@@ -895,6 +830,7 @@ interface PhytoViewProps {
   statusError: string | null
   onStatusChange: (s: string) => void
   onEdit: () => void
+  onBack: () => void
 }
 
 function PhytoView({
@@ -911,94 +847,84 @@ function PhytoView({
   statusError,
   onStatusChange,
   onEdit,
+  onBack,
 }: PhytoViewProps) {
   const [mapOpen, setMapOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const { data: stats } = usePhytoSessionStats(detail.id)
-  const canViewMap = roleLevel >= ROLE_LEVELS.SUPERVISOR && (stats?.checkpoints_count ?? 0) > 0
+  const canSeeVisor = roleLevel >= ROLE_LEVELS.SUPERVISOR
+  const canOpenVisor = canSeeVisor && (stats?.checkpoints_count ?? 0) > 0
   const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
+
   return (
-    <div className="space-y-4">
-      <div className="flex gap-4">
-        <div className="min-w-0 flex-1 space-y-4">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <div>
-              <dt className="text-xs text-muted-foreground">Inicio estimado</dt>
-              <dd>{detail.estimated_start_date ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Fin estimado</dt>
-              <dd>{detail.estimated_end_date ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Inicio en campo</dt>
-              <dd>{detail.started_at ? detail.started_at.replace('T', ' ').slice(0, 16) : '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Fin en campo</dt>
-              <dd>
-                {detail.finished_at ? detail.finished_at.replace('T', ' ').slice(0, 16) : '—'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Modo estricto</dt>
-              <dd>{detail.strict_mode ? 'Sí' : 'No'}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Radio de tolerancia</dt>
-              <dd>{detail.radius_tolerance ?? 5} m</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Responsable</dt>
-              <dd className="text-xs text-muted-foreground">
-                {detail.assigned_to ? `${String(detail.assigned_to).slice(0, 8)}…` : '—'}
-              </dd>
-            </div>
-            {detail.additional_notes && (
-              <div className="col-span-2">
-                <dt className="text-xs text-muted-foreground">Notas</dt>
-                <dd className="text-sm">{detail.additional_notes}</dd>
-              </div>
-            )}
-          </dl>
+    <SesionBody>
+      <SesionFicha plotId={plotId}>
+        <FichaItem label="Inicio estimado">{detail.estimated_start_date ?? '—'}</FichaItem>
+        <FichaItem label="Fin estimado">{detail.estimated_end_date ?? '—'}</FichaItem>
+        <FichaItem label="Inicio en campo">
+          {detail.started_at ? detail.started_at.replace('T', ' ').slice(0, 16) : '—'}
+        </FichaItem>
+        <FichaItem label="Fin en campo">
+          {detail.finished_at ? detail.finished_at.replace('T', ' ').slice(0, 16) : '—'}
+        </FichaItem>
+        <FichaItem label="Responsable">
+          {detail.assigned_to ? `${String(detail.assigned_to).slice(0, 8)}…` : 'Sin asignar'}
+        </FichaItem>
+        <FichaItem label="Modo estricto">{detail.strict_mode ? 'Sí' : 'No'}</FichaItem>
+        <FichaItem label="Radio de tolerancia">{detail.radius_tolerance ?? 5} m</FichaItem>
+      </SesionFicha>
 
-          <StatusBar
-            currentStatus={detail.status ?? 'pending'}
-            transitions={transitions}
-            isMutating={isMutatingStatus}
-            cancelPromptOpen={cancelPromptOpen}
-            cancelNotes={cancelNotes}
-            onCancelNotesChange={onCancelNotesChange}
-            onCancelConfirm={onCancelConfirm}
-            onCancelDismiss={onCancelDismiss}
-            statusError={statusError}
-            onStatusChange={onStatusChange}
-          />
-
-          <PhytoStatsCard headerId={detail.id} />
+      {detail.additional_notes && (
+        <div className="rounded-lg border bg-muted/20 p-3">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Notas</p>
+          <p className="mt-0.5 text-sm">{detail.additional_notes}</p>
         </div>
+      )}
 
-        <div className="w-72 shrink-0">
-          <PlotMiniMap plotId={plotId} />
-        </div>
-      </div>
+      <StatusBar
+        transitions={transitions}
+        isMutating={isMutatingStatus}
+        cancelPromptOpen={cancelPromptOpen}
+        cancelNotes={cancelNotes}
+        onCancelNotesChange={onCancelNotesChange}
+        onCancelConfirm={onCancelConfirm}
+        onCancelDismiss={onCancelDismiss}
+        statusError={statusError}
+        onStatusChange={onStatusChange}
+      />
 
-      <div className="flex justify-end gap-2">
-        {canViewMap && (
-          <Button variant="outline" size="sm" onClick={() => setMapOpen(true)}>
-            Ver mapa
+      <DatosSesionCard
+        description="Puedes corregir fechas, tolerancia y responsable sin tocar los puntos de control levantados en campo."
+        canEdit
+        onEdit={onEdit}
+      />
+
+      <PhytoStatsCard headerId={detail.id} />
+
+      <SesionActions>
+        {canSeeVisor && (
+          <Button
+            variant="outline"
+            disabled={!canOpenVisor}
+            onClick={() => setMapOpen(true)}
+            title={canOpenVisor ? '' : 'Sin puntos de control levantados todavía'}
+          >
+            Abrir visor de datos fitosanitarios
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={onEdit}>
-          Editar
+        <Button className="ml-auto" variant="ghost" onClick={onBack}>
+          Volver al subprograma
         </Button>
-        {isSuperAdmin && (
-          <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
+      </SesionActions>
+
+      {isSuperAdmin && (
+        <AdminActions>
+          <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>
             Eliminar la sesión completa
           </Button>
-        )}
-      </div>
+        </AdminActions>
+      )}
 
       {isSuperAdmin && (
         <DeleteLevelDialog
@@ -1010,7 +936,7 @@ function PhytoView({
         />
       )}
 
-      {canViewMap && (
+      {canOpenVisor && (
         <PhytoMapModal
           open={mapOpen}
           onClose={() => setMapOpen(false)}
@@ -1018,7 +944,7 @@ function PhytoView({
           plotId={plotId}
         />
       )}
-    </div>
+    </SesionBody>
   )
 }
 

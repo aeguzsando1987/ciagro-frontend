@@ -1,42 +1,70 @@
-feat(session-report,geodata-visor): reporteador de Mapeo de Suelo (FASE RS)
+refactor(task-manager): homologar los cinco modales de sesion bajo un chasis comun (FASE HM)
 
-Lado frontend de la fase. Arranca despues de que el backend cierra el contrato: los tipos se
-generan, no se escriben, asi que el alias 'soilmap' llego solo hasta el prop del panel.
+El dev reporto que los modales de sesion no estaban homologados: el diseno discrepaba de un tipo
+a otro. Al descomponerlos quedo claro que no habia una decision de diseno detras, sino
+SEDIMENTACION: conviven tres generaciones de UI superpuestas. SesionModal (aspersion,
+fitosanitario, suelo) es la mas vieja, con layout de dos columnas y barra lateral w-72;
+NdviSesionModal la intermedia; YieldSesionModal la mas nueva y la unica resuelta.
 
-Nuevo
-- Hooks del catalogo y de estadisticos por capa, con apiClient y no fetch a mano: valida ruta
-  y query params contra el schema y reintenta con refresh en 401.
-- Selector agrupado que lee el CATALOGO DEL BACKEND, no soilMapLayers.ts: la agrupacion del
-  reporte diverge a proposito de la del visor. Hay test que fija ese orden.
-- Histograma en SVG a mano. No hay libreria de graficos en el proyecto, pero el argumento no
-  es el peso: el PDF lo dibuja report_charts.py en el backend, que no puede correr Recharts.
-  Los valores esperados del test salieron de correr ese modulo Python con la misma entrada, y
-  coinciden al centesimo.
-- Motor de preparacion de capas (montar mapa, esperar raster, capturar, congelar) como hook,
-  porque lo usan dos sitios: el panel prepara una al elegirla y el selector de entregables
-  prepara las que falten. Siempre de una en una: N mapas WebGL simultaneos agotan los
-  contextos del navegador.
-- lib/media.ts: resuelve las rutas de media contra el origen de la API.
+La referencia es Rendimiento, por decision del dev. Su anatomia se descompuso en once elementos
+y se extrajo a panel/SesionShell.tsx y lib/sesionLabels.ts, que los otros cuatro consumen.
+Consecuencia buscada: cualquier ajuste visual futuro se hace en UN archivo, no en cinco.
 
-Visor: seis props opcionales, apagados por defecto
-Capturar el mapa por capa exigia props que SoilMap no tenia y AspersionMap si habia recibido
-en la FASE RP. Se descarto escribir un mapa de captura aparte porque seria una segunda
-implementacion del pintado, que podria clasificar distinto que la pantalla. El unico cambio
-de logica existente fue condicionar el efecto que auto-salta de capa: sin eso se capturaria
-la variable equivocada con el titulo correcto. Los 15 tests originales de SoilMap pasan sin
-tocarlos.
+Lo que la homologacion destapo, que no era cuestion de estetica
+- IMPORT_STATUS_LABELS estaba duplicado en CUATRO archivos y DIVERGIENDO. El mismo
+  import_status done se leia "Completado" en Rendimiento y NDVI, y "Cargado" en aspersion,
+  suelo y el arbol. EL USUARIO VEIA DOS NOMBRES PARA EL MISMO DATO segun por donde entrara. Se
+  canoniza el juego de Rendimiento, que ademas evita la colision con el estado de sesion
+  loaded, que tambien se llama "Cargado".
+- points_count tampoco era consistente en el backend: aspersion y suelo lo sirven como string y
+  rendimiento y NDVI como numero. De ahi pointsCount(). Queda como GAP-CL-002 del backend.
+- NDVI traia status y assigned_to en el serializer y no los pintaba en ningun sitio: para saber
+  si una sesion estaba cancelada habia que salir al arbol.
+- Aspersion y suelo no tenian NINGUN panel de desenlace de importacion. Una importacion fallida
+  se veia como una sesion normal con cero puntos y sin motivo a la vista.
+- Los botones destructivos estaban anidados DENTRO de la caja de importacion, con "Eliminar la
+  sesion completa" a un palmo de "Reimportar datos".
+- Ninguno de los cinco tenia DialogDescription y los cinco emitian el mismo warning de Radix.
+- Rendimiento, la REFERENCIA de diseno, no tenia ni un test. Tampoco NDVI.
 
-Defectos corregidos tras la prueba manual del dev
-- El panel mentia: con un reporte de suelo mostraba dosis, volumen y semaforo, todos en '—'.
-- 'Ver mapa' montaba AspersionMap con el object_id de una sesion de suelo.
-- La imagen de la capa no cargaba: rutas relativas de media pedidas al origen del front.
-- La captura salia del satelite SIN PUNTOS: 'idle' significa 'termine de dibujar', no 'ya
-  tengo los datos'. Ahora el gate espera el raster y captura en un idle posterior.
-- El PDF abria una pestaña en blanco varios segundos; ahora descarga y la espera se muestra
-  en el panel. Se corrigio tambien en aspersion, que tenia el defecto identico.
-- Un fallo abortaba el lote entero y el PDF salia con menos hojas sin decir por que.
+El orden de los pasos fue la decision de riesgo
+Rendimiento se reescribio PRIMERO, aunque ya estuviera bien: el criterio de exito no era
+mejorarlo sino que quedara identico, porque si la extraccion no reproducia la referencia el
+error salia ahi y no propagado a los otros cuatro. Pago por si solo: aparecio que
+DatosSesionCard mostraba "Editar" tambien con el formulario abierto, y se arreglo EN EL CHASIS.
+NDVI fue segundo por la razon inversa, es el primer tipo DISTINTO de aquel del que salio el
+chasis. Solo entonces se entro al archivo de 1597 lineas.
 
-Los tests se rehicieron para modelar el sistema y no la suposicion: el mock de la captura
-expone su gate y el helper afirma que esta abierto antes de simular la foto.
+Las tarjetas informativas
+Correccion a peticion del dev: los primeros pasos homologaron el chasis y dejaron fuera las
+tarjetas, que el dev habia pedido replicar explicitamente. El problema no era de formato sino
+de CANTIDAD: /variable-stats/ devuelve 5 variables en aspersion, 15 indices en NDVI y 50 capas
+en suelo, y una rejilla de 50 tarjetas no es un resumen. lib/sesionMetrics.ts declara los
+titulares por tipo y RELLENA con las variables que si tengan datos cuando faltan: en suelo
+ninguno esta garantizado, porque el CSV del proveedor decide que capas existen, y sin relleno
+una sesion con 40 capas cargadas mostraria la rejilla vacia. MAPEO DE SUELO NO MOSTRABA NINGUN
+RESUMEN pese a tener su endpoint desde la FASE SL; lo consumian solo el Visor y el reporteador.
 
-638 tests en 100 archivos, cero fallos. tsc --noEmit limpio.
+Dos cosas que se decidio NO hacer
+- La edicion no se unifico, solo su disparador. Convertir los tres formularios a edicion en
+  linea son ~570 lineas de react-hook-form mas zod y es un cambio de comportamiento con riesgo
+  de regresion en validacion y en el mapeo de errores DRF. GAP-HM-001.
+- El gate de rol para editar no se toco. Rendimiento exige SUPERVISOR y los otros tres no
+  gatean nada; homologarlo por arriba habria quitado la edicion a los Tecnicos EN SILENCIO. Es
+  un cambio de PERMISOS disfrazado de cambio de diseno y se decide contra la matriz de roles
+  del backend, no contra el CSS. GAP-HM-002.
+- Fitosanitario queda sin tarjetas por decision del dev: es el unico tipo sin endpoint de
+  variables numericas y su tarjeta es categorica. GAP-HM-006.
+
+Un test se reescribio PORQUE CAMBIO LA REGLA, no para que pasara. El gate del visor de suelo
+colapsaba dos ejes en uno. Ahora el ROL decide si la accion existe y los DATOS si esta
+habilitada, como en Rendimiento: un Supervisor sin CSV importado ve el visor deshabilitado con
+el titulo que le dice que importe, en vez de no ver nada; un Tecnico no lo ve en absoluto.
+
+Tambien se quitan los emojis de los botones y STATUS_BADGE con sus colores tailwind crudos, que
+saltaban la convencion de tokens del repo.
+
+47 tests nuevos, 755 en total en 111 archivos, cero regresiones, tsc limpio y linter en la linea
+base exacta de 33 warnings. SesionModal 1597 -> 1494, YieldSesionModal 393 -> 285,
+NdviSesionModal 191 -> 157.
+

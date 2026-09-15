@@ -1,28 +1,30 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Leaf } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Leaf } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { LoadingState } from '@/components/ui/loading-state'
 import type { MasterProgramTree } from '@/features/task-manager/types'
 import { useNdviSessionDetail } from '../hooks/useNdviSessionDetail'
 import { NdviImportDialog } from '../components/NdviImportDialog'
 import { NdviMapModal } from '../components/NdviMapModal'
 import { NdviImportSummary } from '../components/NdviImportSummary'
+import { SesionVariableMetrics } from '../components/SesionVariableMetrics'
+import { useNdviVariableStats } from '../hooks/useNdviVariableStats'
 import { FlushNdviDialog } from '../components/FlushNdviDialog'
 import { DeleteLevelDialog } from '../components/DeleteLevelDialog'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { ROLE_LEVELS } from '@/lib/auth/roles'
-import { PlotMiniMap } from './PlotMiniMap'
-
-const IMPORT_STATUS_LABELS: Record<string, string> = {
-  pending: 'Sin importar',
-  processing: 'Procesando',
-  done: 'Completado',
-  error: 'Error',
-  pending_mapping: 'Pendiente de mapear',
-}
+import { pointsCount } from '../lib/sesionLabels'
+import {
+  AdminActions,
+  FichaImportStatus,
+  FichaItem,
+  ImportStatusPanels,
+  SesionActions,
+  SesionBody,
+  SesionFicha,
+  SesionShell,
+} from './SesionShell'
 
 interface Props {
   sesionId: string
@@ -37,6 +39,8 @@ interface Props {
  * evaluación ni reporteador: se importa el CSV, se revisa el resumen de índices y se abre
  * el visor de contornos. Por eso es un modal dedicado y simple, no una rama dentro de
  * SesionModal.
+ *
+ * La anatomía es la compartida en SesionShell, homologada con el resto de tipos.
  */
 export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }: Props) {
   const [importOpen, setImportOpen] = useState(false)
@@ -53,68 +57,62 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
   const { data: detail, isLoading } = useNdviSessionDetail(sesionId)
   const plotId = detail?.plot ?? hijo?.plot ?? null
   const importStatus = detail?.import_status ?? 'pending'
-  const points = Number(detail?.points_count ?? 0)
+  const points = pointsCount(detail?.points_count)
   const canOpenVisor = importStatus === 'done' && points > 0
+  const varStats = useNdviVariableStats(sesionId, importStatus === 'done' && points > 0)
 
   return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose()
-      }}
-    >
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onBack}
-              className="rounded p-1 hover:bg-accent"
-              aria-label="Volver"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <Leaf className="h-4 w-4 text-green-600" />
-            Sesión NDVI (Índices vegetativos)
-          </DialogTitle>
-        </DialogHeader>
-
+    <>
+      <SesionShell
+        icon={<Leaf className="h-4 w-4 text-green-600" />}
+        title="Sesión NDVI (Índices vegetativos)"
+        status={detail?.status}
+        onBack={onBack}
+        onClose={onClose}
+      >
         {isLoading ? (
           <LoadingState label="Cargando sesión NDVI…" />
         ) : (
-          <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {/* Polígono de la parcela, como en las sesiones de aspersión/fito. */}
-              <div className="h-44 overflow-hidden rounded-md border">
-                <PlotMiniMap plotId={plotId} />
-              </div>
+          <SesionBody>
+            <SesionFicha plotId={plotId}>
+              <FichaItem label="Fecha de la imagen">
+                {detail?.session_date ?? '— (se toma del CSV)'}
+              </FichaItem>
+              <FichaImportStatus status={importStatus} />
+              <FichaItem label="Puntos cargados">{points.toLocaleString('es-MX')}</FichaItem>
+              <FichaItem label="Responsable">
+                {detail?.assigned_to?.username ?? 'Sin asignar'}
+              </FichaItem>
+            </SesionFicha>
 
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 self-start text-sm">
-                <dt className="text-muted-foreground">Fecha de la imagen</dt>
-                <dd>{detail?.session_date ?? '— (se toma del CSV)'}</dd>
+            <ImportStatusPanels
+              status={importStatus}
+              errors={detail?.import_errors}
+              processingLabel="Procesando CSV de NDVI…"
+              mappingHint="La importación quedó pendiente de mapeo: faltan columnas obligatorias (Longitude / Latitude). Vuelve a importar con un archivo válido."
+            />
 
-                <dt className="text-muted-foreground">Estado de importación</dt>
-                <dd>
-                  <Badge>{IMPORT_STATUS_LABELS[importStatus] ?? importStatus}</Badge>
-                </dd>
-
-                <dt className="text-muted-foreground">Puntos cargados</dt>
-                <dd>{points.toLocaleString()}</dd>
-              </dl>
-            </div>
-
-            {importStatus === 'pending_mapping' && (
-              <p className="rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                La importación quedó pendiente de mapeo: faltan columnas obligatorias (Longitude /
-                Latitude). Vuelve a importar con un archivo válido.
-              </p>
+            {importStatus === 'done' && points > 0 && (
+              <>
+                <SesionVariableMetrics
+                  title="Índices principales"
+                  type="ndvi"
+                  variables={varStats.data?.variables}
+                  pointsCount={varStats.data?.points_count}
+                  isLoading={varStats.isLoading}
+                  error={varStats.error}
+                />
+                <NdviImportSummary headerId={sesionId} />
+              </>
             )}
 
-            {importStatus === 'done' && points > 0 && <NdviImportSummary headerId={sesionId} />}
-
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" onClick={() => setImportOpen(true)}>
-                Importar CSV
+            <SesionActions>
+              <Button
+                type="button"
+                onClick={() => setImportOpen(true)}
+                disabled={importStatus === 'processing'}
+              >
+                {points > 0 ? 'Reimportar CSV' : 'Importar CSV'}
               </Button>
               <Button
                 type="button"
@@ -125,33 +123,26 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
               >
                 Abrir visor
               </Button>
-            </div>
+              <Button className="ml-auto" variant="ghost" onClick={onBack}>
+                Volver al subprograma
+              </Button>
+            </SesionActions>
 
             {isSuperAdmin && (
-              <div className="mt-3 border-t border-dashed pt-3">
+              <AdminActions>
                 {points > 0 && (
-                  <>
-                    <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
-                      Eliminar los datos de esta sesión
-                    </Button>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Acción de administrador: borra los puntos importados solo de esta sesión.
-                    </p>
-                  </>
+                  <Button size="sm" variant="destructive" onClick={() => setFlushOpen(true)}>
+                    Eliminar los datos de esta sesión
+                  </Button>
                 )}
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="mt-3"
-                  onClick={() => setDeleteOpen(true)}
-                >
+                <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>
                   Eliminar la sesión completa
                 </Button>
-              </div>
+              </AdminActions>
             )}
-          </div>
+          </SesionBody>
         )}
-      </DialogContent>
+      </SesionShell>
 
       {importOpen && (
         <NdviImportDialog
@@ -171,11 +162,7 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
         />
       )}
       {isSuperAdmin && flushOpen && (
-        <FlushNdviDialog
-          open={flushOpen}
-          onClose={() => setFlushOpen(false)}
-          sessionId={sesionId}
-        />
+        <FlushNdviDialog open={flushOpen} onClose={() => setFlushOpen(false)} sessionId={sesionId} />
       )}
       {isSuperAdmin && (
         <DeleteLevelDialog
@@ -186,6 +173,6 @@ export function NdviSesionModal({ sesionId, hijoId, masterId, onClose, onBack }:
           id={sesionId}
         />
       )}
-    </Dialog>
+    </>
   )
 }

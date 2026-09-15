@@ -34,6 +34,7 @@ import {
   parseCycle,
   isSeason2AfterSeason1,
 } from '@/features/task-manager/cycle'
+import { BatchImportDialog } from '@/features/task-manager/components/BatchImportDialog'
 import { PlotMiniMap } from './PlotMiniMap'
 import { usePlotGeometry } from '@/features/task-manager/hooks/usePlotGeometry'
 import { PlotPanel } from '@/features/admin/panel/PlotPanel'
@@ -200,6 +201,7 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [createSesionOpen, setCreateSesionOpen] = useState(false)
+  const [batchOpen, setBatchOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   // Estado local del status para feedback inmediato al usuario. El prop `hijo`
   // viene del árbol del Maestro y solo se actualiza al re-abrir el modal; sin
@@ -218,6 +220,10 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
   const programIsOpen = localStatus !== 'completed' && localStatus !== 'cancelled'
     && master.status !== 'completed' && master.status !== 'cancelled'
   const canCreateSession = roleLevel >= ROLE_LEVELS.TECHNICIAN && programIsOpen
+  // La carga por lote exige ADEMAS parcela: el nombre de cada sesion sale de Plot.code
+  // (BR-CL-6). Sin ella el backend responde 400 a SuperAdmin y 403 al resto, asi que la
+  // opcion no se ofrece en vez de dejar que falle al enviarla.
+  const canCargarLote = canCreateSession && !!hijo.plot
 
   // El árbol solo trae campos básicos + sesiones; el detalle agrega las fechas
   // reales y el cultivo, que el formulario de edición necesita.
@@ -365,6 +371,8 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
               onStatusChange={handleStatusChange}
               onNavigateSesion={onNavigateSesion}
               onCreateSesion={() => setCreateSesionOpen(true)}
+              canCargarLote={canCargarLote}
+              onCargarLote={() => setBatchOpen(true)}
             />
           ) : (
             <form onSubmit={handleSubmit(onSubmitEdit)} className="space-y-4">
@@ -577,6 +585,21 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
         />
       )}
 
+      {batchOpen && (
+        <BatchImportDialog
+          programaId={hijo.id}
+          plotCode={hijo.plot_code}
+          open={batchOpen}
+          onOpenChange={setBatchOpen}
+          // El polling vive con el dialogo: al cerrarlo hay que refrescar el arbol para
+          // que las sesiones que el lote ya creo aparezcan como cualquier otra.
+          onFinished={() => {
+            queryClient.invalidateQueries({ queryKey: ['master-tree', master.id] })
+            queryClient.invalidateQueries({ queryKey: ['hijo-detail', hijo.id] })
+          }}
+        />
+      )}
+
       {canDelete && (
         <DeleteLevelDialog
           open={deleteOpen}
@@ -607,6 +630,8 @@ function ViewMode({
   onStatusChange,
   onNavigateSesion,
   onCreateSesion,
+  canCargarLote,
+  onCargarLote,
 }: {
   hijo: ProgramaTree
   localStatus: ProgramaStatus
@@ -627,6 +652,8 @@ function ViewMode({
     sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' | 'yield_map'
   }) => void
   onCreateSesion: () => void
+  canCargarLote: boolean
+  onCargarLote: () => void
 }) {
   return (
     <div className="flex min-h-0 flex-1 gap-4">
@@ -694,9 +721,16 @@ function ViewMode({
         <section className="flex min-h-0 flex-1 flex-col">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-semibold">Sesiones</h3>
-            {canCreateSession && (
-              <Button size="sm" variant="outline" onClick={onCreateSesion}>+ Nueva Sesión</Button>
-            )}
+            <div className="flex items-center gap-2">
+              {canCargarLote && (
+                <Button size="sm" variant="outline" onClick={onCargarLote}>
+                  Cargar lote de sesiones
+                </Button>
+              )}
+              {canCreateSession && (
+                <Button size="sm" variant="outline" onClick={onCreateSesion}>+ Nueva Sesión</Button>
+              )}
+            </div>
           </div>
 
           {allSessions.length === 0 && (
