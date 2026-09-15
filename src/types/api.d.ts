@@ -4093,6 +4093,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/field_ops/tasks/{id}/batch-import/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cargar un lote de sesiones desde varios CSV (async)
+         * @description Crea **una sesion por archivo** en el subprograma indicado y encola la importacion de sus puntos. Responde **202 Accepted** de inmediato: nada se importa en el request.
+         *
+         *     Valida el **contrato de archivo** homologado el 2026-09-11 (columnas `Fecha de inicio` y `Fecha de fin`) sobre los encabezados y la primera fila, asi que los archivos rechazados **ya vienen resueltos en esta respuesta**. Un rechazo no aborta el lote: los demas continuan.
+         *
+         *     El estado posterior se consulta en `GET /field_ops/batch-imports/{id}/`.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/field_ops/tasks/{id}/batch-import/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -F 'activity_type=aspersion' \
+         *       -F 'files=@a.csv' \
+         *       -F 'files =@b.csv'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @Multipart
+         *         @POST("field_ops/tasks/{id}/batch-import/")
+         *         suspend fun createBatchImport(@Path("id") id: String, @Part("activity_type") activityType: RequestBody, @Part("files") files: RequestBody): BatchImportResponse
+         *     }
+         *
+         *     val result = api.createBatchImport(id)
+         *     ```
+         */
+        post: operations["v1_field_ops_tasks_batch_import_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/field_ops/batch-imports/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Estado de un lote de carga
+         * @description Devuelve el avance del lote archivo por archivo: cuales quedaron listas, cuales siguen importando y cuales se rechazaron con su motivo.
+         *
+         *     Es el endpoint que el frontend **pollea** (D3). Cada consulta reconcilia el estado de cada archivo contra el `import_status` de su sesion, asi que el avance se actualiza sin que el importador tenga que notificar nada.
+         *
+         *     `import_errors` expone los errores del **importador**, distintos de `reject_reason`, que son los del contrato de archivo.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/field_ops/batch-imports/{id}/ \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("field_ops/batch-imports/{id}/")
+         *         suspend fun getBatchImport(@Path("id") id: String): BatchImportJob
+         *     }
+         *
+         *     val result = api.getBatchImport(id)
+         *     ```
+         */
+        get: operations["v1_field_ops_batch_imports_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/field_ops/master-programs/": {
         parameters: {
             query?: never;
@@ -4295,7 +4385,7 @@ export interface paths {
         };
         /**
          * Árbol completo de un programa maestro (Maestro → Programas → Sesiones)
-         * @description Devuelve el programa maestro con sus programas hijos y, por cada hijo, las sesiones de aspersión y fitosanitarias. Diseñado para el Gantt del frontend: resuelve toda la jerarquía en una sola petición (4 queries con prefetch_related).
+         * @description Devuelve el programa maestro con sus programas hijos y, por cada hijo, las sesiones de aspersión, fitosanitarias, NDVI, suelo y rendimiento. Diseñado para el Gantt del frontend: resuelve toda la jerarquía en una sola petición (4 queries con prefetch_related).
          *
          *     **Ejemplos**
          *
@@ -6942,6 +7032,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/soil-map/headers/{id}/elevation/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Elevación y relieve de la parcela en la sesión de suelo
+         * @description Alturas en metros, tendencia por regresión plana y pendiente local TIN. Solo muestras dentro de la parcela. La media de pendiente pondera área horizontal cubierta; no extrapola a zonas sin muestras. Rangos configurables en SOIL_ELEVATION. Los estados sin cálculo no contienen pendientes ficticias.
+         */
+        get: operations["v1_monitoring_soil_map_headers_elevation_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/monitoring/soil-map/headers/{id}/layer-stats/": {
         parameters: {
             query?: never;
@@ -7108,7 +7218,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/monitoring/soil-map/headers/{id}/elevation/": {
+    "/api/v1/monitoring/yield-map/headers/": {
         parameters: {
             query?: never;
             header?: never;
@@ -7116,10 +7226,248 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Elevación y relieve de la parcela en la sesión de suelo
-         * @description Alturas en metros, tendencia por regresión plana y pendiente local TIN. Solo muestras dentro de la parcela. La media de pendiente pondera área horizontal cubierta; no extrapola a zonas sin muestras. Rangos configurables en SOIL_ELEVATION. Los estados sin cálculo no contienen pendientes ficticias.
+         * Listar o crear sesiones de rendimiento
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
          */
-        get: operations["v1_monitoring_soil_map_headers_elevation_retrieve"];
+        get: operations["v1_monitoring_yield_map_headers_list"];
+        put?: never;
+        /**
+         * Listar o crear sesiones de rendimiento
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        post: operations["v1_monitoring_yield_map_headers_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/yield-map/headers/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar sesión de rendimiento
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        put: operations["v1_monitoring_yield_map_headers_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar sesión de rendimiento
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        patch: operations["v1_monitoring_yield_map_headers_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/monitoring/yield-map/headers/{id}/import/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importar un CSV de rendimiento
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        post: operations["v1_monitoring_yield_map_headers_import_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/yield-map/headers/{id}/preview-columns/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vista previa de columnas de un CSV de rendimiento
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        post: operations["v1_monitoring_yield_map_headers_preview_columns_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/yield-map/headers/{id}/stats/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Estadísticas de una sesión de rendimiento
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        get: operations["v1_monitoring_yield_map_headers_stats_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/yield-map/headers/{id}/flush/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Vaciar puntos importados de una sesión de rendimiento */
+        post: operations["v1_monitoring_yield_map_headers_flush_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/yield-map/headers/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detalle de sesión de rendimiento
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        get: operations["v1_monitoring_yield_map_headers_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/yield-map/points/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar puntos de rendimiento
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        get: operations["v1_monitoring_yield_map_points_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/ndvi/timeline/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Línea de tiempo NDVI de una parcela
+         * @description Devuelve sesiones NDVI ordenadas y estadísticas. La ventana de la curva esperada se calcula de forma independiente por ciclo productivo. Si no hay ciclos explícitos, el Programa funciona como ciclo automático. El cliente adapta la referencia del cultivo a la duración de cada ciclo (12, 40 semanas, etc.). Ausencias usan null; nunca NDVI=0.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/ndvi/timeline/?plot=<uuid> \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/ndvi/timeline/")
+         *         suspend fun getNdviTimeline(): List<NdviTimelineItem>
+         *     }
+         *
+         *     val result = api.getNdviTimeline()
+         *     ```
+         */
+        get: operations["v1_monitoring_ndvi_timeline_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -8590,6 +8938,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/yield-map/headers/{id}/delete-preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Impacto de eliminar una sesion
+         * @description Impacto de eliminar una sesion de YieldMap.
+         */
+        get: operations["v1_monitoring_yield_map_headers_delete_preview_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/yield-map/headers/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar una sesion y sus puntos
+         * @description Elimina una sesion de YieldMap y sus puntos.
+         */
+        delete: operations["v1_monitoring_yield_map_headers_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/monitoring/ndvi/headers/{id}/delete-preview/": {
         parameters: {
             query?: never;
@@ -8767,14 +9155,6 @@ export interface components {
          * @enum {string}
          */
         AccessModeEnum: "full" | "restricted";
-        /**
-         * @description * `ASPERSION` - Aspersión
-         *     * `PHYTOSANITARY` - Monitoreo Fitosanitario
-         *     * `MONITORING` - Monitoreo genérico
-         *     * `OTHER` - Otra actividad
-         * @enum {string}
-         */
-        ActivityTypeEnum: "ASPERSION" | "PHYTOSANITARY" | "MONITORING" | "OTHER";
         AdminSetPasswordRequest: {
             new_password: string;
             confirm_password: string;
@@ -9233,6 +9613,160 @@ export interface components {
          * @enum {string}
          */
         AttentionStatusEnum: "solucionado" | "sin atender" | "en atencion" | "sin solucion" | "na";
+        /**
+         * @description Entrada del POST de lote: un tipo de actividad y N archivos.
+         *
+         *     No es un ModelSerializer: lo que llega por multipart no es la forma del modelo. El job se
+         *     arma en la view, que es quien tiene el subprograma y el usuario.
+         */
+        BatchImportCreate: {
+            /**
+             * @description Un lote carga sesiones de un solo tipo (BR-CL-2).
+             *
+             *     * `aspersion` - aspersion
+             *     * `ndvi` - ndvi
+             *     * `yield_map` - yield_map
+             */
+            activity_type: components["schemas"]["BatchImportCreateActivityTypeEnum"];
+            /** @description Entre 1 y 20 archivos CSV. */
+            files: string[];
+        };
+        /**
+         * @description * `aspersion` - aspersion
+         *     * `ndvi` - ndvi
+         *     * `yield_map` - yield_map
+         * @enum {string}
+         */
+        BatchImportCreateActivityTypeEnum: "aspersion" | "ndvi" | "yield_map";
+        /**
+         * @description Respuesta 202 del POST.
+         *
+         *     Lleva los rechazos YA RESUELTOS: el contrato se valida en el request (D1), asi que el
+         *     usuario se entera de que archivo no sirve en la misma respuesta y no treinta segundos
+         *     despues consultando el estado.
+         */
+        BatchImportCreateResponse: {
+            /** Format: uuid */
+            job_id: string;
+            status: string;
+            total_files: number;
+            accepted: number;
+            rejected: number;
+            items: components["schemas"]["BatchImportItem"][];
+            detail: string;
+        };
+        /**
+         * @description Un archivo del lote, con su desenlace ya resuelto.
+         *
+         *     `status` es el que persiste la tabla DESPUES de reconciliarse contra el header (lo hace la
+         *     view antes de serializar), asi que aqui no se recalcula nada: un serializer que consultara
+         *     los headers por fila seria un N+1 en cada polling.
+         */
+        BatchImportItem: {
+            /** Format: uuid */
+            readonly id: string;
+            /**
+             * Nombre del archivo
+             * @description Nombre original, para que el usuario reconozca cual fallo.
+             */
+            readonly filename: string;
+            /** Estado del archivo */
+            readonly status: components["schemas"]["BatchImportItemStatusEnum"];
+            /**
+             * Nombre de la sesion
+             * @description Derivado por BR-CL-6 como <Plot.code>-<tipo>-<fecha>. Vive AQUI y no en el header porque ningun header tiene campo de nombre (GAP-CL-7).
+             */
+            readonly session_name: string | null;
+            /**
+             * Modelo del header creado
+             * @description Formato app_label.Model. Nulo si el archivo fue rechazado.
+             */
+            readonly header_type: string | null;
+            /**
+             * ID del header creado
+             * Format: uuid
+             */
+            readonly header_id: string | null;
+            /**
+             * Motivo del rechazo
+             * @description Lista de {code, message} del validador de contrato. El code es para el programa y el message para el usuario, y cada code corresponde a UN arreglo distinto en el archivo.
+             */
+            readonly reject_reason: unknown;
+            /**
+             * Advertencias
+             * @description Lista de {code, message} de lo que se acepto pero con reservas. Hoy: que el archivo no delataba si sus fechas son dia/mes o mes/dia y se asumio el orden regional, y que otro archivo del mismo lote tenia contenido identico.
+             */
+            readonly warnings: unknown;
+            /**
+             * Lote declarado en el archivo
+             * @description Etiqueta del proveedor de la columna 'Lote'. Es trazabilidad, NO decide la parcela: esa se hereda del subprograma (BR-CL-4).
+             */
+            readonly source_lot: string | null;
+            readonly import_status: string;
+            readonly import_errors: string;
+            readonly points_count: string;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        /**
+         * @description * `pending` - En espera
+         *     * `rejected` - Rechazado
+         *     * `processing` - Procesando
+         *     * `done` - Completado
+         *     * `error` - Error
+         * @enum {string}
+         */
+        BatchImportItemStatusEnum: "pending" | "rejected" | "processing" | "done" | "error";
+        /** @description Estado del lote. Es lo que el frontend pollea (D3: sin infraestructura nueva). */
+        BatchImportJob: {
+            /** Format: uuid */
+            readonly id: string;
+            /**
+             * Subprograma del lote
+             * Format: uuid
+             */
+            readonly program: string;
+            readonly program_name: string;
+            readonly plot_code: string;
+            /**
+             * Tipo de actividad
+             * @description Un lote carga sesiones de un solo tipo (BR-CL-2).
+             *
+             *     * `aspersion` - Aspersion
+             *     * `ndvi` - NDVI
+             *     * `yield_map` - Rendimiento
+             */
+            readonly activity_type: components["schemas"]["BatchImportJobActivityTypeEnum"];
+            /** Estado del lote */
+            readonly status: components["schemas"]["BatchImportJobStatusEnum"];
+            /**
+             * Archivos recibidos
+             * @description Cuantos archivos trajo el POST, incluidos los que se rechazaron.
+             */
+            readonly total_files: number;
+            readonly summary: string;
+            readonly items: components["schemas"]["BatchImportItem"][];
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /**
+         * @description * `aspersion` - Aspersion
+         *     * `ndvi` - NDVI
+         *     * `yield_map` - Rendimiento
+         * @enum {string}
+         */
+        BatchImportJobActivityTypeEnum: "aspersion" | "ndvi" | "yield_map";
+        /**
+         * @description * `pending` - Pendiente
+         *     * `processing` - Procesando
+         *     * `done` - Completado
+         *     * `partial` - Completado con rechazos
+         *     * `error` - Error
+         * @enum {string}
+         */
+        BatchImportJobStatusEnum: "pending" | "processing" | "done" | "partial" | "error";
         /** @enum {unknown} */
         BlankEnum: "";
         /**
@@ -9466,7 +10000,7 @@ export interface components {
             /** Nombre de evaluación */
             name: string;
             /** Tipo de actividad */
-            activity_type: components["schemas"]["ActivityTypeEnum"];
+            activity_type: components["schemas"]["EvaluationCatalogActivityTypeEnum"];
             /**
              * Modelo vinculado
              * @description Formato: "app_label.NombreModelo". Ej: "datalayers.AspercionSessionPoints
@@ -9482,6 +10016,14 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
+        /**
+         * @description * `ASPERSION` - Aspersión
+         *     * `PHYTOSANITARY` - Monitoreo Fitosanitario
+         *     * `MONITORING` - Monitoreo genérico
+         *     * `OTHER` - Otra actividad
+         * @enum {string}
+         */
+        EvaluationCatalogActivityTypeEnum: "ASPERSION" | "PHYTOSANITARY" | "MONITORING" | "OTHER";
         FieldTaskReport: {
             /** Format: uuid */
             readonly id: string;
@@ -10023,6 +10565,11 @@ export interface components {
             } | null;
             /** Format: uuid */
             assigned_to_id?: string | null;
+            /**
+             * Observación de la sesión
+             * @description Nota explicativa de la sesión o del motivo por el que no existe NDVI.
+             */
+            observation?: string;
             /** Estatus de importación */
             readonly import_status: components["schemas"]["ImportStatusEnum"];
             /** Errores de importación */
@@ -10755,6 +11302,36 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["WorkRole"][];
         };
+        PaginatedYieldMapHeaderList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["YieldMapHeader"][];
+        };
+        PaginatedYieldMapPointsList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["YieldMapPoints"][];
+        };
         /**
          * @description Serializer para activar un usuario pendiente.
          *     El admin asigna un rol y el usuario pasa a status=active.
@@ -11020,7 +11597,7 @@ export interface components {
             /** Nombre de evaluación */
             name?: string;
             /** Tipo de actividad */
-            activity_type?: components["schemas"]["ActivityTypeEnum"];
+            activity_type?: components["schemas"]["EvaluationCatalogActivityTypeEnum"];
             /**
              * Modelo vinculado
              * @description Formato: "app_label.NombreModelo". Ej: "datalayers.AspercionSessionPoints
@@ -11223,6 +11800,11 @@ export interface components {
             } | null;
             /** Format: uuid */
             assigned_to_id?: string | null;
+            /**
+             * Observación de la sesión
+             * @description Nota explicativa de la sesión o del motivo por el que no existe NDVI.
+             */
+            observation?: string;
             /** Estatus de importación */
             readonly import_status?: components["schemas"]["ImportStatusEnum"];
             /** Errores de importación */
@@ -11954,6 +12536,77 @@ export interface components {
             /** Format: date-time */
             readonly updated_at?: string;
         };
+        /** @description Encabezado del quinto dominio: mapa de rendimiento agrícola. */
+        PatchedYieldMapHeader: {
+            /** Format: uuid */
+            readonly id?: string;
+            /**
+             * Programa de la actividad
+             * Format: uuid
+             */
+            readonly program?: string;
+            /** Format: uuid */
+            program_id?: string;
+            /**
+             * Parcela
+             * Format: uuid
+             * @description Parcela del rancho a la que pertenece este mapa de rendimiento.
+             */
+            readonly plot?: string | null;
+            /** Format: uuid */
+            plot_id?: string;
+            /**
+             * Fecha de cosecha
+             * Format: date
+             */
+            harvest_date?: string;
+            /** Estado de la sesión */
+            status?: components["schemas"]["Status5a4Enum"];
+            readonly assigned_to?: {
+                /** Format: uuid */
+                id?: string;
+                username?: string;
+            } | null;
+            /** Format: uuid */
+            assigned_to_id?: string | null;
+            /**
+             * Fecha estimada de inicio
+             * Format: date
+             */
+            est_init_date?: string | null;
+            /**
+             * Fecha estimada de finalización
+             * Format: date
+             */
+            est_finish_date?: string | null;
+            /**
+             * Fecha real de inicio
+             * Format: date
+             */
+            real_init_date?: string | null;
+            /**
+             * Fecha real de finalización
+             * Format: date
+             */
+            real_finish_date?: string | null;
+            /** Estado de importación */
+            readonly import_status?: components["schemas"]["ImportStatusEnum"];
+            /** Errores de importación */
+            readonly import_errors?: unknown;
+            /**
+             * Fecha de importación
+             * Format: date-time
+             */
+            readonly imported_at?: string | null;
+            readonly points_count?: string;
+            readonly source_lot?: string | null;
+            readonly source_product?: string | null;
+            readonly source_dataset?: string | null;
+            /** Format: date-time */
+            readonly created_at?: string;
+            /** Format: date-time */
+            readonly updated_at?: string;
+        };
         /**
          * @description Punto capturado por el técnico en campo.
          *     - geom: GeoJSON Point (longitud, latitud GPS real del técnico)
@@ -12500,6 +13153,7 @@ export interface components {
             readonly phyto_monitoring_headers: components["schemas"]["PhytoSessionSummary"][];
             readonly soil_map_headers: components["schemas"]["SoilMapSessionSummary"][];
             readonly ndvi_sessions: components["schemas"]["NdviSessionSummary"][];
+            readonly yield_map_headers: components["schemas"]["YieldMapSessionSummary"][];
         };
         Ranch: {
             type?: components["schemas"]["GisFeatureEnum"];
@@ -13270,6 +13924,173 @@ export interface components {
             readonly id: number;
             work_name: string;
             activity_description?: string | null;
+        };
+        /** @description Encabezado del quinto dominio: mapa de rendimiento agrícola. */
+        YieldMapHeader: {
+            /** Format: uuid */
+            readonly id: string;
+            /**
+             * Programa de la actividad
+             * Format: uuid
+             */
+            readonly program: string;
+            /** Format: uuid */
+            program_id: string;
+            /**
+             * Parcela
+             * Format: uuid
+             * @description Parcela del rancho a la que pertenece este mapa de rendimiento.
+             */
+            readonly plot: string | null;
+            /** Format: uuid */
+            plot_id?: string;
+            /**
+             * Fecha de cosecha
+             * Format: date
+             */
+            harvest_date: string;
+            /** Estado de la sesión */
+            status?: components["schemas"]["Status5a4Enum"];
+            readonly assigned_to: {
+                /** Format: uuid */
+                id?: string;
+                username?: string;
+            } | null;
+            /** Format: uuid */
+            assigned_to_id?: string | null;
+            /**
+             * Fecha estimada de inicio
+             * Format: date
+             */
+            est_init_date?: string | null;
+            /**
+             * Fecha estimada de finalización
+             * Format: date
+             */
+            est_finish_date?: string | null;
+            /**
+             * Fecha real de inicio
+             * Format: date
+             */
+            real_init_date?: string | null;
+            /**
+             * Fecha real de finalización
+             * Format: date
+             */
+            real_finish_date?: string | null;
+            /** Estado de importación */
+            readonly import_status: components["schemas"]["ImportStatusEnum"];
+            /** Errores de importación */
+            readonly import_errors: unknown;
+            /**
+             * Fecha de importación
+             * Format: date-time
+             */
+            readonly imported_at: string | null;
+            readonly points_count: string;
+            readonly source_lot: string | null;
+            readonly source_product: string | null;
+            readonly source_dataset: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        YieldMapImportRequest: {
+            /** Format: uri */
+            csv_file: string;
+        };
+        /** @description Lectura de cosecha con las cinco variables del visor y su telemetría útil. */
+        YieldMapPoints: {
+            /** Format: uuid */
+            readonly id: string;
+            /**
+             * Sesión de rendimiento
+             * Format: uuid
+             */
+            readonly session_header: string;
+            /** Ubicación */
+            readonly geom: {
+                /** @enum {string} */
+                type?: "Point";
+                /**
+                 * @example [
+                 *       12.9721,
+                 *       77.5933
+                 *     ]
+                 */
+                coordinates?: number[];
+            };
+            readonly source_object_id: number | null;
+            readonly lot_label: string | null;
+            readonly dataset_label: string | null;
+            readonly product: string | null;
+            /** Format: date */
+            readonly sample_date: string | null;
+            /** Format: double */
+            readonly course_deg: number | null;
+            /** Format: double */
+            readonly swath_width_m: number | null;
+            /** Format: double */
+            readonly distance_m: number | null;
+            /** Format: double */
+            readonly duration_s: number | null;
+            /** Format: double */
+            readonly elevation_m: number | null;
+            /** Format: double */
+            readonly speed_kmh: number | null;
+            readonly satellites: number | null;
+            /** Format: double */
+            readonly vehicle_heading: number | null;
+            readonly active_rows: number | null;
+            /** Format: double */
+            readonly vdop: number | null;
+            /** Format: double */
+            readonly hdop: number | null;
+            /** Format: double */
+            readonly pdop: number | null;
+            /** Format: double */
+            readonly grain_flow_t_h: number | null;
+            /** Format: double */
+            readonly moisture_pct: number | null;
+            /** Format: double */
+            readonly grain_temperature_c: number | null;
+            /** Format: double */
+            readonly elevator_speed_rpm: number | null;
+            readonly pass_number: number | null;
+            /** Format: double */
+            readonly yield_t_ha: number | null;
+            /** Format: double */
+            readonly dry_yield_t_ha: number | null;
+            /** Format: double */
+            readonly dry_yield_l_ha: number | null;
+            /** Format: double */
+            readonly wet_yield_t_ha: number | null;
+            /** Format: double */
+            readonly wet_yield_l_ha: number | null;
+            /** Format: double */
+            readonly field_capacity_ha_h: number | null;
+            /** Format: double */
+            readonly grain_flow_m3_s: number | null;
+            /** Format: double */
+            readonly area_ha: number | null;
+            /** Format: double */
+            readonly grain_mass_t: number | null;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        YieldMapPreviewColumnsRequest: {
+            /** Format: uri */
+            csv_file: string;
+        };
+        YieldMapSessionSummary: {
+            /** Format: uuid */
+            id: string;
+            readonly type: string;
+            /** Format: date */
+            harvest_date: string;
+            import_status: string;
+            status: string;
         };
     };
     responses: never;
@@ -15874,6 +16695,80 @@ export interface operations {
             };
         };
     };
+    v1_field_ops_tasks_batch_import_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["BatchImportCreate"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchImportCreateResponse"];
+                };
+            };
+            /** @description No response body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_field_ops_batch_imports_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchImportJob"];
+                };
+            };
+            /** @description No response body */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     v1_field_ops_master_programs_list: {
         parameters: {
             query?: {
@@ -18053,6 +18948,42 @@ export interface operations {
             };
         };
     };
+    v1_monitoring_soil_map_headers_elevation_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Incluye los polígonos GeoJSON de pendiente local. */
+                include_zones?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     v1_monitoring_soil_map_headers_layer_stats_retrieve: {
         parameters: {
             query: {
@@ -18175,16 +19106,284 @@ export interface operations {
             };
         };
     };
-    v1_monitoring_soil_map_headers_elevation_retrieve: {
+    v1_monitoring_yield_map_headers_list: {
         parameters: {
             query?: {
-                /** @description Incluye los polígonos GeoJSON de pendiente local. */
-                include_zones?: boolean;
+                /** @description A page number within the paginated result set. */
+                page?: number;
             };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedYieldMapHeaderList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_yield_map_headers_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["YieldMapHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["YieldMapHeader"];
+                "multipart/form-data": components["schemas"]["YieldMapHeader"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YieldMapHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_yield_map_headers_update_update: {
+        parameters: {
+            query?: never;
             header?: never;
             path: {
                 id: string;
             };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["YieldMapHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["YieldMapHeader"];
+                "multipart/form-data": components["schemas"]["YieldMapHeader"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YieldMapHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_yield_map_headers_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedYieldMapHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedYieldMapHeader"];
+                "multipart/form-data": components["schemas"]["PatchedYieldMapHeader"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YieldMapHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_yield_map_headers_import_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["YieldMapImportRequest"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_yield_map_headers_preview_columns_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["YieldMapPreviewColumnsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_yield_map_headers_stats_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_monitoring_yield_map_headers_flush_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_monitoring_yield_map_headers_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YieldMapHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_yield_map_points_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedYieldMapPointsList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_timeline_retrieve: {
+        parameters: {
+            query: {
+                /** @description UUID de la parcela. */
+                plot: string;
+            };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -18199,7 +19398,7 @@ export interface operations {
                     };
                 };
             };
-            404: {
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19242,6 +20441,56 @@ export interface operations {
         };
     };
     v1_monitoring_soil_map_headers_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_monitoring_yield_map_headers_delete_preview_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_monitoring_yield_map_headers_delete_destroy: {
         parameters: {
             query?: never;
             header?: never;

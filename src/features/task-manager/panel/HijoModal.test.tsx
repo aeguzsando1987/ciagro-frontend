@@ -81,6 +81,7 @@ const mockHijo: ProgramaTree = {
     },
   ],
   ndvi_sessions: [],
+  yield_map_headers: [],
   plot_code: null,
   crop_name: null,
   crop_variety_name: null,
@@ -213,5 +214,46 @@ describe('HijoModal', () => {
     renderModal(3)
     await waitFor(() => screen.getByRole('dialog'))
     expect(screen.queryByRole('button', { name: /Editar/i })).not.toBeInTheDocument()
+  })
+
+  // FASE CL-F. El nombre de cada sesion del lote sale de Plot.code (BR-CL-6), asi que sin
+  // parcela el backend responde 400 a SuperAdmin y 403 al resto. Se prefiere NO ofrecer la
+  // opcion antes que ofrecerla y dejar que falle al enviarla.
+  describe('carga por lote', () => {
+    function renderConParcela(role_level: number, plot: string | null) {
+      setRole(role_level)
+      const qc = createTestQueryClient()
+      render(
+        <QueryClientProvider client={qc}>
+          <HijoModal
+            hijo={{ ...mockHijo, plot, plot_code: plot ? 'CL-ASP' : null }}
+            master={mockMaster}
+            datacentralId="dc-1"
+            onClose={vi.fn()}
+            onBack={vi.fn()}
+            onNavigateSesion={vi.fn()}
+          />
+        </QueryClientProvider>
+      )
+    }
+
+    it('NO ofrece la carga por lote si el subprograma no tiene parcela', async () => {
+      renderConParcela(2, null)
+      await waitFor(() => screen.getByRole('dialog'))
+      expect(screen.getByRole('button', { name: /Nueva Sesión/i })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Cargar lote/i })).not.toBeInTheDocument()
+    })
+
+    it('ofrece la carga por lote cuando hay parcela y el rol alcanza', async () => {
+      renderConParcela(2, 'plot-1')
+      await waitFor(() => screen.getByRole('dialog'))
+      expect(screen.getByRole('button', { name: /Cargar lote/i })).toBeInTheDocument()
+    })
+
+    it('no la ofrece a un rol por debajo de Tecnico, aunque haya parcela', async () => {
+      renderConParcela(1, 'plot-1')
+      await waitFor(() => screen.getByRole('dialog'))
+      expect(screen.queryByRole('button', { name: /Cargar lote/i })).not.toBeInTheDocument()
+    })
   })
 })
