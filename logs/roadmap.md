@@ -839,10 +839,14 @@ numero —no la estimacion— es lo que hay que enseñarle al usuario antes de q
 
 ## FASE CL-F: CARGA POR LOTE DE SESIONES DESDE EL SUBPROGRAMA — FRONTEND
 
-**Estado:** `[x] 8/9 IMPLEMENTADA (rama dev-batch-sessions, 2026-09-14). Falta CL-F8, la prueba
-manual del desarrollador, que se hace despues de la FASE HM porque los modales de sesion se
-reescribieron: el criterio a comprobar (que las sesiones del lote se vean igual que las creadas una
-por una) se evalua ahora sobre la interfaz homologada, no sobre la anterior.`
+**Estado:** `[x] 9/9 COMPLETADA Y VALIDADA (rama dev-batch-sessions). **DESPLEGADA EN EL
+SERVIDOR DE PRUEBAS el 2026-09-15** junto con la FASE CL del backend, en un solo release. INV-5
+verificado del lado del servidor: el bundle se reconstruyo (index-CyVCwI7O.js a index-CVEjKAtp.js) y
+el texto del boton y las rutas batch-import estan DENTRO del JS que sirve nginx, con el bundle viejo
+ya en 404. **CL-F8 CONFIRMADO POR EL DESARROLLADOR el 2026-09-15**: los ocho puntos de S6 en verde,
+evaluados ya sobre la interfaz homologada de la FASE HM, incluido el criterio que cerraba la fase,
+que una sesion creada por lote no se distinga de una creada una por una. Acta del despliegue y siete
+desviaciones en `../CIAgro_alpha_back/logs/deploy-2026-09-14-cl.md`.`
 Va en pareja con la **FASE CL del backend** (`../CIAgro_alpha_back/logs/roadmap.md`), que esta
 **13/13, VALIDADA y homologada en master** (`83962a7`). El backend **NO se ha desplegado**: espera a
 esta sesion para ir en un solo release, y por eso esta fase entrega **dos** cosas, la interfaz y el
