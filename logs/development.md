@@ -3268,3 +3268,190 @@ el prop del panel.
 - Los **15 tests originales de `SoilMap`** siguen pasando sin tocarlos, tras agregarle 6 props.
 - **Prueba manual del desarrollador: iterada 5 veces.** Cada ronda encontró defectos reales que los
   tests no veían, casi siempre por probar la pieza y no el cableado.
+
+---
+
+## Sesión `batch-sessions` — FASE CL-F: carga por lote de sesiones (frontend) + runbook combinado (2026-09-14, rama `dev-batch-sessions`)
+
+Los dos endpoints del lote existían, respondían y estaban homologados en `master` desde la FASE CL
+del backend. **Ningún usuario podía llegar a ellos**: no había interfaz. El backend se dejó sin
+desplegar a propósito, esperando al frontend para ir en un solo release. Esta sesión cierra las dos
+mitades: la interfaz y el runbook combinado que sustituye al de solo-backend.
+
+### El contrato se extrajo ejecutando el serializer, no leyéndolo
+
+Es la decisión que más trabajo ahorró, y conviene dejarla dicha porque el prompt no la pedía. Leer
+`BatchImportJobSerializer` habría dado una idea aproximada; ejecutarlo dio cinco hechos que cambian
+el diseño:
+
+- **`summary` ya viene contado.** La barra de avance no se calcula en el front.
+- **`reject_reason` e `import_errors` no solo son cosas distintas: tienen *forma* distinta.** El
+  primero es `[{code, message}]` con el mensaje **ya redactado en español para el usuario final** —
+  no hace falta diccionario de códigos. El segundo es heterogéneo, usa la clave `"error"` y no
+  `"code"`, y en rendimiento trae `csv_bbox`/`plot_bbox`. **Dos renderizadores, no uno.**
+- **`warnings` llega `null`, no `[]`.** Un `.map()` directo revienta.
+- **Los estados del job y del item son conjuntos distintos**: `partial` solo existe en el job,
+  `rejected` solo en el item.
+- **El GET es de escritura.** Reconcilia y persiste `processing → done|error`: el polling es lo que
+  hace avanzar el lote, no un observador pasivo.
+
+El segundo y el quinto son los que justifican la fase. Si solo se muestra `reject_reason`, el usuario
+ve "sesión creada" con cero puntos y **sin explicación** — porque el fallo estaba en el otro canal.
+
+### La trampa principal: polling infinito
+
+`_resolve_items_against_headers` (`batch_views.py:104-109`) solo mapea `done` y `error`. Si un
+importador deja el header en `pending_mapping`, el item **nunca sale de `processing`** y el front
+pollearía para siempre, sin error visible en ninguna parte. Se corta en el front leyendo
+`item.import_status`, que el serializer sí expone: no requiere tocar el backend. `isJobActive()` es
+una función pura precisamente para poder fijar ese corte en un test.
+
+### Lo construido
+
+- **`useBatchImport.ts`** — la capa de datos. No se inventó un patrón de polling: se copió el del
+  repo (`refetchInterval: (q) => cond ? 2500 : false`, en `useAspersionSessionDetail.ts:23` y cuatro
+  hooks más). Igual el multipart (`bodySerializer: (b) => b as FormData`).
+- **`BatchImportDialog.tsx`** — tres momentos en un solo diálogo. **Conserva la selección si el POST
+  falla**, porque el `refreshMiddleware` solo reintenta GET (`client.ts:74-101`) y un lote de 20
+  archivos puede agotar el token; perder la selección del usuario por un 401 sería gratuito.
+- **`BatchItemMessages.tsx` + `lib/batchMessages.ts`** — los tres canales pintados por separado, con
+  la lógica pura extraída para poder probarla sin montar React.
+- **Enganche en `HijoModal`** con `canCreateSession && !!hijo.plot`: **sin parcela la opción no se
+  ofrece**. El backend responde 400 a SuperAdmin y 403 al resto, y ese 403 es deliberado — comprobar
+  la parcela antes que el scope le confirmaría a un usuario ajeno que el subprograma existe.
+
+### Lo que hubo que corregir
+
+- **Regenerar tipos rompió nueve cosas.** La causa raíz fue un parche manual en `types/index.ts`
+  cuyo propio comentario decía "el schema todavía no conoce Rendimiento" — y ya no era cierto. Se
+  borró el parche entero en vez de remendarlo.
+- **Los tests con MSW llegaban al Django real.** Se aisló comparando GET y POST con un UUID válido:
+  fallan los dos, así que `apiClient` **escapa al interceptor en jsdom**. Ya estaba documentado de
+  pasada en un comentario de `HijoModal.test.tsx`, pero nunca registrado. Ahora es `GAP-CL-F-002`.
+- **El dev pidió Select en vez de RadioGroup** para el tipo de actividad. Se siguió el patrón de
+  `CreateSessionDialog.tsx:152`: no tiene sentido que crear *una* sesión y crear *un lote* se elijan
+  con controles distintos. Se ganó un test que antes no hacía falta: que el tipo **elegido** es el que
+  viaja en el multipart, porque con el Select hay un paso de interacción más donde algo puede
+  romperse en silencio.
+
+### Verificación
+
+**701 tests**, `tsc` limpio, linter en la línea base exacta de 33 warnings. Verificación E2E contra el
+backend local con un lote sintético: 202 con 4 aceptados y 1 rechazado, polling hasta `done` con los
+conteos exactos (320/280/200/320), el duplicado con **sus dos** warnings, y la colisión de nombre
+resuelta con sufijo `-2`.
+
+Queda pendiente **CL-F8**, la prueba manual del desarrollador. Se pospuso a propósito: los modales de
+sesión se reescribieron en la FASE HM inmediatamente después, así que el criterio a comprobar —que
+las sesiones del lote se vean igual que las creadas una por una— debe evaluarse sobre la interfaz
+homologada, no sobre la anterior.
+
+---
+
+## Sesión `homologacion-modales` — FASE HM: los cinco modales de sesión bajo un chasis común (2026-09-15, rama `dev-batch-sessions`)
+
+El dev reportó que los modales de sesión no estaban homologados: el diseño discrepaba de un tipo a
+otro, y pidió que todos se parecieran al de Rendimiento.
+
+### El diagnóstico no era "tres estilos", era tres generaciones
+
+Al descomponerlos quedó claro que no había una decisión de diseño detrás, sino **sedimentación**:
+
+| Modal | Tipos | Ancho | Layout |
+|---|---|---|---|
+| `SesionModal.tsx` | aspersión, fitosanitario, suelo | `3xl` | dos columnas con barra lateral `w-72` |
+| `NdviSesionModal.tsx` | ndvi | `2xl` | una columna |
+| `YieldSesionModal.tsx` | rendimiento | `4xl` + scroll | una columna |
+
+Rendimiento era el único resuelto, y es el que el dev señaló como referencia. Su anatomía se
+descompuso en once elementos y se extrajo a `panel/SesionShell.tsx` + `lib/sesionLabels.ts`.
+
+### Lo que la homologación destapó, que no era estética
+
+- **`IMPORT_STATUS_LABELS` estaba duplicado en cuatro archivos y divergiendo.** El mismo
+  `import_status` `done` se leía "Completado" en Rendimiento y NDVI, y "Cargado" en aspersión, suelo
+  y el árbol. **El usuario veía dos nombres para el mismo dato según por dónde entrara.** Se canonizó
+  el juego de Rendimiento, que además evita la colisión con el estado de sesión `loaded`, que también
+  se llama "Cargado".
+- **`points_count` tampoco era consistente en el backend**: aspersión y suelo lo sirven como
+  **string**, rendimiento y NDVI como **número**, y cada modal lo resolvía a su manera. De ahí
+  `pointsCount()`.
+- **NDVI traía `status` y `assigned_to` en el serializer y no los pintaba en ningún sitio.** Para
+  saber si una sesión NDVI estaba cancelada había que salir al árbol.
+- **Aspersión y suelo no tenían ningún panel de desenlace de importación.** Una importación fallida
+  se veía como una sesión normal con cero puntos y sin motivo a la vista.
+- **Los botones destructivos estaban anidados dentro de la caja de importación**, con "Eliminar la
+  sesión completa" a un palmo de "Reimportar datos".
+- **Ninguno de los cinco tenía `DialogDescription`** y los cinco emitían el mismo warning de Radix.
+- **Rendimiento, la referencia de diseño, no tenía ni un test.** Tampoco NDVI.
+
+### El orden de los pasos fue la decisión de riesgo
+
+Rendimiento se reescribió **primero**, aunque ya estuviera bien. El criterio de éxito no era
+mejorarlo sino que quedara idéntico: si la extracción no reproducía la referencia, el error salía ahí
+y no propagado a los otros cuatro. Pagó por sí solo — al comparar contra el original apareció que
+`DatosSesionCard` mostraba "Editar" también con el formulario abierto. Se arregló **en el chasis**.
+
+NDVI fue segundo por la razón inversa: es el primer tipo *distinto* de aquel del que salió el chasis,
+así que es el que mide si `SesionShell` sirve o si solo describía a Rendimiento. Sirvió sin tocarlo,
+y solo entonces se entró al archivo de 1597 líneas.
+
+### Dos cosas que se decidió NO hacer
+
+- **La edición no se unificó, solo su disparador.** Convertir los tres formularios a edición en línea
+  son ~570 líneas de `react-hook-form` + zod y es un cambio de comportamiento con riesgo de regresión
+  en validación y en el mapeo de errores DRF. Decisión explícita del dev. → `GAP-HM-001`.
+- **El gate de rol para editar no se tocó.** Rendimiento exige SUPERVISOR; los otros tres no gatean
+  nada. Homologarlo por arriba habría quitado la edición a los Técnicos **en silencio**, y por abajo
+  habría abierto la de Rendimiento. En ambos casos es un cambio de **permisos** disfrazado de cambio
+  de diseño, y se decide contra la matriz de roles del backend, no contra el CSS. → `GAP-HM-002`.
+
+### Un test se reescribió porque cambió la regla, no para que pasara
+
+El gate del visor de suelo colapsaba dos ejes en uno: "el botón existe o no". Ahora el **rol** decide
+si la acción existe y los **datos** si está habilitada, como en Rendimiento. Un Supervisor sin CSV
+importado ve el visor deshabilitado con el título que le dice que importe, en vez de no ver nada; un
+Técnico no lo ve en absoluto. Mismo número de tests, spec más fina.
+
+### La corrección: las tarjetas informativas (HM-7)
+
+Los seis primeros pasos homologaron el **chasis** y dejaron las tarjetas fuera, por considerarlas
+contenido propio de cada tipo. El dev había pedido explícitamente que las tarjetas del modal de
+Rendimiento aparecieran también en aspersión, mapeo de suelo y NDVI: la lectura del alcance fue
+estrecha y se corrigió.
+
+**El problema no era de formato sino de cantidad.** Rendimiento muestra cuatro tarjetas porque su
+endpoint de estadísticas devuelve cuatro cifras. `/variable-stats/` devuelve **5** variables en
+aspersión, **15** índices en NDVI y **50** capas en suelo — una rejilla de 50 tarjetas no es un
+resumen. Hacía falta elegir titulares, y eso es una decisión de producto, no un `map()`.
+
+- **`lib/sesionMetrics.ts`** declara los titulares por tipo y los decimales. NDVI usa **tres** porque
+  los índices vegetativos se mueven en rangos estrechos (NDRE varía ~0.27 de punta a punta) y con dos
+  varias tarjetas saldrían iguales; es el mismo criterio que ya aplicaba su tabla.
+- **El relleno no es adorno.** En suelo **ningún titular está garantizado**, porque el CSV del
+  proveedor decide qué capas existen. Sin relleno, una sesión con 40 capas cargadas mostraría la
+  rejilla vacía y el usuario leería ausencia donde hay de sobra. Un titular declarado pero con
+  `count: 0` cede su lugar en vez de ocupar una tarjeta con un guion.
+
+**Hallazgo: mapeo de suelo no mostraba ningún resumen**, pese a que su endpoint `/variable-stats/`
+existe desde la FASE SL. Lo consumían el Visor y el reporteador; el modal de la sesión nunca lo
+llamó. Es el tipo que más gana del cambio.
+
+Se reordenó la jerarquía de lectura: las tablas de aspersión y NDVI dejan de titularse "Resumen"
+—chocaba con el de las tarjetas— y pasan a **"Detalle por variable"** y **"Detalle por índice"**,
+con el conteo de puntos subido a las tarjetas, que es donde se lee primero.
+
+**Fitosanitario queda fuera por decisión del dev**, consultada y resuelta en la sesión. No es un
+olvido: es el único tipo sin endpoint de variables numéricas, y su `PhytoStatsCard` es **categórica**
+(semáforo de presencia y desglose por problema fitosanitario). Podría tener tarjetas con sus propias
+cifras —puntos de control, objetivos visitados, presencia crítica—, pero no comparten el mecanismo de
+`/variable-stats/` y habría que construirlas aparte. Registrado como `GAP-HM-006`.
+
+### Verificación
+
+**755 tests** en 111 archivos (47 nuevos: 15 del chasis, 10 de NDVI, 7 de Rendimiento, 15 de los
+titulares), cero regresiones, `tsc` limpio, linter en la línea base exacta de 33 warnings.
+`SesionModal` 1597 → 1494, `YieldSesionModal` 393 → 285, `NdviSesionModal` 191 → 157.
+
+Queda pendiente la **revisión visual del desarrollador**, con foco en aspersión, suelo y
+fitosanitario: son las tres que perdieron la barra lateral y es el cambio más grande de la sesión.

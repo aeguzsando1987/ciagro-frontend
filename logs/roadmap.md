@@ -837,6 +837,175 @@ numero —no la estimacion— es lo que hay que enseñarle al usuario antes de q
 
 ---
 
+## FASE CL-F: CARGA POR LOTE DE SESIONES DESDE EL SUBPROGRAMA — FRONTEND
+
+**Estado:** `[x] 8/9 IMPLEMENTADA (rama dev-batch-sessions, 2026-09-14). Falta CL-F8, la prueba
+manual del desarrollador, que se hace despues de la FASE HM porque los modales de sesion se
+reescribieron: el criterio a comprobar (que las sesiones del lote se vean igual que las creadas una
+por una) se evalua ahora sobre la interfaz homologada, no sobre la anterior.`
+Va en pareja con la **FASE CL del backend** (`../CIAgro_alpha_back/logs/roadmap.md`), que esta
+**13/13, VALIDADA y homologada en master** (`83962a7`). El backend **NO se ha desplegado**: espera a
+esta sesion para ir en un solo release, y por eso esta fase entrega **dos** cosas, la interfaz y el
+**runbook de despliegue combinado** (`../CIAgro_alpha_back/logs/deploy-2026-09-14-cl.md`), que
+sustituye a `deploy-batch-sessions.md`.
+
+**POR QUE EXISTE LA FASE.** Los endpoints existen y responden, pero **ningun usuario puede llegar a
+ellos**. La FASE CL del backend se declaro explicitamente "no ganada" hasta que corriera esta sesion.
+
+```
+POST /api/v1/field_ops/tasks/<uuid>/batch-import/   multipart: activity_type + files[]  -> 202
+GET  /api/v1/field_ops/batch-imports/<uuid>/                                            -> estado
+```
+
+**DECISIONES YA CERRADAS, NO SE REABREN.** El aviso de "sesion lista" es **polling** de ese GET (D3):
+no hay infraestructura de notificaciones en el backend y construirla habria partido la fase en dos.
+**Un solo tipo de actividad por lote** (BR-CL-2). Maximo **20 archivos, 20 MB** cada uno, con 400 del
+backend al excederlo. Y de esta sesion: **Dialog dentro de `HijoModal`** (no ruta propia: no hay
+precedente de ruta con UUID de subprograma, todo el detalle vive en modales apilados), **polling solo
+mientras el dialogo este abierto** invalidando el arbol al cerrar, y **absorber** el impacto de
+regenerar tipos sin migrar yield-map.
+
+**EL CONTRATO SE EXTRAJO EJECUTANDO EL SERIALIZER, NO LEYENDOLO.** Cinco hechos que cambian el
+diseño y que no se deducen del prompt:
+
+1. **`summary` ya viene contado** (`pending/processing/done/rejected/error/total`): el avance no se
+   calcula en el front.
+2. **`reject_reason` e `import_errors` no solo son distintos: tienen FORMA distinta.** El primero es
+   `[{code, message}]` con el mensaje **ya redactado para el usuario final** — no hace falta
+   diccionario de codigos. El segundo es **heterogeneo** y usa la clave `"error"`, no `"code"` (y en
+   rendimiento trae `csv_bbox`/`plot_bbox`). **Dos renderizadores, no uno.** Si solo se muestra uno,
+   el usuario ve "sesion creada" con cero puntos y sin explicacion.
+3. **Los estados del JOB y del ITEM son conjuntos distintos**: `partial` solo existe en el job,
+   `rejected` solo en el item. Un unico mapa de etiquetas deja huecos.
+4. **`warnings` llega `null`, no `[]`.** Un `.map()` directo revienta.
+5. **El GET es de ESCRITURA**: reconcilia y persiste `processing -> done|error`. El polling es lo que
+   hace avanzar el lote.
+
+**LA TRAMPA PRINCIPAL — POLLING INFINITO.** Si un importador deja el header en `pending_mapping`,
+`_resolve_items_against_headers` (`batch_views.py:104-109`) solo mapea `done` y `error`, asi que el
+item **nunca sale de `processing`** y el front pollearia para siempre. Se corta **en el front**
+leyendo `item.import_status`, que el serializer si expone: no requiere tocar el backend.
+
+**NO SE ESCRIBE UN PATRON DE POLLING NUEVO.** Ya existe y es el del repo:
+`refetchInterval: (q) => cond ? 2500 : false` en `useAspersionSessionDetail.ts:23` y cuatro hooks mas.
+Igual el multipart (`bodySerializer: (b) => b as FormData`, `useAspersionImport.ts:72-85`), el gating
+de rol (`HijoModal.tsx:213-220`) y la invalidacion del arbol (`CreateSessionDialog.tsx:274`).
+
+- [x] **CL-F1** Rama + `npm run types:gen` (pausa `types-gen*`). **Los tipos cambian mas de lo
+  esperado**: entran 2 rutas de batch-import y **10 de yield-map** que hoy no estan en `api.d.ts`
+  (medido: `grep -c yield-map` da 0), porque el schema arrastraba los endpoints de rendimiento que
+  nunca se publicaron. Se revisa el impacto **antes** de construir encima
+- [x] **CL-F2** `useBatchImport.ts`: mutation multipart con limites validados en cliente, query del
+  GET con el polling del repo, y `isJobActive()` **pura y testeable**, donde vive el corte de la
+  trampa principal
+- [x] **CL-F3** `BatchImportDialog.tsx` (pausa `dialog*`): tipo de actividad + N archivos + tabla de
+  avance. **Conserva la seleccion si el POST falla**, porque el `refreshMiddleware` **no reintenta
+  POST** tras un 401 (`client.ts:74-101`) y un lote grande puede agotar el token
+- [x] **CL-F4** Los tres canales de mensaje por separado (`reject_reason`, `import_errors`,
+  `warnings`), el estado `pending_mapping` con mensaje propio, y etiquetas separadas job/item
+- [x] **CL-F5** Enganche en `HijoModal.tsx:694-700` junto a `+ Nueva Sesion`, con
+  `canCreateSession && !!hijo.plot`: **sin parcela la opcion no se ofrece**, porque el backend
+  responde 400 o 403 segun el rol y es deliberado
+- [x] **CL-F6** Tests (Vitest + MSW) y `npm run typecheck`
+- [x] **CL-F7** Runbook combinado back+front que **sustituye** a `deploy-batch-sessions.md`,
+  arrastrando sus invariantes: migracion `datalayers.0045` estrictamente aditiva, **reinicio de
+  Celery OBLIGATORIO** y los tres importadores intactos; mas las del front: **backend antes que
+  frontend** y **rebuild obligatorio** del bundle
+- [ ] **CL-F8** Prueba manual del desarrollador (pausa `manual*`, regla 8). Verifica el criterio que
+  quedo sin comprobar visualmente en el backend: **que las sesiones del lote se vean en el arbol y en
+  el visor igual que las creadas una por una**
+- [x] **CL-F9** Bitacoras en AMBOS repos (convencion 4)
+
+**Datos de prueba ya en la BD de desarrollo:** escenario `PROD-CLMAN`, parcelas `CL-ASP`, `CL-REN` y
+`CL-NDVI`, y **3 lotes en estado `partial` con 2 items cada uno** — un aceptado y un rechazado por
+lote, que es el fixture ideal porque ejercita los dos caminos a la vez.
+
+**Fuera de alcance:** migrar `src/features/yield-map/` al cliente tipado (queda como gap: hoy usa
+fetch crudo y tipos a mano porque no estaba en el schema), Mapeo de Suelo y fitosanitario en el lote
+(el backend solo admite `aspersion|ndvi|yield_map`), y cualquier cambio al importador individual.
+
+---
+
+## FASE HM: HOMOLOGACION DE LOS MODALES DE SESION
+
+**Estado:** `[x] 7/7 IMPLEMENTADA (rama dev-batch-sessions, 2026-09-15). Falta la revision visual
+del desarrollador.` Comparte rama con la FASE CL-F por decision del dev: el cambio es acotado y no
+justifica una rama propia.
+
+**POR QUE EXISTE LA FASE.** Los modales de sesion no estaban homologados: el diseño discrepaba de un
+tipo a otro. El diagnostico es que conviven **tres generaciones de UI superpuestas**, no tres estilos
+elegidos:
+
+| Modal | Tipos | Ancho | Layout | Generacion |
+|---|---|---|---|---|
+| `SesionModal.tsx` | aspersion, fitosanitario, suelo | `max-w-3xl` | dos columnas con barra lateral `w-72` | la mas vieja |
+| `NdviSesionModal.tsx` | ndvi | `max-w-2xl` | una columna | intermedia |
+| `YieldSesionModal.tsx` | rendimiento | `max-w-4xl` + scroll | una columna | la mas nueva |
+
+**LA REFERENCIA ES RENDIMIENTO**, por decision del dev. Su anatomia se descompuso en once elementos
+(contenedor, cabecera con icono de tipo y badge de estado, ficha con minimapa y metadatos, tarjeta
+editable, origen del CSV, paneles de importacion, metricas, acciones, acciones de administrador y
+dos primitivas de presentacion) y se extrajo a un chasis compartido que los otros cuatro consumen.
+
+**EL ALCANCE ES EL CHASIS, NO LA FUNCIONALIDAD.** Cada tipo conserva sus campos, su `StatusBar`, sus
+reportes y su evaluacion; lo que se unifica es el marco. Consecuencia buscada: cualquier ajuste
+visual futuro se hace en **un** archivo, no en cinco.
+
+**LO QUE LA HOMOLOGACION DESTAPO, que no era cuestion de estetica:**
+
+1. **`IMPORT_STATUS_LABELS` estaba duplicado en CUATRO archivos y DIVERGIENDO.** El mismo
+   `import_status` `done` se leia "Completado" en Rendimiento y NDVI, y "Cargado" en aspersion, suelo
+   y el arbol del `HijoModal`. El usuario veia **dos nombres para el mismo dato** segun por donde
+   entrara. Se canoniza el juego de Rendimiento, que ademas evita la colision con el estado de sesion
+   `loaded`, que tambien se llama "Cargado".
+2. **NDVI traia `status` y `assigned_to` en el serializer y no los pintaba en ningun sitio.** Para
+   saber si una sesion NDVI estaba cancelada habia que salir al arbol.
+3. **Aspersion y suelo no tenian NINGUN panel de desenlace de importacion.** Una importacion fallida
+   se veia como una sesion normal con cero puntos y sin motivo a la vista.
+4. **Los botones destructivos estaban anidados dentro de la caja de importacion**, con "Eliminar la
+   sesion completa" a un palmo de "Reimportar datos".
+5. **Ninguno de los cinco modales tenia `DialogDescription`**: los cinco emitian el mismo warning de
+   accesibilidad de Radix. Al vivir la cabecera en un solo sitio, se resolvio de una vez.
+6. **Rendimiento, la referencia de diseño, no tenia ni un test.** Tampoco NDVI.
+
+- [x] **HM-1** Chasis compartido: `lib/sesionLabels.ts` (puro, con `pointsCount()` porque los
+  serializers tampoco coinciden entre si: aspersion y suelo sirven `points_count` como **string** y
+  rendimiento y NDVI como **numero**) y `panel/SesionShell.tsx` (el marco)
+- [x] **HM-2** `YieldSesionModal` sobre las primitivas (393 -> 285 lineas). **Va primero a
+  proposito**, aunque ya estuviera bien: si la extraccion no reproduce la referencia, el error sale
+  aqui y no propagado a los otros cuatro
+- [x] **HM-3** `NdviSesionModal` (191 -> 157), pausa `ndvi*`. Primer tipo **distinto** al que salio el
+  chasis: es el que mide si `SesionShell` sirve o si solo describia a Rendimiento
+- [x] **HM-4** `SesionModal` (1597 -> 1494): las tres vistas pierden la barra lateral, ganan icono de
+  tipo y badge de estado, **pierden los emojis** de los botones y sacan lo destructivo de la caja de
+  importacion
+- [x] **HM-5** Disparador de edicion unificado (`DatosSesionCard`). **Por decision del dev NO se
+  unifica el comportamiento**, solo el disparador: ver `GAP-HM-001`
+- [x] **HM-6** 32 tests nuevos (15 del chasis, 10 de NDVI, 7 de Rendimiento) -> **740 en 110
+  archivos**, cero regresiones, linter en la linea base de 33 warnings
+- [x] **HM-7** **Correccion a peticion del dev**: HM-1..HM-6 homologaron el chasis y dejaron fuera
+  las **tarjetas informativas**, que el dev habia pedido explicitamente replicar desde Rendimiento.
+  El problema no era de formato sino de **cantidad**: `/variable-stats/` devuelve 5 variables en
+  aspersion, **15** indices en NDVI y **50** capas en suelo, y una rejilla de 50 tarjetas no es un
+  resumen. `lib/sesionMetrics.ts` declara los titulares por tipo y rellena con las variables que si
+  tengan datos cuando faltan — en suelo **ninguno esta garantizado**, porque el CSV del proveedor
+  decide que capas existen. **Mapeo de suelo no mostraba ningun resumen** pese a tener su endpoint
+  desde la FASE SL. **Fitosanitario queda fuera por decision del dev** (`GAP-HM-006`): es el unico
+  tipo sin endpoint de variables numericas y su tarjeta es categorica. 755 tests en 111 archivos
+
+**UN TEST SE REESCRIBIO PORQUE CAMBIO LA REGLA, no para que pasara.** El gate del visor de suelo
+colapsaba rol y datos en "el boton existe o no". Ahora son **dos ejes**, como en Rendimiento: el
+**rol** decide si la accion existe y los **datos** si esta habilitada. Un Supervisor sin CSV
+importado ve el visor deshabilitado con el titulo que le dice que importe, en vez de no ver nada; un
+Tecnico no lo ve en absoluto.
+
+**Fuera de alcance, registrado como gap:** convertir los tres formularios de edicion a edicion en
+linea (`GAP-HM-001`), homologar el gate de rol para editar, que es un cambio de **permisos**
+disfrazado de diseño (`GAP-HM-002`), la traduccion propia del Gantt (`GAP-HM-003`) y los emojis que
+quedan en el visor de suelo (`GAP-HM-004`).
+
+---
+
 ## GAPS ABIERTOS A LA FECHA (ver `gap_log.csv` para detalle)
 
 | ID | Categoría | Prioridad | Disparador para resolver |
@@ -847,3 +1016,11 @@ numero —no la estimacion— es lo que hay que enseñarle al usuario antes de q
 | `GAP-FUTURO-002` | producto | baja | Cuando aparezca requisito real de multi-idioma |
 | `GAP-INFRA-001` | infra | baja | Cuando tráfico se acerque a 100k tile loads/mes |
 | `GAP-INFRA-002` | infra | baja | Si los olvidos de regenerar tipos generan bugs frecuentes |
+| `GAP-CL-F-001` | frontend-deuda | media | `yield-map/` fuera del cliente tipado: usa fetch crudo y tipos a mano porque no estaba en el schema. Ya lo esta |
+| `GAP-CL-F-002` | infra-test | media | `apiClient` escapa a MSW en jsdom: todo test de datos elige entre dos mecanismos segun el cliente que use |
+| `GAP-HM-001` | frontend-deuda | media | Cuando se pueda invertir en convertir los tres formularios de edicion a edicion en linea |
+| `GAP-HM-002` | frontend-deuda | media | Decidir el gate de rol de edicion contra la matriz del backend, no contra el CSS |
+| `GAP-HM-003` | frontend-deuda | baja | Al tocar el Gantt: mantiene su propia traduccion de `import_status` |
+| `GAP-HM-004` | frontend-deuda | baja | Al tocar `SoilMapMapModal`: quedan emojis en sus botones |
+| `GAP-HM-005` | frontend-deuda | baja | Decidir con el dev si `import_status` merece redaccion propia ("Importado") |
+| `GAP-HM-006` | frontend-deuda | baja | Fitosanitario sin tarjetas informativas: no comparte el mecanismo de `/variable-stats/` |
