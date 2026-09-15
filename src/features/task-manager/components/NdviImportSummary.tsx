@@ -16,7 +16,10 @@ function fmt(v: number | null): string {
     : v.toLocaleString('es-MX', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
 }
 
-/** Resumen estadistico de los 15 indices de una sesion NDVI. */
+/**
+ * Detalle estadistico de los 15 indices de una sesion NDVI.
+ * Los cuatro titulares los pinta SesionVariableMetrics encima; esta tabla es el desglose.
+ */
 export function NdviImportSummary({ headerId }: Props) {
   const { data, isLoading, error } = useNdviVariableStats(headerId)
 
@@ -30,9 +33,9 @@ export function NdviImportSummary({ headerId }: Props) {
   return (
     <div className="space-y-2 rounded border p-3">
       <p className="text-sm font-medium">
-        Resumen de índices
+        Detalle por índice
         <span className="ml-2 text-xs font-normal text-muted-foreground">
-          {data.points_count.toLocaleString('es-MX')} puntos
+          los 15 índices de la sesión
         </span>
       </p>
       <div className="overflow-x-auto">

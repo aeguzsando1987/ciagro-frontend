@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
@@ -23,6 +23,11 @@ vi.mock('../components/SoilMapMapModal', () => ({
   SoilMapMapModal: ({ open }: { open: boolean }) =>
     open ? <div data-testid="soil-map-modal">Visor de suelo</div> : null,
 }))
+const soilVarStats = vi.fn()
+vi.mock('../hooks/useSoilMapVariableStats', () => ({
+  useSoilMapVariableStats: () => soilVarStats(),
+}))
+
 vi.mock('react-map-gl/maplibre', () => ({
   default: () => null,
   Layer: () => null,
@@ -88,15 +93,54 @@ function renderView(
       statusError={null}
       onStatusChange={vi.fn()}
       onEdit={onEdit}
+      onBack={vi.fn()}
     />
     </QueryClientProvider>
   )
   return { onEdit }
 }
 
+beforeEach(() => {
+  soilVarStats.mockReturnValue({ data: undefined, isLoading: false, error: null })
+})
+
 afterEach(() => {
   act(() => {
     useAuthStore.setState({ user: null })
+  })
+})
+
+/**
+ * Mapeo de suelo NO mostraba ningun resumen, pese a que su endpoint /variable-stats/ existe
+ * desde la FASE SL: lo consumian solo el Visor y el reporteador. Las tarjetas son lo que el
+ * dev pidio replicar desde Rendimiento.
+ */
+describe('SoilMapView · tarjetas informativas', () => {
+  it('pinta los titulares del analisis de suelo con su conteo de puntos', () => {
+    soilVarStats.mockReturnValue({
+      isLoading: false,
+      error: null,
+      data: {
+        points_count: 1200,
+        variables: [
+          { key: 'Clay', label: 'Arcilla', count: 1200, mean: 22.4 },
+          { key: 'pH', label: 'pH', count: 1200, mean: 6.81 },
+          { key: 'OM', label: 'Materia orgánica', count: 1200, mean: 3.42 },
+        ],
+      },
+    })
+    renderView({ import_status: 'done' })
+
+    expect(screen.getByText('Resumen del análisis de suelo')).toBeInTheDocument()
+    expect(screen.getByText('1,200 puntos importados')).toBeInTheDocument()
+    // pH y OM son titulares declarados y van PRIMERO aunque el backend liste Arcilla antes.
+    expect(screen.getByText('6.81')).toBeInTheDocument()
+    expect(screen.getByText('3.42')).toBeInTheDocument()
+  })
+
+  it('no consulta ni pinta el resumen si la importacion no ha terminado', () => {
+    renderView({ import_status: 'pending', points_count: '0' })
+    expect(screen.queryByText('Resumen del análisis de suelo')).not.toBeInTheDocument()
   })
 })
 
@@ -131,27 +175,30 @@ describe('SoilMapView', () => {
     expect(screen.getByTestId('soil-map-modal')).toHaveTextContent('Visor de suelo')
   })
 
-  it.each([
-    ['rol insuficiente', ROLE_LEVELS.SUPERVISOR - 1, 'done', '3', false],
-    ['importación incompleta', ROLE_LEVELS.SUPERVISOR, 'processing', '3', false],
-    ['sin puntos', ROLE_LEVELS.SUPERVISOR, 'done', '0', false],
-    ['datos disponibles', ROLE_LEVELS.SUPERVISOR, 'done', '3', true],
-  ] as const)(
-    'aplica el gate cuando hay %s',
-    (_case, roleLevel, importStatus, pointsCount, expected) => {
-      renderView(
-        {
-          import_status: importStatus,
-          points_count: pointsCount,
-        },
-        roleLevel
-      )
+  // El gate tiene DOS ejes que antes se colapsaban en uno solo: el ROL decide si la accion
+  // existe, y los DATOS deciden si esta habilitada. Ofrecer un visor deshabilitado a quien
+  // nunca podra abrirlo genera preguntas; ocultarselo a un supervisor que solo tiene que
+  // importar el CSV le esconde el camino. Se separan, como en el modal de Rendimiento.
+  it('no ofrece el visor a un rol por debajo de Supervisor, ni siquiera deshabilitado', () => {
+    renderView({ import_status: 'done', points_count: '3' }, ROLE_LEVELS.SUPERVISOR - 1)
+    expect(screen.queryByTestId('soil-map-ready')).not.toBeInTheDocument()
+  })
 
-      const readiness = screen.queryByTestId('soil-map-ready')
-      if (expected) expect(readiness).toBeInTheDocument()
-      else expect(readiness).not.toBeInTheDocument()
-    }
-  )
+  it.each([
+    ['importación incompleta', 'processing', '3'],
+    ['sin puntos', 'done', '0'],
+  ] as const)('ofrece el visor deshabilitado al Supervisor cuando hay %s', (_caso, importStatus, puntos) => {
+    renderView({ import_status: importStatus, points_count: puntos }, ROLE_LEVELS.SUPERVISOR)
+
+    const visor = screen.getByTestId('soil-map-ready')
+    expect(visor).toBeDisabled()
+    expect(visor).toHaveAttribute('title', 'Importa datos para habilitar el visor')
+  })
+
+  it('habilita el visor cuando la importación terminó y hay puntos', () => {
+    renderView({ import_status: 'done', points_count: '3' }, ROLE_LEVELS.SUPERVISOR)
+    expect(screen.getByTestId('soil-map-ready')).toBeEnabled()
+  })
 
   it.each([
     ['sin puntos', '0', false],
