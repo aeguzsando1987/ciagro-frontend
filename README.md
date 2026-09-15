@@ -28,7 +28,7 @@ git config core.hooksPath .githooks
 # 3. Copiar variables de entorno y completar
 cp .env.example .env.local
 #   - VITE_API_BASE_URL: URL del backend (default OK para dev local)
-#   - VITE_MAPTILER_KEY: API key de https://cloud.maptiler.com (free tier)
+#   - No hace falta clave de tiles: el visor usa capas sin key de ESRI
 
 # 4. Levantar dev server (puerto 5173)
 npm run dev
@@ -84,7 +84,7 @@ estaba roto. Para saltarlo en un caso justificado, `git push --no-verify`.
 | Auth storage 🛑 | access en memoria + refresh en localStorage | Paso 5 |
 | UI | shadcn/ui + Tailwind + Radix | Paso 6 |
 | Forms | react-hook-form + zod | Paso 7 |
-| Mapas | MapLibre GL + react-map-gl + MapTiler | Paso 8 |
+| Mapas | MapLibre GL + react-map-gl + tiles de ESRI (sin API key) | Paso 8 |
 | Gantt | gantt-task-react (con plan B) | Paso 9 |
 | i18n | sin librería + `src/lib/strings.ts` | Paso 10 |
 | Testing | Vitest + RTL + MSW + Playwright | Paso 11 |

@@ -1,47 +1,31 @@
-docs(logs): despliegue y validacion de la carga por lote en el servidor (FASE CL-F)
+chore(config): eliminar el vestigio de VITE_MAPTILER_KEY (GAP-CL-F-003)
 
-Registro del paso S5 del runbook combinado ../CIAgro_alpha_back/logs/deploy-2026-09-14-cl.md,
-ejecutado el 2026-09-15 en el servidor de pruebas junto con el backend, en un solo release
-como exigia INV-4: contra un back viejo los endpoints del lote responden 404 y el dialogo
-falla al enviar. De 4eaa591 (master) a d9fb338 (dev), 19 commits por avance rapido. Con
-CL-F8 confirmado por el desarrollador la fase pasa a 9/9 y queda VALIDADA.
+La variable no la lee ninguna linea de src/. El visor usa capas GRATUITAS Y SIN KEY de
+ESRI, documentado en src/features/geodata-visor/lib/mapModes.ts. Sobrevivia en Dockerfile
+(ARG y ENV), docker-compose.yml (build arg y la instruccion de uso que pedia colocarla en
+el .env), .env.example (con un bloque que mandaba obtener una key en cloud.maptiler.com),
+.env.test, README.md (el paso 3 del setup y la fila Mapas de la tabla de stack, que seguia
+diciendo MapTiler) y el .env del servidor. Es un resto de GAP-INFRA-001, la decision de
+mayo de adoptar MapTiler free tier, abandonada despues.
 
-INV-5 DEJO DE DEPENDER DEL OJO DEL OPERADOR. El runbook verificaba el rebuild pidiendo
-mirar en DevTools si el nombre del asset principal habia cambiado: funciona, pero es
-manual, tardia y confundible con cache, que fue exactamente lo que paso el 31-ago cuando
-un los botones no aparecen resulto ser cache del navegador y no un fallo de despliegue.
-Esta vez hizo falta algo mejor, porque el up -d --build termino sospechosamente rapido y
-el Built de Docker no distingue un build real de uno servido integro desde cache de capas.
-Tres comprobaciones del lado del servidor, todas antes de abrir un navegador: el nombre
-del asset cambio (index-CyVCwI7O.js a index-CVEjKAtp.js), el tamano crecio (1405829 a
-1412998 bytes) y el texto del boton aparece dos veces dentro del JS que sirve nginx, junto
-con las rutas batch-import y batch-imports. Como el bundle viejo ya responde 404, el
-diagnostico queda pre-resuelto: si el dev no ve el boton es cache de su navegador y no el
-despliegue. Se propone incorporar esta comprobacion al runbook.
+NO SE LIMPIA POR PULCRITUD. Era la desviacion D-7 del despliegue del 2026-09-15 y la que
+detuvo S5: el runbook manda PARAR si falta la clave porque el visor quedaria ciego, asi que
+esa comprobacion abortaba TODO despliegue de frontend de este servidor indefinidamente por
+una condicion sin consecuencias. Y rellenar la variable para silenciar el aviso no habria
+cambiado nada, dejando la sensacion de haber resuelto algo.
 
-LA DESVIACION QUE IMPORTA DE ESTE REPO ES D-7. S5 manda PARAR si falta la clave de mapas
-porque el visor queda ciego, y VITE_MAPTILER_KEY esta declarada pero VACIA en el servidor,
-asi que el despliegue se detuvo y se reporto al dev. No era un problema, comprobado en
-tres niveles: el bundle en produccion se construyo con este mismo .env, del 18-jun y sin
-tocar, y el visor funciona; ni el bundle ni ningun ts/tsx de src/ contienen una referencia
-a MapTiler ni a la variable; y mapModes.ts:12 documenta que no se usa MapTiler porque
-requiere API key y que el modo hibrido se logra superponiendo capas gratuitas y sin key de
-ESRI. Es un vestigio de GAP-INFRA-001, la decision de mayo de adoptar MapTiler free tier
-que se abandono despues, y sobrevivio en .env, .env.example, Dockerfile y
-docker-compose.yml.
+DOS HALLAZGOS AL LIMPIARLO. El primero explica por que esto no era una sutileza: el .env
+del servidor YA LLEVABA un comentario diciendo que el codigo vigente no consume esa key y
+que se dejaba vacia a proposito. Quien mantiene el servidor ya lo sabia, y el runbook
+mandaba parar igual, porque la comprobacion vivia en el runbook y no en el codigo. El
+segundo es la prueba definitiva: tras quitar la variable, un docker compose build produjo
+EXACTAMENTE el mismo bundle, index-CVEjKAtp.js, identico al que sirve el contenedor, asi
+que nunca influyo en el resultado y no hizo falta redesplegar.
 
-Lo que hay que arreglar no es la variable sino sus dos efectos, y por eso queda
-GAP-CL-F-003 y no una nota suelta: tal como esta, la comprobacion aborta TODO despliegue
-de frontend de este servidor indefinidamente por una condicion sin consecuencias, y si
-alguien rellena la variable para silenciar el aviso no cambia nada y queda la sensacion de
-haber resuelto algo.
+Se validaron el parseo del compose y el build antes de dar el cambio por bueno, usando
+build y no up --build para no tocar el contenedor en marcha.
 
-CL-F8 SE EJECUTO CONTRA LA INTERFAZ YA HOMOLOGADA DE LA FASE HM, que era la condicion por
-la que este paso se dejo para el final: los cinco modales se reescribieron, asi que el
-criterio de la fase habia que evaluarlo sobre el chasis nuevo. Los ocho puntos de S6 en
-verde, y los dos que importaban son el 6, que verifica INV-2 de extremo a extremo porque
-un lote clavado en Procesando habria delatado un worker que no conoce la tarea, y el 8,
-que es el criterio que quedo sin comprobar visualmente al cerrar el backend en CL-14: una
-sesion creada por lote no se distingue de una creada una por una. El acta completa y las
-siete desviaciones viven en el runbook del backend, que es donde el proyecto guarda los
-runbooks de despliegue.
+En el README la fila de stack pasa a tiles de ESRI (sin API key), que es lo que el sistema
+usa de verdad, y en .env.example el bloque de comentarios se sustituye por la explicacion
+de por que NO hace falta clave de tiles, para que nadie vuelva a anadirla. El on_mismatch
+de S5 ya no comprueba claves: corregido en ../CIAgro_alpha_back/logs/deploy-2026-09-14-cl.md.

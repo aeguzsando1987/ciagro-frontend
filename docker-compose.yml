@@ -3,8 +3,8 @@
 # nginx proxea /api a ese backend a través de host.docker.internal.
 #
 # Uso en el servidor:
-#   1. Coloca un archivo .env junto a este compose con (al menos) VITE_MAPTILER_KEY
-#      y, si aplica, BACKEND_ORIGIN.
+#   1. Coloca un archivo .env junto a este compose si necesitas sobreescribir
+#      VITE_API_BASE_URL o BACKEND_ORIGIN. Ninguna de las dos es obligatoria.
 #   2. docker compose up -d --build
 #
 # Tras un git pull con cambios:  docker compose up -d --build   (reconstruye el bundle)
@@ -16,7 +16,6 @@ services:
       args:
         # Ruta relativa → peticiones same-origin que nginx proxea al backend.
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
-        VITE_MAPTILER_KEY: ${VITE_MAPTILER_KEY:-}
     image: ciagro-frontend:latest
     container_name: ciagro-frontend
     restart: unless-stopped
