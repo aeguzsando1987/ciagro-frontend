@@ -1008,8 +1008,8 @@ quedan en el visor de suelo (`GAP-HM-004`).
 
 ## FASE TS: ENTRADA DIRECTA AL TASK MANAGER CON SELECTORES DE CIAGRO
 
-**Estado:** `[x] 11/11 IMPLEMENTADA (rama dev-tm-scope-selector, 2026-09-17). Falta la revision
-visual del desarrollador.` **La rama nace de `master`, no de `dev`**, por decision explicita del
+**Estado:** `[x] 11/11 VALIDADA (rama dev-tm-scope-selector, mergeada a dev por avance rapido el
+2026-09-17). Prueba manual del desarrollador confirmada.` **La rama nace de `master`, no de `dev`**, por decision explicita del
 dev: `master` podia llevar ajustes aplicados en el servidor de produccion y la fase debia arrastrarlos.
 Es una excepcion consciente a la convencion 2 de `project-conventions.md`, no un descuido.
 

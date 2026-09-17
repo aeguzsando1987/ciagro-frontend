@@ -3544,5 +3544,11 @@ en la línea base exacta de 33 warnings, `vite build` en verde. En el backend, l
 `UserMeDataCentralsTests` pasan y `spectacular --validate` sale con código 0; Swagger, ReDoc y
 `/api/schema/` responden 200.
 
-Queda pendiente la **revisión visual del desarrollador** sobre la barra de alcance dentro del Task
-Manager y el comportamiento del selector al cambiar de organización.
+**Prueba manual del desarrollador: validada (2026-09-17).** La barra de alcance dentro del Task
+Manager y el comportamiento del selector al cambiar de organización quedan confirmados en sistema.
+
+La fase se mergeó a `dev` por **avance rápido** en ambos repos. El tip de `dev` era ancestro de la
+rama pese a haber ramificado desde `master`, así que el merge no inventó nada — y de paso `dev`
+absorbió el commit de merge de CL-F/HM que `master` tenía de más: **queda resuelto el desajuste que
+se detectó al arrancar esta sesión**, y la relación vuelve a ser la sana, con `dev` por delante de
+`master` y nunca al revés.
