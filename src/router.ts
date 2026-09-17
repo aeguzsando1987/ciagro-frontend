@@ -5,6 +5,7 @@ import { loginRoute } from './routes/login'
 import { authenticatedRoute } from './routes/_authenticated'
 import { workspacesRoute } from './routes/workspaces'
 import { visorDatosRoute } from './routes/visor-datos'
+import { taskManagerEntryRoute } from './routes/task-manager'
 import { changePasswordRoute } from './routes/change-password'
 import { workspaceDcRoute } from './routes/w.$dc'
 import { workspaceDashboardRoute } from './routes/w.$dc.dashboard'
@@ -33,6 +34,7 @@ const routeTree = rootRoute.addChildren([
   authenticatedRoute.addChildren([
     workspacesRoute,
     visorDatosRoute,
+    taskManagerEntryRoute,
     changePasswordRoute,
     adminRoute.addChildren([
       adminIndexRoute,

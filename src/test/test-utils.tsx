@@ -10,6 +10,27 @@ import {
   Outlet,
 } from '@tanstack/react-router'
 import type { FC } from 'react'
+import type { WorkspaceDataCentral } from '@/types/auth'
+
+/**
+ * CIAgro hija tal como la expone /users/me/, para fixtures de test.
+ *
+ * Existe porque el shape se repetia literal en una decena de tests: cada campo nuevo
+ * del contrato (el ultimo, data_central_main) obligaba a tocarlos uno por uno. Con la
+ * factory, extender el tipo solo rompe los tests que de verdad dependen del campo.
+ */
+export function makeDataCentral(
+  overrides: Partial<WorkspaceDataCentral> & Pick<WorkspaceDataCentral, 'id'>,
+): WorkspaceDataCentral {
+  const { id } = overrides
+  return {
+    name: `CIAgro ${id}`,
+    slug: id,
+    is_owner: false,
+    data_central_main: { id: 'org-test', name: 'Organizacion de prueba' },
+    ...overrides,
+  }
+}
 
 export function createTestQueryClient(): QueryClient {
   return new QueryClient({

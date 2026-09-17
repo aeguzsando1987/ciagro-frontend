@@ -11,6 +11,8 @@ import { useMasterPrograms } from '@/features/task-manager/hooks/useMasterProgra
 import { useMasterTree } from '@/features/task-manager/hooks/useMasterTree'
 import { GanttHierarchy } from '@/features/task-manager/gantt/GanttHierarchy'
 import { FilterBar } from '@/features/task-manager/gantt/FilterBar'
+import { TaskManagerScopePicker } from '@/features/task-manager/scope/TaskManagerScopePicker'
+import { rememberDc } from '@/features/task-manager/scope/scopeStorage'
 import { CreateMasterDialog } from '@/features/task-manager/dialogs/CreateMasterDialog'
 import { MaestroModal } from '@/features/task-manager/panel/MaestroModal'
 import { HijoModal } from '@/features/task-manager/panel/HijoModal'
@@ -118,6 +120,13 @@ function TaskManagerPage() {
   }, [])
 
   const user = useAuthStore((s) => s.user)
+
+  // Se recuerda la CIAgro en la que el usuario esta trabajando de verdad, no la que
+  // eligio en un selector: asi nunca se guarda una a la que el guard le nego la entrada.
+  useEffect(() => {
+    rememberDc(dc)
+  }, [dc])
+
   const isManager = (user?.role_level ?? 0) >= ROLE_LEVELS.MANAGER
   const isSuperAdmin = (user?.role_level ?? 0) >= ROLE_LEVELS.SUPER_ADMIN
   const isOwnerOfThisDc = user?.datacentrals.some((d) => d.id === dc && d.is_owner) ?? false
@@ -237,7 +246,13 @@ function TaskManagerPage() {
         </DialogContent>
       </Dialog>
 
-      <FilterBar />
+      {/* El alcance se elige aqui dentro, no en una pantalla previa: cambiar de CIAgro
+          es cambiar el parametro de la ruta, asi que el Gantt se recarga sin que el
+          usuario salga del modulo (FASE TS). */}
+      <div className="flex flex-wrap items-end gap-4 rounded border bg-card p-3">
+        <TaskManagerScopePicker datacentrals={user?.datacentrals ?? []} currentDcId={dc} />
+        <FilterBar />
+      </div>
 
       {isLoading && <LoadingState label="Cargando programas…" />}
       {error && <p className="text-destructive">Error al cargar los programas.</p>}

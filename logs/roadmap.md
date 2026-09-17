@@ -1006,6 +1006,90 @@ quedan en el visor de suelo (`GAP-HM-004`).
 
 ---
 
+## FASE TS: ENTRADA DIRECTA AL TASK MANAGER CON SELECTORES DE CIAGRO
+
+**Estado:** `[x] 11/11 IMPLEMENTADA (rama dev-tm-scope-selector, 2026-09-17). Falta la revision
+visual del desarrollador.` **La rama nace de `master`, no de `dev`**, por decision explicita del
+dev: `master` podia llevar ajustes aplicados en el servidor de produccion y la fase debia arrastrarlos.
+Es una excepcion consciente a la convencion 2 de `project-conventions.md`, no un descuido.
+
+**POR QUE EXISTE LA FASE.** Llegar al Task Manager costaba tres pantallas: menu ->
+`/workspaces?next=task-manager` -> lista de CIAgro padre -> lista de CIAgro hija ->
+`/w/$dc/task-manager`. Para la mayoria de los usuarios, que trabajan siempre sobre la misma CIAgro,
+eran dos clics de tramite en **cada** entrada. Y cambiar de CIAgro obligaba a salir del modulo y
+volver a entrar por el mismo camino.
+
+**QUE CAMBIA.** El item del menu no cambia, pero lleva derecho al Task Manager. Los selectores de
+organizacion y CIAgro viven **dentro** de la pantalla, junto a los filtros: cambiar de CIAgro es
+cambiar el parametro de la ruta, asi que el Gantt se recarga y la pantalla no.
+
+**DECISIONES CERRADAS CON EL DEV (D1-D5, ver `.context/sessions/session-tm-scope-selector.json`):**
+
+| # | Decision |
+|---|---|
+| D1 | El selector de organizacion se oculta cuando solo hay una alcanzable. `is_owner` **no** entra en la condicion |
+| D2 | La ruta sigue siendo `/w/$dc/task-manager`. Se agrega `/task-manager` como resolutor. Los deep-links del Visor y los guards no se tocan |
+| D3 | Se recuerda la ultima CIAgro en `localStorage` |
+| D4 | `/workspaces` se queda para el wizard de primer uso y para el Visor. Solo el Task Manager deja de pasar por ahi |
+| D5 | `/users/me/` expone la CIAgro padre de cada hija. **La fase NO es solo frontend** |
+
+**CORRECCION DE RUMBO A MITAD DE LA FASE.** Los steps `picker` y `entry-route` se entregaron primero
+como una **pantalla de seleccion aparte** con los dos selectbox, y el dev la rechazo con razon: era
+el sistema antiguo con otro control de formulario. Seguia habiendo dos pantallas, elegir provocaba
+un salto visible, y cambiar de CIAgro obligaba a pasar por "Cambiar organizacion" del menu. Se
+rehizo: el picker se mudo DENTRO del Task Manager, `/task-manager` se convirtio en un resolutor que
+no pinta nada, y el caso `elegir` desaparecio del resolutor. **De ahi salio tambien D6.**
+
+- **D6 — Con que CIAgro abre.** Se abre con la recordada si sigue siendo valida y, si no hay
+  recuerdo, con **la primera por nombre** — el mismo orden que encabeza el selector, para que no se
+  abra una distinta de la que el desplegable muestra primero. Se descarto dejar el Gantt vacio
+  pidiendo que se elija: es, otra vez, un tramite antes del trabajo.
+
+**LO QUE LA FASE DESTAPO:**
+
+1. **`/users/me/` ya cargaba la CIAgro padre y la tiraba.** El queryset hacia
+   `select_related("data_central_main")` y el serializer no la exponia. Exponerla no cuesta ninguna
+   consulta y evita lo importante: que el front deduzca el alcance de `/organizations/`, que es una
+   **fuente de verdad distinta** de la que usa el guard de `/w/$dc`. Una CIAgro listada por
+   `/organizations/` pero ausente de `/me` habria sido una opcion que rebota al elegirla.
+2. **El shape de `WorkspaceDataCentral` estaba copiado a mano en 8 fixtures de test.** Cada campo
+   nuevo del contrato obligaba a recorrerlos uno por uno. Se sustituyeron por `makeDataCentral` en
+   `test/test-utils.tsx`.
+3. **`redirect()` de TanStack guarda el destino en `.options`, no en la raiz.** La primera version
+   del test del guard leia `.to`, obtenia `undefined` y **habria pasado en verde sin comprobar nada**.
+
+- [x] **TS-1** `contract`: `.context/sessions/session-tm-scope-selector.json` y rama en ambos repos
+- [x] **TS-2** `me-parent`: `data_central_main {id, name}` en cada hija de `/users/me/`. Aditivo, sin
+  migracion y sin consulta extra. Schema regenerado con `--validate` (+8 lineas). Verificado por HTTP
+  con JWT: gerente01 5 hijas/5 orgs, supervisor01 2/2, admin 8/7
+- [x] **TS-3** `types`: `npm run types:gen` (+5 lineas) y `WorkspaceDataCentral.data_central_main`.
+  Factory `makeDataCentral` para los 8 fixtures que se rompieron
+- [x] **TS-4** `scope-resolver`: `scope/resolveScope.ts` puro y testeable, al estilo de
+  `entryTarget.resolveEntryDecision` — un guard de redireccion pasa sin ejercitarse nunca, y aqui se
+  decide a que pantalla entra todo el mundo
+- [x] **TS-5** `scope-storage`: `scope/scopeStorage.ts`. Guarda **solo el dcId** (el padre se deriva
+  de `/me`) y todo en `try/catch`: en ventana privada el acceso a `localStorage` lanza
+- [x] **TS-6** `picker`: `scope/TaskManagerScopePicker.tsx`. `<select>` nativos como `FilterBar`, no
+  `shadcn/Select`: el perfil mas cargado llega a 7 organizaciones. **Rehecho tras la correccion**
+- [x] **TS-7** `entry-route`: `routes/task-manager.tsx`. **Rehecho**: de pantalla con selector a
+  resolutor puro que solo renderiza "sin acceso"
+- [x] **TS-8** `sidebar`: la rama sin CIAgro fija va a `/task-manager`. La rama **con** CIAgro fija
+  no cambia. `ProductHeader` quedo intacto tras la correccion: con el picker dentro, "Cambiar
+  organizacion" ya no tiene que desviarse
+- [x] **TS-9** `remember`: se recuerda la CIAgro en la que el usuario **esta** trabajando, no la que
+  eligio en un selector, asi que nunca se guarda una a la que el guard le nego la entrada
+- [x] **TS-10** `tests`: 11 nuevos (6 del picker, 5 del guard) -> **778 en 115 archivos**, cero
+  regresiones, `tsc` limpio, linter en la linea base exacta de 33 warnings
+- [x] **TS-11** `docs`: bitacoras de ambos repos
+
+**Fuera de alcance, registrado como gap:** unificar las dos familias de hooks de organizaciones
+(`features/workspace/*` con `fetch` crudo vs `features/admin/hooks/useDataCentrals.ts` con
+`apiClient`), que tienen query keys distintas — invalidar una no refresca la otra (`GAP-TS-001`).
+`useWorkspaceStore` sigue sin persistir y su `clearSelectedDc` sigue sin llamarse desde ningun sitio
+(`GAP-TS-002`).
+
+---
+
 ## GAPS ABIERTOS A LA FECHA (ver `gap_log.csv` para detalle)
 
 | ID | Categoría | Prioridad | Disparador para resolver |
@@ -1024,3 +1108,5 @@ quedan en el visor de suelo (`GAP-HM-004`).
 | `GAP-HM-004` | frontend-deuda | baja | Al tocar `SoilMapMapModal`: quedan emojis en sus botones |
 | `GAP-HM-005` | frontend-deuda | baja | Decidir con el dev si `import_status` merece redaccion propia ("Importado") |
 | `GAP-HM-006` | frontend-deuda | baja | Fitosanitario sin tarjetas informativas: no comparte el mecanismo de `/variable-stats/` |
+| `GAP-TS-001` | frontend-deuda | media | Dos familias de hooks de organizaciones con query keys distintas: invalidar una no refresca la otra |
+| `GAP-TS-002` | frontend-deuda | baja | `useWorkspaceStore` no persiste y `clearSelectedDc` no se llama en ningun sitio |
