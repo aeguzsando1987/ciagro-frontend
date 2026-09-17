@@ -13901,6 +13901,11 @@ export interface components {
                 name?: string;
                 slug?: string;
                 is_owner?: boolean;
+                data_central_main?: {
+                    /** Format: uuid */
+                    id?: string;
+                    name?: string;
+                };
             }[];
         };
         /** @description Perfil mínimo de usuario — usado por UsersInDatacentralView. */

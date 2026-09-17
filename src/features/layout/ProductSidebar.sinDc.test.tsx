@@ -35,14 +35,15 @@ describe('ProductSidebar sin CIAgro determinada', () => {
     expect(screen.queryByText('Panel general')).not.toBeInTheDocument()
   })
 
-  it('el Task Manager sigue alcanzable, pasando por el selector', async () => {
-    // Sus datos son de UNA CIAgro concreta, así que necesita elegirla antes; lo que no
-    // puede es desaparecer del menú.
+  it('el Task Manager entra por su propia ruta, no por el selector de workspaces', async () => {
+    // Sus datos son de UNA CIAgro concreta, pero elegirla dejo de costar dos pantallas
+    // (FASE TS): /task-manager resuelve el alcance y solo pregunta si hace falta. Lo
+    // que no puede es desaparecer del menu.
     montarSinDc(ROLE_LEVELS.SUPERVISOR)
     await waitFor(() => expect(screen.getByText('Task Manager')).toBeInTheDocument())
     const enlace = screen.getByText('Task Manager').closest('a')
-    expect(enlace).toHaveAttribute('href', expect.stringContaining('/workspaces'))
-    expect(enlace).toHaveAttribute('href', expect.stringContaining('task-manager'))
+    expect(enlace).toHaveAttribute('href', '/task-manager')
+    expect(enlace?.getAttribute('href')).not.toContain('/workspaces')
   })
 
   it('el Visor lleva al Visor sin CIAgro fija', async () => {

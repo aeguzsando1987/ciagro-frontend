@@ -3523,3 +3523,97 @@ Procesando habría delatado un worker que no conoce la tarea, y confirma por la 
 en S4 solo se había visto con `celery inspect registered`; y el **punto 8**, que una sesión creada
 por lote no se distinga de una creada una por una, es el criterio que quedó sin comprobar
 visualmente al cerrar el backend en CL-14 y **el que da la fase por ganada**.
+## Sesión `tm-scope-selector` — FASE TS: entrada directa al Task Manager con selectores de CIAgro (2026-09-17, rama `dev-tm-scope-selector`)
+
+### De dónde nace
+
+Llegar al Task Manager costaba tres pantallas: menú → `/workspaces?next=task-manager` → lista de
+CIAgro padre → lista de CIAgro hija → `/w/$dc/task-manager`. Para la mayoría de los usuarios, que
+trabajan siempre sobre la misma CIAgro, eran dos clics de trámite en **cada** entrada. Y cambiar de
+CIAgro obligaba a salir del módulo y volver a entrar por el mismo camino.
+
+El dev pidió que el ítem del menú llevara **derecho** al Task Manager, con un selector de
+organización que solo aparezca si hay más de una, y otro de CIAgro a continuación.
+
+### La corrección de rumbo, que es lo importante de esta sesión
+
+La primera entrega hizo exactamente lo que decía el plan: una ruta `/task-manager` que pintaba una
+pantalla con los dos selectbox y, al elegir, navegaba al Task Manager. El dev la rechazó en cuanto
+la vio, y tenía razón:
+
+> *"Como está ahora seleccionas del picker y luego refresca pantalla y te lleva al taskmanager. Debo
+> poder seleccionar desde el mismo taskmanager y cambiar sin ese refrescado. Es como el antiguo
+> sistema, pero con selectbox, entonces no es válido."*
+
+El diagnóstico: **seguían siendo dos pantallas**. Se había cambiado el control de formulario —de
+listas de tarjetas a desplegables— sin cambiar la estructura, que era justo lo que sobraba. Y peor:
+una vez dentro, cambiar de CIAgro seguía obligando a pasar por "Cambiar organización" del menú.
+
+Se rehízo con el picker **dentro** de la pantalla del Task Manager, junto a `FilterBar`. Cambiar de
+CIAgro navega a `/w/$dc/task-manager`, que es la **misma ruta con otro parámetro**: el Gantt se
+recarga y la pantalla no. Consecuencias en cadena:
+
+- El caso `elegir` desapareció de `resolveScope`: ya no hay nada que elegir *antes* de entrar.
+- El flag `forcePick` y el search param `?pick=1` se borraron: eran el escape a un problema que dejó
+  de existir.
+- `ProductHeader` se revirtió entero. Se había modificado para que "Cambiar organización" apuntara a
+  `/task-manager?pick=1`; con el picker dentro, ese desvío sobra.
+
+De ahí salió la única decisión nueva, **D6 — con qué CIAgro abre**: la recordada si sigue siendo
+válida y, si no hay recuerdo, **la primera por nombre**, usando el mismo orden que encabeza el
+selector para que no se abra una distinta de la que el desplegable muestra primero. Se consultó al
+dev la alternativa —Gantt vacío pidiendo que elija— y la descartó: es, otra vez, un trámite antes
+del trabajo. También confirmó que el recuerdo se queda: sin él, quien trabaja siempre en "Villagrán"
+vería abrirse "Alfa Norte" en cada visita solo por ser la primera alfabéticamente.
+
+### La parte que no era frontend
+
+El plan de partida decía "solo afecta frontend". Al analizarlo apareció que **`/users/me/` ya cargaba
+la CIAgro padre de cada hija y la tiraba**: el queryset hacía `select_related("data_central_main")`
+y el serializer no la exponía.
+
+Exponerla no cuesta ninguna consulta, pero el motivo de fondo no es el rendimiento: ese array es
+**exactamente el criterio del guard** de `/w/$dc`. Deducir la CIAgro padre de `/organizations/`
+habría abierto una segunda fuente de verdad del alcance, y con ella la posibilidad de ofrecer en el
+desplegable una CIAgro listada ahí pero ausente de `/me` — que rebota al elegirla. El dev eligió el
+cambio aditivo en el backend, y la fase pasó a tocar los dos repos.
+
+Verificado por HTTP con JWT contra `ciagro-web` con tres perfiles reales: `gerente01` (nivel 4) ve 5
+CIAgros en 5 organizaciones, `supervisor01` (nivel 3) 2 y 2, y `admin` (SuperAdmin) 8 y 7. Ese
+último dato cerró una duda que el contrato dejaba abierta: el SuperAdmin ve **7** organizaciones, no
+cientos, así que un `<select>` nativo basta y no hace falta búsqueda dentro del desplegable.
+
+### Dos trampas que casi pasan
+
+1. **Un test que habría pasado en verde sin comprobar nada.** `redirect()` de TanStack lanza un
+   objeto tipo `Response` que guarda el destino en `.options`, no en la raíz. La primera versión del
+   helper leía `.to` y obtenía `undefined`. Ahora valida con `isRedirect()` y lee de donde toca.
+2. **El search param `?pick=1` no funcionaba.** El parser de TanStack entrega `?pick=true` como
+   booleano pero `?pick=1` como número, y un `z.boolean()` con `.catch(undefined)` lo descartaba en
+   silencio: el escape para cambiar de CIAgro no habría funcionado nunca. Se arregló y, poco después,
+   el rediseño lo dejó sin uso — pero queda registrado porque el patrón volverá a aparecer.
+
+### Decisión de proceso a registrar
+
+**La rama nace de `master`, no de `dev`**, por decisión explícita del dev. El único commit que
+`master` tenía de más era el merge `--no-ff` de CL-F/HM, pero el dev advirtió que `master` podía
+llevar ajustes aplicados directo en el servidor de producción y pidió arrastrarlos. Es una excepción
+consciente a la convención 2 de `project-conventions.md`, no un descuido, y hay que tenerla presente
+al mergear.
+
+### Verificación
+
+**778 tests** en 115 archivos (11 nuevos: 6 del picker, 5 del guard de `/task-manager`; los 12 del
+resolutor y el almacenamiento ya contaban desde sus pasos), cero regresiones, `tsc` limpio, linter
+en la línea base exacta de 33 warnings, `vite build` en verde. En el backend, los 4 tests de
+`UserMeDataCentralsTests` pasan y `spectacular --validate` sale con código 0; Swagger, ReDoc y
+`/api/schema/` responden 200.
+
+**Prueba manual del desarrollador: validada (2026-09-17).** La barra de alcance dentro del Task
+Manager y el comportamiento del selector al cambiar de organización quedan confirmados en sistema.
+
+La fase se mergeó a `dev` por **avance rápido** en ambos repos. El tip de `dev` era ancestro de la
+rama pese a haber ramificado desde `master`, así que el merge no inventó nada — y de paso `dev`
+absorbió el commit de merge de CL-F/HM que `master` tenía de más: **queda resuelto el desajuste que
+se detectó al arrancar esta sesión**, y la relación vuelve a ser la sana, con `dev` por delante de
+`master` y nunca al revés.

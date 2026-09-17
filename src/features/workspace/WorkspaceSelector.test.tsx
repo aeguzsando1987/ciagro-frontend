@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import { createTestQueryClient } from '@/test/test-utils'
+import { createTestQueryClient, makeDataCentral } from '@/test/test-utils'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import type { AuthUser } from '@/types/auth'
@@ -61,7 +61,7 @@ describe('WorkspaceSelector', () => {
     useAuthStore.setState({
       user: {
         ...BASE_USER,
-        datacentrals: [{ id: 'dc-uuid', name: 'DC Prueba', slug: 'dc-prueba', is_owner: true }],
+        datacentrals: [makeDataCentral({ id: 'dc-uuid', name: 'DC Prueba', slug: 'dc-prueba', is_owner: true })],
       },
     })
     renderSelector()
@@ -77,7 +77,7 @@ describe('WorkspaceSelector', () => {
     useAuthStore.setState({
       user: {
         ...BASE_USER,
-        datacentrals: [{ id: 'dc-uuid', name: 'DC Prueba', slug: 'dc-prueba', is_owner: true }],
+        datacentrals: [makeDataCentral({ id: 'dc-uuid', name: 'DC Prueba', slug: 'dc-prueba', is_owner: true })],
       },
     })
     renderSelector('task-manager')
@@ -96,8 +96,8 @@ describe('WorkspaceSelector', () => {
         ...BASE_USER,
         role_level: 4,
         datacentrals: [
-          { id: 'dc-1', name: 'DC Alpha', slug: 'dc-alpha', is_owner: true },
-          { id: 'dc-2', name: 'DC Beta', slug: 'dc-beta', is_owner: false },
+          makeDataCentral({ id: 'dc-1', name: 'DC Alpha', slug: 'dc-alpha', is_owner: true }),
+          makeDataCentral({ id: 'dc-2', name: 'DC Beta', slug: 'dc-beta', is_owner: false }),
         ],
       },
     })
@@ -132,8 +132,8 @@ describe('WorkspaceSelector', () => {
         ...BASE_USER,
         role_level: 2,
         datacentrals: [
-          { id: 'dc-1', name: 'DC Alpha', slug: 'dc-alpha', is_owner: true },
-          { id: 'dc-2', name: 'DC Beta', slug: 'dc-beta', is_owner: false },
+          makeDataCentral({ id: 'dc-1', name: 'DC Alpha', slug: 'dc-alpha', is_owner: true }),
+          makeDataCentral({ id: 'dc-2', name: 'DC Beta', slug: 'dc-beta', is_owner: false }),
         ],
       },
     })

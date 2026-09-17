@@ -12,6 +12,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+import { makeDataCentral } from '@/test/test-utils'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import type { AuthUser } from '@/types/auth'
 
@@ -87,12 +88,13 @@ function conAlcance(orgs: number, datacentrals: number) {
   useAuthStore.setState({
     user: {
       ...BASE_USER,
-      datacentrals: Array.from({ length: datacentrals }, (_, i) => ({
-        id: i === 0 ? 'dc-1' : `dc-${i}`,
-        name: i === 0 ? 'CIAgro Norte' : `CIAgro ${i}`,
-        slug: `dc-${i}`,
-        is_owner: false,
-      })),
+      datacentrals: Array.from({ length: datacentrals }, (_, i) =>
+        makeDataCentral({
+          id: i === 0 ? 'dc-1' : `dc-${i}`,
+          name: i === 0 ? 'CIAgro Norte' : `CIAgro ${i}`,
+          slug: `dc-${i}`,
+        })
+      ),
     },
   })
   render(<GeodataExplorer selection={null} onSelect={vi.fn()} />)
@@ -150,7 +152,7 @@ describe('GeodataExplorer — raíz según el alcance', () => {
     useAuthStore.setState({
       user: {
         ...BASE_USER,
-        datacentrals: [{ id: 'dc-1', name: 'CIAgro Norte', slug: 'dc-1', is_owner: false }],
+        datacentrals: [makeDataCentral({ id: 'dc-1', name: 'CIAgro Norte', slug: 'dc-1' })],
       },
     })
     render(<GeodataExplorer selection={null} onSelect={onSelect} />)

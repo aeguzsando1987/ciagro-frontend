@@ -82,10 +82,11 @@ export function ProductSidebar({
           )}
 
 
-          {/* El Task Manager trabaja sobre UNA CIAgro concreta, asi que sin una
-              determinada pasa antes por el selector. Es el unico camino donde ese
-              selector sigue teniendo sentido. Sin esto quedaba inalcanzable para quien
-              aterriza sin CIAgro fija, porque el item no se pintaba. */}
+          {/* El Task Manager trabaja sobre UNA CIAgro concreta. Estando ya dentro de
+              una se entra derecho; sin CIAgro fija se pasa por /task-manager, que
+              resuelve el alcance y solo pregunta lo que hace falta preguntar (FASE TS).
+              Antes esa segunda rama iba a /workspaces y costaba dos pantallas de
+              seleccion incluso cuando solo habia una organizacion y una CIAgro. */}
           {canManage &&
             (currentDcId ? (
               <Link
@@ -100,8 +101,7 @@ export function ProductSidebar({
               </Link>
             ) : (
               <Link
-                to="/workspaces"
-                search={{ next: 'task-manager' as const }}
+                to="/task-manager"
                 className={navItemClass}
                 activeProps={{ className: activeNavItem }}
                 onClick={onNavigate}

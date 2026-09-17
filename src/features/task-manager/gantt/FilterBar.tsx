@@ -57,7 +57,7 @@ export function FilterBar({ agroUnits }: FilterBarProps) {
   const hasFilters = !!search.status || !!search.agro_unit
 
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded border bg-card p-3">
+    <div className="flex flex-wrap items-end gap-3">
       <div className="flex flex-col gap-1">
         <label htmlFor="filter-status" className="text-xs text-muted-foreground">
           Estado
