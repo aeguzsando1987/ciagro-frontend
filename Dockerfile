@@ -16,9 +16,7 @@ COPY . .
 # Vite incrusta las VITE_* en el bundle EN BUILD-TIME (no hay env en runtime).
 # Por defecto VITE_API_BASE_URL es relativa: nginx proxea /api al backend (mismo origen).
 ARG VITE_API_BASE_URL=/api/v1
-ARG VITE_MAPTILER_KEY=
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
-ENV VITE_MAPTILER_KEY=${VITE_MAPTILER_KEY}
 RUN npm run build
 
 # ─────────────────────────────────────────────────────────────────────────────

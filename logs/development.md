@@ -3458,6 +3458,71 @@ fitosanitario: son las tres que perdieron la barra lateral y es el cambio más g
 
 ---
 
+## Sesión `deploy-cl` — Despliegue de la FASE CL-F en el servidor de pruebas (2026-09-15)
+
+El frontend de la carga por lote llegó al servidor. Se ejecutó el runbook combinado
+`../CIAgro_alpha_back/logs/deploy-2026-09-14-cl.md`, cuyo S5 es el paso de este repo; el acta
+completa y las siete desviaciones viven allí. Aquí queda lo que toca al front.
+
+`4eaa591` (master) → `d9fb338` (dev), 19 commits por avance rápido. **CL-F8 confirmado por el
+desarrollador el mismo día**, con lo que la fase pasa a **9/9 y VALIDADA**.
+
+### INV-5 dejó de depender del ojo del operador
+
+El runbook verificaba el rebuild pidiendo mirar en el navegador, con DevTools abierto, si el nombre
+del asset principal había cambiado. Funciona, pero es una comprobación manual, tardía y confundible
+con caché — que fue exactamente lo que pasó el 31-ago, cuando un "los botones no aparecen" resultó
+ser caché del navegador y no un fallo de despliegue.
+
+Esta vez hizo falta algo mejor, porque el `docker compose up -d --build` **terminó sospechosamente
+rápido** y el "Built" de Docker no distingue un build real de uno servido íntegro desde caché de
+capas. Tres comprobaciones, todas del lado del servidor y todas anteriores a abrir un navegador:
+
+1. el nombre del asset cambió: `index-CyVCwI7O.js` → `index-CVEjKAtp.js`;
+2. el tamaño creció, 1.405.829 → 1.412.998 bytes, consistente con código nuevo;
+3. y la que zanja el asunto: el texto `"Cargar lote de sesiones"` aparece **dos veces** dentro del
+   JS que sirve nginx, junto con las rutas `batch-import` y `batch-imports`.
+
+Con eso, "el botón debería aparecer" pasa a ser un hecho verificado. Y como el bundle viejo ya
+devuelve **404**, el diagnóstico queda pre-resuelto: si el desarrollador no ve el botón, es caché
+de su navegador —Ctrl+F5— y no el despliegue. Vale la pena incorporar esta comprobación al runbook;
+está propuesta como corrección 8 en el acta.
+
+### `VITE_MAPTILER_KEY` es un vestigio, y el runbook lo trataba como un bloqueo
+
+S5 manda **PARAR** si falta la clave de mapas, porque "el visor queda ciego". En este servidor la
+variable está declarada y **vacía**, así que el despliegue se detuvo y se reportó al desarrollador.
+No era un problema:
+
+- el bundle que estaba en producción se construyó con este mismo `.env` (del 18-jun, sin tocar) y
+  el visor funciona;
+- ni el bundle ni ningún `.ts`/`.tsx` de `src/` contienen una referencia a MapTiler o a la variable;
+- `src/features/geodata-visor/lib/mapModes.ts:12` lo dice explícito: no se usa MapTiler porque
+  requiere API key, y el modo híbrido se logra con capas **gratuitas y sin key de ESRI**.
+
+`gap_log.csv` tenía la historia: `GAP-INFRA-001` registró en mayo la decisión de usar MapTiler free
+tier, abandonada después. La variable sobrevivió en `.env`, `.env.example`, el `Dockerfile` y el
+`docker-compose.yml` como build arg, pero **nadie la lee**.
+
+El detalle que lo vuelve grave y no anecdótico: tal como está, esa comprobación **aborta todo
+despliegue de frontend de este servidor, indefinidamente**, por una condición inofensiva. Y si
+alguien "arregla" el aviso rellenando la variable, no cambiaría nada y quedaría la sensación de
+haber resuelto algo. Queda `GAP-CL-F-003` para limpiar el vestigio de los cuatro archivos.
+
+### Estado al cierre
+
+`localhost:8088` y `ciagro.bapta.mx` responden 200 con el bundle nuevo. El backend ya estaba arriba
+con la migración aplicada y el worker reconociendo la tarea, así que **la funcionalidad es
+alcanzable desde la webapp**, que es lo que convierte la fase en entregable.
+
+**CL-F8 en verde.** El desarrollador confirmó los ocho puntos de S6, evaluados ya sobre la interfaz
+homologada de la FASE HM — ese era el motivo de posponer este paso: los cinco modales se
+reescribieron, así que el criterio había que juzgarlo sobre el chasis nuevo, no sobre el anterior.
+Los dos que importaban: el **punto 6** cierra INV-2 de extremo a extremo, porque un lote clavado en
+Procesando habría delatado un worker que no conoce la tarea, y confirma por la vía del usuario lo que
+en S4 solo se había visto con `celery inspect registered`; y el **punto 8**, que una sesión creada
+por lote no se distinga de una creada una por una, es el criterio que quedó sin comprobar
+visualmente al cerrar el backend en CL-14 y **el que da la fase por ganada**.
 ## Sesión `tm-scope-selector` — FASE TS: entrada directa al Task Manager con selectores de CIAgro (2026-09-17, rama `dev-tm-scope-selector`)
 
 ### De dónde nace
