@@ -11,6 +11,7 @@ vi.mock('../hooks/usePlotGeometry', () => ({
   usePlotGeometry: () => ({ data: { properties: { ranch_name: 'Rancho CL', code: 'CL-NDVI' } } }),
 }))
 vi.mock('../components/NdviImportDialog', () => ({ NdviImportDialog: () => null }))
+vi.mock('../components/SentinelImportDialog', () => ({ SentinelImportDialog: () => null }))
 vi.mock('../components/NdviMapModal', () => ({ NdviMapModal: () => null }))
 vi.mock('../components/NdviImportSummary', () => ({
   NdviImportSummary: () => <div data-testid="ndvi-summary" />,
@@ -177,5 +178,52 @@ describe('NdviSesionModal', () => {
     expect(
       screen.getByRole('button', { name: /Eliminar los datos de esta sesión/ })
     ).toBeInTheDocument()
+  })
+  /**
+   * GAP-SN-006. NO ES COSMETICO: desde la FASE SN dos pipelines hermanos escriben en las
+   * MISMAS tablas, y GAP-SN-001 establece MEDIDO que red_edge, ndre y psri no son
+   * comparables entre ellos (sesgo de -0.0867 contra B05). Dos sesiones de la misma parcela
+   * con distinto origen se veian EXACTAMENTE IGUAL; eso es lo que estos tests impiden que
+   * vuelva a pasar.
+   */
+  describe('procedencia de los datos (GAP-SN-006)', () => {
+    it('dice que la sesion vino del satelite, con que pasada y en que condiciones', () => {
+      renderModal({
+        source: 'sentinel2',
+        acquisition_id: 'S2B_20241025T1728',
+        acquisition_meta: { platform: 'sentinel-2b', cloud_cover: 0, masked_pct: 2.4 },
+      })
+
+      expect(screen.getByText('Origen de los datos')).toBeInTheDocument()
+      expect(screen.getByText(/Sentinel-2 \(satelite\)/)).toBeInTheDocument()
+      expect(screen.getByText(/S2B_20241025T1728/)).toBeInTheDocument()
+      // masked_pct es lo que distingue una sesion limpia de una con media parcela invalida.
+      expect(screen.getByText(/2.4% enmascarado/)).toBeInTheDocument()
+    })
+
+    it('distingue una sesion de CSV de una de satelite en la cabecera', () => {
+      renderModal({ source: 'csv' })
+      expect(screen.getByText('CSV')).toBeInTheDocument()
+      expect(screen.getByText('CSV del proveedor')).toBeInTheDocument()
+    })
+  })
+
+  describe('importacion desde satelite', () => {
+    it('ofrece la accion a un tecnico', () => {
+      renderModal({}, ROLE_LEVELS.TECHNICIAN)
+      expect(screen.getByRole('button', { name: 'Importar de satélite' })).toBeEnabled()
+    })
+
+    // El endpoint exige IsTechnician: ofrecer el boton mas abajo solo serviria para cobrar
+    // un 403 despues de dos pasos de dialogo.
+    it('no deja dispararla por debajo de tecnico', () => {
+      renderModal({}, ROLE_LEVELS.GUEST)
+      expect(screen.getByRole('button', { name: 'Importar de satélite' })).toBeDisabled()
+    })
+
+    it('la bloquea mientras hay una importacion en curso', () => {
+      renderModal({ import_status: 'processing' }, ROLE_LEVELS.SUPERVISOR)
+      expect(screen.getByRole('button', { name: 'Importar de satélite' })).toBeDisabled()
+    })
   })
 })

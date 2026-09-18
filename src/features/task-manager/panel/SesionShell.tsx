@@ -34,12 +34,25 @@ interface SesionShellProps {
   title: string
   /** Estado operativo de la sesion; se pinta como Badge junto al titulo. */
   status?: string | null
+  /**
+   * Distintivo adicional junto al estado. Aditivo y opcional: lo usa NDVI para hacer visible
+   * la procedencia de los datos (GAP-SN-006), y los demas modales siguen igual sin pasarlo.
+   */
+  badge?: ReactNode
   onBack: () => void
   onClose: () => void
   children: ReactNode
 }
 
-export function SesionShell({ icon, title, status, onBack, onClose, children }: SesionShellProps) {
+export function SesionShell({
+  icon,
+  title,
+  status,
+  badge,
+  onBack,
+  onClose,
+  children,
+}: SesionShellProps) {
   return (
     <Dialog
       open
@@ -63,6 +76,7 @@ export function SesionShell({ icon, title, status, onBack, onClose, children }: 
             {status && (
               <Badge variant={sesionStatusVariant(status)}>{sesionStatusLabel(status)}</Badge>
             )}
+            {badge}
           </DialogTitle>
           {/* Radix exige una descripcion accesible; ninguno de los cinco modales la tenia
               y todos emitian el mismo warning. Al vivir el chasis en un solo sitio, se

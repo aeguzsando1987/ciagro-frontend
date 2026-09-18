@@ -11,6 +11,7 @@ import { GpaLoader } from '@/components/ui/gpa-loader'
 import { useNdviSessionHeaders } from '../hooks/useNdviSessionHeaders'
 import { isAllowedSession } from '../lib/advancedSearch'
 import type { VisorSession } from '../types'
+import { sourceShortLabel } from '@/features/task-manager/lib/ndviSource'
 
 interface NdviSessionsPanelProps {
   plotId: string
@@ -145,7 +146,18 @@ export function NdviSessionsPanel({
                         selected ? 'bg-accent font-medium' : ''
                       }`}
                     >
-                      <div>{s.session_date ?? 'Sin fecha'}</div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span>{s.session_date ?? 'Sin fecha'}</span>
+                        {/* GAP-SN-006: aqui es donde se comparan fechas entre si, y donde
+                            GAP-SN-001 muerde: red_edge, ndre y psri NO son comparables entre
+                            CSV y Sentinel (sesgo medido de -0.0867 contra B05). Sin ver la
+                            procedencia, ese escalon parece un evento agronomico. */}
+                        {s.source && (
+                          <span className="shrink-0 rounded bg-surface-secondary px-1 text-[10px] text-muted-foreground">
+                            {sourceShortLabel(s.source)}
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] text-muted-foreground">
                         {count ? `${count} pts` : 'sin puntos'}
                         {s.import_status && s.import_status !== 'done'

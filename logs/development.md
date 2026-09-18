@@ -3617,3 +3617,86 @@ rama pese a haber ramificado desde `master`, así que el merge no inventó nada 
 absorbió el commit de merge de CL-F/HM que `master` tenía de más: **queda resuelto el desajuste que
 se detectó al arrancar esta sesión**, y la relación vuelve a ser la sana, con `dev` por delante de
 `master` y nunca al revés.
+
+---
+
+## FASE SN-F — Importación automática de NDVI desde Sentinel-2 (frontend, 2026-09-18)
+
+Rama `dev-ndvi-sentinel`, nacida de `dev`. Antes de ramificar se comprobó que
+`git diff origin/dev origin/master` sale **vacío**: los tres commits que `master` llevaba de más
+eran merges de `dev`, así que la relación sana que dejó la FASE TS sigue intacta y no hizo falta
+ninguna excepción a la convención 2.
+
+### Qué entrega
+
+La FASE SN (backend) dejó funcionando un segundo pipeline que trae los índices vegetativos de
+Sentinel-2 y los escribe en **las mismas tablas** que el importador CSV, pero no había forma de
+dispararlo desde la interfaz: solo existía por HTTP. Esta fase pone la acción en el modal de la
+sesión NDVI y, sobre todo, **hace visible de dónde vienen los datos**.
+
+### Lo que NO se tocó, y es el criterio de éxito de la fase anterior
+
+Visor, coropletas, `variable-stats` y línea de tiempo funcionan sobre datos de Sentinel **sin un
+solo cambio**. No hay una sola rama por fuente en el pipeline de render. Lo que sí se agregó es la
+procedencia, que es otra cosa: que el render sea idéntico es el objetivo cumplido; ocultarle al
+agrónomo de dónde vino el dato habría sido el defecto (`GAP-SN-006`).
+
+### Por qué dos pasos y no uno
+
+Una fecha pedida no implica que haya habido pasada del satélite ese día: la revisita es de ~5 días
+y además hay nubes. En la prueba real contra CDSE, pidiendo el 2024-10-25, el catálogo devolvió tres
+adquisiciones con delta de −5, 0 y +5 días, una de ellas con 42% de nubes. Si el sistema eligiera
+"la más cercana" por su cuenta, el agrónomo no vería qué se descartó ni por qué. La lista con
+distancia en días y nubosidad **es** el valor de la fase, no un trámite previo a importar.
+
+### Lo que salió gratis
+
+`useNdviSessionDetail` ya hacía polling cada 2.5 s mientras `import_status` vale `processing`. La
+importación desde satélite hereda el seguimiento **sin una línea de polling nueva**: basta con
+marcar ese estado de forma optimista, exactamente como ya hacía el importador CSV.
+
+### Un bug que destapó una pregunta del desarrollador, no los tests
+
+Al preguntar el dev si el análisis toma la fecha estimada o la real —y aclarar que el caso de uso
+es traer datos de **una fecha específica**— se encontró que con radio **0** ("solo ese día exacto")
+el hook no mandaba el parámetro `days`, porque `0` es falsy en JavaScript, y el backend aplicaba su
+default de 7 días **en silencio**. El usuario habría visto pasadas de otros días creyendo que pidió
+uno solo, y habría importado una fecha distinta de la pedida sin ninguna señal: no hay error en
+pantalla, solo un resultado que no es el que se pidió. Corregido y con test de regresión verificado
+por mutación.
+
+Para dejarlo dicho, porque volvió a preguntarse: el parámetro de la búsqueda es `session_date`
+("Fecha de la imagen"), **nunca** `est_start_date` ni `act_start_date`, y solo como valor inicial
+editable. Tras importar, `session_date` se sobrescribe siempre con la fecha real de la pasada
+(`tasks.py:1220-1227`), al revés que el CSV: la fecha de la pasada es un hecho medido, no una
+estimación que convenga conservar.
+
+### Dos límites medidos, no olvidos
+
+El origen **no** se puede mostrar en la línea de tiempo ni en el árbol del Task Manager, porque ni
+el payload de la timeline ni `NdviSessionSummarySerializer` incluyen `source`, y esta fase es solo
+frontend. Quedan como `GAP-SN-F-002` y `GAP-SN-F-003`. Sí se muestra en el selector de sesiones del
+visor, que es donde se comparan fechas entre sí y donde `GAP-SN-001` realmente muerde.
+
+### Hallazgo ajeno a la fase, reportado por el dev durante la validación
+
+Las coropletas **se salen del contorno de la parcela**, y no depende de la fuente: `contours.py`
+interpola sobre el `ST_Extent` de los puntos —un rectángulo— y poligoniza esa superficie sin
+cruzarla nunca con `plot.geom`. En las esquinas sin puntos el IDW no interpola, extrapola. Peor
+todavía: con `QUARTILE_ON_RASTER = True` los cortes de cuartiles se calculan sobre ese mismo raster,
+así que la clasificación en bandas está sesgada por superficie que no es la parcela. Con Sentinel se
+nota más porque la malla llena el rectángulo de forma uniforme; con los 1024 puntos dispersos del
+CSV el mismo defecto se disimulaba. Es **backend** y quedó fuera del alcance por decisión del dev:
+registrado como `GAP-SN-F-001` con prioridad alta y el arreglo recomendado (`ST_Clip` del raster
+antes de reclasificar, que corrige geometría y sesgo de una vez).
+
+### Verificación
+
+**796 tests** en 117 archivos (18 nuevos: 11 del diálogo, 5 del modal y 2 del panel del visor),
+cero regresiones, `tsc --noEmit` limpio y linter en la línea base exacta de **33 warnings**. La
+marca de origen del visor y el arreglo del radio 0 se verificaron **por mutación**: al anular el
+comportamiento, sus tests fallan; al restaurarlo, vuelven a verde.
+
+**Prueba manual del desarrollador: PENDIENTE.** El guion está escrito (radio 0 sobre fecha exacta,
+camino feliz con seguimiento, 409 duplicado con navegación, advertencia de reemplazo, marca en el
+visor y bloqueo por rol). La fase no se considera cerrada hasta que pase.
