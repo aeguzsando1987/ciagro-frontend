@@ -561,7 +561,7 @@ function PhytoForm({
 
       <div className="rounded-xl border border-border/70 bg-gradient-to-b from-muted/20 to-background px-3 py-3 shadow-sm">
         <div className="mb-3">
-          <p className="text-sm font-semibold text-foreground">Umbral económico</p>
+          <p className="text-sm font-semibold text-foreground">Umbral de tolerancia</p>
           <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
             Número máximo de plagas por punto antes de elevar el índice P. Usa 3+ para una cantidad
             personalizada.
@@ -582,7 +582,7 @@ function PhytoForm({
               <div className="space-y-3">
                 <div
                   role="radiogroup"
-                  aria-label="Umbral económico de plagas por punto"
+                  aria-label="Umbral de tolerancia de plagas por punto"
                   className="grid grid-cols-[repeat(3,minmax(0,1fr))_1.35fr] gap-1 rounded-xl bg-muted/50 p-1"
                 >
                   {[0, 1, 2].map((value) => {

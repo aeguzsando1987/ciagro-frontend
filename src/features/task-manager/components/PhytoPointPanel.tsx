@@ -276,7 +276,7 @@ export function PhytoPointPanel({
             icon={<Bug className="h-3.5 w-3.5" />}
           />
           <SummaryCard
-            title="Umbral económico"
+            title="Umbral de tolerancia"
             value={`${toleranceLabel(pestTolerance)} plagas/punto`}
             icon={<Leaf className="h-3.5 w-3.5" />}
           />
