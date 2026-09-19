@@ -51,7 +51,8 @@ const SESSION_TYPES: { value: SessionType; label: string }[] = [
  * Los margenes negativos cancelan el padding del contenedor para que la barra
  * ocupe todo el ancho del diálogo.
  */
-const FOOTER_CLASS = 'sticky bottom-0 -mx-4 -mb-4 mt-2 gap-2 border-t bg-background px-4 py-3 sm:-mx-6 sm:-mb-6 sm:px-6 sm:py-4'
+const FOOTER_CLASS =
+  'sticky bottom-0 -mx-4 -mb-4 mt-2 gap-2 border-t bg-background px-4 py-3 sm:-mx-6 sm:-mb-6 sm:px-6 sm:py-4'
 
 /* ─── Schemas ─────────────────────────────────────────────────────── */
 
@@ -74,6 +75,7 @@ const phytoSchema = z.object({
   assigned_to_id: z.string().uuid('Selecciona un responsable'),
   strict_mode: z.boolean().default(true),
   radius_tolerance: z.coerce.number().int().min(1, 'Mínimo 1 m').default(5),
+  pest_tolerance: z.coerce.number().int().min(0).max(3).default(1),
 })
 
 const soilMapSchema = z.object({
@@ -109,11 +111,37 @@ const ndviSchema = z.object({
 
 type NdviValues = z.infer<typeof ndviSchema>
 
-const ASPERSION_FIELDS = ['program_id', 'aspersion_date', 'evaluation_id', 'est_start_date', 'est_finish_date'] as const
-const PHYTO_FIELDS = ['field_task_id', 'estimated_start_date', 'estimated_end_date', 'strict_mode', 'radius_tolerance'] as const
+const ASPERSION_FIELDS = [
+  'program_id',
+  'aspersion_date',
+  'evaluation_id',
+  'est_start_date',
+  'est_finish_date',
+] as const
+const PHYTO_FIELDS = [
+  'field_task_id',
+  'estimated_start_date',
+  'estimated_end_date',
+  'strict_mode',
+  'radius_tolerance',
+  'pest_tolerance',
+] as const
 const NDVI_FIELDS = ['program_id', 'session_date', 'est_start_date', 'est_finish_date'] as const
-const SOIL_MAP_FIELDS = ['program_id', 'mapping_date', 'est_init_date', 'est_finish_date', 'assigned_to_id'] as const
-const YIELD_MAP_FIELDS = ['program_id', 'plot_id', 'harvest_date', 'est_init_date', 'est_finish_date', 'assigned_to_id'] as const
+const SOIL_MAP_FIELDS = [
+  'program_id',
+  'mapping_date',
+  'est_init_date',
+  'est_finish_date',
+  'assigned_to_id',
+] as const
+const YIELD_MAP_FIELDS = [
+  'program_id',
+  'plot_id',
+  'harvest_date',
+  'est_init_date',
+  'est_finish_date',
+  'assigned_to_id',
+] as const
 
 /* ─── Component ────────────────────────────────────────────────────── */
 
@@ -121,14 +149,25 @@ interface CreateSessionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   /** Programa Hijo al que pertenece la sesión */
-  programa: { id: string; master_program: string | null | undefined; title: string | null | undefined; plot: string | null }
+  programa: {
+    id: string
+    master_program: string | null | undefined
+    title: string | null | undefined
+    plot: string | null
+  }
   /** Maestro padre (para invalidar tree query) */
   master: MasterProgram
   /** DataCentral activo — para listar usuarios responsables */
   datacentralId: string
 }
 
-export function CreateSessionDialog({ open, onOpenChange, programa, master, datacentralId }: CreateSessionDialogProps) {
+export function CreateSessionDialog({
+  open,
+  onOpenChange,
+  programa,
+  master,
+  datacentralId,
+}: CreateSessionDialogProps) {
   const queryClient = useQueryClient()
   const [sessionType, setSessionType] = useState<SessionType>('aspersion')
 
@@ -256,10 +295,9 @@ function AspersionForm({
         ...(values.est_finish_date ? { est_finish_date: values.est_finish_date } : {}),
         ...(values.assigned_to_id ? { assigned_to_id: values.assigned_to_id } : {}),
       }
-      const { data, error } = await apiClient.POST(
-        '/api/v1/monitoring/aspersion/headers/',
-        { body: body as never }
-      )
+      const { data, error } = await apiClient.POST('/api/v1/monitoring/aspersion/headers/', {
+        body: body as never,
+      })
       if (error) {
         if (typeof error === 'object' && error !== null) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -299,7 +337,9 @@ function AspersionForm({
               value={field.value ?? ''}
             >
               <SelectTrigger>
-                <SelectValue placeholder={loadingEvals ? 'Cargando...' : 'Sin evaluación (opcional)'} />
+                <SelectValue
+                  placeholder={loadingEvals ? 'Cargando...' : 'Sin evaluación (opcional)'}
+                />
               </SelectTrigger>
               <SelectContent>
                 {evaluations.map((e) => (
@@ -330,14 +370,19 @@ function AspersionForm({
           name="assigned_to_id"
           control={control}
           render={({ field }) => (
-            <Select onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)} value={field.value || '__none__'}>
+            <Select
+              onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)}
+              value={field.value || '__none__'}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Sin asignar (opcional)" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">Sin asignar</SelectItem>
                 {dcUsers.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.full_name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -345,7 +390,8 @@ function AspersionForm({
         />
         {dcUsers.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            No hay técnicos asignados a esta CIA. Asigna usuarios en Administración para poder designar un responsable.
+            No hay técnicos asignados a esta CIA. Asigna usuarios en Administración para poder
+            designar un responsable.
           </p>
         )}
       </div>
@@ -395,7 +441,12 @@ function PhytoForm({
     reset,
   } = useForm<PhytoValues>({
     resolver: zodResolver(phytoSchema),
-    defaultValues: { field_task_id: programaId, strict_mode: true, radius_tolerance: 5 },
+    defaultValues: {
+      field_task_id: programaId,
+      strict_mode: true,
+      radius_tolerance: 5,
+      pest_tolerance: 1,
+    },
   })
 
   const mutation = useMutation({
@@ -405,13 +456,13 @@ function PhytoForm({
         estimated_start_date: values.estimated_start_date,
         strict_mode: values.strict_mode,
         radius_tolerance: values.radius_tolerance,
+        pest_tolerance: values.pest_tolerance,
         ...(values.estimated_end_date ? { estimated_end_date: values.estimated_end_date } : {}),
         ...(values.assigned_to_id ? { assigned_to_id: values.assigned_to_id } : {}),
       }
-      const { data, error } = await apiClient.POST(
-        '/api/v1/monitoring/phyto/headers/create/',
-        { body: body as never }
-      )
+      const { data, error } = await apiClient.POST('/api/v1/monitoring/phyto/headers/create/', {
+        body: body as never,
+      })
       if (error) {
         if (typeof error === 'object' && error !== null) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -433,7 +484,9 @@ function PhytoForm({
     <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-4">
       {!hasParcela && (
         <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
-          Este subprograma no tiene parcela asignada. El backend intentará heredar la parcela del subprograma al crear la sesión; si no existe, devolverá un error. Asigna una parcela al subprograma antes de crear sesiones fitosanitarias.
+          Este subprograma no tiene parcela asignada. El backend intentará heredar la parcela del
+          subprograma al crear la sesión; si no existe, devolverá un error. Asigna una parcela al
+          subprograma antes de crear sesiones fitosanitarias.
         </div>
       )}
 
@@ -453,23 +506,14 @@ function PhytoForm({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <Label htmlFor="ph-radius">Radio de tolerancia (m)</Label>
-          <Input
-            id="ph-radius"
-            type="number"
-            min={1}
-            {...register('radius_tolerance')}
-          />
+          <Input id="ph-radius" type="number" min={1} {...register('radius_tolerance')} />
           {errors.radius_tolerance && (
             <p className="text-xs text-destructive">{errors.radius_tolerance.message}</p>
           )}
         </div>
         <div className="flex items-end pb-1">
           <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="h-4 w-4"
-              {...register('strict_mode')}
-            />
+            <input type="checkbox" className="h-4 w-4" {...register('strict_mode')} />
             Modo estricto
           </label>
         </div>
@@ -491,7 +535,9 @@ function PhytoForm({
               </SelectTrigger>
               <SelectContent>
                 {dcUsers.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.full_name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -499,11 +545,53 @@ function PhytoForm({
         />
         {dcUsers.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            No hay técnicos asignados a esta CIA. Asigna usuarios en Administración antes de crear una sesión fitosanitaria.
+            No hay técnicos asignados a esta CIA. Asigna usuarios en Administración antes de crear
+            una sesión fitosanitaria.
           </p>
         )}
         {errors.assigned_to_id && (
           <p className="text-xs text-destructive">{errors.assigned_to_id.message}</p>
+        )}
+      </div>
+
+      <div className="rounded-lg border bg-muted/20 px-3 py-2.5">
+        <div className="mb-2">
+          <p className="text-sm font-medium">Tolerancia de plagas</p>
+          <p className="text-[11px] text-muted-foreground">
+            Cantidad máxima permitida por punto antes de elevar la alerta.
+          </p>
+        </div>
+        <Controller
+          name="pest_tolerance"
+          control={control}
+          render={({ field }) => (
+            <div
+              role="radiogroup"
+              aria-label="Tolerancia de plagas"
+              className="grid grid-cols-4 overflow-hidden rounded-md border bg-background"
+            >
+              {[0, 1, 2, 3].map((value) => {
+                const active = Number(field.value) === value
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => field.onChange(value)}
+                    className={`min-h-9 border-r px-2 text-sm transition-colors last:border-r-0 ${
+                      active ? 'bg-primary font-medium text-primary-foreground' : 'hover:bg-accent'
+                    }`}
+                  >
+                    {value === 3 ? '3+' : value}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        />
+        {errors.pest_tolerance && (
+          <p className="mt-1 text-xs text-destructive">{errors.pest_tolerance.message}</p>
         )}
       </div>
 
@@ -564,10 +652,9 @@ function NdviForm({
         ...(values.est_finish_date ? { est_finish_date: values.est_finish_date } : {}),
         ...(values.assigned_to_id ? { assigned_to_id: values.assigned_to_id } : {}),
       }
-      const { data, error } = await apiClient.POST(
-        '/api/v1/monitoring/ndvi/headers/',
-        { body: body as never }
-      )
+      const { data, error } = await apiClient.POST('/api/v1/monitoring/ndvi/headers/', {
+        body: body as never,
+      })
       if (error) {
         if (typeof error === 'object' && error !== null) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -589,7 +676,8 @@ function NdviForm({
     <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-4">
       {!hasParcela && (
         <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
-          Este subprograma no tiene parcela asignada. El backend intentará heredar la parcela del subprograma al crear la sesión; si no existe, devolverá un error.
+          Este subprograma no tiene parcela asignada. El backend intentará heredar la parcela del
+          subprograma al crear la sesión; si no existe, devolverá un error.
         </div>
       )}
 
@@ -597,7 +685,8 @@ function NdviForm({
         <Label htmlFor="nd-date">Fecha de la imagen</Label>
         <Input id="nd-date" type="date" {...register('session_date')} />
         <p className="text-xs text-muted-foreground">
-          Opcional: si se deja vacía, se toma del CSV (columna &quot;Conjunto de datos&quot;) al importar.
+          Opcional: si se deja vacía, se toma del CSV (columna &quot;Conjunto de datos&quot;) al
+          importar.
         </p>
       </div>
 
@@ -618,14 +707,19 @@ function NdviForm({
           name="assigned_to_id"
           control={control}
           render={({ field }) => (
-            <Select onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)} value={field.value || '__none__'}>
+            <Select
+              onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)}
+              value={field.value || '__none__'}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Sin asignar (opcional)" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">Sin asignar</SelectItem>
                 {dcUsers.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.full_name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -690,10 +784,9 @@ function SoilMapForm({
         ...(values.est_finish_date ? { est_finish_date: values.est_finish_date } : {}),
         ...(values.assigned_to_id ? { assigned_to_id: values.assigned_to_id } : {}),
       }
-      const { data, error } = await apiClient.POST(
-        '/api/v1/monitoring/soil-map/headers/',
-        { body: body as never }
-      )
+      const { data, error } = await apiClient.POST('/api/v1/monitoring/soil-map/headers/', {
+        body: body as never,
+      })
       if (error) {
         if (typeof error === 'object' && error !== null) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -715,7 +808,9 @@ function SoilMapForm({
     <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-4">
       {!hasParcela && (
         <div className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
-          Este subprograma no tiene parcela asignada. El backend intentará heredarla al crear la sesión; si no existe, el mapeo no tendrá una parcela para encuadrar sus datos. Asigna una parcela al subprograma antes de crear la sesión.
+          Este subprograma no tiene parcela asignada. El backend intentará heredarla al crear la
+          sesión; si no existe, el mapeo no tendrá una parcela para encuadrar sus datos. Asigna una
+          parcela al subprograma antes de crear la sesión.
         </div>
       )}
 
@@ -744,14 +839,19 @@ function SoilMapForm({
           name="assigned_to_id"
           control={control}
           render={({ field }) => (
-            <Select onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)} value={field.value || '__none__'}>
+            <Select
+              onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)}
+              value={field.value || '__none__'}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Sin asignar (opcional)" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">Sin asignar</SelectItem>
                 {dcUsers.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.full_name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -759,7 +859,8 @@ function SoilMapForm({
         />
         {dcUsers.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            No hay técnicos asignados a esta CIA. Asigna usuarios en Administración para poder designar un responsable.
+            No hay técnicos asignados a esta CIA. Asigna usuarios en Administración para poder
+            designar un responsable.
           </p>
         )}
       </div>
@@ -863,7 +964,9 @@ function YieldMapForm({
         if (payload && typeof payload === 'object') {
           applyDrfErrors(payload, setError, YIELD_MAP_FIELDS)
         }
-        throw new Error((payload as { detail?: string }).detail ?? 'No se pudo crear la sesión de rendimiento')
+        throw new Error(
+          (payload as { detail?: string }).detail ?? 'No se pudo crear la sesión de rendimiento'
+        )
       }
       return payload
     },
@@ -879,7 +982,8 @@ function YieldMapForm({
   return (
     <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-4">
       <div className="rounded-md border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">
-        Rendimiento es un dominio independiente. Selecciona el rancho y la parcela donde se cosechó; después podrás cargar el CSV del monitor de cosecha.
+        Rendimiento es un dominio independiente. Selecciona el rancho y la parcela donde se cosechó;
+        después podrás cargar el CSV del monitor de cosecha.
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -944,7 +1048,8 @@ function YieldMapForm({
 
       {programPlotId && selectedPlot && selectedPlot !== programPlotId && (
         <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
-          Esta sesión usará una parcela distinta a la parcela referencial del subprograma. Rendimiento conservará la parcela elegida en la sesión.
+          Esta sesión usará una parcela distinta a la parcela referencial del subprograma.
+          Rendimiento conservará la parcela elegida en la sesión.
         </p>
       )}
 
@@ -973,14 +1078,19 @@ function YieldMapForm({
           name="assigned_to_id"
           control={control}
           render={({ field }) => (
-            <Select onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)} value={field.value || '__none__'}>
+            <Select
+              onValueChange={(v) => field.onChange(v === '__none__' ? undefined : v)}
+              value={field.value || '__none__'}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Sin asignar (opcional)" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">Sin asignar</SelectItem>
                 {dcUsers.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.full_name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -1000,7 +1110,9 @@ function YieldMapForm({
       )}
 
       <DialogFooter className={FOOTER_CLASS}>
-        <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancelar
+        </Button>
         <Button type="submit" disabled={!selectedPlot || isSubmitting || mutation.isPending}>
           {isSubmitting || mutation.isPending ? 'Guardando...' : 'Crear Sesión'}
         </Button>

@@ -10,8 +10,8 @@
  * Carga sus propios datos a partir de `sessionId` (header) + `plotId`.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Map, { Layer, Source, Popup } from 'react-map-gl/maplibre'
-import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre'
+import Map, { Layer, Source, Marker } from 'react-map-gl/maplibre'
+import type { MapRef } from 'react-map-gl/maplibre'
 import { Info } from 'lucide-react'
 import { ESRI_STYLE } from '@/features/geodata-visor/lib/aspersionMap.helpers'
 import {
@@ -20,8 +20,17 @@ import {
 } from '@/features/geodata-visor/lib/mapCameraSync'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { LoadingState } from '@/components/ui/loading-state'
+import { PhytoPointPanel } from './PhytoPointPanel'
 import { usePlotGeometry } from '../hooks/usePlotGeometry'
 import { usePhytoCheckPoints, type PhytoCheckpointProps } from '../hooks/usePhytoCheckPoints'
+import {
+  computeDiseaseIndex,
+  computePestIndex,
+  DISEASE_INDEX_LABEL,
+  PEST_INDEX_LABEL,
+  PHYTO_INDEX_COLOR,
+  type PhytoIndexLevel,
+} from '../lib/phytoIndices'
 
 interface PhytoMapProps {
   /** UUID del PhytoMonitoringHeader. */
@@ -124,7 +133,11 @@ const CIRCLE_COLOR = [
 ] as unknown[]
 
 // Prioridad de presencia para elegir la "peor" de un punto con varios hallazgos.
-const PRESENCE_RANK: Record<string, number> = { low: 0, warning: 1, critical: 2 }
+const PRESENCE_RANK: Record<string, number> = {
+  low: 0,
+  warning: 1,
+  critical: 2,
+}
 
 // ── Modos de pintado de las manchas ────────────────────────────────────────────
 // 'heat' (Opción A): capa heatmap con radio en píxeles PERO dependiente del zoom, de
@@ -196,7 +209,16 @@ function circlePolygon(lng: number, lat: number, radiusM: number, steps = 24): n
   return ring
 }
 
-type HoverInfo = { lon: number; lat: number; items: PhytoCheckpointProps[] }
+type HoverInfo = {
+  lon: number
+  lat: number
+  items: PhytoCheckpointProps[]
+  pointNumber: number
+  pestQty: number
+  pestTolerance: number
+  pestLevel: PhytoIndexLevel
+  diseaseLevel: PhytoIndexLevel
+}
 
 export function PhytoMap({
   sessionId,
@@ -222,38 +244,87 @@ export function PhytoMap({
 
   const plotGeojson = plot?.geometry
 
-  // Agrupa los checkpoints por coordenada: en un mismo punto puede haber varias
-  // plagas/enfermedades. `pointsFC` tiene un marcador por punto CON peligro (peor
-  // presencia del grupo); `groups` guarda todos los hallazgos por punto para el popup.
-  // (Objeto plano, no `Map`, porque `Map` está sombreado por react-map-gl.)
-  const { groups, pointsFC } = useMemo(() => {
-    const g: Record<string, PhytoCheckpointProps[]> = {}
+  // Agrupa por pcp_oid cuando existe (es el identificador del punto de la app móvil)
+  // y cae a coordenada para capturas antiguas. Así varias plagas/enfermedades del mismo
+  // punto comparten un único marcador P/E, sin perder la lógica original de Presencia.
+  const { groups, pointsFC, indexMarkers } = useMemo(() => {
+    type GroupData = {
+      items: PhytoCheckpointProps[]
+      coords: [number, number]
+      pcpOid: number | null
+    }
+
+    const grouped: Record<string, GroupData> = {}
     if (fc) {
       for (const f of fc.features) {
-        const key = f.geometry.coordinates.join(',')
-        ;(g[key] ??= []).push(f.properties)
+        const pcpOid = f.properties.pcp_oid ?? null
+        const coords = f.geometry.coordinates
+        const key = pcpOid != null ? `oid:${pcpOid}` : `coord:${coords.join(',')}`
+        const group = (grouped[key] ??= { items: [], coords, pcpOid })
+        group.items.push(f.properties)
       }
     }
-    const features = Object.entries(g)
-      .map(([key, items]) => ({
+
+    const pestTolerance = fc?.pest_tolerance ?? 1
+    const entries = Object.entries(grouped)
+
+    // Esta colección conserva EXACTAMENTE la semántica anterior del mapa: únicamente
+    // warning/critical alimentan discos, superficie con problemas y la leyenda Presencia.
+    const problemFeatures = entries
+      .map(([key, group]) => ({
         key,
-        items,
-        worst: Math.max(...items.map((i) => PRESENCE_RANK[i.presence_status] ?? 0)),
+        group,
+        worst: Math.max(...group.items.map((i) => PRESENCE_RANK[i.presence_status] ?? 0)),
       }))
-      .filter((x) => x.worst >= 1) // solo puntos con peligro
-      .map((x) => {
-        const parts = x.key.split(',').map(Number)
-        return {
-          type: 'Feature' as const,
-          geometry: { type: 'Point' as const, coordinates: [parts[0] ?? 0, parts[1] ?? 0] },
-          properties: {
-            key: x.key,
-            presence_status: x.worst >= 2 ? 'critical' : 'warning',
-            count: x.items.length,
-          },
-        }
-      })
-    return { groups: g, pointsFC: { type: 'FeatureCollection' as const, features } }
+      .filter((x) => x.worst >= 1)
+      .map((x) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: x.group.coords },
+        properties: {
+          key: x.key,
+          presence_status: x.worst >= 2 ? 'critical' : 'warning',
+          count: x.group.items.length,
+        },
+      }))
+
+    const rawMarkers = entries.map(([key, group]) => {
+      const pest = computePestIndex(group.items, pestTolerance)
+      const diseaseLevel = computeDiseaseIndex(group.items)
+      return {
+        key,
+        coords: group.coords,
+        items: group.items,
+        pointNumber: group.pcpOid,
+        pestQty: pest.qty,
+        pestLevel: pest.level,
+        diseaseLevel,
+      }
+    })
+
+    rawMarkers.sort((a, b) => {
+      if (a.pointNumber == null && b.pointNumber == null) return a.key.localeCompare(b.key)
+      if (a.pointNumber == null) return 1
+      if (b.pointNumber == null) return -1
+      return a.pointNumber - b.pointNumber
+    })
+
+    const markers = rawMarkers.map((marker, index) => ({
+      ...marker,
+      displayNumber: marker.pointNumber ?? index + 1,
+    }))
+
+    const simpleGroups = Object.fromEntries(
+      entries.map(([key, group]) => [key, group.items])
+    ) as Record<string, PhytoCheckpointProps[]>
+
+    return {
+      groups: simpleGroups,
+      pointsFC: {
+        type: 'FeatureCollection' as const,
+        features: problemFeatures,
+      },
+      indexMarkers: markers,
+    }
   }, [fc])
 
   // Opción B: un polígono circular geográfico por punto con peligro (escala con el zoom
@@ -303,21 +374,26 @@ export function PhytoMap({
   // este efecto el mapa quedaría en la vista por defecto (muy alejada) si la parcela carga tarde.
   useEffect(() => {
     if (!mapRef.current || !mapBounds) return
-    mapRef.current.fitBounds(mapBounds, { padding: 56, duration: 600, maxZoom: 18 })
+    mapRef.current.fitBounds(mapBounds, {
+      padding: 56,
+      duration: 600,
+      maxZoom: 18,
+    })
   }, [mapBounds])
 
   const isEmpty = !isLoading && fc && fc.features.length === 0
 
-  function handleClick(e: MapLayerMouseEvent) {
-    const feat = e.features?.[0]
-    if (feat) {
-      const key = (feat.properties as { key?: string }).key
-      const items = key ? (groups[key] ?? []) : []
-      const coords = (feat.geometry as GeoJSON.Point).coordinates
-      setPopup({ lon: coords[0] as number, lat: coords[1] as number, items })
-    } else {
-      setPopup(null)
-    }
+  function openPointPopup(marker: (typeof indexMarkers)[number]) {
+    setPopup({
+      lon: marker.coords[0],
+      lat: marker.coords[1],
+      items: groups[marker.key] ?? marker.items,
+      pointNumber: marker.displayNumber,
+      pestQty: marker.pestQty,
+      pestTolerance: fc?.pest_tolerance ?? 1,
+      pestLevel: marker.pestLevel,
+      diseaseLevel: marker.diseaseLevel,
+    })
   }
 
   return (
@@ -478,19 +554,53 @@ export function PhytoMap({
           </div>
         </div>
 
+        {/* Leyendas P/E separadas, al estilo de la app móvil. */}
+        <div
+          className={`absolute bottom-2 z-10 hidden gap-2 lg:flex ${
+            sessionsSlot ? 'left-1/2 -translate-x-[42%]' : 'left-1/2 -translate-x-1/2'
+          }`}
+        >
+          <div className="w-52 rounded-xl border bg-background/95 p-3 text-xs shadow-md backdrop-blur-sm">
+            <p className="mb-2 font-bold text-foreground">Índice P · Plagas</p>
+            {(['none', 'low', 'medium', 'high'] as const).map((level) => (
+              <div key={`legend-p-${level}`} className="flex items-center gap-2 py-0.5">
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: PHYTO_INDEX_COLOR[level] }}
+                />
+                <span className="text-muted-foreground">{PEST_INDEX_LABEL[level]}</span>
+              </div>
+            ))}
+          </div>
+          <div className="w-52 rounded-xl border bg-background/95 p-3 text-xs shadow-md backdrop-blur-sm">
+            <p className="mb-2 font-bold text-foreground">Índice E · Enfermedades</p>
+            {(['none', 'low', 'medium', 'high'] as const).map((level) => (
+              <div key={`legend-e-${level}`} className="flex items-center gap-2 py-0.5">
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: PHYTO_INDEX_COLOR[level] }}
+                />
+                <span className="text-muted-foreground">{DISEASE_INDEX_LABEL[level]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <Map
           ref={mapRef}
           onMove={mapSync ? handleCameraMove : undefined}
           initialViewState={
             mapBounds
-              ? { bounds: mapBounds, fitBoundsOptions: { padding: 56, maxZoom: 18 } }
+              ? {
+                  bounds: mapBounds,
+                  fitBoundsOptions: { padding: 56, maxZoom: 18 },
+                }
               : { longitude: -101, latitude: 20.5, zoom: 6 }
           }
           maxZoom={20}
           mapStyle={ESRI_STYLE}
           attributionControl={false}
-          interactiveLayerIds={['cp-circles']}
-          onClick={handleClick}
+          onClick={() => setPopup(null)}
           style={{ width: '100%', height: '100%' }}
         >
           {/* Parcela — relleno verde base */}
@@ -499,12 +609,19 @@ export function PhytoMap({
               <Layer
                 id="plot-fill"
                 type="fill"
-                paint={{ 'fill-color': HEALTHY_GREEN, 'fill-opacity': 0.95 }}
+                paint={{ 'fill-color': HEALTHY_GREEN, 'fill-opacity': 0.32 }}
+              />
+              {/* Doble contorno: blanco exterior + verde interior. Hace visible el lote
+                  sobre imágenes satelitales claras u oscuras sin tapar el cultivo. */}
+              <Layer
+                id="plot-line-halo"
+                type="line"
+                paint={{ 'line-color': 'rgba(255,255,255,0.92)', 'line-width': 5 }}
               />
               <Layer
                 id="plot-line"
                 type="line"
-                paint={{ 'line-color': '#14532d', 'line-width': 1.5 }}
+                paint={{ 'line-color': '#166534', 'line-width': 3 }}
               />
             </Source>
           )}
@@ -517,7 +634,10 @@ export function PhytoMap({
               <Layer
                 id="cp-disc-fill"
                 type="fill"
-                paint={{ 'fill-color': CIRCLE_COLOR as never, 'fill-opacity': 0.55 }}
+                paint={{
+                  'fill-color': CIRCLE_COLOR as never,
+                  'fill-opacity': 0.55,
+                }}
               />
               <Layer
                 id="cp-disc-line"
@@ -526,24 +646,6 @@ export function PhytoMap({
                   'line-color': CIRCLE_COLOR as never,
                   'line-width': 1.2,
                   'line-opacity': 0.9,
-                }}
-              />
-            </Source>
-          )}
-
-          {/* Un marcador por PUNTO con peligro (agrupado por coordenada); clic → popup
-              con todos los hallazgos del punto. */}
-          {pointsFC.features.length > 0 && (
-            <Source id="cp-points-src" type="geojson" data={pointsFC}>
-              <Layer
-                id="cp-circles"
-                type="circle"
-                paint={{
-                  'circle-radius': 6,
-                  'circle-color': CIRCLE_COLOR as never,
-                  'circle-stroke-color': '#ffffff',
-                  'circle-stroke-width': 1.5,
-                  'circle-opacity': 0.95,
                 }}
               />
             </Source>
@@ -570,106 +672,68 @@ export function PhytoMap({
             </Source>
           )}
 
-          {popup && popup.items.length > 0 && (
-            <Popup
-              longitude={popup.lon}
-              latitude={popup.lat}
-              closeButton
-              closeOnClick={false}
-              onClose={() => setPopup(null)}
-              anchor="bottom"
-              offset={12}
-              maxWidth="420px"
-              style={{ padding: 0 }}
+          {/* Índices P/E estilo app móvil. No reemplazan Presencia ni el heatmap:
+              son una lectura adicional por punto. P usa la tolerancia de plagas de la
+              sesión; E usa la severidad de enfermedad ya calculada por el backend. */}
+          {indexMarkers.map((marker) => (
+            <Marker
+              key={marker.key}
+              longitude={marker.coords[0]}
+              latitude={marker.coords[1]}
+              anchor="center"
             >
-              <div className="px-2 py-1.5 text-xs">
-                <p className="mb-1 font-medium">
-                  {popup.items.length} {popup.items.length === 1 ? 'hallazgo' : 'hallazgos'} en este
-                  punto
-                </p>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead className="text-left text-muted-foreground">
-                      <tr>
-                        <th className="py-0.5 pr-2 font-medium">Problema</th>
-                        <th className="px-1.5 py-0.5 font-medium">Tipo</th>
-                        <th className="px-1.5 py-0.5 font-medium">Etapa</th>
-                        <th className="px-1.5 py-0.5 text-right font-medium">Cant.</th>
-                        <th className="px-1.5 py-0.5 font-medium">Presencia</th>
-                        <th className="px-1.5 py-0.5 font-medium">Foto</th>
-                        <th className="py-0.5 pl-1.5 font-medium">Nota</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {popup.items
-                        .slice()
-                        .sort(
-                          (a, b) =>
-                            (PRESENCE_RANK[b.presence_status] ?? 0) -
-                            (PRESENCE_RANK[a.presence_status] ?? 0)
-                        )
-                        .map((it) => (
-                          <tr key={it.id} className="border-t">
-                            <td className="py-0.5 pr-2 font-medium">
-                              {it.issue ?? 'Sin problema'}
-                            </td>
-                            <td className="px-1.5 py-0.5 text-muted-foreground">
-                              {it.issue_type ?? '—'}
-                            </td>
-                            <td className="px-1.5 py-0.5">{it.stage_display ?? '—'}</td>
-                            <td className="px-1.5 py-0.5 text-right">{it.qty ?? '—'}</td>
-                            <td className="px-1.5 py-0.5">
-                              <span
-                                className="inline-flex items-center gap-1 whitespace-nowrap font-medium"
-                                style={{ color: PRESENCE_COLOR[it.presence_status] }}
-                              >
-                                <span
-                                  className="inline-block h-1.5 w-1.5 rounded-full"
-                                  style={{ backgroundColor: PRESENCE_COLOR[it.presence_status] }}
-                                />
-                                {PRESENCE_LABEL[it.presence_status] ?? it.presence_status}
-                              </span>
-                            </td>
-                            <td className="py-0.5 pl-1.5">
-                              {it.photo ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setPhotoModal(it.photo)}
-                                  className="block h-10 w-10 overflow-hidden rounded-md border hover:ring-2 hover:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                                  title="Ver foto completa"
-                                >
-                                  <img
-                                    src={it.photo}
-                                    alt="Foto del hallazgo"
-                                    className="h-full w-full object-cover"
-                                  />
-                                </button>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
-                            <td className="py-0.5 pl-1.5">
-                              {it.notes ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setNoteModal(it.notes)}
-                                  className="whitespace-nowrap text-brand underline underline-offset-2 hover:opacity-80"
-                                >
-                                  Ver
-                                </button>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </Popup>
-          )}
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  openPointPopup(marker)
+                }}
+                aria-label={`Punto ${marker.displayNumber}. P: ${PEST_INDEX_LABEL[marker.pestLevel]}. E: ${DISEASE_INDEX_LABEL[marker.diseaseLevel]}.`}
+                title={`P ${PEST_INDEX_LABEL[marker.pestLevel]} · E ${DISEASE_INDEX_LABEL[marker.diseaseLevel]}`}
+                className={`group relative h-10 w-10 rounded-full transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 ${
+                  popup?.pointNumber === marker.displayNumber ? 'scale-110' : ''
+                }`}
+              >
+                <span className="pointer-events-none absolute -top-4 left-1/2 flex -translate-x-1/2 gap-2 rounded bg-white/90 px-1 text-[9px] font-bold leading-3 text-slate-800 shadow-sm">
+                  <span>P</span>
+                  <span>E</span>
+                </span>
+                <span
+                  className={`pointer-events-none absolute inset-0 overflow-hidden rounded-full border-[3px] shadow-lg transition-transform group-hover:scale-110 ${
+                    popup?.pointNumber === marker.displayNumber
+                      ? 'border-white ring-2 ring-brand/70 ring-offset-1'
+                      : 'border-white'
+                  }`}
+                  style={{
+                    background: `linear-gradient(90deg, ${PHYTO_INDEX_COLOR[marker.pestLevel]} 0 50%, ${PHYTO_INDEX_COLOR[marker.diseaseLevel]} 50% 100%)`,
+                  }}
+                >
+                  <span className="absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 bg-white/80" />
+                </span>
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white drop-shadow-md">
+                  {marker.displayNumber}
+                </span>
+              </button>
+            </Marker>
+          ))}
         </Map>
+
+        {popup && popup.items.length > 0 && (
+          <PhytoPointPanel
+            pointNumber={popup.pointNumber}
+            items={popup.items}
+            pestQty={popup.pestQty}
+            pestTolerance={popup.pestTolerance}
+            pestLevel={popup.pestLevel}
+            diseaseLevel={popup.diseaseLevel}
+            lon={popup.lon}
+            lat={popup.lat}
+            hasSessionsSlot={Boolean(sessionsSlot)}
+            onClose={() => setPopup(null)}
+            onOpenPhoto={setPhotoModal}
+            onOpenNote={setNoteModal}
+          />
+        )}
       </div>
 
       {/* Modal de foto completa */}

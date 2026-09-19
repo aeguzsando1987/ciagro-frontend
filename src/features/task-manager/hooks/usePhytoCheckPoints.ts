@@ -21,6 +21,7 @@ export interface PhytoCheckpointProps {
   captured_at: string | null
   photo: string | null
   photo_ref: string | null
+  pcp_oid?: number | null
 }
 
 export interface PhytoCheckpointFeature {
@@ -31,6 +32,7 @@ export interface PhytoCheckpointFeature {
 
 export interface PhytoCheckpointCollection {
   type: 'FeatureCollection'
+  pest_tolerance?: number
   features: PhytoCheckpointFeature[]
 }
 
@@ -42,7 +44,7 @@ export function usePhytoCheckPoints(headerId: string | null, enabled = true) {
       const baseUrl = import.meta.env.VITE_API_BASE_URL as string
       const res = await fetch(
         `${baseUrl}/monitoring/phyto/headers/${headerId}/checkpoints-geojson/`,
-        { headers: { Authorization: `Bearer ${tokens.getAccess() ?? ''}` } },
+        { headers: { Authorization: `Bearer ${tokens.getAccess() ?? ''}` } }
       )
       if (!res.ok) throw new Error('checkpoints no disponibles')
       return (await res.json()) as PhytoCheckpointCollection

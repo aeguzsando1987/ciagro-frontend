@@ -118,6 +118,22 @@ beforeEach(() => {
   mocks.post.mockResolvedValue({ data: { id: 'soil-map-1' }, error: undefined })
 })
 
+describe('CreateSessionDialog — fitosanitario', () => {
+  it('muestra la tolerancia de plagas y permite cambiar el nivel', async () => {
+    const user = userEvent.setup()
+    renderDialog()
+
+    await selectSessionType(user, 'Fitosanitario')
+
+    expect(screen.getByRole('radiogroup', { name: /Tolerancia de plagas/i })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: '1' })).toHaveAttribute('aria-checked', 'true')
+
+    await user.click(screen.getByRole('radio', { name: '2' }))
+
+    expect(screen.getByRole('radio', { name: '2' })).toHaveAttribute('aria-checked', 'true')
+  })
+})
+
 describe('CreateSessionDialog — mapeo de suelo', () => {
   it('permite elegir Mapeo de suelo y muestra sus campos propios', async () => {
     const user = userEvent.setup()
