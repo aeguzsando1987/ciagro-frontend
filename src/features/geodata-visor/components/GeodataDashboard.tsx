@@ -344,12 +344,17 @@ function RanchView({
     <div className="flex h-full flex-col gap-2.5">
       {!statsHidden && stats && <StatGrid loading={plots.isLoading} stats={stats} />}
       {!statsHidden && isPlotLevel && <PlotStats plotId={selection.plot!.id} />}
-      {!statsHidden && isSessionLevel && !isPhytoSession && !isNdviSession && !isSoilMapSession && !isYieldMapSession && (
-        <SessionInfoCard
-          sessionId={selection.session!.id}
-          datacentralId={selection.datacentral?.id}
-        />
-      )}
+      {!statsHidden &&
+        isSessionLevel &&
+        !isPhytoSession &&
+        !isNdviSession &&
+        !isSoilMapSession &&
+        !isYieldMapSession && (
+          <SessionInfoCard
+            sessionId={selection.session!.id}
+            datacentralId={selection.datacentral?.id}
+          />
+        )}
       {!statsHidden && isPhytoSession && <PhytoStatsCard headerId={selection.session!.id} />}
       {!statsHidden && isSoilMapSession && (
         <SoilMapSessionInfoCard
@@ -359,9 +364,7 @@ function RanchView({
       )}
       <div
         className={`relative min-h-[320px] flex-1 rounded-lg border ${
-          isNdviSession && !comparisonMode
-            ? 'overflow-y-auto overflow-x-hidden'
-            : 'overflow-hidden'
+          isNdviSession && !comparisonMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'
         }`}
       >
         {isSessionLevel ? (
@@ -385,6 +388,7 @@ function RanchView({
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               floatingToolbar
+              comparisonMode={comparisonMode}
               mapSync={mapSync}
               sessionsSlot={
                 comparisonMode ? undefined : (
@@ -542,10 +546,7 @@ function LevelBody({
       )
     case 'datacentral':
       return (
-        <DataCentralStats
-          dcId={selection.datacentral!.id}
-          dcName={selection.datacentral!.name}
-        />
+        <DataCentralStats dcId={selection.datacentral!.id} dcName={selection.datacentral!.name} />
       )
     case 'producer':
       return (
@@ -573,7 +574,6 @@ function LevelBody({
       )
   }
 }
-
 
 export function GeodataDashboard({
   selection,

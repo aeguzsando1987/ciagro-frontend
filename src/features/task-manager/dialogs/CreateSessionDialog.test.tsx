@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { CreateSessionDialog } from './CreateSessionDialog'
@@ -119,18 +119,33 @@ beforeEach(() => {
 })
 
 describe('CreateSessionDialog — fitosanitario', () => {
-  it('muestra la tolerancia de plagas y permite cambiar el nivel', async () => {
+  it('muestra el umbral económico de plagas por punto y permite cambiar el nivel', async () => {
     const user = userEvent.setup()
     renderDialog()
 
     await selectSessionType(user, 'Fitosanitario')
 
-    expect(screen.getByRole('radiogroup', { name: /Tolerancia de plagas/i })).toBeInTheDocument()
+    expect(screen.getByRole('radiogroup', { name: /Umbral económico de plagas por punto/i })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: '1' })).toHaveAttribute('aria-checked', 'true')
 
     await user.click(screen.getByRole('radio', { name: '2' }))
 
     expect(screen.getByRole('radio', { name: '2' })).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('permite una tolerancia personalizada mayor a 3', async () => {
+    const user = userEvent.setup()
+    renderDialog()
+
+    await selectSessionType(user, 'Fitosanitario')
+    await user.click(screen.getByRole('radio', { name: '3 o más' }))
+
+    const input = screen.getByLabelText('Cantidad máxima de plagas por punto')
+    expect(input).toHaveValue(3)
+
+    fireEvent.change(input, { target: { value: '7' } })
+    expect(input).toHaveValue(7)
+    expect(screen.getByRole('radio', { name: '3 o más' })).toHaveAttribute('aria-checked', 'true')
   })
 })
 

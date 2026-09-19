@@ -37,6 +37,12 @@ describe('computePestIndex', () => {
     expect(computePestIndex([cp('Plaga', 'low', 3)], 1).level).toBe('high')
   })
 
+  it('acepta tolerancias personalizadas mayores a 3', () => {
+    expect(computePestIndex([cp('Plaga', 'low', 5)], 5).level).toBe('low')
+    expect(computePestIndex([cp('Plaga', 'low', 6)], 5).level).toBe('medium')
+    expect(computePestIndex([cp('Plaga', 'low', 7)], 5).level).toBe('high')
+  })
+
   it('respeta una alerta crítica del backend aunque la cantidad sea baja', () => {
     expect(computePestIndex([cp('Plaga', 'critical', 1)], 3).level).toBe('high')
   })

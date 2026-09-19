@@ -75,7 +75,12 @@ const phytoSchema = z.object({
   assigned_to_id: z.string().uuid('Selecciona un responsable'),
   strict_mode: z.boolean().default(true),
   radius_tolerance: z.coerce.number().int().min(1, 'Mínimo 1 m').default(5),
-  pest_tolerance: z.coerce.number().int().min(0).max(3).default(1),
+  pest_tolerance: z.coerce
+    .number()
+    .int('Usa una cantidad entera')
+    .min(0, 'La tolerancia no puede ser negativa')
+    .max(2147483647, 'La tolerancia es demasiado grande')
+    .default(1),
 })
 
 const soilMapSchema = z.object({
@@ -554,44 +559,114 @@ function PhytoForm({
         )}
       </div>
 
-      <div className="rounded-lg border bg-muted/20 px-3 py-2.5">
-        <div className="mb-2">
-          <p className="text-sm font-medium">Tolerancia de plagas</p>
-          <p className="text-[11px] text-muted-foreground">
-            Cantidad máxima permitida por punto antes de elevar la alerta.
+      <div className="rounded-xl border border-border/70 bg-gradient-to-b from-muted/20 to-background px-3 py-3 shadow-sm">
+        <div className="mb-3">
+          <p className="text-sm font-semibold text-foreground">Umbral económico</p>
+          <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+            Número máximo de plagas por punto antes de elevar el índice P. Usa 3+ para una cantidad
+            personalizada.
           </p>
         </div>
+
         <Controller
           name="pest_tolerance"
           control={control}
-          render={({ field }) => (
-            <div
-              role="radiogroup"
-              aria-label="Tolerancia de plagas"
-              className="grid grid-cols-4 overflow-hidden rounded-md border bg-background"
-            >
-              {[0, 1, 2, 3].map((value) => {
-                const active = Number(field.value) === value
-                return (
+          render={({ field }) => {
+            const currentValue = Number(field.value ?? 1)
+            const safeValue = Number.isFinite(currentValue)
+              ? Math.max(0, Math.trunc(currentValue))
+              : 1
+            const customActive = safeValue >= 3
+
+            return (
+              <div className="space-y-3">
+                <div
+                  role="radiogroup"
+                  aria-label="Umbral económico de plagas por punto"
+                  className="grid grid-cols-[repeat(3,minmax(0,1fr))_1.35fr] gap-1 rounded-xl bg-muted/50 p-1"
+                >
+                  {[0, 1, 2].map((value) => {
+                    const active = safeValue === value
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        aria-label={String(value)}
+                        onClick={() => field.onChange(value)}
+                        className={`h-10 rounded-lg text-sm font-medium transition-all ${
+                          active
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'text-muted-foreground hover:bg-background hover:text-foreground'
+                        }`}
+                      >
+                        {value}
+                      </button>
+                    )
+                  })}
+
                   <button
-                    key={value}
                     type="button"
                     role="radio"
-                    aria-checked={active}
-                    onClick={() => field.onChange(value)}
-                    className={`min-h-9 border-r px-2 text-sm transition-colors last:border-r-0 ${
-                      active ? 'bg-primary font-medium text-primary-foreground' : 'hover:bg-accent'
+                    aria-checked={customActive}
+                    aria-label="3 o más"
+                    onClick={() => field.onChange(customActive ? safeValue : 3)}
+                    className={`h-10 rounded-lg px-2 text-sm font-medium transition-all ${
+                      customActive
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-background hover:text-foreground'
                     }`}
                   >
-                    {value === 3 ? '3+' : value}
+                    <span className="font-semibold">3+</span>
+                    <span className="ml-1 hidden text-[10px] opacity-80 sm:inline">Personalizada</span>
                   </button>
-                )
-              })}
-            </div>
-          )}
+                </div>
+
+                {customActive && (
+                  <div className="rounded-xl border bg-background p-3 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <Label htmlFor="ph-pest-tolerance-custom" className="text-xs font-medium">
+                          Cantidad máxima de plagas por punto
+                        </Label>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground">
+                          Escribe 3, 4, 5, 10 o la cantidad que necesites por punto.
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+                        {safeValue}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-2">
+                      <Input
+                        id="ph-pest-tolerance-custom"
+                        aria-label="Cantidad máxima de plagas por punto"
+                        type="number"
+                        inputMode="numeric"
+                        min={3}
+                        step={1}
+                        value={safeValue}
+                        onBlur={field.onBlur}
+                        onChange={(event) => {
+                          const parsed = Number(event.target.value)
+                          if (!Number.isFinite(parsed)) return
+                          field.onChange(Math.max(3, Math.trunc(parsed)))
+                        }}
+                        className="h-10 text-base font-semibold"
+                      />
+                      <span className="whitespace-nowrap text-xs text-muted-foreground">plagas</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          }}
         />
+
         {errors.pest_tolerance && (
-          <p className="mt-1 text-xs text-destructive">{errors.pest_tolerance.message}</p>
+          <p className="mt-2 text-xs text-destructive">{errors.pest_tolerance.message}</p>
         )}
       </div>
 

@@ -72,7 +72,8 @@ function primaryDate(items: PhytoCheckpointProps[]): string {
 }
 
 function toleranceLabel(value: number): string {
-  return value >= 3 ? '3+' : String(value)
+  if (!Number.isFinite(value)) return '0'
+  return String(Math.max(0, Math.trunc(value)))
 }
 
 function IndexChip({
@@ -275,8 +276,8 @@ export function PhytoPointPanel({
             icon={<Bug className="h-3.5 w-3.5" />}
           />
           <SummaryCard
-            title="Tolerancia"
-            value={toleranceLabel(pestTolerance)}
+            title="Umbral económico"
+            value={`${toleranceLabel(pestTolerance)} plagas/punto`}
             icon={<Leaf className="h-3.5 w-3.5" />}
           />
         </section>
