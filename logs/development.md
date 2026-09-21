@@ -3704,3 +3704,102 @@ reemplazo, marca en el visor y bloqueo por rol. La fase queda cerrada.
 La fase se mergeó a `dev` por avance rápido y a `master` con merge explícito, en los dos repos a la
 vez: el backend de la FASE SN seguía sin homologar desde el 2026-09-18 y subió en la misma tanda.
 Las ramas `dev-ndvi-sentinel` se quedan locales, sin publicar.
+
+---
+
+## FASE CN (frontend) — El visor recortaba al casco convexo, no a la parcela (2026-09-21)
+
+Rama `dev-ndvi-contour-clip`. La fase nacio como **solo backend** en `CIAgro_alpha_back` para cerrar
+`GAP-SN-F-001`. Se amplio a este repo cuando quedo claro que el defecto que el dev veia en pantalla
+estaba aqui.
+
+### Como se llego a este repo
+
+El backend cerro su arreglo con **0 ha fuera de la parcela**, medido en SQL sobre los 15 indices. El
+dev probo, importo sesiones nuevas de Sentinel y de CSV, y **siguio viendo el desbordamiento**.
+
+La medicion que lo aclaro: solo **una** sesion tenia contornos en la base, la que se recontorneo a
+mano. Las sesiones recien importadas por el dev no generaron ni una fila de `NdviIndexContour`, y aun
+asi el visor pintaba superficie coloreada.
+
+**El visor no dibuja los contornos del backend.** `NdviMap.tsx` importa de
+`lib/ndviInterpolation.ts`, una interpolacion propia del cliente. Los hooks `useNdviContours` y
+`useNdviContourIndices` estan escritos, tipados y con tests, pero **ningun componente los importa**.
+
+Eran **dos defectos independientes**. El del backend era real y quedo corregido, pero invisible.
+
+### El defecto: una regresion, no un olvido
+
+| commit | llamada |
+|---|---|
+| `3d97e4d` (FASE V1-front) | el visor consumia `useNdviContours`: bandas discretas del backend |
+| `7acc560` | lo sustituye por una superficie continua en el cliente. `buildInterpolatedImage(interp, ring)` — **la parcela si se pasaba** |
+| `935e818` | `buildInterpolatedImage(interp)` — **`ring` desaparece de la llamada** |
+
+`935e818` ("recorte al casco convexo de los puntos") **sustituyo** el recorte contra la parcela por
+el recorte contra el casco convexo. Su mensaje lo argumenta y **el razonamiento era correcto**:
+recortar solo a la parcela dejaba "relleno plano extrapolado" donde los puntos cubren una sub-zona.
+El error fue tratarlo como **disyuntiva**:
+
+| mascara | resultado |
+|---|---|
+| Solo casco | la superficie se sale de la parcela (el defecto reportado) |
+| Solo parcela | relleno plano extrapolado donde no hay puntos (lo que `935e818` arreglo) |
+| **Casco interseccion parcela** | los dos problemas resueltos |
+
+Con una malla Sentinel de 10 m el casco convexo **es** practicamente el rectangulo: de ahi el
+derrame limpio. Con CSV disperso el casco se ajusta mas a la nube y el defecto se disimulaba.
+
+`ring` quedo **vestigial**: se seguia calculando desde `plot.geometry`, seguia en las dependencias
+del `useMemo`, y el comentario seguia afirmando "recortada a la parcela". **Esa linea costo una fase
+entera de diagnostico en el lado equivocado**, y por eso se corrigio junto con el docstring del
+modulo, que decia explicitamente lo contrario de lo que el codigo hacia.
+
+### El segundo defecto, encontrado al arreglar el primero
+
+`blurGrid` promedia solo vecinos validos **pero escribe en toda celda donde encuentra al menos un
+vecino valido, incluidas las que eran NaN**. El suavizado se derramaba `radius` celdas por pase, y
+son dos pases. Se repone la mascara despues del blur.
+
+Verificado quitando esa reposicion: **fallan los dos tests de contencion**, no solo el del
+suavizado. Por si solo bastaba para anular el recorte.
+
+### El tercer sintoma, que nadie habia reportado
+
+`buildNdviClassAreas` mide `surface.field`, la misma malla mal enmascarada. **Las hectareas por clase
+que lee el agronomo estaban infladas con superficie que no es la parcela** — el mismo sesgo que el
+backend tenia en los cuartiles, vivo aqui. Queda corregido por arrastre.
+
+### Los dos ajustes que pidio el dev despues
+
+- **Selector de capas agrupado y reducido a 7 indices**: `Ciclo fenologico` (NDVI, MSAVI2, OSAVI,
+  NDRE, PSRI), `Agua` (NDMI), `Contenido de clorofila` (GNDVI). Los otros 8 se siguen importando y
+  guardando; solo dejan de ofrecerse. `INDICES` se deriva de los grupos, asi que el tooltip y la
+  leyenda quedan reducidos al mismo subconjunto sin duplicar la lista.
+- **Atribucion de Copernicus**, con el ano de `session_date` ("Fecha de la imagen NDVI") y
+  `acquisition_datetime` como respaldo. El dev la pidio para todas las sesiones NDVI; **se le
+  senalo que en las de CSV el dato viene de un proveedor externo y atribuirlo a Copernicus y a
+  Sentinel Hub seria falso** (`GAP-SN-001` ya dejo medido que no son datos equivalentes), y acepto
+  condicionarla a `source == 'sentinel2'`. La regla se extrajo a `lib/ndviAttribution.ts` porque
+  probarla dentro del componente habria exigido simular MapLibre entero.
+
+Un tercer pedido, habilitar el boton de **Reportes** en el modal de sesiones NDVI, **se descarto**:
+no es un "volver a habilitar" porque nunca existio, el backend solo tiene dos adapters registrados
+(aspersion y mapeo de suelo) y crear un reporte NDVI responde 400 con "No hay reporteador para
+'ndvi' todavia". El dev confirmo que se habia equivocado.
+
+### Verificacion
+
+- **805 tests** en 118 archivos, todos en verde. `tsc --noEmit` y `eslint` limpios.
+- **9 tests nuevos**: 4 de recorte (uno de ellos comprueba que **sin** el arreglo la superficie si
+  desborda, para que el test no sea vacuo) y 5 de atribucion.
+- **Validado manualmente por el dev** en sesiones existentes y en sesiones nuevas importadas de
+  Sentinel y de CSV: el desbordamiento desaparecio.
+
+### Lo que queda abierto
+
+La duplicidad de interpoladores (`GAP-CN-002` en el backend), con analisis propio en
+`.CLAUDE/ndvi-doble-interpolador-analisis.md`. La recomendacion es **no** unificar motores hasta que
+exista un segundo consumidor real fuera del navegador. Pendiente de decidir: si los hooks muertos
+`useNdviContours` y `useNdviContourIndices` se borran o se comentan, porque codigo muerto tipado y
+con tests parece el camino vivo.
