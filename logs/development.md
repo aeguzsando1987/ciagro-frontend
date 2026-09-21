@@ -3697,6 +3697,10 @@ cero regresiones, `tsc --noEmit` limpio y linter en la línea base exacta de **3
 marca de origen del visor y el arreglo del radio 0 se verificaron **por mutación**: al anular el
 comportamiento, sus tests fallan; al restaurarlo, vuelven a verde.
 
-**Prueba manual del desarrollador: PENDIENTE.** El guion está escrito (radio 0 sobre fecha exacta,
-camino feliz con seguimiento, 409 duplicado con navegación, advertencia de reemplazo, marca en el
-visor y bloqueo por rol). La fase no se considera cerrada hasta que pase.
+**Prueba manual del desarrollador: validada (2026-09-21).** Se corrió el guion completo: radio 0
+sobre fecha exacta, camino feliz con seguimiento, 409 duplicado con navegación, advertencia de
+reemplazo, marca en el visor y bloqueo por rol. La fase queda cerrada.
+
+La fase se mergeó a `dev` por avance rápido y a `master` con merge explícito, en los dos repos a la
+vez: el backend de la FASE SN seguía sin homologar desde el 2026-09-18 y subió en la misma tanda.
+Las ramas `dev-ndvi-sentinel` se quedan locales, sin publicar.

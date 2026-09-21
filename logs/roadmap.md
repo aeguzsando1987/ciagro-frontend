@@ -1096,8 +1096,8 @@ no pinta nada, y el caso `elegir` desaparecio del resolutor. **De ahi salio tamb
 
 ## FASE SN-F: IMPORTACION AUTOMATICA DE NDVI DESDE SENTINEL-2 — FRONTEND
 
-**Estado:** `[x] 7/8 IMPLEMENTADA — PENDIENTE de la prueba manual del desarrollador (rama
-dev-ndvi-sentinel, nace de dev)`. Verificado antes de ramificar:
+**Estado:** `[x] 8/8 VALIDADA (rama dev-ndvi-sentinel, nace de dev; mergeada a dev y master el
+2026-09-21). Prueba manual del desarrollador confirmada.` Verificado antes de ramificar:
 `git diff origin/dev origin/master` sale **vacio** — los tres commits que master lleva de mas son
 merges de dev — asi que `dev` no viene por delante y la convencion 2 de `project-conventions.md`
 se cumple sin excepcion. Contrato en `.context/sessions/session-ndvi-sentinel-front.json`.
@@ -1164,8 +1164,8 @@ endpoints nuevos. Verificado al planear: responde 200 y expone `sentinel-preview
 - [x] **SNF-6b** `fix`: con radio 0 ("solo ese dia exacto") el parametro `days` no viajaba, porque
   `0` es falsy, y el backend aplicaba su default de 7 dias EN SILENCIO. Lo destapo una pregunta del
   dev, no los tests
-- [ ] **SNF-7** `e2e`: prueba manual del desarrollador sobre `GU-AG-SM01`, verificando que el origen
-  se lee **sin** el parche escrito a mano en `observation`
+- [x] **SNF-7** `e2e`: prueba manual del desarrollador **validada el 2026-09-21**. El origen se lee
+  sin el parche escrito a mano en `observation`
 - [x] **SNF-8** `docs`: bitacoras de la fase
 
 **Fuera de alcance:** backend de cualquier tipo, automatizacion masiva o programada, backfill
