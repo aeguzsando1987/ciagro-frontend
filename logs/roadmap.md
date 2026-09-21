@@ -1203,6 +1203,55 @@ que corrige geometria y sesgo de una sola vez.
 | `GAP-HM-006` | frontend-deuda | baja | Fitosanitario sin tarjetas informativas: no comparte el mecanismo de `/variable-stats/` |
 | `GAP-TS-001` | frontend-deuda | media | Dos familias de hooks de organizaciones con query keys distintas: invalidar una no refresca la otra |
 | `GAP-TS-002` | frontend-deuda | baja | `useWorkspaceStore` no persiste y `clearSelectedDc` no se llama en ningun sitio |
-| `GAP-SN-F-001` | backend | **alta** | Las coropletas se salen de la parcela y los cuartiles salen sesgados: `contours.py` nunca recorta contra `plot.geom` |
+| `GAP-SN-F-001` | backend | **alta** | ~~Las coropletas se salen de la parcela y los cuartiles salen sesgados~~ **CERRADO** en la FASE CN (2026-09-21). Eran DOS defectos: el del backend (`contours.py` sin recortar contra `plot.geom`) y uno de ESTE repo que era el que se veia (`GAP-CN-001`) |
 | `GAP-SN-F-002` | backend | media | La timeline no puede mostrar la procedencia: su payload no incluye `source` |
 | `GAP-SN-F-003` | backend | baja | El arbol del Task Manager tampoco: `NdviSessionSummarySerializer` no expone `source` |
+
+---
+
+## FASE CN (frontend) — El visor recortaba al casco convexo y no a la parcela (rama `dev-ndvi-contour-clip`, 2026-09-21)
+**Estado:** `[x] IMPLEMENTADA Y VALIDADA POR EL DEV 2026-09-21. 805 tests en verde (118 archivos), 9 nuevos, tsc y eslint limpios. Cierra GAP-CN-001 y, junto con la mitad del backend, GAP-SN-F-001. PENDIENTE: homologacion.`
+
+La fase nacio **solo backend** para cerrar `GAP-SN-F-001`. Se amplio a este repo cuando el backend
+cerro con **0 ha fuera de la parcela** medido en SQL y **el dev siguio viendo el desbordamiento**.
+
+**El visor no dibuja los contornos del backend.** `NdviMap.tsx` usa su propia interpolacion en el
+cliente (`lib/ndviInterpolation.ts`); `useNdviContours` y `useNdviContourIndices` no los importa
+ningun componente. Eran **dos defectos independientes** y el visible estaba aqui.
+
+**Es una regresion con commit y fecha**, no un olvido: `7acc560` llamaba
+`buildInterpolatedImage(interp, ring)` y `935e818` lo dejo en `buildInterpolatedImage(interp)`,
+cambiando el recorte de la parcela al **casco convexo de los puntos**. El razonamiento de `935e818`
+era correcto (recortar solo a la parcela dejaba relleno plano extrapolado donde los puntos cubren una
+sub-zona) pero lo trato como **disyuntiva** y no como **interseccion**. Con una malla Sentinel de
+10 m el casco convexo **es** el rectangulo. `ring` quedo vestigial y el comentario siguio afirmando
+"recortada a la parcela": **esa linea costo una fase entera de diagnostico en el lado equivocado.**
+
+**Segundo defecto, encontrado al arreglar el primero:** `blurGrid` escribe en celdas que eran NaN, asi
+que el suavizado se derramaba `radius` celdas por pase (dos pases). Verificado quitando la reposicion
+de la mascara: fallan **los dos** tests de contencion.
+
+**Tercer sintoma, no reportado por nadie:** `buildNdviClassAreas` mide la misma malla, asi que **las
+hectareas por clase estaban infladas** con superficie que no es la parcela. Corregido por arrastre.
+
+- [x] **CN-8** `front` — mascara casco Y parcela en `buildValueGrid`, y reponerla tras el suavizado
+- [x] **CN-9** `front` — selector de capas agrupado y reducido a 7 indices
+- [x] **CN-10** `front` — atribucion de Copernicus, solo en sesiones de satelite
+
+**Sobre CN-9:** `Ciclo fenologico` (NDVI, MSAVI2, OSAVI, NDRE, PSRI), `Agua` (NDMI), `Contenido de
+clorofila` (GNDVI). Los otros 8 indices **se siguen importando y guardando**; solo dejan de
+ofrecerse como capa.
+
+**Sobre CN-10:** el dev la pidio para todas las sesiones NDVI; se le senalo que en las de CSV el dato
+viene de un proveedor externo y atribuirlo a Copernicus seria **falso** (`GAP-SN-001` ya lo dejo
+medido), y acepto condicionarla a `source == 'sentinel2'`. El ano sale de `session_date`, que el
+modelo llama literalmente "Fecha de la imagen NDVI". La mitad "y en el reporte" del pedido **quedo
+sin objeto**: no existe reporteador NDVI.
+
+**Descartado por el dev:** habilitar el boton de **Reportes** en el modal de sesiones NDVI. No es un
+"volver a habilitar" porque nunca existio: el backend solo tiene dos adapters registrados y crear un
+reporte NDVI responde 400.
+
+**Fuera de alcance:** unificar los dos interpoladores (`GAP-CN-002`, con analisis en
+`.CLAUDE/ndvi-doble-interpolador-analisis.md`). La recomendacion es no hacerlo hasta que exista un
+segundo consumidor real fuera del navegador.
