@@ -1094,6 +1094,95 @@ no pinta nada, y el caso `elegir` desaparecio del resolutor. **De ahi salio tamb
 
 ---
 
+## FASE SN-F: IMPORTACION AUTOMATICA DE NDVI DESDE SENTINEL-2 — FRONTEND
+
+**Estado:** `[x] 7/8 IMPLEMENTADA — PENDIENTE de la prueba manual del desarrollador (rama
+dev-ndvi-sentinel, nace de dev)`. Verificado antes de ramificar:
+`git diff origin/dev origin/master` sale **vacio** — los tres commits que master lleva de mas son
+merges de dev — asi que `dev` no viene por delante y la convencion 2 de `project-conventions.md`
+se cumple sin excepcion. Contrato en `.context/sessions/session-ndvi-sentinel-front.json`.
+
+**POR QUE EXISTE LA FASE.** La FASE SN (backend, rama `dev-ndvi-sentinel` @ `0541c27` del otro
+repo) agrego un **segundo pipeline hermano** del importador CSV que trae los mismos indices
+vegetativos desde Sentinel-2 y los escribe en **las mismas tablas**. El pipeline ya funciona de
+punta a punta, pero **no hay forma de dispararlo desde la interfaz**: hoy solo existe por HTTP.
+
+**QUE NO CAMBIA, Y ES A PROPOSITO.** El visor, las coropletas, `variable-stats` y la linea de
+tiempo YA funcionan sobre datos Sentinel sin un solo cambio, verificado por E2E en la fase de
+backend. Esta fase **no los toca**. Si en algun momento hiciera falta ramificar el render por
+fuente, algo se entendio mal y hay que detenerse.
+
+**LA DISTINCION QUE NO SE PUEDE PERDER.** Que el *pipeline de render* sea identico para ambas
+fuentes es el objetivo **cumplido** de la FASE SN. Ocultarle la *procedencia* al usuario seria un
+**defecto** (`GAP-SN-006`), y no es cosmetico: `GAP-SN-001` establece **medido** que `red_edge`,
+`ndre` y `psri` NO son comparables entre CSV y Sentinel (sesgo sistematico de -0.0867 contra B05,
+r=0.87, mientras las otras seis variables cierran con r de 0.93 a 0.96). Un agronomo mirando una
+serie mezclada ve un escalon que parece un evento agronomico y no lo es.
+
+**POR QUE DOS PASOS Y NO UNO.** Pedir una fecha **no implica** que haya habido pasada del satelite
+ese dia: la revisita es de ~5 dias y ademas hay nubes. En la prueba real, pidiendo el 2024-10-25
+aparecieron tres adquisiciones con `delta_days` de -5, 0 y +5. Si el sistema eligiera "la mas
+cercana" por su cuenta, el agronomo no veria que se descarto ni por que. **Esa eleccion es suya.**
+
+**DECISIONES CERRADAS CON EL DEV (D1-D5, ver el contrato de sesion):**
+
+| # | Decision |
+|---|---|
+| D1 | La accion va como **tercer boton** en `SesionActions`, no como menu desplegable: esa fila ya es una fila de botones y no introduce un patron de menu que hoy no existe en los modales de sesion. No altera la FASE HM |
+| D2 | El origen se muestra en **dos** lugares del modal: fila "Origen" en la ficha y badge en la cabecera |
+| D3 | El alcance incluye el **selector de sesiones del visor** (`NdviSessionsPanel`), que es donde se comparan fechas entre si. Timeline y coropleta quedan fuera |
+| D4 | El 409 de adquisicion duplicada muestra mensaje **y** ofrece ir a la sesion existente via `existing_header_id` |
+| D5 | Se advierte **siempre** que la sesion tenga puntos antes de reimportar: el backend borra y reescribe en la misma transaccion |
+
+**DOS LIMITES MEDIDOS EN EL CODIGO AL PLANEAR, que acotan la fase y no se fuerzan:**
+
+- **L1** — `NdviSessionSummarySerializer` (`field_ops/serializers.py:86`) expone solo `id`, `type`,
+  `session_date`, `import_status` y `status`: **no lleva `source`**. Una columna de origen en el
+  arbol del Task Manager exigiria backend y queda **fuera**.
+- **L2** — el payload de la linea de tiempo (`datalayers/ndvi_timeline.py:255-274`) **tampoco**
+  lleva `source`. La procedencia en la timeline queda **fuera** por la misma razon.
+
+El visor **si** es alcanzable: `useNdviSessionHeaders` consume el serializer completo, que ya trae
+`source`, `acquisition_id` y `acquisition_meta`.
+
+**DEPENDENCIA OPERATIVA.** `npm run types:gen` apunta a `http://localhost:8500/api/schema/`, asi que
+el backend tiene que estar corriendo **en la rama `dev-ndvi-sentinel`** o el schema no traera los
+endpoints nuevos. Verificado al planear: responde 200 y expone `sentinel-preview` y
+`sentinel-import`; `src/types/api.d.ts` estaba viejo (cero menciones de sentinel).
+
+- [x] **SNF-1** `types`: regenerar `src/types/api.d.ts` contra el backend en `dev-ndvi-sentinel` y
+  revisar `git diff --stat` por ruido de finales de linea
+- [x] **SNF-2** `hook`: `useNdviSentinel.ts` con preview e import. El `onSuccess` copia el truco
+  optimista de `useNdviImport` y **hereda gratis** el polling que `useNdviSessionDetail` ya hace
+- [x] **SNF-3** `dialog`: `SentinelImportDialog.tsx`, buscar -> elegir -> importar, con advertencia
+  de reemplazo y los mensajes de 400, 409 y 503 (el 503 **no** se redacta como error del sistema)
+- [x] **SNF-4** `modal`: boton en `SesionActions`, fila "Origen", badge en cabecera (prop opcional
+  `badge` en `SesionShell`, aditiva) y navegacion del 409
+- [x] **SNF-5** `visor`: marca de origen en cada item de `NdviSessionsPanel`
+- [x] **SNF-6** `tests`: 18 nuevos -> **796 en 117 archivos**, cero regresiones. La marca del visor
+  y el radio 0 verificados POR MUTACION: al anular el comportamiento sus tests fallan
+- [x] **SNF-6b** `fix`: con radio 0 ("solo ese dia exacto") el parametro `days` no viajaba, porque
+  `0` es falsy, y el backend aplicaba su default de 7 dias EN SILENCIO. Lo destapo una pregunta del
+  dev, no los tests
+- [ ] **SNF-7** `e2e`: prueba manual del desarrollador sobre `GU-AG-SM01`, verificando que el origen
+  se lee **sin** el parche escrito a mano en `observation`
+- [x] **SNF-8** `docs`: bitacoras de la fase
+
+**Fuera de alcance:** backend de cualquier tipo, automatizacion masiva o programada, backfill
+historico, cambios al importador CSV o su dialogo, cambios a `contours.py`, al visor de coropletas
+o a la linea de tiempo, y `GAP-SN-002`, `003` y `004`, preexistentes del backend.
+
+**HALLAZGO AJENO A LA FASE, reportado por el dev durante la validacion:** las coropletas **se salen
+del contorno de la parcela**, y no depende de la fuente. `contours.py` interpola sobre el
+`ST_Extent` de los puntos —un rectangulo— y poligoniza sin cruzar nunca con `plot.geom`; en las
+esquinas sin puntos el IDW **extrapola**. Y con `QUARTILE_ON_RASTER = True` los cortes de cuartiles
+salen de ese mismo raster, asi que la clasificacion esta sesgada por superficie que no es la
+parcela. Registrado como `GAP-SN-F-001` (prioridad **alta**) para una fase corta de backend
+aparte: el arreglo es `ST_Clip` del raster interpolado contra `plot.geom` ANTES de reclasificar,
+que corrige geometria y sesgo de una sola vez.
+
+---
+
 ## GAPS ABIERTOS A LA FECHA (ver `gap_log.csv` para detalle)
 
 | ID | Categoría | Prioridad | Disparador para resolver |
@@ -1114,3 +1203,6 @@ no pinta nada, y el caso `elegir` desaparecio del resolutor. **De ahi salio tamb
 | `GAP-HM-006` | frontend-deuda | baja | Fitosanitario sin tarjetas informativas: no comparte el mecanismo de `/variable-stats/` |
 | `GAP-TS-001` | frontend-deuda | media | Dos familias de hooks de organizaciones con query keys distintas: invalidar una no refresca la otra |
 | `GAP-TS-002` | frontend-deuda | baja | `useWorkspaceStore` no persiste y `clearSelectedDc` no se llama en ningun sitio |
+| `GAP-SN-F-001` | backend | **alta** | Las coropletas se salen de la parcela y los cuartiles salen sesgados: `contours.py` nunca recorta contra `plot.geom` |
+| `GAP-SN-F-002` | backend | media | La timeline no puede mostrar la procedencia: su payload no incluye `source` |
+| `GAP-SN-F-003` | backend | baja | El arbol del Task Manager tampoco: `NdviSessionSummarySerializer` no expone `source` |

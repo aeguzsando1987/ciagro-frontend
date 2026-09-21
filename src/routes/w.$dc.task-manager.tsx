@@ -309,6 +309,11 @@ function TaskManagerPage() {
           masterId={topFrame.masterId}
           onClose={clearModal}
           onBack={popModal}
+          // El 409 de adquisicion duplicada abre la sesion que ya la tiene. Se empuja a la
+          // pila con SUS ids, no con los del frame actual: puede colgar de otro subprograma.
+          onNavigateSesion={({ sesionId, hijoId, masterId }) =>
+            pushModal({ type: 'sesion', sesionType: 'ndvi', sesionId, hijoId, masterId })
+          }
         />
       )}
       {topFrame?.type === 'sesion' && topFrame.sesionType === 'yield_map' && (
