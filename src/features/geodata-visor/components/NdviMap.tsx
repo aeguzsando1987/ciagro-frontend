@@ -34,25 +34,43 @@ import {
   resolveQuartileColors,
 } from '../hooks/useNdviVariableConfig'
 import { useNdviVariableStats } from '@/features/task-manager/hooks/useNdviVariableStats'
+import { useNdviSessionDetail } from '@/features/task-manager/hooks/useNdviSessionDetail'
 import { buildNdviClassAreas, type ClassBand } from '../lib/ndviClassArea'
+import { copernicusAttribution } from '../lib/ndviAttribution'
 import { NdviClassAreaCard } from './NdviClassAreaCard'
 import { GpaLoader } from '@/components/ui/gpa-loader'
 import { CloudOff } from 'lucide-react'
 
-const INDICES: { key: keyof NdviPoint; label: string }[] = [
-  { key: 'ndvi', label: 'NDVI' },
-  { key: 'nir_vigor', label: 'Vigor NIR' },
-  { key: 'osavi', label: 'OSAVI' },
-  { key: 'vari', label: 'VARI' },
-  { key: 'bare_soil_index', label: 'Suelo desnudo' },
-  { key: 'red_edge', label: 'Límite rojo' },
-  { key: 'swir', label: 'SWIR' },
-  { key: 'ndre', label: 'NDRE' },
-  { key: 'msavi2', label: 'MSAVI2' },
-  { key: 'gndvi', label: 'GNDVI' },
-  { key: 'ndmi', label: 'NDMI' },
-  { key: 'psri', label: 'PSRI' },
+/**
+ * Indices que se ofrecen en el visor, agrupados por lo que interpreta el agronomo.
+ *
+ * Es un SUBCONJUNTO deliberado: la sesion importa 15 indices y aqui se exponen 7. Los
+ * demas (Vigor NIR, VARI, suelo desnudo, limite rojo, SWIR y las tres bandas de imagen)
+ * se siguen importando y guardando, pero no se ofrecen como capa.
+ */
+const INDEX_GROUPS: { group: string; items: { key: keyof NdviPoint; label: string }[] }[] = [
+  {
+    group: 'Ciclo fenológico',
+    items: [
+      { key: 'ndvi', label: 'NDVI' },
+      { key: 'msavi2', label: 'MSAVI2' },
+      { key: 'osavi', label: 'OSAVI' },
+      { key: 'ndre', label: 'NDRE' },
+      { key: 'psri', label: 'PSRI' },
+    ],
+  },
+  {
+    group: 'Agua',
+    items: [{ key: 'ndmi', label: 'NDMI' }],
+  },
+  {
+    group: 'Contenido de clorofila',
+    items: [{ key: 'gndvi', label: 'GNDVI' }],
+  },
 ]
+
+/** Plano y en el orden de los grupos: lo usan el tooltip, la leyenda y el resumen. */
+const INDICES: { key: keyof NdviPoint; label: string }[] = INDEX_GROUPS.flatMap((g) => g.items)
 
 // Rampa de la leyenda (misma que ndviInterpolation): bajo -> alto.
 const LEGEND_GRADIENT = 'linear-gradient(to right, #d32f2f, #f57c00, #388e3c, #00acc1, #1565c0)'
@@ -261,11 +279,23 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
     return quartileColors.map((color, i) => ({ color, min: breaks[i]!, max: breaks[i + 1]! }))
   }, [quartileColors, points, indexKey])
 
+  const { data: ndviDetail } = useNdviSessionDetail(sessionId)
+
+  const copernicusNote = useMemo(
+    () =>
+      copernicusAttribution(
+        ndviDetail?.source,
+        ndviDetail?.session_date,
+        ndviDetail?.acquisition_datetime,
+      ),
+    [ndviDetail],
+  )
+
   const ring = useMemo<number[][] | null>(() => {
     const r = plot?.geometry?.coordinates?.[0]
     return r && r.length >= 3 ? (r as number[][]) : null
   }, [plot])
-
+  // Superficie interpolada del indice activo, recortada al casco de los puntos Y a la parcela.
   // Superficie interpolada del índice activo, recortada a la parcela.
   const surface = useMemo(() => {
     if (!ring || !points || points.length === 0) return null
@@ -281,7 +311,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
     // celda y la pintaria de otra clase. En cuartiles los cortes se recalculan desde la
     // propia superficie, asi que ahi el suavizado no falsea nada y se conserva.
     const smoothing = manualBands ? ABSOLUTE_BANDS_SMOOTHING_FACTOR : DEFAULT_SMOOTHING_FACTOR
-    return buildInterpolatedImage(interp, 'kriging', manualBands, quartileColors, 260, smoothing)
+    return buildInterpolatedImage(interp, 'kriging', manualBands, quartileColors, 260, smoothing, ring)
   }, [ring, points, indexKey, manualBands, quartileColors])
 
   // Bandas con las que se mide la superficie: las manuales del tenant, o los tramos por
@@ -534,10 +564,10 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
       )}
 
 
-      {/* Superficie por clase. Va abajo a la derecha: arriba a la derecha esta el selector
-          de modo y abajo a la izquierda la leyenda, asi que es la unica esquina libre. */}
+      {/* Superficie por clase. Arriba a la derecha: abajo estan la leyenda de colores y la
+          atribucion de Copernicus, y la tarjeta las tapaba al desplegarse. */}
       {classAreas && (
-        <div className="absolute bottom-3 right-3 z-10">
+        <div className="absolute right-3 top-3 z-10">
           <NdviClassAreaCard
             summary={classAreas}
             indexLabel={INDICES.find((i) => i.key === indexKey)?.label ?? ''}
@@ -549,6 +579,17 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
         </div>
       )}
 
+      {/* Marca de agua de atribucion. Abajo al centro: las cuatro esquinas estan ocupadas
+          por el selector, el modo, la leyenda y la tarjeta de superficie. */}
+      {copernicusNote && (
+        <p
+          className="pointer-events-none absolute bottom-2 left-1/2 z-10 max-w-[80%] -translate-x-1/2 rounded-md bg-white/90 px-2.5 py-1 text-center text-[11px] leading-tight text-gray-700 shadow"
+          data-testid="ndvi-copernicus-note"
+        >
+          {copernicusNote}
+        </p>
+      )}
+
       <div className="absolute left-3 top-3 z-10 rounded-md bg-white/90 p-2 shadow">
         <div className="flex items-center gap-2">
           <label className="text-xs font-medium text-gray-600">Índice</label>
@@ -557,10 +598,14 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
             value={indexKey as string}
             onChange={(e) => setIndexKey(e.target.value as keyof NdviPoint)}
           >
-            {INDICES.map((it) => (
-              <option key={it.key as string} value={it.key as string}>
-                {it.label}
-              </option>
+            {INDEX_GROUPS.map((g) => (
+              <optgroup key={g.group} label={g.group}>
+                {g.items.map((it) => (
+                  <option key={it.key as string} value={it.key as string}>
+                    {it.label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>
