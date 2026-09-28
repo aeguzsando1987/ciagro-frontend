@@ -1,18 +1,13 @@
 /**
- * Mapa de monitoreo fitosanitario de una sesión — símil del mapa de aspersión.
+ * Mapa de monitoreo fitosanitario de una sesión.
  *
- * Sobre la imagen satelital ESRI pinta:
- *  - El polígono de la parcela relleno en VERDE (área sana base).
- *  - Un mapa de calor combinado P/E: plagas y enfermedades aportan intensidad
- *    según su índice (bajo, medio o alto), con núcleo rojo para niveles medio/alto.
- *  - En vista "Discos", marcadores P/E por punto inspeccionables con panel de detalle.
- *  - En vista "Mapa de calor", los marcadores P/E se ocultan para priorizar la lectura
- *    espacial de las manchas y mantener visible el polígono de la parcela.
- *
- * Carga sus propios datos a partir de `sessionId` (header) + `plotId`.
+ * Modos de visualización:
+ *  - Mapa de calor: superficie interpolada clasificada, recortada exactamente al
+ *    polígono de la parcela y con puntos visibles al estilo QGIS.
+ *  - Punto: marcadores P/E grandes con detalle inspeccionable por punto.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Map, { Layer, Source, Marker } from 'react-map-gl/maplibre'
+import Map, { Layer, Marker, Source } from 'react-map-gl/maplibre'
 import type { MapRef, ViewStateChangeEvent } from 'react-map-gl/maplibre'
 import { ChevronDown, ChevronUp, Info } from 'lucide-react'
 import { ESRI_STYLE } from '@/features/geodata-visor/lib/aspersionMap.helpers'
@@ -33,6 +28,7 @@ import {
   PHYTO_INDEX_COLOR,
   type PhytoIndexLevel,
 } from '../lib/phytoIndices'
+import { buildPhytoHeatSurface, type PhytoHeatPoint } from '../lib/phytoHeatSurface'
 
 interface PhytoMapProps {
   /** UUID del PhytoMonitoringHeader. */
@@ -64,9 +60,7 @@ const PRESENCE_COLOR: Record<string, string> = {
   warning: '#f59e0b',
   critical: '#dc2626',
 }
-// Verde del área sana / no muestreada de la parcela. En sesiones fitosanitarias el
-// relleno se pinta con este verde intenso (baja tenuidad) porque es el estado base del
-// mapa (los puntos con peligro se pintan encima en rojo/ámbar).
+
 const HEALTHY_GREEN = '#15803d'
 const PRESENCE_LABEL: Record<string, string> = {
   low: 'Baja',
@@ -74,7 +68,6 @@ const PRESENCE_LABEL: Record<string, string> = {
   critical: 'Crítica',
 }
 
-// Guía de interpretación de cada color (panel del icono (i) en la leyenda).
 const PRESENCE_HELP: { label: string; color: string; text: string }[] = [
   {
     label: 'Crítica',
@@ -84,31 +77,16 @@ const PRESENCE_HELP: { label: string; color: string; text: string }[] = [
   {
     label: 'Advertencia',
     color: '#f59e0b',
-    text: 'Los hallazgos de plagas/enfermedades están peligrosamente cerca del umbral de tolerancia.',
+    text: 'Los hallazgos de plagas/enfermedades están cerca o por encima del umbral esperado.',
   },
   {
     label: 'Baja / Sin monitorear',
     color: HEALTHY_GREEN,
-    text: 'No se hicieron hallazgos relevantes o no se monitoreó la zona. Se asume sanidad, pero se recomienda hacer una segunda revisión.',
+    text: 'No se hicieron hallazgos relevantes o no se monitoreó la zona. Se asume sanidad, pero se recomienda una segunda revisión.',
   },
 ]
 
-// V8: el mapa de calor se alimenta del peor índice P/E de cada punto.
-// Esto corrige el caso donde una ENFERMEDAD con índice E bajo/medio/alto no aparecía
-// porque la capa anterior solo consideraba presence_status warning/critical.
-// - low: halo amarillo visible (sin núcleo rojo).
-// - medium: naranja/rojo moderado.
-// - high: rojo intenso/crítico.
-const HEAT_WEIGHT = ['get', 'heat_weight'] as unknown[]
-
-const HEAT_LEVEL_WEIGHT: Record<PhytoIndexLevel, number> = {
-  none: 0,
-  low: 0.42,
-  medium: 0.74,
-  high: 1,
-}
-
-const INDEX_RANK: Record<PhytoIndexLevel, number> = {
+const LEVEL_RANK: Record<PhytoIndexLevel, number> = {
   none: 0,
   low: 1,
   medium: 2,
@@ -116,7 +94,7 @@ const INDEX_RANK: Record<PhytoIndexLevel, number> = {
 }
 
 function worstIndexLevel(a: PhytoIndexLevel, b: PhytoIndexLevel): PhytoIndexLevel {
-  return INDEX_RANK[a] >= INDEX_RANK[b] ? a : b
+  return LEVEL_RANK[a] >= LEVEL_RANK[b] ? a : b
 }
 
 function indexLevelToPresence(level: PhytoIndexLevel): 'low' | 'warning' | 'critical' {
@@ -126,8 +104,6 @@ function indexLevelToPresence(level: PhytoIndexLevel): 'low' | 'warning' | 'crit
 }
 
 function markerScaleForZoom(zoom: number): number {
-  // Los marcadores HTML son de tamaño fijo en píxeles. Al alejarnos los reducimos
-  // progresivamente para que no invadan el mapa ni parezcan crecer respecto al lote.
   if (zoom <= 10) return 0.34
   if (zoom <= 12) return 0.42
   if (zoom <= 14) return 0.55
@@ -136,55 +112,6 @@ function markerScaleForZoom(zoom: number): number {
   return 1
 }
 
-// V7: doble capa de calor para máxima legibilidad sobre la ortofoto.
-// 1) HALO: mancha amplia amarilla/naranja que permite ubicar el área afectada.
-// 2) CORE: núcleo más compacto naranja/rojo que marca con claridad las zonas críticas.
-// Usar dos capas evita el aspecto "lavado" de un único heatmap muy difuminado.
-const HEAT_HALO_COLOR = [
-  'interpolate',
-  ['linear'],
-  ['heatmap-density'],
-  0,
-  'rgba(250,204,21,0)',
-  0.02,
-  'rgba(250,204,21,0.42)',
-  0.08,
-  'rgba(250,204,21,0.72)',
-  0.18,
-  'rgba(245,158,11,0.88)',
-  0.34,
-  'rgba(249,115,22,0.94)',
-  0.52,
-  'rgba(239,68,68,0.92)',
-  0.75,
-  'rgba(220,38,38,0.96)',
-  1,
-  'rgba(185,28,28,0.98)',
-] as unknown[]
-
-const HEAT_CORE_COLOR = [
-  'interpolate',
-  ['linear'],
-  ['heatmap-density'],
-  0,
-  'rgba(249,115,22,0)',
-  0.02,
-  'rgba(249,115,22,0.18)',
-  0.08,
-  'rgba(249,115,22,0.72)',
-  0.18,
-  'rgba(239,68,68,0.94)',
-  0.32,
-  'rgba(220,38,38,1)',
-  0.52,
-  'rgba(185,28,28,1)',
-  0.72,
-  'rgba(153,27,27,1)',
-  1,
-  'rgba(127,29,29,1)',
-] as unknown[]
-
-// Color del marcador según presencia.
 const CIRCLE_COLOR = [
   'match',
   ['get', 'presence_status'],
@@ -197,82 +124,37 @@ const CIRCLE_COLOR = [
   '#94a3b8',
 ] as unknown[]
 
-// ── Modos de pintado de las manchas ────────────────────────────────────────────
-// 'heat' (Opción A): dos heatmaps superpuestos. El halo da contexto espacial y el
-//   núcleo compacto mantiene el rojo visible incluso con pocos puntos aislados.
-// 'disc' (Opción B): polígonos circulares REALES (en metros) alrededor de cada punto;
-//   escalan idénticamente al polígono de la parcela. Sin efecto difuminado.
-const HEAT_HALO_RADIUS = [
-  'interpolate',
-  ['exponential', 2],
-  ['zoom'],
-  10,
-  5,
-  14,
-  13,
-  16,
-  24,
-  18,
-  43,
-  20,
-  78,
-  22,
-  145,
-] as unknown[]
-
-const HEAT_CORE_RADIUS = [
-  'interpolate',
-  ['exponential', 2],
-  ['zoom'],
-  10,
-  2.5,
-  14,
-  6,
-  16,
-  11,
-  18,
-  19,
-  20,
-  34,
-  22,
-  64,
-] as unknown[]
-
-// Radio geográfico FIJO (metros) de la mancha/disco de cada punto con peligro. Fijo (no
-// variable por conteo) para poder traducir el nº de puntos a superficie de forma inequívoca.
 const PROBLEM_RADIUS_M = 7.5
-// Superficie (m²) que cubre una mancha de radio fijo.
 const PROBLEM_AREA_M2 = Math.PI * PROBLEM_RADIUS_M ** 2
 
-// Formato de superficie: siempre en hectáreas (2 decimales).
 function fmtHa(m2: number): string {
-  return `${(m2 / 10000).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha`
+  return `${(m2 / 10000).toLocaleString('es-MX', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} ha`
 }
+
 function pctOf(part: number, total: number): string {
   if (!total) return '0%'
   return `${Math.round((part / total) * 100)}%`
 }
 
-// Área (m²) de un anillo poligonal [lng,lat] por proyección planar local (equirectangular
-// alrededor de la latitud media). Suficientemente preciso para parcelas pequeñas.
 function polygonAreaM2(ring: number[][]): number {
   if (ring.length < 3) return 0
-  const lat0 = ring.reduce((s, p) => s + (p[1] ?? 0), 0) / ring.length
-  const mLat = 111320
-  const mLng = 111320 * Math.cos((lat0 * Math.PI) / 180)
+  const lat0 = ring.reduce((sum, point) => sum + (point[1] ?? 0), 0) / ring.length
+  const metersLat = 111320
+  const metersLng = 111320 * Math.cos((lat0 * Math.PI) / 180)
   let area = 0
   for (let i = 0; i < ring.length - 1; i++) {
-    const x1 = (ring[i]![0] ?? 0) * mLng,
-      y1 = (ring[i]![1] ?? 0) * mLat
-    const x2 = (ring[i + 1]![0] ?? 0) * mLng,
-      y2 = (ring[i + 1]![1] ?? 0) * mLat
+    const x1 = (ring[i]![0] ?? 0) * metersLng
+    const y1 = (ring[i]![1] ?? 0) * metersLat
+    const x2 = (ring[i + 1]![0] ?? 0) * metersLng
+    const y2 = (ring[i + 1]![1] ?? 0) * metersLat
     area += x1 * y2 - x2 * y1
   }
   return Math.abs(area) / 2
 }
 
-// Polígono ~circular (24 vértices) de `radiusM` metros alrededor de [lng, lat].
-// Conversión metros→grados: lat constante; lng corregido por el coseno de la latitud.
 function circlePolygon(lng: number, lat: number, radiusM: number, steps = 24): number[][] {
   const dLat = radiusM / 111320
   const dLng = radiusM / (111320 * Math.cos((lat * Math.PI) / 180))
@@ -283,6 +165,42 @@ function circlePolygon(lng: number, lat: number, radiusM: number, steps = 24): n
   }
   return ring
 }
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value))
+}
+
+function pestHeatValue(qty: number, tolerance: number, level: PhytoIndexLevel): number {
+  if (level === 'none' || qty <= 0) return 0.08
+
+  const normalizedTolerance = Math.max(1, Math.trunc(tolerance || 1))
+  const ratio = qty / normalizedTolerance
+  let value = 0
+
+  if (ratio <= 1) value = 0.16 + ratio * 0.20
+  else if (ratio <= 2) value = 0.36 + (ratio - 1) * 0.30
+  else value = 0.66 + Math.min(ratio - 2, 2) * 0.16
+
+  const floorByLevel: Record<PhytoIndexLevel, number> = {
+    none: 0.08,
+    low: 0.28,
+    medium: 0.62,
+    high: 0.88,
+  }
+
+  return clamp01(Math.max(value, floorByLevel[level]))
+}
+
+function diseaseHeatValue(level: PhytoIndexLevel): number {
+  const valueByLevel: Record<PhytoIndexLevel, number> = {
+    none: 0.08,
+    low: 0.38,
+    medium: 0.66,
+    high: 0.92,
+  }
+  return valueByLevel[level]
+}
+
 
 type HoverInfo = {
   lon: number
@@ -313,22 +231,16 @@ export function PhytoMap({
   const [popup, setPopup] = useState<HoverInfo | null>(null)
   const [photoModal, setPhotoModal] = useState<string | null>(null)
   const [noteModal, setNoteModal] = useState<string | null>(null)
-  // Modo de pintado de las manchas: 'heat' (difuminado) vs 'disc' (círculos geográficos).
   const [renderMode, setRenderMode] = useState<'heat' | 'disc'>('heat')
-  // Panel de ayuda (icono (i) de la leyenda) con la interpretación de cada color.
+  const [heatIndex, setHeatIndex] = useState<'pest' | 'disease'>('pest')
   const [showInfo, setShowInfo] = useState(false)
-  // Permite contraer Presencia / Superficie / Visualización para liberar mapa.
   const [legendCollapsed, setLegendCollapsed] = useState(false)
-  // Los Marker de react-map-gl son HTML y no escalan con la geografía. Guardamos zoom
-  // para reducirlos al alejarnos y evitar círculos enormes en vistas generales.
   const [mapZoom, setMapZoom] = useState(18)
 
   const plotGeojson = plot?.geometry
+  const plotRing = plot?.geometry?.coordinates?.[0] as number[][] | undefined
 
-  // Agrupa por pcp_oid cuando existe (es el identificador del punto de la app móvil)
-  // y cae a coordenada para capturas antiguas. Así varias plagas/enfermedades del mismo
-  // punto comparten un único marcador P/E, sin perder la lógica original de Presencia.
-  const { groups, pointsFC, heatPointsFC, indexMarkers } = useMemo(() => {
+  const { groups, pointsFC, indexMarkers } = useMemo(() => {
     type GroupData = {
       items: PhytoCheckpointProps[]
       coords: [number, number]
@@ -337,12 +249,12 @@ export function PhytoMap({
 
     const grouped: Record<string, GroupData> = {}
     if (fc) {
-      for (const f of fc.features) {
-        const pcpOid = f.properties.pcp_oid ?? null
-        const coords = f.geometry.coordinates
+      for (const feature of fc.features) {
+        const pcpOid = feature.properties.pcp_oid ?? null
+        const coords = feature.geometry.coordinates
         const key = pcpOid != null ? `oid:${pcpOid}` : `coord:${coords.join(',')}`
         const group = (grouped[key] ??= { items: [], coords, pcpOid })
-        group.items.push(f.properties)
+        group.items.push(feature.properties)
       }
     }
 
@@ -352,7 +264,7 @@ export function PhytoMap({
     const rawMarkers = entries.map(([key, group]) => {
       const pest = computePestIndex(group.items, pestTolerance)
       const diseaseLevel = computeDiseaseIndex(group.items)
-      const heatLevel = worstIndexLevel(pest.level, diseaseLevel)
+      const worstLevel = worstIndexLevel(pest.level, diseaseLevel)
       return {
         key,
         coords: group.coords,
@@ -361,37 +273,20 @@ export function PhytoMap({
         pestQty: pest.qty,
         pestLevel: pest.level,
         diseaseLevel,
-        heatLevel,
+        worstLevel,
+        pestHeatValue: pestHeatValue(pest.qty, pestTolerance, pest.level),
+        diseaseHeatValue: diseaseHeatValue(diseaseLevel),
       }
     })
 
-    // Heatmap combinado P/E: cualquier presencia relevante (incluida enfermedad baja)
-    // produce una mancha. El nivel más severo entre P y E determina su peso.
-    const heatFeatures = rawMarkers
-      .filter((marker) => marker.heatLevel !== 'none')
-      .map((marker) => ({
-        type: 'Feature' as const,
-        geometry: { type: 'Point' as const, coordinates: marker.coords },
-        properties: {
-          key: marker.key,
-          heat_level: marker.heatLevel,
-          heat_weight: HEAT_LEVEL_WEIGHT[marker.heatLevel],
-          presence_status: indexLevelToPresence(marker.heatLevel),
-          count: marker.items.length,
-        },
-      }))
-
-    // La tarjeta "Superficie con problemas" conserva su criterio fuerte: solo niveles
-    // medio/alto. Así una enfermedad/plaga baja sí se ve amarilla en el heatmap, pero no
-    // se contabiliza como superficie problemática hasta llegar a advertencia/crítica.
     const problemFeatures = rawMarkers
-      .filter((marker) => marker.heatLevel === 'medium' || marker.heatLevel === 'high')
+      .filter((marker) => marker.worstLevel === 'medium' || marker.worstLevel === 'high')
       .map((marker) => ({
         type: 'Feature' as const,
         geometry: { type: 'Point' as const, coordinates: marker.coords },
         properties: {
           key: marker.key,
-          presence_status: indexLevelToPresence(marker.heatLevel),
+          presence_status: indexLevelToPresence(marker.worstLevel),
           count: marker.items.length,
         },
       }))
@@ -418,59 +313,66 @@ export function PhytoMap({
         type: 'FeatureCollection' as const,
         features: problemFeatures,
       },
-      heatPointsFC: {
-        type: 'FeatureCollection' as const,
-        features: heatFeatures,
-      },
       indexMarkers: markers,
     }
   }, [fc])
 
-  // Opción B: un polígono circular geográfico por punto con peligro (escala con el zoom
-  // como la parcela). Deriva de pointsFC; solo se usa en renderMode 'disc'.
+  const heatSourcePoints = useMemo<PhytoHeatPoint[]>(() => {
+    return indexMarkers.map((marker) => ({
+      lon: marker.coords[0],
+      lat: marker.coords[1],
+      value: heatIndex === 'pest' ? marker.pestHeatValue : marker.diseaseHeatValue,
+    }))
+  }, [indexMarkers, heatIndex])
+
+  const heatSurface = useMemo(() => {
+    if (!plotRing || heatSourcePoints.length === 0) return null
+    return buildPhytoHeatSurface(heatSourcePoints, plotRing)
+  }, [heatSourcePoints, plotRing])
+
   const discsFC = useMemo(
     () => ({
       type: 'FeatureCollection' as const,
-      features: pointsFC.features.map((f) => {
-        const [lng, lat] = f.geometry.coordinates as [number, number]
+      features: pointsFC.features.map((feature) => {
+        const [lng, lat] = feature.geometry.coordinates as [number, number]
         return {
           type: 'Feature' as const,
           geometry: {
             type: 'Polygon' as const,
             coordinates: [circlePolygon(lng, lat, PROBLEM_RADIUS_M)],
           },
-          properties: { presence_status: f.properties.presence_status },
+          properties: { presence_status: feature.properties.presence_status },
         }
       }),
     }),
     [pointsFC]
   )
 
-  // Superficie (m²) traducida desde el nº de puntos con peligro (mancha fija de 7.5 m):
-  // problemas = nº puntos × área de mancha (aprox., sin descontar solapes), acotado al
-  // área de la parcela; el resto es "baja / sin monitoreo". Da % sobre superficie, no
-  // sobre conteo (menos ambiguo).
   const surface = useMemo(() => {
-    const ring = plot?.geometry?.coordinates?.[0] as number[][] | undefined
-    const parcela = ring ? polygonAreaM2(ring) : 0
+    const parcelArea = plotRing ? polygonAreaM2(plotRing) : 0
+    if (parcelArea <= 0) return { parcela: 0, problem: 0, healthy: 0 }
+
+    if (heatSurface) {
+      const problem = parcelArea * heatSurface.problemFraction
+      const healthy = Math.max(parcelArea - problem, 0)
+      return { parcela: parcelArea, problem, healthy }
+    }
+
     const problemRaw = pointsFC.features.length * PROBLEM_AREA_M2
-    const problem = parcela > 0 ? Math.min(problemRaw, parcela) : problemRaw
-    const healthy = Math.max(parcela - problem, 0)
-    return { parcela, problem, healthy }
-  }, [plot, pointsFC])
+    const problem = Math.min(problemRaw, parcelArea)
+    const healthy = Math.max(parcelArea - problem, 0)
+    return { parcela: parcelArea, problem, healthy }
+  }, [plotRing, heatSurface, pointsFC])
 
   const mapBounds = useMemo<[number, number, number, number] | null>(() => {
     const plotCoords = plot?.geometry?.coordinates?.[0]
     if (plotCoords && plotCoords.length > 0) return bboxFromCoords(plotCoords as number[][])
     if (fc && fc.features.length > 0) {
-      return bboxFromCoords(fc.features.map((f) => f.geometry.coordinates))
+      return bboxFromCoords(fc.features.map((feature) => feature.geometry.coordinates))
     }
     return null
   }, [plot, fc])
 
-  // Cuando el bbox cambia (e.g. el polígono de la parcela llega después de montar el
-  // mapa), volar al nuevo encuadre. `initialViewState` solo aplica al montar, por eso sin
-  // este efecto el mapa quedaría en la vista por defecto (muy alejada) si la parcela carga tarde.
   useEffect(() => {
     if (!mapRef.current || !mapBounds) return
     mapRef.current.fitBounds(mapBounds, {
@@ -497,9 +399,10 @@ export function PhytoMap({
 
   function handleRenderModeChange(mode: 'heat' | 'disc') {
     setRenderMode(mode)
-    // El detalle del punto pertenece a la vista de discos. Si cambiamos a mapa de calor,
-    // cerramos el panel para que el usuario vea las áreas sin elementos superpuestos.
-    if (mode === 'heat') setPopup(null)
+    if (mode === 'heat') {
+      setHeatIndex('pest')
+      setPopup(null)
+    }
   }
 
   function handleMapMove(event: ViewStateChangeEvent) {
@@ -520,7 +423,6 @@ export function PhytoMap({
       )}
 
       <div className="relative flex-1">
-        {/* Toolbar flotante sobre el mapa (modo visor) */}
         {floatingToolbar && (toolbarStart || toolbarEnd) && (
           <div className="absolute left-2 top-2 z-20 flex flex-wrap items-center gap-2">
             {toolbarStart}
@@ -528,7 +430,6 @@ export function PhytoMap({
           </div>
         )}
 
-        {/* Columna derecha (panel de sesiones + tarjeta de stats) */}
         {sessionsSlot && (
           <div className="absolute bottom-2 right-2 top-2 z-10 flex w-56 flex-col gap-2">
             {sessionsSlot}
@@ -550,8 +451,6 @@ export function PhytoMap({
           </div>
         )}
 
-        {/* Presencia / superficie / selector de visualización. Se puede contraer para
-            liberar espacio sin perder el modo actual. */}
         <div
           className={`absolute z-10 rounded-xl border border-white/80 bg-white/90 text-xs shadow-lg backdrop-blur-md transition-all ${
             sessionsSlot ? 'bottom-2 left-2' : 'right-2 top-2'
@@ -563,14 +462,18 @@ export function PhytoMap({
             <div className="flex items-center gap-1.5">
               <p className="font-medium">Presencia</p>
               <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
-                {renderMode === 'heat' ? 'Calor' : 'Discos'}
+                {renderMode === 'heat'
+                  ? heatIndex === 'pest'
+                    ? 'Calor · Plagas'
+                    : 'Calor · Enfermedades'
+                  : 'Punto'}
               </span>
               {!legendCollapsed && (
                 <button
                   type="button"
                   aria-label="Cómo interpretar cada color"
                   aria-expanded={showInfo}
-                  onClick={() => setShowInfo((s) => !s)}
+                  onClick={() => setShowInfo((state) => !state)}
                   className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
                     showInfo ? 'text-brand' : 'text-muted-foreground'
                   }`}
@@ -591,11 +494,7 @@ export function PhytoMap({
               }}
               className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
             >
-              {legendCollapsed ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
+              {legendCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </button>
           </div>
 
@@ -603,28 +502,28 @@ export function PhytoMap({
             <>
               {showInfo && (
                 <div className="mb-1.5 w-52 space-y-1.5 rounded border bg-background/95 p-2">
-                  {PRESENCE_HELP.map((h) => (
-                    <div key={h.label} className="flex gap-1.5">
+                  {PRESENCE_HELP.map((help) => (
+                    <div key={help.label} className="flex gap-1.5">
                       <span
                         className="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                        style={{ backgroundColor: h.color }}
+                        style={{ backgroundColor: help.color }}
                       />
                       <p className="text-[11px] leading-snug">
-                        <span className="font-medium">{h.label}:</span>{' '}
-                        <span className="text-muted-foreground">{h.text}</span>
+                        <span className="font-medium">{help.label}:</span>{' '}
+                        <span className="text-muted-foreground">{help.text}</span>
                       </p>
                     </div>
                   ))}
                 </div>
               )}
 
-              {(['critical', 'warning'] as const).map((k) => (
-                <div key={k} className="flex items-center gap-1.5">
+              {(['critical', 'warning'] as const).map((key) => (
+                <div key={key} className="flex items-center gap-1.5">
                   <span
                     className="inline-block h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: PRESENCE_COLOR[k] }}
+                    style={{ backgroundColor: PRESENCE_COLOR[key] }}
                   />
-                  <span className="text-muted-foreground">{PRESENCE_LABEL[k]}</span>
+                  <span className="text-muted-foreground">{PRESENCE_LABEL[key]}</span>
                 </div>
               ))}
               <div className="flex items-center gap-1.5">
@@ -638,7 +537,7 @@ export function PhytoMap({
               {surface.parcela > 0 && (
                 <div className="mt-2 space-y-0.5 border-t pt-1.5">
                   <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Superficie (manchas de {PROBLEM_RADIUS_M} m)
+                    Superficie estimada
                   </p>
                   <div className="flex items-center justify-between gap-3">
                     <span className="flex items-center gap-1.5">
@@ -675,7 +574,7 @@ export function PhytoMap({
                   {(
                     [
                       ['heat', 'Mapa de calor'],
-                      ['disc', 'Discos'],
+                      ['disc', 'Punto'],
                     ] as const
                   ).map(([mode, label]) => (
                     <button
@@ -693,13 +592,42 @@ export function PhytoMap({
                   ))}
                 </div>
               </div>
+
+              {renderMode === 'heat' && (
+                <div className="mt-2 border-t pt-1.5">
+                  <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Índice de calor
+                  </p>
+                  <div className="flex overflow-hidden rounded border">
+                    <button
+                      type="button"
+                      onClick={() => setHeatIndex('pest')}
+                      className={`flex-1 px-2 py-0.5 text-[11px] transition-colors duration-150 ${
+                        heatIndex === 'pest'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-background hover:bg-accent'
+                      }`}
+                    >
+                      Plagas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHeatIndex('disease')}
+                      className={`flex-1 px-2 py-0.5 text-[11px] transition-colors duration-150 ${
+                        heatIndex === 'disease'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-background hover:bg-accent'
+                      }`}
+                    >
+                      Enfermedades
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
 
-        {/* Índices P/E. En vista normal se mantienen apilados a la derecha.
-            En comparación A/B se separan para liberar el centro del mapa:
-            Plagas a la izquierda y Enfermedades a la derecha. */}
         {renderMode === 'disc' &&
           !popup &&
           (comparisonMode ? (
@@ -776,7 +704,25 @@ export function PhytoMap({
           onClick={() => setPopup(null)}
           style={{ width: '100%', height: '100%' }}
         >
-          {/* Parcela — relleno verde base */}
+          {renderMode === 'heat' && heatSurface && (
+            <Source
+              id="phyto-heat-surface"
+              type="image"
+              url={heatSurface.dataUrl}
+              coordinates={heatSurface.coordinates}
+            >
+              <Layer
+                id="phyto-heat-surface-raster"
+                type="raster"
+                paint={{
+                  'raster-opacity': 0.88,
+                  'raster-resampling': 'nearest',
+                  'raster-fade-duration': 0,
+                }}
+              />
+            </Source>
+          )}
+
           {plotGeojson && (
             <Source id="plot" type="geojson" data={plotGeojson}>
               <Layer
@@ -784,15 +730,13 @@ export function PhytoMap({
                 type="fill"
                 paint={{
                   'fill-color': HEALTHY_GREEN,
-                  'fill-opacity': renderMode === 'heat' ? 0.035 : 0.32,
+                  'fill-opacity': renderMode === 'heat' ? 0.02 : 0.32,
                 }}
               />
-              {/* Doble contorno: blanco exterior + verde interior. Hace visible el lote
-                  sobre imágenes satelitales claras u oscuras sin tapar el cultivo. */}
               <Layer
                 id="plot-line-halo"
                 type="line"
-                paint={{ 'line-color': 'rgba(255,255,255,0.92)', 'line-width': 5 }}
+                paint={{ 'line-color': 'rgba(255,255,255,0.94)', 'line-width': 5 }}
               />
               <Layer
                 id="plot-line"
@@ -802,9 +746,6 @@ export function PhytoMap({
             </Source>
           )}
 
-          {/* Opción B — Discos geográficos (metros) por punto con peligro; escalan con el
-              zoom idéntico a la parcela. Color por peor presencia del punto. Se declaran
-              ANTES de los marcadores para quedar por debajo de ellos. */}
           {renderMode === 'disc' && discsFC.features.length > 0 && (
             <Source id="cp-disc-src" type="geojson" data={discsFC}>
               <Layer
@@ -827,42 +768,29 @@ export function PhytoMap({
             </Source>
           )}
 
-          {/* Opción A — Mapa de calor combinado P/E. `heatPointsFC` está agrupado
-              por pcp_oid/coordenada e incluye plagas Y enfermedades. El halo muestra también
-              niveles bajos; el núcleo rojo se reserva a medio/alto. */}
-          {renderMode === 'heat' && heatPointsFC.features.length > 0 && (
-            <Source id="cp-heat-src" type="geojson" data={heatPointsFC}>
-              {/* Halo amplio: hace visible el área de influencia sin esconder la ortofoto. */}
-              <Layer
-                id="cp-heat-halo"
-                type="heatmap"
-                paint={{
-                  'heatmap-weight': HEAT_WEIGHT as never,
-                  'heatmap-color': HEAT_HALO_COLOR as never,
-                  'heatmap-radius': HEAT_HALO_RADIUS as never,
-                  'heatmap-intensity': 3.4,
-                  'heatmap-opacity': 0.96,
-                }}
-              />
-              {/* Núcleo concentrado: refuerza naranja/rojo y evita que los puntos críticos
-                  se pierdan cuando hay poca densidad o el mapa está muy acercado. */}
-              <Layer
-                id="cp-heat-core"
-                type="heatmap"
-                filter={['!=', ['get', 'heat_level'], 'low'] as never}
-                paint={{
-                  'heatmap-weight': HEAT_WEIGHT as never,
-                  'heatmap-color': HEAT_CORE_COLOR as never,
-                  'heatmap-radius': HEAT_CORE_RADIUS as never,
-                  'heatmap-intensity': 6.5,
-                  'heatmap-opacity': 1,
-                }}
-              />
-            </Source>
-          )}
+          {renderMode === 'heat' &&
+            indexMarkers.map((marker) => (
+              <Marker
+                key={`heat-${marker.key}`}
+                longitude={marker.coords[0]}
+                latitude={marker.coords[1]}
+                anchor="center"
+              >
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    openPointPopup(marker)
+                  }}
+                  className="group relative focus-visible:outline-none"
+                  aria-label={`Punto ${marker.displayNumber}. P: ${PEST_INDEX_LABEL[marker.pestLevel]}. E: ${DISEASE_INDEX_LABEL[marker.diseaseLevel]}.`}
+                  title={`Punto ${marker.displayNumber}`}
+                >
+                  <span className="block h-2.5 w-2.5 rounded-full border border-white bg-black shadow-sm transition-transform group-hover:scale-125" />
+                </button>
+              </Marker>
+            ))}
 
-          {/* Los puntos P/E pertenecen exclusivamente a la vista Discos. En heatmap
-              se ocultan para que la lectura de áreas no quede tapada por marcadores. */}
           {renderMode === 'disc' &&
             indexMarkers.map((marker) => (
               <Marker
@@ -930,11 +858,10 @@ export function PhytoMap({
         )}
       </div>
 
-      {/* Modal de foto completa */}
       <Dialog
         open={!!photoModal}
-        onOpenChange={(o) => {
-          if (!o) setPhotoModal(null)
+        onOpenChange={(open) => {
+          if (!open) setPhotoModal(null)
         }}
       >
         <DialogContent className="max-w-3xl p-2">
@@ -949,11 +876,10 @@ export function PhytoMap({
         </DialogContent>
       </Dialog>
 
-      {/* Modal de nota */}
       <Dialog
         open={!!noteModal}
-        onOpenChange={(o) => {
-          if (!o) setNoteModal(null)
+        onOpenChange={(open) => {
+          if (!open) setNoteModal(null)
         }}
       >
         <DialogContent className="max-w-md">
