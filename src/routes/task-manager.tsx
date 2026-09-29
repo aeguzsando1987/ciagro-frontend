@@ -28,9 +28,9 @@ export const taskManagerEntryRoute = createRoute({
   beforeLoad: () => {
     const user = useAuthStore.getState().user
     const level = user?.role_level ?? ROLE_LEVELS.GUEST
-    // Mismo guard que /w/$dc/task-manager: sin esto, un tecnico acabaria rebotado por
-    // el guard de destino despues de una redireccion inutil.
-    if (level < ROLE_LEVELS.SUPERVISOR) {
+    // Mismo guard que /w/$dc/task-manager: sin esto, un supervisor acabaria rebotado
+    // por el guard de destino despues de una redireccion inutil.
+    if (level < ROLE_LEVELS.SUPER_ADMIN) {
       throw redirect({ to: '/visor-datos' })
     }
 

@@ -39,11 +39,20 @@ describe('ProductSidebar sin CIAgro determinada', () => {
     // Sus datos son de UNA CIAgro concreta, pero elegirla dejo de costar dos pantallas
     // (FASE TS): /task-manager resuelve el alcance y solo pregunta si hace falta. Lo
     // que no puede es desaparecer del menu.
-    montarSinDc(ROLE_LEVELS.SUPERVISOR)
+    montarSinDc(ROLE_LEVELS.SUPER_ADMIN)
     await waitFor(() => expect(screen.getByText('Task Manager')).toBeInTheDocument())
     const enlace = screen.getByText('Task Manager').closest('a')
     expect(enlace).toHaveAttribute('href', '/task-manager')
     expect(enlace?.getAttribute('href')).not.toContain('/workspaces')
+  })
+
+  it('el Task Manager no se pinta por debajo de SuperAdmin', async () => {
+    // El modulo quedo restringido a administracion. El item tiene que desaparecer, no
+    // solo rebotar al pulsarlo: un enlace visible que redirige es un callejon sin salida.
+    montarSinDc(ROLE_LEVELS.MANAGER)
+    // Control positivo: el menu esta montado antes de afirmar la ausencia.
+    await waitFor(() => expect(screen.getByText('Visor agrícola')).toBeInTheDocument())
+    expect(screen.queryByText('Task Manager')).not.toBeInTheDocument()
   })
 
   it('el Visor lleva al Visor sin CIAgro fija', async () => {

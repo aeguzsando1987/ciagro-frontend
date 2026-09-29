@@ -58,7 +58,9 @@ const taskManagerSearchSchema = z.object({
 /**
  * Ruta /w/$dc/task-manager (paso 2.1 del product-doc Flujo 2).
  *
- * Guard de rol: Supervisor+ (level >= 3). Regla critica #5: usa ROLE_LEVELS, no hardcodea.
+ * Guard de rol: SuperAdmin (level 5). El modulo entero es de administracion, asi que la
+ * puerta es la misma para entrar y para operar. Regla critica #5: usa ROLE_LEVELS, no
+ * hardcodea.
  * Loader: precarga GET /field_ops/master-programs/?datacentral=<dc>.
  * Reactivo a search params via loaderDeps (refetch automatico al cambiar filtros).
  */
@@ -69,7 +71,7 @@ export const workspaceTaskManagerRoute = createRoute({
   beforeLoad: ({ params }) => {
     const user = useAuthStore.getState().user
     const level = user?.role_level ?? ROLE_LEVELS.GUEST
-    if (level < ROLE_LEVELS.SUPERVISOR) {
+    if (level < ROLE_LEVELS.SUPER_ADMIN) {
       throw redirect({ to: '/w/$dc/visor', params: { dc: params.dc } })
     }
   },
@@ -127,10 +129,9 @@ function TaskManagerPage() {
     rememberDc(dc)
   }, [dc])
 
-  const isManager = (user?.role_level ?? 0) >= ROLE_LEVELS.MANAGER
-  const isSuperAdmin = (user?.role_level ?? 0) >= ROLE_LEVELS.SUPER_ADMIN
-  const isOwnerOfThisDc = user?.datacentrals.some((d) => d.id === dc && d.is_owner) ?? false
-  const canCreateMaster = isSuperAdmin || isOwnerOfThisDc
+  // Ya no se afina el permiso por accion: el `beforeLoad` solo deja entrar a SuperAdmin,
+  // asi que aqui dentro todo el mundo puede crear. Antes se combinaba `isSuperAdmin` con
+  // la propiedad de la CIAgro, que ahora seria siempre cierto y solo despistaria.
 
   const {
     data: masters,
@@ -198,11 +199,9 @@ function TaskManagerPage() {
             Planificación y seguimiento de programas, subprogramas y sesiones de campo.
           </p>
         </div>
-        {canCreateMaster && (
-          <Button size="sm" onClick={() => setCreateMasterOpen(true)}>
-            + Nuevo
-          </Button>
-        )}
+        <Button size="sm" onClick={() => setCreateMasterOpen(true)}>
+          + Nuevo
+        </Button>
       </header>
 
       <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
@@ -258,8 +257,8 @@ function TaskManagerPage() {
       {error && <p className="text-destructive">Error al cargar los programas.</p>}
       {masters && masters.length === 0 && !isLoading && (
         <p className="text-muted-foreground">
-          No hay programas en este workspace todavía.
-          {isManager && ' Usa el botón "+ Nuevo" para crear el primero.'}
+          No hay programas en este workspace todavía. Usa el botón "+ Nuevo" para crear el
+          primero.
         </p>
       )}
       {masters && masters.length > 0 && (

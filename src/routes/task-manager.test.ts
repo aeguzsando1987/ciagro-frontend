@@ -18,8 +18,8 @@ const BASE_USER: AuthUser = {
   id: 'u1',
   username: 'test',
   email: 'test@test.com',
-  role_name: 'Supervisor',
-  role_level: ROLE_LEVELS.SUPERVISOR,
+  role_name: 'SuperAdmin',
+  role_level: ROLE_LEVELS.SUPER_ADMIN,
   requires_password_change: false,
   datacentrals: [],
 }
@@ -84,13 +84,14 @@ describe('entrada /task-manager', () => {
     expect(destinoDe()).toEqual({ to: '/w/$dc/task-manager', params: { dc: 'dc-a' } })
   })
 
-  it('un rol por debajo de Supervisor se va al Visor, no al selector', () => {
+  it('un rol por debajo de SuperAdmin se va al Visor, no al selector', () => {
     // El guard de /w/$dc/task-manager lo rebotaria igual: redirigirlo aqui evita el
-    // rebote y deja el motivo en un solo sitio.
+    // rebote y deja el motivo en un solo sitio. Se prueba con Gerente, el rol mas alto
+    // de los excluidos: si el corte se relajara un escalon, este es el que lo delata.
     useAuthStore.setState({
       user: {
         ...BASE_USER,
-        role_level: ROLE_LEVELS.TECHNICIAN,
+        role_level: ROLE_LEVELS.MANAGER,
         datacentrals: [makeDataCentral({ id: 'dc-1' })],
       },
     })

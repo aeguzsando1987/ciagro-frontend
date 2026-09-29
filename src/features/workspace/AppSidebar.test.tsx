@@ -44,14 +44,16 @@ describe('AppSidebar — navegación global por role_level', () => {
     expect(screen.queryByText('Catálogos')).not.toBeInTheDocument()
   })
 
-  it('SUPERVISOR (level 3): muestra visor, tareas y gestión permitida', async () => {
+  it('SUPERVISOR (level 3): muestra visor y gestión permitida, pero no el Task Manager', async () => {
     useAuthStore.setState({ user: { ...BASE_USER, role_level: 3 } })
     renderInWorkspaceRoute(AppSidebar)
 
     await waitFor(() => screen.getByText('Visor agrícola'))
 
     expect(screen.getByText('Visor agrícola')).toBeInTheDocument()
-    expect(screen.getByText('Task Manager')).toBeInTheDocument()
+    // El Task Manager quedo restringido a SuperAdmin: abre el grupo "Gestion" pero no
+    // el modulo, que es lo que antes venia de la mano con el nivel de Supervisor.
+    expect(screen.queryByText('Task Manager')).not.toBeInTheDocument()
     expect(screen.getByText('Agrounidades')).toBeInTheDocument()
     expect(screen.getByText('Catálogos')).toBeInTheDocument()
     expect(screen.queryByText('Organizaciones')).not.toBeInTheDocument()
@@ -65,7 +67,7 @@ describe('AppSidebar — navegación global por role_level', () => {
     await waitFor(() => screen.getByText('Visor agrícola'))
 
     expect(screen.getByText('Visor agrícola')).toBeInTheDocument()
-    expect(screen.getByText('Task Manager')).toBeInTheDocument()
+    expect(screen.queryByText('Task Manager')).not.toBeInTheDocument()
     expect(screen.getByText('Organizaciones')).toBeInTheDocument()
     expect(screen.getByText('Variables')).toBeInTheDocument()
     expect(screen.queryByText('Usuarios')).not.toBeInTheDocument()
@@ -81,5 +83,8 @@ describe('AppSidebar — navegación global por role_level', () => {
     expect(screen.getByText('Usuarios')).toBeInTheDocument()
     expect(screen.getByText('Activos agrícolas')).toBeInTheDocument()
     expect(screen.getByText('Variables')).toBeInTheDocument()
+    // Unico rol que alcanza el modulo. Se afirma aqui para que ningun test deje el
+    // enlace sin cubrir en positivo despues de restringirlo en los cuatro de arriba.
+    expect(screen.getByText('Task Manager')).toBeInTheDocument()
   })
 })

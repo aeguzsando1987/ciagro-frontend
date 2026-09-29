@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, search }: { children: React.ReactNode; search: Record<string, unknown> }) => (
@@ -27,8 +27,31 @@ vi.mock('@/features/task-manager/hooks/useMasterTree', () => ({
 }))
 
 import { SoilMapSessionInfoCard } from './SoilMapSessionInfoCard'
+import { useAuthStore } from '@/features/auth/useAuthStore'
+import { ROLE_LEVELS } from '@/lib/auth/roles'
+
+/**
+ * El usuario en sesion decide si los enlaces al Task Manager se pintan: el modulo quedo
+ * restringido a SuperAdmin. Se fija por test y no en un `beforeEach` global para que el
+ * caso del rol sin acceso pueda pedir lo contrario.
+ */
+function sesionCon(roleLevel: number) {
+  useAuthStore.setState({
+    user: {
+      id: 'u1',
+      username: 'test',
+      email: 'test@test.com',
+      role_name: 'test',
+      role_level: roleLevel,
+      requires_password_change: false,
+      datacentrals: [],
+    },
+  })
+}
 
 describe('SoilMapSessionInfoCard', () => {
+  beforeEach(() => sesionCon(ROLE_LEVELS.SUPER_ADMIN))
+
   it('muestra la sesión de suelo encima del mapa con sus enlaces', () => {
     render(<SoilMapSessionInfoCard sessionId="soil-1" datacentralId="dc-1" />)
 
@@ -48,5 +71,13 @@ describe('SoilMapSessionInfoCard', () => {
       openMaster: 'master-1',
       openSesionType: 'soil_map',
     })
+  })
+
+  it('sin rol SuperAdmin no ofrece enlaces al Task Manager', () => {
+    sesionCon(ROLE_LEVELS.SUPERVISOR)
+    render(<SoilMapSessionInfoCard sessionId="soil-1" datacentralId="dc-1" />)
+    expect(screen.getByText(/Sesión 2026-07-23/)).toBeInTheDocument()
+    expect(screen.queryByText(/Ver sesión/)).toBeNull()
+    expect(screen.queryByText(/Programa maestro/)).toBeNull()
   })
 })
