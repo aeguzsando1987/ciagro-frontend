@@ -119,13 +119,13 @@ beforeEach(() => {
 })
 
 describe('CreateSessionDialog — fitosanitario', () => {
-  it('muestra el umbral económico de plagas por punto y permite cambiar el nivel', async () => {
+  it('muestra el umbral de tolerancia de plagas por punto y permite cambiar el nivel', async () => {
     const user = userEvent.setup()
     renderDialog()
 
     await selectSessionType(user, 'Fitosanitario')
 
-    expect(screen.getByRole('radiogroup', { name: /Umbral económico de plagas por punto/i })).toBeInTheDocument()
+    expect(screen.getByRole('radiogroup', { name: /Umbral de tolerancia de plagas por punto/i })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: '1' })).toHaveAttribute('aria-checked', 'true')
 
     await user.click(screen.getByRole('radio', { name: '2' }))
