@@ -146,10 +146,11 @@ export function buildPhytoHeatSurface(
   const values = new Float32Array(width * height)
   values.fill(Number.NaN)
 
-  // Con 1 o 2 puntos no hay suficientes muestras para estimar toda la parcela con
-  // confianza. Por eso solo pintamos una zona local de influencia alrededor de las
-  // muestras. El resto queda transparente y se conserva el verde base de la parcela.
-  // Con 3 o más puntos sí se interpola toda la parcela.
+  // Máscara estricta de la superficie válida. Se vuelve a aplicar después del
+  // suavizado para evitar que el blur pinte fuera de los vértices de la parcela
+  // o fuera de la zona local cuando solo hay 1 o 2 muestras.
+  const surfaceMask = new Uint8Array(width * height)
+
   const sparseSampling = points.length <= 2
   const parcelDiagonal = Math.hypot(geoWidth, geoHeight)
   const influenceRadius = parcelDiagonal * (points.length === 1 ? 0.16 : 0.20)
@@ -170,7 +171,9 @@ export function buildPhytoHeatSurface(
         if (nearestDistance > influenceRadius) continue
       }
 
-      values[row * width + col] = idwValue(lon, lat, points, cosLat)
+      const cellIndex = row * width + col
+      values[cellIndex] = idwValue(lon, lat, points, cosLat)
+      surfaceMask[cellIndex] = 1
     }
   }
 
@@ -193,6 +196,13 @@ export function buildPhytoHeatSurface(
 
   for (let i = 0; i < smoothed.length; i++) {
     const offset = i * 4
+
+    // Reaplica la máscara original después del blur.
+    if (surfaceMask[i] === 0) {
+      image.data[offset + 3] = 0
+      continue
+    }
+
     const value = smoothed[i]!
     if (Number.isNaN(value)) {
       image.data[offset + 3] = 0

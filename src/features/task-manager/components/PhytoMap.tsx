@@ -768,29 +768,6 @@ export function PhytoMap({
             </Source>
           )}
 
-          {renderMode === 'heat' &&
-            indexMarkers.map((marker) => (
-              <Marker
-                key={`heat-${marker.key}`}
-                longitude={marker.coords[0]}
-                latitude={marker.coords[1]}
-                anchor="center"
-              >
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    openPointPopup(marker)
-                  }}
-                  className="group relative focus-visible:outline-none"
-                  aria-label={`Punto ${marker.displayNumber}. P: ${PEST_INDEX_LABEL[marker.pestLevel]}. E: ${DISEASE_INDEX_LABEL[marker.diseaseLevel]}.`}
-                  title={`Punto ${marker.displayNumber}`}
-                >
-                  <span className="block h-2.5 w-2.5 rounded-full border border-white bg-black shadow-sm transition-transform group-hover:scale-125" />
-                </button>
-              </Marker>
-            ))}
-
           {renderMode === 'disc' &&
             indexMarkers.map((marker) => (
               <Marker
