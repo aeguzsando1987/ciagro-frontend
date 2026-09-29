@@ -245,3 +245,62 @@ describe('classTransitionRatio', () => {
     expect(classTransitionRatio(ruido, W, H, cls)).toBeGreaterThan(0.4)
   })
 })
+
+/**
+ * FASE CN: la superficie no puede salirse de la parcela.
+ *
+ * El recorte era solo al casco convexo de los puntos, asi que una malla Sentinel de 10 m
+ * pintaba el rectangulo completo. Ahora enmascara con casco Y anillo de la parcela.
+ */
+describe('recorte al poligono de la parcela', () => {
+  // Nube que cubre 0..1 en las dos coordenadas: desborda el anillo por los cuatro lados.
+  const pts: InterpPoint[] = []
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      pts.push({ lon: i / 7, lat: j / 7, value: 0.3 + (i + j) / 28 })
+    }
+  }
+  // Cuadrado central: con un anillo rectangular el test de caja equivale al del anillo.
+  const ring: number[][] = [[0.25, 0.25], [0.75, 0.25], [0.75, 0.75], [0.25, 0.75], [0.25, 0.25]]
+
+  function celdasFuera(f: NonNullable<ReturnType<typeof buildValueGrid>>) {
+    let fuera = 0
+    for (let row = 0; row < f.h; row++) {
+      const lat = f.ymax - (row / (f.h - 1)) * (f.ymax - f.ymin)
+      for (let col = 0; col < f.w; col++) {
+        const lon = f.xmin + (col / (f.w - 1)) * (f.xmax - f.xmin)
+        if (Number.isNaN(f.grid[row * f.w + col]!)) continue
+        if (lon < 0.25 || lon > 0.75 || lat < 0.25 || lat > 0.75) fuera++
+      }
+    }
+    return fuera
+  }
+
+  it('con anillo, ninguna celda con valor cae fuera de la parcela', () => {
+    const f = buildValueGrid(pts, 'idw', 120, DEFAULT_SMOOTHING_FACTOR, ring)
+    if (!f) throw new Error('sin superficie')
+    expect(celdasFuera(f)).toBe(0)
+  })
+
+  it('el suavizado no derrama valores fuera del anillo', () => {
+    // blurGrid escribe en celdas que eran NaN: sin reponer la mascara, el derrame
+    // reaparece a radius celdas por pase. Con un suavizado alto el efecto se amplifica.
+    const f = buildValueGrid(pts, 'idw', 120, DEFAULT_SMOOTHING_FACTOR * 4, ring)
+    if (!f) throw new Error('sin superficie')
+    expect(celdasFuera(f)).toBe(0)
+  })
+
+  it('sin anillo la superficie si desborda (el test no es vacuo)', () => {
+    const f = buildValueGrid(pts, 'idw', 120, DEFAULT_SMOOTHING_FACTOR)
+    if (!f) throw new Error('sin superficie')
+    expect(celdasFuera(f)).toBeGreaterThan(0)
+  })
+
+  it('deja area dentro de la parcela', () => {
+    const f = buildValueGrid(pts, 'idw', 120, DEFAULT_SMOOTHING_FACTOR, ring)
+    if (!f) throw new Error('sin superficie')
+    let conValor = 0
+    for (let i = 0; i < f.grid.length; i++) if (!Number.isNaN(f.grid[i]!)) conValor++
+    expect(conValor).toBeGreaterThan(0)
+  })
+})

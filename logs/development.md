@@ -3617,3 +3617,189 @@ rama pese a haber ramificado desde `master`, así que el merge no inventó nada 
 absorbió el commit de merge de CL-F/HM que `master` tenía de más: **queda resuelto el desajuste que
 se detectó al arrancar esta sesión**, y la relación vuelve a ser la sana, con `dev` por delante de
 `master` y nunca al revés.
+
+---
+
+## FASE SN-F — Importación automática de NDVI desde Sentinel-2 (frontend, 2026-09-18)
+
+Rama `dev-ndvi-sentinel`, nacida de `dev`. Antes de ramificar se comprobó que
+`git diff origin/dev origin/master` sale **vacío**: los tres commits que `master` llevaba de más
+eran merges de `dev`, así que la relación sana que dejó la FASE TS sigue intacta y no hizo falta
+ninguna excepción a la convención 2.
+
+### Qué entrega
+
+La FASE SN (backend) dejó funcionando un segundo pipeline que trae los índices vegetativos de
+Sentinel-2 y los escribe en **las mismas tablas** que el importador CSV, pero no había forma de
+dispararlo desde la interfaz: solo existía por HTTP. Esta fase pone la acción en el modal de la
+sesión NDVI y, sobre todo, **hace visible de dónde vienen los datos**.
+
+### Lo que NO se tocó, y es el criterio de éxito de la fase anterior
+
+Visor, coropletas, `variable-stats` y línea de tiempo funcionan sobre datos de Sentinel **sin un
+solo cambio**. No hay una sola rama por fuente en el pipeline de render. Lo que sí se agregó es la
+procedencia, que es otra cosa: que el render sea idéntico es el objetivo cumplido; ocultarle al
+agrónomo de dónde vino el dato habría sido el defecto (`GAP-SN-006`).
+
+### Por qué dos pasos y no uno
+
+Una fecha pedida no implica que haya habido pasada del satélite ese día: la revisita es de ~5 días
+y además hay nubes. En la prueba real contra CDSE, pidiendo el 2024-10-25, el catálogo devolvió tres
+adquisiciones con delta de −5, 0 y +5 días, una de ellas con 42% de nubes. Si el sistema eligiera
+"la más cercana" por su cuenta, el agrónomo no vería qué se descartó ni por qué. La lista con
+distancia en días y nubosidad **es** el valor de la fase, no un trámite previo a importar.
+
+### Lo que salió gratis
+
+`useNdviSessionDetail` ya hacía polling cada 2.5 s mientras `import_status` vale `processing`. La
+importación desde satélite hereda el seguimiento **sin una línea de polling nueva**: basta con
+marcar ese estado de forma optimista, exactamente como ya hacía el importador CSV.
+
+### Un bug que destapó una pregunta del desarrollador, no los tests
+
+Al preguntar el dev si el análisis toma la fecha estimada o la real —y aclarar que el caso de uso
+es traer datos de **una fecha específica**— se encontró que con radio **0** ("solo ese día exacto")
+el hook no mandaba el parámetro `days`, porque `0` es falsy en JavaScript, y el backend aplicaba su
+default de 7 días **en silencio**. El usuario habría visto pasadas de otros días creyendo que pidió
+uno solo, y habría importado una fecha distinta de la pedida sin ninguna señal: no hay error en
+pantalla, solo un resultado que no es el que se pidió. Corregido y con test de regresión verificado
+por mutación.
+
+Para dejarlo dicho, porque volvió a preguntarse: el parámetro de la búsqueda es `session_date`
+("Fecha de la imagen"), **nunca** `est_start_date` ni `act_start_date`, y solo como valor inicial
+editable. Tras importar, `session_date` se sobrescribe siempre con la fecha real de la pasada
+(`tasks.py:1220-1227`), al revés que el CSV: la fecha de la pasada es un hecho medido, no una
+estimación que convenga conservar.
+
+### Dos límites medidos, no olvidos
+
+El origen **no** se puede mostrar en la línea de tiempo ni en el árbol del Task Manager, porque ni
+el payload de la timeline ni `NdviSessionSummarySerializer` incluyen `source`, y esta fase es solo
+frontend. Quedan como `GAP-SN-F-002` y `GAP-SN-F-003`. Sí se muestra en el selector de sesiones del
+visor, que es donde se comparan fechas entre sí y donde `GAP-SN-001` realmente muerde.
+
+### Hallazgo ajeno a la fase, reportado por el dev durante la validación
+
+Las coropletas **se salen del contorno de la parcela**, y no depende de la fuente: `contours.py`
+interpola sobre el `ST_Extent` de los puntos —un rectángulo— y poligoniza esa superficie sin
+cruzarla nunca con `plot.geom`. En las esquinas sin puntos el IDW no interpola, extrapola. Peor
+todavía: con `QUARTILE_ON_RASTER = True` los cortes de cuartiles se calculan sobre ese mismo raster,
+así que la clasificación en bandas está sesgada por superficie que no es la parcela. Con Sentinel se
+nota más porque la malla llena el rectángulo de forma uniforme; con los 1024 puntos dispersos del
+CSV el mismo defecto se disimulaba. Es **backend** y quedó fuera del alcance por decisión del dev:
+registrado como `GAP-SN-F-001` con prioridad alta y el arreglo recomendado (`ST_Clip` del raster
+antes de reclasificar, que corrige geometría y sesgo de una vez).
+
+### Verificación
+
+**796 tests** en 117 archivos (18 nuevos: 11 del diálogo, 5 del modal y 2 del panel del visor),
+cero regresiones, `tsc --noEmit` limpio y linter en la línea base exacta de **33 warnings**. La
+marca de origen del visor y el arreglo del radio 0 se verificaron **por mutación**: al anular el
+comportamiento, sus tests fallan; al restaurarlo, vuelven a verde.
+
+**Prueba manual del desarrollador: validada (2026-09-21).** Se corrió el guion completo: radio 0
+sobre fecha exacta, camino feliz con seguimiento, 409 duplicado con navegación, advertencia de
+reemplazo, marca en el visor y bloqueo por rol. La fase queda cerrada.
+
+La fase se mergeó a `dev` por avance rápido y a `master` con merge explícito, en los dos repos a la
+vez: el backend de la FASE SN seguía sin homologar desde el 2026-09-18 y subió en la misma tanda.
+Las ramas `dev-ndvi-sentinel` se quedan locales, sin publicar.
+
+---
+
+## FASE CN (frontend) — El visor recortaba al casco convexo, no a la parcela (2026-09-21)
+
+Rama `dev-ndvi-contour-clip`. La fase nacio como **solo backend** en `CIAgro_alpha_back` para cerrar
+`GAP-SN-F-001`. Se amplio a este repo cuando quedo claro que el defecto que el dev veia en pantalla
+estaba aqui.
+
+### Como se llego a este repo
+
+El backend cerro su arreglo con **0 ha fuera de la parcela**, medido en SQL sobre los 15 indices. El
+dev probo, importo sesiones nuevas de Sentinel y de CSV, y **siguio viendo el desbordamiento**.
+
+La medicion que lo aclaro: solo **una** sesion tenia contornos en la base, la que se recontorneo a
+mano. Las sesiones recien importadas por el dev no generaron ni una fila de `NdviIndexContour`, y aun
+asi el visor pintaba superficie coloreada.
+
+**El visor no dibuja los contornos del backend.** `NdviMap.tsx` importa de
+`lib/ndviInterpolation.ts`, una interpolacion propia del cliente. Los hooks `useNdviContours` y
+`useNdviContourIndices` estan escritos, tipados y con tests, pero **ningun componente los importa**.
+
+Eran **dos defectos independientes**. El del backend era real y quedo corregido, pero invisible.
+
+### El defecto: una regresion, no un olvido
+
+| commit | llamada |
+|---|---|
+| `3d97e4d` (FASE V1-front) | el visor consumia `useNdviContours`: bandas discretas del backend |
+| `7acc560` | lo sustituye por una superficie continua en el cliente. `buildInterpolatedImage(interp, ring)` — **la parcela si se pasaba** |
+| `935e818` | `buildInterpolatedImage(interp)` — **`ring` desaparece de la llamada** |
+
+`935e818` ("recorte al casco convexo de los puntos") **sustituyo** el recorte contra la parcela por
+el recorte contra el casco convexo. Su mensaje lo argumenta y **el razonamiento era correcto**:
+recortar solo a la parcela dejaba "relleno plano extrapolado" donde los puntos cubren una sub-zona.
+El error fue tratarlo como **disyuntiva**:
+
+| mascara | resultado |
+|---|---|
+| Solo casco | la superficie se sale de la parcela (el defecto reportado) |
+| Solo parcela | relleno plano extrapolado donde no hay puntos (lo que `935e818` arreglo) |
+| **Casco interseccion parcela** | los dos problemas resueltos |
+
+Con una malla Sentinel de 10 m el casco convexo **es** practicamente el rectangulo: de ahi el
+derrame limpio. Con CSV disperso el casco se ajusta mas a la nube y el defecto se disimulaba.
+
+`ring` quedo **vestigial**: se seguia calculando desde `plot.geometry`, seguia en las dependencias
+del `useMemo`, y el comentario seguia afirmando "recortada a la parcela". **Esa linea costo una fase
+entera de diagnostico en el lado equivocado**, y por eso se corrigio junto con el docstring del
+modulo, que decia explicitamente lo contrario de lo que el codigo hacia.
+
+### El segundo defecto, encontrado al arreglar el primero
+
+`blurGrid` promedia solo vecinos validos **pero escribe en toda celda donde encuentra al menos un
+vecino valido, incluidas las que eran NaN**. El suavizado se derramaba `radius` celdas por pase, y
+son dos pases. Se repone la mascara despues del blur.
+
+Verificado quitando esa reposicion: **fallan los dos tests de contencion**, no solo el del
+suavizado. Por si solo bastaba para anular el recorte.
+
+### El tercer sintoma, que nadie habia reportado
+
+`buildNdviClassAreas` mide `surface.field`, la misma malla mal enmascarada. **Las hectareas por clase
+que lee el agronomo estaban infladas con superficie que no es la parcela** — el mismo sesgo que el
+backend tenia en los cuartiles, vivo aqui. Queda corregido por arrastre.
+
+### Los dos ajustes que pidio el dev despues
+
+- **Selector de capas agrupado y reducido a 7 indices**: `Ciclo fenologico` (NDVI, MSAVI2, OSAVI,
+  NDRE, PSRI), `Agua` (NDMI), `Contenido de clorofila` (GNDVI). Los otros 8 se siguen importando y
+  guardando; solo dejan de ofrecerse. `INDICES` se deriva de los grupos, asi que el tooltip y la
+  leyenda quedan reducidos al mismo subconjunto sin duplicar la lista.
+- **Atribucion de Copernicus**, con el ano de `session_date` ("Fecha de la imagen NDVI") y
+  `acquisition_datetime` como respaldo. El dev la pidio para todas las sesiones NDVI; **se le
+  senalo que en las de CSV el dato viene de un proveedor externo y atribuirlo a Copernicus y a
+  Sentinel Hub seria falso** (`GAP-SN-001` ya dejo medido que no son datos equivalentes), y acepto
+  condicionarla a `source == 'sentinel2'`. La regla se extrajo a `lib/ndviAttribution.ts` porque
+  probarla dentro del componente habria exigido simular MapLibre entero.
+
+Un tercer pedido, habilitar el boton de **Reportes** en el modal de sesiones NDVI, **se descarto**:
+no es un "volver a habilitar" porque nunca existio, el backend solo tiene dos adapters registrados
+(aspersion y mapeo de suelo) y crear un reporte NDVI responde 400 con "No hay reporteador para
+'ndvi' todavia". El dev confirmo que se habia equivocado.
+
+### Verificacion
+
+- **805 tests** en 118 archivos, todos en verde. `tsc --noEmit` y `eslint` limpios.
+- **9 tests nuevos**: 4 de recorte (uno de ellos comprueba que **sin** el arreglo la superficie si
+  desborda, para que el test no sea vacuo) y 5 de atribucion.
+- **Validado manualmente por el dev** en sesiones existentes y en sesiones nuevas importadas de
+  Sentinel y de CSV: el desbordamiento desaparecio.
+
+### Lo que queda abierto
+
+La duplicidad de interpoladores (`GAP-CN-002` en el backend), con analisis propio en
+`.CLAUDE/ndvi-doble-interpolador-analisis.md`. La recomendacion es **no** unificar motores hasta que
+exista un segundo consumidor real fuera del navegador. Pendiente de decidir: si los hooks muertos
+`useNdviContours` y `useNdviContourIndices` se borran o se comentan, porque codigo muerto tipado y
+con tests parece el camino vivo.

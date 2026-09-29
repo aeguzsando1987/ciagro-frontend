@@ -7690,6 +7690,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/ndvi/headers/{id}/sentinel-preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Adquisiciones Sentinel-2 disponibles para la parcela
+         * @description Lista las pasadas de Sentinel-2 L2A que cubren la parcela de la sesion en una ventana de dias alrededor de la fecha objetivo, con su fecha real, su nubosidad y su distancia en dias respecto a lo pedido. No consume cuota de procesamiento: solo consulta el catalogo.
+         *
+         *     OJO con `cloud_cover`: es la nubosidad del TILE de 110x110 km, no la de la parcela. Sirve como prefiltro; la validez real se decide pixel a pixel al importar.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X GET http://localhost:8500/api/v1/monitoring/ndvi/headers/{id}/sentinel-preview/?target_date=2024-10-25&days=7 \
+         *       -H "Authorization: Bearer $TOKEN"
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @GET("monitoring/ndvi/headers/{id}/sentinel-preview/")
+         *         suspend fun listSentinelAcquisitions(@Path("id") id: String): List<SentinelAcquisition>
+         *     }
+         *
+         *     val result = api.listSentinelAcquisitions(id)
+         *     ```
+         */
+        get: operations["v1_monitoring_ndvi_headers_sentinel_preview_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/ndvi/headers/{id}/sentinel-import/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importar una adquisicion Sentinel-2 a la sesion
+         * @description Encola la descarga de la pasada elegida y la escritura de sus puntos. Los datos caen en la MISMA tabla que el importador CSV, asi que el visor, las estadisticas y la linea de tiempo funcionan sin cambios.
+         *
+         *     Reimportar la misma sesion NO duplica: la tarea reemplaza sus puntos dentro de una transaccion.
+         *
+         *     **Ejemplos**
+         *
+         *     *curl*
+         *     ```bash
+         *     curl -X POST http://localhost:8500/api/v1/monitoring/ndvi/headers/{id}/sentinel-import/ \
+         *       -H "Authorization: Bearer $TOKEN" \
+         *       -H "Content-Type: application/json" \
+         *       -d '{
+         *       "acquisition_id": "S2B_20241025T1728"
+         *     }'
+         *     ```
+         *
+         *     *Kotlin (Retrofit)*
+         *     ```kotlin
+         *     // Requiere ApiClient + AuthInterceptor (ver "Guía para desarrolladores")
+         *     interface ApiService {
+         *         @POST("monitoring/ndvi/headers/{id}/sentinel-import/")
+         *         suspend fun importSentinelAcquisition(@Path("id") id: String): ImportAccepted
+         *     }
+         *
+         *     val result = api.importSentinelAcquisition(id)
+         *     ```
+         */
+        post: operations["v1_monitoring_ndvi_headers_sentinel_import_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/monitoring/ndvi/headers/{id}/stats/": {
         parameters: {
             query?: never;
@@ -10505,6 +10591,9 @@ export interface components {
             /** Format: uri */
             csv_file: string;
         };
+        NdviSentinelImportRequest: {
+            acquisition_id: string;
+        };
         /** @description Encabezado de una sesion de analisis NDVI. */
         NdviSessionHeader: {
             /** Format: uuid */
@@ -10580,6 +10669,30 @@ export interface components {
              * @description Fecha de finalización de importación masiva exitosa
              */
             readonly imported_at: string | null;
+            /**
+             * Origen de los datos
+             * @description Pipeline que poblo los puntos de esta sesion.
+             *
+             *     * `csv` - Importacion CSV
+             *     * `sentinel2` - Sentinel-2 (Copernicus)
+             */
+            readonly source: components["schemas"]["SourceEnum"];
+            /**
+             * Fecha y hora de adquisicion (UTC)
+             * Format: date-time
+             * @description Instante real de la pasada del satelite. Vacio en sesiones de CSV.
+             */
+            readonly acquisition_datetime: string | null;
+            /**
+             * Identificador de la adquisicion
+             * @description Clave estable de la pasada del satelite. Vacio en sesiones de CSV.
+             */
+            readonly acquisition_id: string | null;
+            /**
+             * Metadatos de la adquisicion
+             * @description Trazabilidad de la peticion a Copernicus. Vacio en sesiones de CSV.
+             */
+            readonly acquisition_meta: unknown;
             readonly points_count: string;
             /** Format: date-time */
             readonly created_at: string;
@@ -11815,6 +11928,30 @@ export interface components {
              * @description Fecha de finalización de importación masiva exitosa
              */
             readonly imported_at?: string | null;
+            /**
+             * Origen de los datos
+             * @description Pipeline que poblo los puntos de esta sesion.
+             *
+             *     * `csv` - Importacion CSV
+             *     * `sentinel2` - Sentinel-2 (Copernicus)
+             */
+            readonly source?: components["schemas"]["SourceEnum"];
+            /**
+             * Fecha y hora de adquisicion (UTC)
+             * Format: date-time
+             * @description Instante real de la pasada del satelite. Vacio en sesiones de CSV.
+             */
+            readonly acquisition_datetime?: string | null;
+            /**
+             * Identificador de la adquisicion
+             * @description Clave estable de la pasada del satelite. Vacio en sesiones de CSV.
+             */
+            readonly acquisition_id?: string | null;
+            /**
+             * Metadatos de la adquisicion
+             * @description Trazabilidad de la peticion a Copernicus. Vacio en sesiones de CSV.
+             */
+            readonly acquisition_meta?: unknown;
             readonly points_count?: string;
             /** Format: date-time */
             readonly created_at?: string;
@@ -13725,6 +13862,12 @@ export interface components {
             import_status: string;
             status: string;
         };
+        /**
+         * @description * `csv` - Importacion CSV
+         *     * `sentinel2` - Sentinel-2 (Copernicus)
+         * @enum {string}
+         */
+        SourceEnum: "csv" | "sentinel2";
         /**
          * @description * `huevesillo` - Huevesillo
          *     * `larva` - Larva / Joven
@@ -19589,6 +19732,95 @@ export interface operations {
                 };
             };
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_sentinel_preview_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Radio de busqueda en dias alrededor de la fecha. Default 7. */
+                days?: number;
+                /** @description Nubosidad maxima de tile, en porcentaje. Sin valor, no filtra. */
+                max_cloud?: number;
+                /** @description Fecha deseada. Por defecto, la `session_date` de la sesion. */
+                target_date?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    v1_monitoring_ndvi_headers_sentinel_import_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NdviSentinelImportRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["NdviSentinelImportRequest"];
+                "multipart/form-data": components["schemas"]["NdviSentinelImportRequest"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

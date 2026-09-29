@@ -1,11 +1,14 @@
 /**
  * Interpolación de una superficie continua a partir de puntos, en el CLIENTE.
  *
- * Genera una malla sobre el CASCO CONVEXO de los puntos (su footprint real, no el polígono
- * de la parcela: los puntos suelen cubrir solo una sub-zona), interpola cada celda con IDW y
- * la colorea con una rampa vívida. Devuelve una imagen (dataURL) + las coordenadas de sus
- * esquinas para usarla como `image source` en MapLibre; las celdas fuera del casco quedan
- * transparentes, de modo que el gradiente se recorta al área con datos.
+ * Genera una malla sobre el CASCO CONVEXO de los puntos, interpola cada celda con IDW y la
+ * colorea con una rampa vívida. Devuelve una imagen (dataURL) + las coordenadas de sus
+ * esquinas para usarla como `image source` en MapLibre.
+ *
+ * La mascara es casco Y parcela (parametro `ring`), no uno u otro: el casco evita el relleno
+ * plano extrapolado donde los puntos solo cubren una sub-zona, y el anillo evita que la
+ * superficie se salga de la parcela. Con solo el casco, una malla Sentinel de 10 m pinta el
+ * rectangulo completo.
  *
  * El motor de interpolación (idwValue) está AISLADO: para Kriging real se sustituye esa
  * función sin tocar el resto.
@@ -415,6 +418,7 @@ export function buildValueGrid(
   method: InterpMethod = 'idw',
   gridSize = 260,
   smoothingFactor = DEFAULT_SMOOTHING_FACTOR,
+  ring: number[][] | null = null,
 ): ValueGrid | null {
   if (pts.length < 3) return null
 
@@ -448,13 +452,24 @@ export function buildValueGrid(
   const w = gridSize
   const h = Math.max(1, Math.round((gridSize * (ymax - ymin)) / (xmax - xmin)))
 
-  // FASE 1 — malla de valores (NaN fuera del casco).
+  // FASE 1 — malla de valores (NaN fuera de la mascara).
+  // Casco Y parcela, no uno u otro: el casco evita el relleno plano extrapolado donde no
+  // hay puntos, el anillo evita que la superficie se salga de la parcela. Sin el anillo
+  // una malla Sentinel de 10 m pinta el rectangulo completo.
+  const dentro = ring
+    ? (lon: number, lat: number) => pointInRing(lon, lat, hull) && pointInRing(lon, lat, ring)
+    : (lon: number, lat: number) => pointInRing(lon, lat, hull)
+
   let grid: Float32Array = new Float32Array(w * h)
+  const mask = new Uint8Array(w * h)
   for (let row = 0; row < h; row++) {
     const lat = ymax - (row / (h - 1)) * (ymax - ymin)
     for (let col = 0; col < w; col++) {
       const lon = xmin + (col / (w - 1)) * (xmax - xmin)
-      grid[row * w + col] = pointInRing(lon, lat, hull) ? predictAt(lon, lat) : NaN
+      const i = row * w + col
+      const ok = dentro(lon, lat)
+      mask[i] = ok ? 1 : 0
+      grid[i] = ok ? predictAt(lon, lat) : NaN
     }
   }
 
@@ -464,7 +479,12 @@ export function buildValueGrid(
   const spacing = sampleSpacing(xmax - xmin, ymax - ymin, pts.length)
   const cellSize = (xmax - xmin) / Math.max(1, w - 1)
   const radiusCells = cellSize > 0 ? (spacing * smoothingFactor) / cellSize : 0
-  if (radiusCells >= 1) grid = blurGrid(grid, w, h, radiusCells)
+  if (radiusCells >= 1) {
+    grid = blurGrid(grid, w, h, radiusCells)
+    // blurGrid promedia solo vecinos validos pero ESCRIBE en celdas que eran NaN: el
+    // suavizado se derrama radius celdas por pase. Reponer la mascara.
+    for (let i = 0; i < grid.length; i++) if (!mask[i]) grid[i] = NaN
+  }
 
   return {
     grid, w, h, xmin, xmax, ymin, ymax,
@@ -479,8 +499,9 @@ export function buildInterpolatedImage(
   quartileColors: string[] | null = null,
   gridSize = 260,
   smoothingFactor = DEFAULT_SMOOTHING_FACTOR,
+  ring: number[][] | null = null,
 ): InterpolatedImage | null {
-  const field = buildValueGrid(pts, method, gridSize, smoothingFactor)
+  const field = buildValueGrid(pts, method, gridSize, smoothingFactor, ring)
   if (!field) return null
   const { grid, w, h, xmin, xmax, ymin, ymax } = field
 
