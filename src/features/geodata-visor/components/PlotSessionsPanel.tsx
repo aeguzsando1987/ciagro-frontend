@@ -27,6 +27,7 @@ interface AllowedSessions {
   ndvi?: string[] | null
   soil_map?: string[] | null
   yield_map?: string[] | null
+  planting_map?: string[] | null
 }
 
 interface PlotSessionsPanelProps {
@@ -103,6 +104,7 @@ export function PlotSessionsPanel({
     ndvi: false,
     soil_map: false,
     yield_map: false,
+    planting_map: false,
   })
 
   const sections = useMemo<SessionSection[]>(() => {

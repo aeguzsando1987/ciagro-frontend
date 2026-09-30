@@ -1042,6 +1042,7 @@ const SESSION_ICONS: Record<SessionKind, React.ReactNode> = {
   ndvi: <Leaf className="h-3.5 w-3.5" />,
   soil_map: <FlaskConical className="h-3.5 w-3.5" />,
   yield_map: <Wheat className="h-3.5 w-3.5" />,
+  planting_map: <Sprout className="h-3.5 w-3.5" />,
 }
 
 const SESSION_KIND_TEXT: Record<SessionKind, string> = {
@@ -1050,6 +1051,7 @@ const SESSION_KIND_TEXT: Record<SessionKind, string> = {
   ndvi: 'NDVI',
   soil_map: 'Mapeo de suelo',
   yield_map: 'Rendimiento',
+  planting_map: 'Siembra',
 }
 
 function sessionLabel(session: SearchSessionRef): string {
