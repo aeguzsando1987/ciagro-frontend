@@ -1255,3 +1255,11 @@ reporte NDVI responde 400.
 **Fuera de alcance:** unificar los dos interpoladores (`GAP-CN-002`, con analisis en
 `.CLAUDE/ndvi-doble-interpolador-analisis.md`). La recomendacion es no hacerlo hasta que exista un
 segundo consumidor real fuera del navegador.
+
+## FASE CT (frontend) — Ciclo de Subprograma con cualquier orden de temporadas (rama `dev`, 2026-09-29)
+
+**Estado:** `[✅] DESPLEGADA en producción — 2026-09-29 — front f5e2614, contra back 9f8ab62 (desde dev, sin homologar a master). Acta completa en ../CIAgro_alpha_back/logs/deploy-2026-09-29-ct.md`.
+
+- [x] CT-F1 `cycle.ts`: `isSeason2AfterSeason1` pasa a `isSeason2ValidForSeason1` (solo exige temporadas distintas; espeja el nuevo `validate_cycle`). Se retira `SEASON_ORDER`, que quedo sin uso.
+- [x] CT-F2 `CreateHijoDialog` y `HijoModal`: mensaje "La temporada 2 no puede ser igual a la temporada 1".
+- [x] CT-F3 `cycle.test.ts` nuevo: una temporada, cruce de año, temporadas iguales y ida y vuelta build/parse.
