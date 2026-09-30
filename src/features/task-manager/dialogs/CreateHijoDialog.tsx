@@ -25,7 +25,7 @@ import { applyDrfErrors } from '../hooks/useDrfErrorMap'
 import { useRanches } from '../hooks/useRanches'
 import { usePlots } from '../hooks/usePlots'
 import { useCrops, cropLabel } from '../hooks/useCrops'
-import { SEASONS, CYCLE_YEARS, buildCycle, isSeason2AfterSeason1 } from '../cycle'
+import { SEASONS, CYCLE_YEARS, buildCycle, isSeason2ValidForSeason1 } from '../cycle'
 import type { MasterProgram } from '../types'
 
 /** Valor centinela para "sin temporada 2" — Radix Select no admite value="". */
@@ -47,8 +47,8 @@ const schema = z
     message: 'La fecha de inicio no puede ser posterior a la de fin',
     path: ['est_finish_date'],
   })
-  .refine((v) => isSeason2AfterSeason1(v.season1, v.season2), {
-    message: 'La temporada 2 debe ser posterior a la temporada 1',
+  .refine((v) => isSeason2ValidForSeason1(v.season1, v.season2), {
+    message: 'La temporada 2 no puede ser igual a la temporada 1',
     path: ['season2'],
   })
 

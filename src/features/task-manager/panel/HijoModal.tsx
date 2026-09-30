@@ -32,7 +32,7 @@ import {
   CYCLE_YEARS,
   buildCycle,
   parseCycle,
-  isSeason2AfterSeason1,
+  isSeason2ValidForSeason1,
 } from '@/features/task-manager/cycle'
 import { BatchImportDialog } from '@/features/task-manager/components/BatchImportDialog'
 import { PlotMiniMap } from './PlotMiniMap'
@@ -107,8 +107,8 @@ const editSchema = z
       path: ['est_finish_date'],
     }
   )
-  .refine((v) => isSeason2AfterSeason1(v.season1, v.season2), {
-    message: 'La temporada 2 debe ser posterior a la temporada 1',
+  .refine((v) => isSeason2ValidForSeason1(v.season1, v.season2), {
+    message: 'La temporada 2 no puede ser igual a la temporada 1',
     path: ['season2'],
   })
 
