@@ -13642,6 +13642,12 @@ export interface components {
             /** Format: double */
             target_rate_ksds_ha?: number | null;
             /** Format: double */
+            mass_flow_tonne_s?: number | null;
+            /** Format: double */
+            applied_rate_kg_ha?: number | null;
+            /** Format: double */
+            target_rate_kg_ha?: number | null;
+            /** Format: double */
             density_ksds_ha?: number | null;
             /** Format: double */
             singulation_pct?: number | null;
