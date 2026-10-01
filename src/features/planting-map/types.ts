@@ -9,6 +9,9 @@ export type PlantingSessionStatus =
 export type PlantingLayerKey =
   | 'applied_rate'
   | 'target_rate'
+  | 'mass_flow'
+  | 'applied_rate_mass'
+  | 'target_rate_mass'
   | 'density'
   | 'singulation'
   | 'seed_spacing'
@@ -106,6 +109,7 @@ export interface PlantingLayerValues {
 export interface PlantingPreviewResult {
   valid: boolean
   profile: string
+  planting_mode: 'count' | 'mass' | 'telemetry' | null
   row_count: number
   raw_columns: string[]
   unique_columns: string[]

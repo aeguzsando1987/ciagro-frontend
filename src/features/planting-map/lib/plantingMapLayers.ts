@@ -22,6 +22,9 @@ export interface PlantingClass {
 export const PLANTING_MAP_LAYERS: PlantingLayerDef[] = [
   { key: 'applied_rate', label: 'Proporción aplicada', unit: 'ksds/ha', kind: 'numeric', palette: ['#ef1b0c','#ff8c00','#ffd400','#d8ef00','#00e600','#00c8df','#001eff'] },
   { key: 'target_rate', label: 'Proporción meta', unit: 'ksds/ha', kind: 'numeric', palette: ['#6d5dfc','#8f7cff','#b19aff','#d0bcff','#eadfff'] },
+  { key: 'mass_flow', label: 'Flujo de masa', unit: 'tonne/s', kind: 'numeric', palette: ['#f4f6f5','#dcebe3','#bed8ca','#8fbea5','#5b9e7c','#2f7f59','#0d6b42'] },
+  { key: 'applied_rate_mass', label: 'Proporción aplicada (masa)', unit: 'kg/ha', kind: 'numeric', palette: ['#ef1b0c','#ff8c00','#ffd400','#d8ef00','#00e600','#00c8df','#001eff'] },
+  { key: 'target_rate_mass', label: 'Proporción meta (masa)', unit: 'kg/ha', kind: 'numeric', palette: ['#6d5dfc','#8f7cff','#b19aff','#d0bcff','#eadfff'] },
   { key: 'density', label: 'Densidad', unit: 'ksds/ha', kind: 'numeric', palette: ['#f4f6f5','#dcebe3','#bed8ca','#8fbea5','#5b9e7c','#2f7f59','#0d6b42'] },
   { key: 'singulation', label: 'Singulación', unit: '%', kind: 'numeric', palette: ['#ef1b0c','#ff7a00','#ffae00','#ffd400','#d8ef00','#8bea00','#00f000'] },
   { key: 'seed_spacing', label: 'Espaciamiento de semillas', unit: 'cm', kind: 'numeric', palette: ['#ef1b0c','#ff7a00','#ffae00','#ffd400','#d8ef00','#7bea00','#00e600'] },

@@ -188,10 +188,22 @@ export function PlantingSesionModal({
 
             {stats && (
               <MetricGrid title="Resumen de la siembra">
-                <Metric
-                  label="Densidad promedio"
-                  value={`${n(stats.numeric.density?.average)} ksds/ha`}
-                />
+                {stats.numeric.density ? (
+                  <Metric
+                    label="Densidad promedio"
+                    value={`${n(stats.numeric.density.average)} ksds/ha`}
+                  />
+                ) : stats.numeric.applied_rate_mass ? (
+                  <Metric
+                    label="Proporción aplicada promedio"
+                    value={`${n(stats.numeric.applied_rate_mass.average)} kg/ha`}
+                  />
+                ) : (
+                  <Metric
+                    label="Lecturas"
+                    value={points.toLocaleString('es-MX')}
+                  />
+                )}
                 <Metric
                   label="Velocidad promedio"
                   value={`${n(stats.numeric.speed?.average)} km/h`}
