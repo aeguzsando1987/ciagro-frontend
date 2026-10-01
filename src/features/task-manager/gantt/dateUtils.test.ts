@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { parseDate, resolveRange, pointRange, isOutOfRange } from './dateUtils'
 
 describe('parseDate', () => {
@@ -34,9 +34,15 @@ describe('resolveRange', () => {
   })
 
   it('aplica fallback si start es null', () => {
-    const r = resolveRange(null, '2026-08-31')
-    expect(r.start).toBeInstanceOf(Date)
-    expect(r.end.getUTCMonth()).toBe(7)
+    // Reloj fijo: con hoy - 30 dias despues de end, la guarda start < end mueve end.
+    vi.useFakeTimers({ now: new Date('2026-08-20T12:00:00Z') })
+    try {
+      const r = resolveRange(null, '2026-08-31')
+      expect(r.start).toBeInstanceOf(Date)
+      expect(r.end.getUTCMonth()).toBe(7)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('aplica fallback si end es null', () => {
