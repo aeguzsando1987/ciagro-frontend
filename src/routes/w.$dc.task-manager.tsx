@@ -19,6 +19,7 @@ import { HijoModal } from '@/features/task-manager/panel/HijoModal'
 import { SesionModal } from '@/features/task-manager/panel/SesionModal'
 import { NdviSesionModal } from '@/features/task-manager/panel/NdviSesionModal'
 import { YieldSesionModal } from '@/features/task-manager/panel/YieldSesionModal'
+import { PlantingSesionModal } from '@/features/task-manager/panel/PlantingSesionModal'
 import { Button } from '@/components/ui/button'
 import { LoadingState } from '@/components/ui/loading-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -30,7 +31,7 @@ type ModalFrame =
   | {
       type: 'sesion'
       sesionId: string
-      sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' | 'yield_map'
+      sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' | 'yield_map' | 'planting_map'
       hijoId: string
       masterId: string
     }
@@ -52,13 +53,15 @@ const taskManagerSearchSchema = z.object({
   openMaster: z.string().optional().catch(undefined),
   openHijo: z.string().optional().catch(undefined),
   openSesion: z.string().optional().catch(undefined),
-  openSesionType: z.enum(['aspersion', 'phyto', 'ndvi', 'soil_map', 'yield_map']).optional().catch(undefined),
+  openSesionType: z.enum(['aspersion', 'phyto', 'ndvi', 'soil_map', 'yield_map', 'planting_map']).optional().catch(undefined),
 })
 
 /**
  * Ruta /w/$dc/task-manager (paso 2.1 del product-doc Flujo 2).
  *
- * Guard de rol: Supervisor+ (level >= 3). Regla critica #5: usa ROLE_LEVELS, no hardcodea.
+ * Guard de rol: SuperAdmin (level 5). El modulo entero es de administracion, asi que la
+ * puerta es la misma para entrar y para operar. Regla critica #5: usa ROLE_LEVELS, no
+ * hardcodea.
  * Loader: precarga GET /field_ops/master-programs/?datacentral=<dc>.
  * Reactivo a search params via loaderDeps (refetch automatico al cambiar filtros).
  */
@@ -69,7 +72,7 @@ export const workspaceTaskManagerRoute = createRoute({
   beforeLoad: ({ params }) => {
     const user = useAuthStore.getState().user
     const level = user?.role_level ?? ROLE_LEVELS.GUEST
-    if (level < ROLE_LEVELS.SUPERVISOR) {
+    if (level < ROLE_LEVELS.SUPER_ADMIN) {
       throw redirect({ to: '/w/$dc/visor', params: { dc: params.dc } })
     }
   },
@@ -127,10 +130,9 @@ function TaskManagerPage() {
     rememberDc(dc)
   }, [dc])
 
-  const isManager = (user?.role_level ?? 0) >= ROLE_LEVELS.MANAGER
-  const isSuperAdmin = (user?.role_level ?? 0) >= ROLE_LEVELS.SUPER_ADMIN
-  const isOwnerOfThisDc = user?.datacentrals.some((d) => d.id === dc && d.is_owner) ?? false
-  const canCreateMaster = isSuperAdmin || isOwnerOfThisDc
+  // Ya no se afina el permiso por accion: el `beforeLoad` solo deja entrar a SuperAdmin,
+  // asi que aqui dentro todo el mundo puede crear. Antes se combinaba `isSuperAdmin` con
+  // la propiedad de la CIAgro, que ahora seria siempre cierto y solo despistaria.
 
   const {
     data: masters,
@@ -156,7 +158,7 @@ function TaskManagerPage() {
     id: string,
     level: 'master' | 'hijo' | 'sesion',
     masterId: string,
-    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' | 'yield_map' } | null
+    extra: { hijoId: string; sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' | 'yield_map' | 'planting_map' } | null
   ) {
     if (level === 'master') {
       pushModal({ type: 'master', masterId: id })
@@ -198,11 +200,9 @@ function TaskManagerPage() {
             Planificación y seguimiento de programas, subprogramas y sesiones de campo.
           </p>
         </div>
-        {canCreateMaster && (
-          <Button size="sm" onClick={() => setCreateMasterOpen(true)}>
-            + Nuevo
-          </Button>
-        )}
+        <Button size="sm" onClick={() => setCreateMasterOpen(true)}>
+          + Nuevo
+        </Button>
       </header>
 
       <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
@@ -258,8 +258,8 @@ function TaskManagerPage() {
       {error && <p className="text-destructive">Error al cargar los programas.</p>}
       {masters && masters.length === 0 && !isLoading && (
         <p className="text-muted-foreground">
-          No hay programas en este workspace todavía.
-          {isManager && ' Usa el botón "+ Nuevo" para crear el primero.'}
+          No hay programas en este workspace todavía. Usa el botón "+ Nuevo" para crear el
+          primero.
         </p>
       )}
       {masters && masters.length > 0 && (
@@ -325,7 +325,16 @@ function TaskManagerPage() {
           onBack={popModal}
         />
       )}
-      {topFrame?.type === 'sesion' && topFrame.sesionType !== 'ndvi' && topFrame.sesionType !== 'yield_map' && (
+      {topFrame?.type === 'sesion' && topFrame.sesionType === 'planting_map' && (
+        <PlantingSesionModal
+          sesionId={topFrame.sesionId}
+          hijoId={topFrame.hijoId}
+          masterId={topFrame.masterId}
+          onClose={clearModal}
+          onBack={popModal}
+        />
+      )}
+      {topFrame?.type === 'sesion' && topFrame.sesionType !== 'ndvi' && topFrame.sesionType !== 'yield_map' && topFrame.sesionType !== 'planting_map' && (
         <SesionModal
           sesionId={topFrame.sesionId}
           sesionType={topFrame.sesionType as 'aspersion' | 'phyto' | 'soil_map'}
@@ -364,7 +373,7 @@ function HijoModalWrapper({
   onBack: () => void
   onNavigateSesion: (ref: {
     sesionId: string
-    sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' | 'yield_map'
+    sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' | 'yield_map' | 'planting_map'
   }) => void
 }) {
   const { data: tree, isLoading } = useMasterTree(masterId, true)

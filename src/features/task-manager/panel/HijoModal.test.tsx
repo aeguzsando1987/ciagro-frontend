@@ -82,6 +82,7 @@ const mockHijo: ProgramaTree = {
   ],
   ndvi_sessions: [],
   yield_map_headers: [],
+  planting_map_headers: [],
   plot_code: null,
   crop_name: null,
   crop_variety_name: null,

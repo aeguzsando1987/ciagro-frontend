@@ -3,9 +3,10 @@
  *
  * Espejan el validador `validate_cycle` del backend (apps/field_ops/models.py):
  *   - formato: `<Temporada>-<AAAA>` o `<Temporada1>-<Temporada2>-<AAAA>`
- *   - temporadas válidas y su orden anual: Primavera < Verano < Otoño < Invierno
- *   - año entre 2000 y 2050
- *   - si hay Temporada2, debe ser posterior a Temporada1 en el orden del año
+ *   - temporadas válidas: Primavera, Verano, Otoño, Invierno
+ *   - año entre 2000 y 2050 (año de inicio del ciclo)
+ *   - si hay Temporada2, debe ser distinta de Temporada1, en cualquier orden
+ *     (el ciclo puede cruzar de año, ej. Invierno-Primavera)
  *
  * Caso de uso §3.5.4: el ciclo se captura con 3 controles (temporada1,
  * temporada2 opcional, año), no como texto libre.
@@ -21,10 +22,6 @@ export const CYCLE_MAX_YEAR = 2050
 export const CYCLE_YEARS: number[] = Array.from(
   { length: CYCLE_MAX_YEAR - CYCLE_MIN_YEAR + 1 },
   (_, i) => CYCLE_MIN_YEAR + i,
-)
-
-const SEASON_ORDER: Record<string, number> = Object.fromEntries(
-  SEASONS.map((s, i) => [s, i]),
 )
 
 /**
@@ -66,11 +63,12 @@ export function parseCycle(cycle: string | null | undefined): CycleParts {
 }
 
 /**
- * Valida que Temporada2, si existe, sea posterior a Temporada1 en el orden
- * del año. Espeja la regla de `validate_cycle` del backend.
+ * Valida que Temporada2, si existe, sea distinta de Temporada1. Se admite
+ * cualquier orden: el ciclo puede cruzar de año (ej. Invierno-Primavera) y el
+ * año es el de inicio. Espeja la regla de `validate_cycle` del backend.
  */
-export function isSeason2AfterSeason1(season1?: string, season2?: string): boolean {
+export function isSeason2ValidForSeason1(season1?: string, season2?: string): boolean {
   if (!season2) return true
   if (!season1) return false
-  return (SEASON_ORDER[season2] ?? -1) > (SEASON_ORDER[season1] ?? -1)
+  return season2 !== season1
 }

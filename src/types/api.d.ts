@@ -4385,7 +4385,7 @@ export interface paths {
         };
         /**
          * Árbol completo de un programa maestro (Maestro → Programas → Sesiones)
-         * @description Devuelve el programa maestro con sus programas hijos y, por cada hijo, las sesiones de aspersión, fitosanitarias, NDVI, suelo y rendimiento. Diseñado para el Gantt del frontend: resuelve toda la jerarquía en una sola petición (4 queries con prefetch_related).
+         * @description Devuelve el programa maestro con sus programas hijos y, por cada hijo, las sesiones de aspersión, fitosanitarias, NDVI, suelo, rendimiento y siembra. Diseñado para el Gantt del frontend: resuelve toda la jerarquía en una sola petición (4 queries con prefetch_related).
          *
          *     **Ejemplos**
          *
@@ -5321,6 +5321,274 @@ export interface paths {
          *     ```
          */
         delete: operations["v1_field_ops_session_issues_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/planting-map/headers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        get: operations["v1_monitoring_planting_map_headers_list"];
+        put?: never;
+        /**
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        post: operations["v1_monitoring_planting_map_headers_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/planting-map/headers/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        get: operations["v1_monitoring_planting_map_headers_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/planting-map/headers/{id}/update/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        put: operations["v1_monitoring_planting_map_headers_update_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        patch: operations["v1_monitoring_planting_map_headers_update_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/monitoring/planting-map/headers/{id}/preview-columns/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        post: operations["v1_monitoring_planting_map_headers_preview_columns_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/planting-map/headers/{id}/import/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        post: operations["v1_monitoring_planting_map_headers_import_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/planting-map/headers/{id}/stats/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        get: operations["v1_monitoring_planting_map_headers_stats_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/planting-map/headers/{id}/variable-stats/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        get: operations["v1_monitoring_planting_map_headers_variable_stats_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/planting-map/headers/{id}/layer-values/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        get: operations["v1_monitoring_planting_map_headers_layer_values_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/planting-map/headers/{id}/flush/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        post: operations["v1_monitoring_planting_map_headers_flush_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/planting-map/points/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Para delimitar el alcance del usuario (filtra queryset).
+         *     SuperAdmin (con level >= 5) puede ver todo.
+         *     Otros roles solo pueden ver las agrounidades asignadas (ver UserAssignment - assignments).
+         *
+         *     Para vistas de AgroUnit: get_queryset() se filtra por id__in.
+         *     Para vistas dependientes (Ranchos, Parcelas): sobreescribe get_queryset()
+         *     y usa self.get_assigned_units_ids() para generar el filtro propio.
+         */
+        get: operations["v1_monitoring_planting_map_points_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -8337,7 +8605,7 @@ export interface paths {
         };
         /**
          * Checkpoints de una sesión como GeoJSON (para el mapa)
-         * @description FeatureCollection **sin paginar** de los checkpoints de la sesión, para alimentar el mapa fitosanitario (relleno verde de la parcela + mancha roja de calor en los puntos con problema). Cada feature lleva `presence_status`, `issue`/`issue_type`, `stage`/`stage_display`, `qty` y `notes` para el popup. FeatureCollection vacío si la sesión no tiene puntos.
+         * @description FeatureCollection **sin paginar** de los checkpoints de la sesión, para alimentar el mapa fitosanitario (relleno verde de la parcela + mancha roja de calor en los puntos con problema). Cada feature lleva `presence_status`, `issue`/`issue_type`, `stage`/`stage_display`, `qty`, `pcp_oid` y `notes` para el popup. La respuesta también expone `pest_tolerance` configurada en la sesión. FeatureCollection vacío si la sesión no tiene puntos.
          *
          *     **Ejemplos**
          *
@@ -9059,6 +9327,46 @@ export interface paths {
          * @description Elimina una sesion de YieldMap y sus puntos.
          */
         delete: operations["v1_monitoring_yield_map_headers_delete_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/planting-map/headers/{id}/delete-preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Impacto de eliminar una sesion
+         * @description Impacto de eliminar una sesion de Planting.
+         */
+        get: operations["v1_monitoring_planting_map_headers_delete_preview_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/planting-map/headers/{id}/delete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar una sesion y sus puntos
+         * @description Elimina una sesion de Planting y sus puntos.
+         */
+        delete: operations["v1_monitoring_planting_map_headers_delete_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -11205,6 +11513,36 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["PhytosanitaryCatalog"][];
         };
+        PaginatedPlantingMapHeaderList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["PlantingMapHeader"][];
+        };
+        PaginatedPlantingMapPointList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["PlantingMapPoint"][];
+        };
         PaginatedPlotList: {
             /** @example 123 */
             count: number;
@@ -12204,6 +12542,11 @@ export interface components {
              */
             radius_tolerance?: number;
             /**
+             * Umbral de tolerancia
+             * @description Cantidad máxima de plagas permitida por punto antes de elevar la alerta visual de la sesión. Acepta cualquier entero mayor o igual a 0.
+             */
+            pest_tolerance?: number;
+            /**
              * Notas adicionales
              * @description Notas libres adicionales sobre la sesión de monitoreo fitosanitario.
              */
@@ -12300,6 +12643,72 @@ export interface components {
             readonly stage_photos?: components["schemas"]["PhytosanitaryPhoto"][];
             additional_params?: unknown;
             attachments_url?: unknown;
+        };
+        PatchedPlantingMapHeader: {
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: uuid */
+            readonly program?: string;
+            /** Format: uuid */
+            program_id?: string;
+            /** Format: uuid */
+            readonly plot?: string;
+            /** Format: uuid */
+            plot_id?: string;
+            /**
+             * Fecha de siembra
+             * Format: date
+             */
+            planting_date?: string;
+            /**
+             * Fecha estimada de inicio
+             * Format: date
+             */
+            est_init_date?: string | null;
+            /**
+             * Fecha estimada de finalización
+             * Format: date
+             */
+            est_finish_date?: string | null;
+            /**
+             * Fecha real de inicio
+             * Format: date
+             */
+            real_init_date?: string | null;
+            /**
+             * Fecha real de finalización
+             * Format: date
+             */
+            real_finish_date?: string | null;
+            status?: components["schemas"]["Status5a4Enum"];
+            readonly assigned_to?: string;
+            /** Format: uuid */
+            assigned_to_id?: string | null;
+            readonly import_status?: components["schemas"]["PlantingMapHeaderImportStatusEnum"];
+            readonly import_errors?: unknown;
+            /** Format: date-time */
+            readonly imported_at?: string | null;
+            readonly source_filename?: string | null;
+            readonly source_encoding?: string | null;
+            readonly source_lot?: string | null;
+            readonly source_product?: string | null;
+            readonly source_dataset?: string | null;
+            /** Format: date */
+            readonly source_start_date?: string | null;
+            /** Format: date */
+            readonly source_finish_date?: string | null;
+            readonly source_row_count?: number;
+            /** Format: double */
+            readonly source_area_ha?: number | null;
+            /** Format: double */
+            readonly source_distance_m?: number | null;
+            readonly source_schema?: unknown;
+            readonly available_layers?: unknown;
+            readonly points_count?: string;
+            /** Format: date-time */
+            readonly created_at?: string;
+            /** Format: date-time */
+            readonly updated_at?: string;
         };
         PatchedPlot: {
             type?: components["schemas"]["GisFeatureEnum"];
@@ -12984,6 +13393,11 @@ export interface components {
              */
             radius_tolerance?: number;
             /**
+             * Umbral de tolerancia
+             * @description Cantidad máxima de plagas permitida por punto antes de elevar la alerta visual de la sesión. Acepta cualquier entero mayor o igual a 0.
+             */
+            pest_tolerance?: number;
+            /**
              * Notas adicionales
              * @description Notas libres adicionales sobre la sesión de monitoreo fitosanitario.
              */
@@ -13130,6 +13544,134 @@ export interface components {
              * @description Texto opcional que describe la imagen.
              */
             caption?: string | null;
+        };
+        PlantingMapHeader: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly program: string;
+            /** Format: uuid */
+            program_id: string;
+            /** Format: uuid */
+            readonly plot: string;
+            /** Format: uuid */
+            plot_id: string;
+            /**
+             * Fecha de siembra
+             * Format: date
+             */
+            planting_date: string;
+            /**
+             * Fecha estimada de inicio
+             * Format: date
+             */
+            est_init_date?: string | null;
+            /**
+             * Fecha estimada de finalización
+             * Format: date
+             */
+            est_finish_date?: string | null;
+            /**
+             * Fecha real de inicio
+             * Format: date
+             */
+            real_init_date?: string | null;
+            /**
+             * Fecha real de finalización
+             * Format: date
+             */
+            real_finish_date?: string | null;
+            status?: components["schemas"]["Status5a4Enum"];
+            readonly assigned_to: string;
+            /** Format: uuid */
+            assigned_to_id?: string | null;
+            readonly import_status: components["schemas"]["PlantingMapHeaderImportStatusEnum"];
+            readonly import_errors: unknown;
+            /** Format: date-time */
+            readonly imported_at: string | null;
+            readonly source_filename: string | null;
+            readonly source_encoding: string | null;
+            readonly source_lot: string | null;
+            readonly source_product: string | null;
+            readonly source_dataset: string | null;
+            /** Format: date */
+            readonly source_start_date: string | null;
+            /** Format: date */
+            readonly source_finish_date: string | null;
+            readonly source_row_count: number;
+            /** Format: double */
+            readonly source_area_ha: number | null;
+            /** Format: double */
+            readonly source_distance_m: number | null;
+            readonly source_schema: unknown;
+            readonly available_layers: unknown;
+            readonly points_count: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /**
+         * @description * `pending` - Sin importar
+         *     * `processing` - Procesando
+         *     * `done` - Completado
+         *     * `error` - Error
+         * @enum {string}
+         */
+        PlantingMapHeaderImportStatusEnum: "pending" | "processing" | "done" | "error";
+        PlantingMapPoint: {
+            /** Format: uuid */
+            readonly id: string;
+            /**
+             * Sesión de siembra
+             * Format: uuid
+             */
+            session_header: string;
+            readonly longitude: string;
+            readonly latitude: string;
+            source_object_id?: number | null;
+            lot_label?: string | null;
+            dataset_label?: string | null;
+            product?: string | null;
+            /** Format: date */
+            sample_date?: string | null;
+            /** Format: double */
+            speed_kmh?: number | null;
+            /** Format: double */
+            applied_rate_ksds_ha?: number | null;
+            /** Format: double */
+            target_rate_ksds_ha?: number | null;
+            /** Format: double */
+            mass_flow_tonne_s?: number | null;
+            /** Format: double */
+            applied_rate_kg_ha?: number | null;
+            /** Format: double */
+            target_rate_kg_ha?: number | null;
+            /** Format: double */
+            density_ksds_ha?: number | null;
+            /** Format: double */
+            singulation_pct?: number | null;
+            /** Format: double */
+            seed_spacing_cm?: number | null;
+            /** Format: double */
+            skips_pct?: number | null;
+            /** Format: double */
+            doubles_pct?: number | null;
+            rate_quality?: string | null;
+            /** Format: double */
+            productivity_ha_h?: number | null;
+            /** Format: double */
+            area_ha?: number | null;
+            extra_raw?: unknown;
+        };
+        PlantingMapSessionSummary: {
+            /** Format: uuid */
+            id: string;
+            readonly type: string;
+            /** Format: date */
+            planting_date: string;
+            import_status: string;
+            status: string;
         };
         Plot: {
             type?: components["schemas"]["GisFeatureEnum"];
@@ -13291,6 +13833,7 @@ export interface components {
             readonly soil_map_headers: components["schemas"]["SoilMapSessionSummary"][];
             readonly ndvi_sessions: components["schemas"]["NdviSessionSummary"][];
             readonly yield_map_headers: components["schemas"]["YieldMapSessionSummary"][];
+            readonly planting_map_headers: components["schemas"]["PlantingMapSessionSummary"][];
         };
         Ranch: {
             type?: components["schemas"]["GisFeatureEnum"];
@@ -17862,6 +18405,272 @@ export interface operations {
             };
         };
     };
+    v1_monitoring_planting_map_headers_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedPlantingMapHeaderList"];
+                };
+            };
+        };
+    };
+    v1_monitoring_planting_map_headers_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlantingMapHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["PlantingMapHeader"];
+                "multipart/form-data": components["schemas"]["PlantingMapHeader"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlantingMapHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_planting_map_headers_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlantingMapHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_planting_map_headers_update_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlantingMapHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["PlantingMapHeader"];
+                "multipart/form-data": components["schemas"]["PlantingMapHeader"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlantingMapHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_planting_map_headers_update_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPlantingMapHeader"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPlantingMapHeader"];
+                "multipart/form-data": components["schemas"]["PatchedPlantingMapHeader"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlantingMapHeader"];
+                };
+            };
+        };
+    };
+    v1_monitoring_planting_map_headers_preview_columns_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_monitoring_planting_map_headers_import_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_monitoring_planting_map_headers_stats_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_monitoring_planting_map_headers_variable_stats_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_monitoring_planting_map_headers_layer_values_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_monitoring_planting_map_headers_flush_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_monitoring_planting_map_points_list: {
+        parameters: {
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedPlantingMapPointList"];
+                };
+            };
+        };
+    };
     v1_monitoring_sessions_advanced_search_retrieve: {
         parameters: {
             query?: {
@@ -20728,6 +21537,56 @@ export interface operations {
         };
     };
     v1_monitoring_yield_map_headers_delete_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_monitoring_planting_map_headers_delete_preview_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteImpact"];
+                };
+            };
+        };
+    };
+    v1_monitoring_planting_map_headers_delete_destroy: {
         parameters: {
             query?: never;
             header?: never;

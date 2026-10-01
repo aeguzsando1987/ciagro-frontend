@@ -10,6 +10,8 @@ import { ExternalLink } from 'lucide-react'
 import { useAspersionSessionDetail } from '@/features/task-manager/hooks/useAspersionSessionDetail'
 import { useHijoDetail } from '@/features/task-manager/hooks/useHijoDetail'
 import { useMasterTree } from '@/features/task-manager/hooks/useMasterTree'
+import { useAuthStore } from '@/features/auth/useAuthStore'
+import { ROLE_LEVELS } from '@/lib/auth/roles'
 
 interface SessionInfoCardProps {
   sessionId: string
@@ -22,6 +24,12 @@ export function SessionInfoCard({ sessionId, datacentralId }: SessionInfoCardPro
   // El id del subprograma viene en `program` (read-only); `program_id` es write-only.
   const hijoId = detail?.program ?? detail?.program_id ?? null
 
+  // Los enlaces llevan al Task Manager, que desde el cierre del modulo solo abre para
+  // SuperAdmin. Pintarlos a los demas seria ofrecer una puerta que su guard cierra: el
+  // clic acabaria en una redireccion de vuelta al Visor sin explicacion.
+  const canOpenTaskManager =
+    useAuthStore((s) => s.user?.role_level ?? 0) >= ROLE_LEVELS.SUPER_ADMIN
+
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border bg-card px-2.5 py-1 text-xs">
       <span className="font-semibold">Sesión {detail?.aspersion_date ?? ''}</span>
@@ -29,13 +37,14 @@ export function SessionInfoCard({ sessionId, datacentralId }: SessionInfoCardPro
       {detail?.points_count != null && (
         <span className="text-muted-foreground">· {detail.points_count} pts</span>
       )}
-      {hijoId && datacentralId ? (
-        <ProgramLinks sessionId={sessionId} hijoId={hijoId} dc={datacentralId} />
-      ) : (
-        <span className="text-muted-foreground">
-          {!datacentralId ? 'Enlaces no disponibles' : 'Resolviendo…'}
-        </span>
-      )}
+      {canOpenTaskManager &&
+        (hijoId && datacentralId ? (
+          <ProgramLinks sessionId={sessionId} hijoId={hijoId} dc={datacentralId} />
+        ) : (
+          <span className="text-muted-foreground">
+            {!datacentralId ? 'Enlaces no disponibles' : 'Resolviendo…'}
+          </span>
+        ))}
     </div>
   )
 }

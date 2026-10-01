@@ -16,6 +16,8 @@ export type MasterProgram = components['schemas']['MasterProgram']
  */
 export type YieldMapSessionSummary = components['schemas']['YieldMapSessionSummary']
 
+export type PlantingMapSessionSummary = components['schemas']['PlantingMapSessionSummary']
+
 /** Programa Hijo anidado bajo un Maestro. */
 export type ProgramaTree = components['schemas']['ProgramaTree']
 

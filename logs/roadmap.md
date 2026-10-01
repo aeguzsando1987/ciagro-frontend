@@ -1206,6 +1206,7 @@ que corrige geometria y sesgo de una sola vez.
 | `GAP-SN-F-001` | backend | **alta** | ~~Las coropletas se salen de la parcela y los cuartiles salen sesgados~~ **CERRADO** en la FASE CN (2026-09-21). Eran DOS defectos: el del backend (`contours.py` sin recortar contra `plot.geom`) y uno de ESTE repo que era el que se veia (`GAP-CN-001`) |
 | `GAP-SN-F-002` | backend | media | La timeline no puede mostrar la procedencia: su payload no incluye `source` |
 | `GAP-SN-F-003` | backend | baja | El arbol del Task Manager tampoco: `NdviSessionSummarySerializer` no expone `source` |
+| `GAP-SB-002` | frontend-deuda | media | El front de Siembra (~2100 lineas) no tiene ni un test: empezar por `plantingMapLayers` y el dialogo de importacion |
 
 ---
 
@@ -1255,3 +1256,43 @@ reporte NDVI responde 400.
 **Fuera de alcance:** unificar los dos interpoladores (`GAP-CN-002`, con analisis en
 `.CLAUDE/ndvi-doble-interpolador-analisis.md`). La recomendacion es no hacerlo hasta que exista un
 segundo consumidor real fuera del navegador.
+
+## FASE CT (frontend) — Ciclo de Subprograma con cualquier orden de temporadas (rama `dev`, 2026-09-29)
+
+**Estado:** `[✅] DESPLEGADA en producción — 2026-09-29 — front f5e2614, contra back 9f8ab62 (desde dev, sin homologar a master). Acta completa en ../CIAgro_alpha_back/logs/deploy-2026-09-29-ct.md`.
+
+- [x] CT-F1 `cycle.ts`: `isSeason2AfterSeason1` pasa a `isSeason2ValidForSeason1` (solo exige temporadas distintas; espeja el nuevo `validate_cycle`). Se retira `SEASON_ORDER`, que quedo sin uso.
+- [x] CT-F2 `CreateHijoDialog` y `HijoModal`: mensaje "La temporada 2 no puede ser igual a la temporada 1".
+- [x] CT-F3 `cycle.test.ts` nuevo: una temporada, cruce de año, temporadas iguales y ida y vuelta build/parse.
+
+---
+
+## FASE MF (frontend) — Homologacion de mejoras-fitosanitario: mapa de calor e indices P/E (2026-09-29 / 2026-10-01)
+**Estado:** `[x] IMPLEMENTADA, VALIDADA POR EL DEV Y HOMOLOGADA 2026-10-01 junto con la FASE SB (rama dev-siembra). Trabajo de Jorge23Leon. Sin gaps propios.`
+
+Mapa de calor fitosanitario por plagas y por enfermedades (`phytoHeatSurface`), indices P/E
+(`phytoIndices`, 7 tests), panel de punto (`PhytoPointPanel`), selector de "Umbral de tolerancia" y
+ajustes de comparacion en `GeodataDashboard`. Backend en `../CIAgro_alpha_back/logs/roadmap.md`.
+
+- [x] **MF-5** `merge` — entra dentro del merge de Siembra
+- [x] **MF-6** `front` — test rancio: el `aria-label` del umbral se renombro y el test no
+- [x] **MF-7** `docs` — bitacoras
+
+---
+
+## FASE SB (frontend) — Homologacion de Siembra: visor y sesiones de siembra (2026-10-01, rama `dev-siembra`)
+**Estado:** `[x] IMPLEMENTADA, VALIDADA POR EL DEV Y HOMOLOGADA 2026-10-01. Trabajo de Jorge23Leon. Typecheck limpio, 819 tests en verde. Tres arreglos sobre la rama (SB-7, SB-8) y uno preexistente (SB-9). GAP-SB-002 abierto.`
+
+Feature `planting-map` (api, hooks, tipos, capas, importacion), `PlantingMap` y
+`PlantingMapSessionsPanel` en el visor con comparador y celdas rectangulares, `PlantingSesionModal`
+en el Task Manager, creacion de sesiones y flush/borrado por niveles.
+
+- [x] **SB-6** `merge` — merge limpio con la FASE CT; se quito un BOM que la rama metio en `geodata-visor/types.ts`
+- [x] **SB-7** `front` — la rama no regenero `api.d.ts`: tipos de siembra escritos a mano que chocaban con los generados. Derivados del schema
+- [x] **SB-8** `front` — 5 tests rotos por la rama: mock faltante de `usePlantingMapHeaders` y busqueda con 5 tipos fijos
+- [x] **SB-9** `front` — preexistente: `dateUtils.test` dependia de la fecha real
+- [x] **SB-10** `verify` — typecheck, suite y prueba manual del dev
+- [x] **SB-11** `docs` — bitacoras y `GAP-SB-002`
+- [x] **SB-13** `merge` — incremento de Jorge posterior a la prueba manual: siembra por masa. Reverificado
+
+**Despliegue:** junto con el backend (migraciones 0046 a 0051).

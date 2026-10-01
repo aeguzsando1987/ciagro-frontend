@@ -8,6 +8,7 @@ import {
   Layers,
   Leaf,
   RotateCw,
+  Sprout,
   Wheat,
 } from 'lucide-react'
 
@@ -18,6 +19,7 @@ import { useNdviSessionHeaders } from '../hooks/useNdviSessionHeaders'
 import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
 import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
 import { useYieldMapHeaders } from '@/features/yield-map/hooks/useYieldMapHeaders'
+import { usePlantingMapHeaders } from '@/features/planting-map/hooks/usePlantingMapHeaders'
 import { isAllowedSession } from '../lib/advancedSearch'
 import type { SessionKind, VisorSession } from '../types'
 
@@ -27,6 +29,7 @@ interface AllowedSessions {
   ndvi?: string[] | null
   soil_map?: string[] | null
   yield_map?: string[] | null
+  planting_map?: string[] | null
 }
 
 interface PlotSessionsPanelProps {
@@ -94,6 +97,7 @@ export function PlotSessionsPanel({
   const ndvi = useNdviSessionHeaders(plotId)
   const soilMap = useSoilMapSessionHeaders(plotId)
   const yieldMap = useYieldMapHeaders(plotId)
+  const plantingMap = usePlantingMapHeaders(plotId)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -103,6 +107,7 @@ export function PlotSessionsPanel({
     ndvi: false,
     soil_map: false,
     yield_map: false,
+    planting_map: false,
   })
 
   const sections = useMemo<SessionSection[]>(() => {
@@ -195,8 +200,25 @@ export function PlotSessionsPanel({
         error: yieldMap.isError,
         retry: () => void yieldMap.refetch(),
       },
+      {
+        kind: 'planting_map',
+        label: 'Siembra',
+        emptyDescription: 'Esta parcela todavía no cuenta con mapas de siembra.',
+        icon: <Sprout className="h-4 w-4" />,
+        items: (plantingMap.data ?? [])
+          .map((session) => ({
+            id: session.id,
+            kind: 'planting_map' as const,
+            date: session.planting_date ?? null,
+            detail: withStatus(pointDetail(session.points_count), session.import_status, 'done'),
+          }))
+          .filter(filter),
+        loading: plantingMap.isLoading,
+        error: plantingMap.isError,
+        retry: () => void plantingMap.refetch(),
+      },
     ]
-  }, [allowedIds, aspersion, from, ndvi, phyto, soilMap, to, yieldMap])
+  }, [allowedIds, aspersion, from, ndvi, phyto, plantingMap, soilMap, to, yieldMap])
 
   const total = sections.reduce((sum, section) => sum + section.items.length, 0)
   const hasDateFilter = Boolean(from || to)

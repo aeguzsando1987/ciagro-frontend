@@ -3803,3 +3803,43 @@ La duplicidad de interpoladores (`GAP-CN-002` en el backend), con analisis propi
 exista un segundo consumidor real fuera del navegador. Pendiente de decidir: si los hooks muertos
 `useNdviContours` y `useNdviContourIndices` se borran o se comentan, porque codigo muerto tipado y
 con tests parece el camino vivo.
+
+## FASE MF + SB (frontend) — Homologacion de mejoras-fitosanitario y Siembra (2026-09-29 / 2026-10-01, rama `dev-siembra`)
+
+Homologacion de dos ramas de Jorge23Leon: `mejoras-fitosanitario` (mapa de calor por plagas y por
+enfermedades, indices P/E, panel de punto, selector de umbral) y `Siembra`, que la contiene
+(feature `planting-map`, visor de siembra con comparador, sesiones en el Task Manager). El backend
+y la historia de las migraciones estan en `../CIAgro_alpha_back/logs/development.md`.
+
+### El merge fue limpio; lo roto aparecio al regenerar tipos
+
+Solo un detalle de forma: la rama metio un BOM en `geodata-visor/types.ts`, archivo compartido, y
+se quito dentro del merge.
+
+**Jorge escribio el front sin regenerar `api.d.ts`.** Con los tipos viejos el typecheck pasaba; con
+los regenerados, 9 errores de dos origenes:
+
+- `ImportStatusEnum` desaparecido: el choque de enums del backend (SB-4), arreglado alli.
+- `PlantingMapSessionSummary` escrito a mano con `type: 'planting_map'` literal y `ProgramaTree`
+  extendido a mano con `planting_map_headers` opcional, que choca con el campo generado como
+  obligatorio. Se derivaron del schema, como ya se hacia con `YieldMapSessionSummary` desde CL-F.
+
+### Seis tests rotos, dos origenes
+
+Se corrieron en worktrees de `dev` y de `origin/Siembra` para separar lo heredado de lo nuevo:
+
+- **De Siembra (5):** cuatro del visor con "No QueryClient set" porque el hook nuevo no se mockeo
+  como los demas, y uno de busqueda avanzada que asumia 5 tipos. Ese ahora usa `SESSION_KINDS`.
+- **Preexistente (1):** `dateUtils.test` dependia de la fecha real; desde septiembre el fallback
+  hoy - 30 dias cae despues del `end` del test. Reloj fijo. Commit aparte, sin sufijo de fase.
+
+Mas el test rancio de MF: el ultimo commit de la rama renombro el `aria-label` del umbral y no el
+test.
+
+### Verificacion
+
+Typecheck limpio, 819 tests en verde, prueba manual del dev el 2026-10-01 en verde.
+
+### Lo que queda abierto
+
+`GAP-SB-002`: el front de Siembra (~2100 lineas) no tiene ni un test.

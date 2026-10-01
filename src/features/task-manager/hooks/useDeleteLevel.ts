@@ -18,10 +18,11 @@ export type DeleteLevel =
   | 'ndvi'
   | 'phyto'
   | 'yield_map'
+  | 'planting_map'
   | 'programa'
   | 'master'
 
-type TypedDeleteLevel = Exclude<DeleteLevel, 'yield_map'>
+type TypedDeleteLevel = Exclude<DeleteLevel, 'yield_map' | 'planting_map'>
 
 const CLAVES_DE_ESTRUCTURA: QueryKey[] = [['master-tree'], ['master-programs']]
 
@@ -69,6 +70,15 @@ const SPECS: Record<DeleteLevel, Spec> = {
       ['yield-map', 'headers'],
     ],
   },
+  planting_map: {
+    noun: 'la sesión de siembra',
+    extra: (id) => [
+      ['planting-map-detail', id],
+      ['planting-map-stats', id],
+      ['planting-map-layer-values', id],
+      ['planting-map', 'headers'],
+    ],
+  },
   programa: { noun: 'el subprograma', extra: (id) => [['hijo-detail', id]] },
   master: { noun: 'el programa maestro', extra: (id) => [['master-detail', id]] },
 }
@@ -105,13 +115,14 @@ const RUTAS_RESTORE = {
   master: '/api/v1/field_ops/master-programs/{id}/restore/',
 } as const
 
-async function fetchYieldDelete(
+async function fetchUntypedSessionDelete(
+  kind: 'yield-map' | 'planting-map',
   path: 'delete-preview' | 'delete',
   id: string,
   method: 'GET' | 'DELETE'
 ) {
   const baseUrl = import.meta.env.VITE_API_BASE_URL as string
-  const response = await fetch(`${baseUrl}/monitoring/yield-map/headers/${id}/${path}/`, {
+  const response = await fetch(`${baseUrl}/monitoring/${kind}/headers/${id}/${path}/`, {
     method,
     headers: { Authorization: `Bearer ${tokens.getAccess() ?? ''}` },
   })
@@ -123,8 +134,9 @@ export function useDeleteImpact(level: DeleteLevel, id: string, enabled: boolean
   return useQuery({
     queryKey: ['delete-impact', level, id] as const,
     queryFn: async (): Promise<DeleteImpact> => {
-      if (level === 'yield_map') {
-        const { response, payload } = await fetchYieldDelete('delete-preview', id, 'GET')
+      if (level === 'yield_map' || level === 'planting_map') {
+        const segment = level === 'yield_map' ? 'yield-map' : 'planting-map'
+        const { response, payload } = await fetchUntypedSessionDelete(segment, 'delete-preview', id, 'GET')
         if (!response.ok || !payload) throw new Error('No se pudo calcular el impacto del borrado')
         return payload as DeleteImpact
       }
@@ -146,8 +158,9 @@ export function useDeleteLevel(level: DeleteLevel, id: string) {
 
   return useMutation({
     mutationFn: async (): Promise<DeleteImpact> => {
-      if (level === 'yield_map') {
-        const { response, payload } = await fetchYieldDelete('delete', id, 'DELETE')
+      if (level === 'yield_map' || level === 'planting_map') {
+        const segment = level === 'yield_map' ? 'yield-map' : 'planting-map'
+        const { response, payload } = await fetchUntypedSessionDelete(segment, 'delete', id, 'DELETE')
         if (!response.ok || !payload) {
           if (response.status === 409) {
             throw Object.assign(new Error('bloqueado'), { blocked: true, impact: payload })

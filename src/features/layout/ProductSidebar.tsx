@@ -43,6 +43,9 @@ export function ProductSidebar({
   onNavigate,
 }: ProductSidebarProps) {
   const canManage = roleLevel >= ROLE_LEVELS.SUPERVISOR
+  // El Task Manager es un modulo de administracion: solo SuperAdmin. Va por su propia
+  // bandera y no por `canManage`, que sigue abriendo el grupo "Gestion" a supervisores.
+  const canUseTaskManager = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
   const canManageOrganizations = roleLevel >= ROLE_LEVELS.MANAGER
   const canManageUsersAndAssets = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
   const canConfigureVariables = roleLevel >= ROLE_LEVELS.MANAGER
@@ -87,7 +90,7 @@ export function ProductSidebar({
               resuelve el alcance y solo pregunta lo que hace falta preguntar (FASE TS).
               Antes esa segunda rama iba a /workspaces y costaba dos pantallas de
               seleccion incluso cuando solo habia una organizacion y una CIAgro. */}
-          {canManage &&
+          {canUseTaskManager &&
             (currentDcId ? (
               <Link
                 to="/w/$dc/task-manager"

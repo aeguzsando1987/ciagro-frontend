@@ -13,7 +13,14 @@
  */
 import type { AdvancedSearchResult, SessionKind } from '../types'
 
-export const SESSION_KINDS: SessionKind[] = ['aspersion', 'phyto', 'ndvi', 'soil_map', 'yield_map']
+export const SESSION_KINDS: SessionKind[] = [
+  'aspersion',
+  'phyto',
+  'ndvi',
+  'soil_map',
+  'yield_map',
+  'planting_map',
+]
 
 export const SESSION_KIND_LABELS: Record<SessionKind, string> = {
   aspersion: 'Aspersión',
@@ -21,6 +28,7 @@ export const SESSION_KIND_LABELS: Record<SessionKind, string> = {
   ndvi: 'NDVI',
   soil_map: 'Mapeo de suelo',
   yield_map: 'Rendimiento',
+  planting_map: 'Siembra',
 }
 
 export type DateMode = 'planned' | 'actual'

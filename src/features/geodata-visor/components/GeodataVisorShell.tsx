@@ -73,6 +73,7 @@ function selectionLevelLabel(selection: VisorSelection | null): string {
     ndvi: 'NDVI',
     soil_map: 'Mapeo de suelo',
     yield_map: 'Rendimiento',
+    planting_map: 'Siembra',
   }
   return labels[selection.session?.kind ?? 'aspersion']
 }

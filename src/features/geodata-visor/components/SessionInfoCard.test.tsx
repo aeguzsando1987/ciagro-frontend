@@ -4,7 +4,7 @@
  * TanStack Router (que requiere RouterProvider) por un <a> que expone el search.
  */
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@tanstack/react-router', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,8 +25,31 @@ vi.mock('@/features/task-manager/hooks/useMasterTree', () => ({
 }))
 
 import { SessionInfoCard } from './SessionInfoCard'
+import { useAuthStore } from '@/features/auth/useAuthStore'
+import { ROLE_LEVELS } from '@/lib/auth/roles'
+
+/**
+ * El usuario en sesion decide si los enlaces al Task Manager se pintan: el modulo quedo
+ * restringido a SuperAdmin. Se fija por test y no en un `beforeEach` global para que el
+ * caso del rol sin acceso pueda pedir lo contrario.
+ */
+function sesionCon(roleLevel: number) {
+  useAuthStore.setState({
+    user: {
+      id: 'u1',
+      username: 'test',
+      email: 'test@test.com',
+      role_name: 'test',
+      role_level: roleLevel,
+      requires_password_change: false,
+      datacentrals: [],
+    },
+  })
+}
 
 describe('SessionInfoCard', () => {
+  beforeEach(() => sesionCon(ROLE_LEVELS.SUPER_ADMIN))
+
   it('muestra info de la sesión y los nombres de subprograma y maestro', () => {
     render(<SessionInfoCard sessionId="sess-1" datacentralId="dc-1" />)
     expect(screen.getByText(/2026-03-23/)).toBeTruthy()
@@ -45,5 +68,14 @@ describe('SessionInfoCard', () => {
   it('sin datacentralId no resuelve enlaces (muestra aviso)', () => {
     render(<SessionInfoCard sessionId="sess-1" />)
     expect(screen.getByText(/Enlaces no disponibles/)).toBeTruthy()
+  })
+
+  it('sin rol SuperAdmin no ofrece enlaces al Task Manager', () => {
+    sesionCon(ROLE_LEVELS.SUPERVISOR)
+    render(<SessionInfoCard sessionId="sess-1" datacentralId="dc-1" />)
+    // Control positivo: la tarjeta se pinta; lo que falta son solo los enlaces.
+    expect(screen.getByText(/2026-03-23/)).toBeTruthy()
+    expect(screen.queryByText(/Ver sesión/)).toBeNull()
+    expect(screen.queryByText(/Programa maestro/)).toBeNull()
   })
 })
