@@ -29,6 +29,7 @@ import { useNdviTimeline } from '../hooks/useNdviTimeline'
 import { groupSessionsByCycle, type NdviCycleGroup } from '../lib/ndviCycleTimeline'
 import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
 import { useYieldMapHeaders } from '@/features/yield-map/hooks/useYieldMapHeaders'
+import { usePlantingMapHeaders } from '@/features/planting-map/hooks/usePlantingMapHeaders'
 import type { YieldMapHeader } from '@/features/yield-map/types'
 import { useHijoDetail } from '@/features/task-manager/hooks/useHijoDetail'
 import {
@@ -702,6 +703,42 @@ function YieldMapSessionList({ depth, plot, base, selection, onSelect }: {
   )
 }
 
+function PlantingMapSessionList({ depth, plot, base, selection, onSelect }: {
+  depth: number
+  plot: { id: string; name: string }
+  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
+  selection: VisorSelection | null
+  onSelect: (sel: VisorSelection) => void
+}) {
+  const { data, isLoading, isError, refetch } = usePlantingMapHeaders(plot.id)
+  if (isLoading) return <Loading depth={depth} />
+  if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones de siembra." onRetry={() => void refetch()} />
+  if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones de siembra." />
+  const activeId = activeIdFor(selection)
+
+  return (
+    <>
+      {[...data]
+        .sort((a, b) => (b.planting_date ?? '').localeCompare(a.planting_date ?? ''))
+        .map((session) => (
+          <TreeRow
+            key={session.id}
+            depth={depth}
+            icon={<Sprout className="h-3.5 w-3.5" />}
+            label={`${session.planting_date ?? 'Sin fecha'}${session.points_count ? ` · ${session.points_count} pts` : ''}`}
+            selected={selection?.level === 'session' && selection.session?.kind === 'planting_map' && activeId === session.id}
+            onSelect={() => onSelect({
+              ...base,
+              plot,
+              session: { id: session.id, date: session.planting_date ?? null, kind: 'planting_map' },
+              level: 'session',
+            })}
+          />
+        ))}
+    </>
+  )
+}
+
 /** Grupos de sesiones de la parcela, cada uno bajo su encabezado. */
 function SessionGroups({ depth, plot, base, selection, onSelect }: {
   depth: number
@@ -722,6 +759,8 @@ function SessionGroups({ depth, plot, base, selection, onSelect }: {
       <SoilMapSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
       <GroupLabel depth={depth} icon={<Wheat className="h-3 w-3" />} text="Rendimiento" />
       <YieldMapSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
+      <GroupLabel depth={depth} icon={<Sprout className="h-3 w-3" />} text="Siembra" />
+      <PlantingMapSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
     </>
   )
 }

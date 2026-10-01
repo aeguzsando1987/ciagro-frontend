@@ -10,7 +10,7 @@ export interface FlushResult {
 }
 
 /** Tipos de sesión que admiten borrado de puntos. */
-export type FlushKind = 'aspersion' | 'ndvi' | 'soil_map' | 'yield_map'
+export type FlushKind = 'aspersion' | 'ndvi' | 'soil_map' | 'yield_map' | 'planting_map'
 
 interface FlushSpec {
   /** Segmento del endpoint bajo /monitoring/<segment>/headers/<id>/flush/ */
@@ -70,6 +70,16 @@ const SPECS: Record<FlushKind, FlushSpec> = {
       ['yield-map-points', id],
       ['yield-map-stats', id],
       ['yield-map', 'headers'],
+    ],
+  },
+  planting_map: {
+    segment: 'planting-map',
+    noun: 'datos de siembra',
+    invalidate: (id) => [
+      ['planting-map-detail', id],
+      ['planting-map-stats', id],
+      ['planting-map-layer-values', id],
+      ['planting-map', 'headers'],
     ],
   },
 }

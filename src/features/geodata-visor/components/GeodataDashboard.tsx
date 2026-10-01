@@ -17,6 +17,7 @@ import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
 import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
 import { useNdviSessionHeaders } from '../hooks/useNdviSessionHeaders'
 import { useYieldMapHeaders } from '@/features/yield-map/hooks/useYieldMapHeaders'
+import { usePlantingMapHeaders } from '@/features/planting-map/hooks/usePlantingMapHeaders'
 import {
   type StatEntry,
   sumArea,
@@ -39,6 +40,8 @@ import { AspersionMap } from './AspersionMap'
 import { NdviTimelineView } from './NdviTimelineView'
 import { SoilMap as SoilMapMap } from './SoilMap'
 import { YieldMap } from './YieldMap'
+import { PlantingMap } from './PlantingMap'
+import { PlantingMapSessionsPanel } from './PlantingMapSessionsPanel'
 import { PhytoMap } from '@/features/task-manager/components/PhytoMap'
 import { PhytoStatsCard } from '@/features/task-manager/components/PhytoStatsCard'
 import { SessionReportToggle } from '@/features/session-report/components/SessionReportToggle'
@@ -65,6 +68,7 @@ function levelTitle(selection: VisorSelection): string {
     if (kind === 'ndvi') return 'Sesión NDVI'
     if (kind === 'soil_map') return 'Sesión de mapeo de suelo'
     if (kind === 'yield_map') return 'Sesión de rendimiento'
+    if (kind === 'planting_map') return 'Sesión de siembra'
     return 'Sesión de aspersión'
   }
   return LEVEL_TITLE[selection.level]
@@ -322,6 +326,7 @@ function RanchView({
     ndvi: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'ndvi') : null,
     soil_map: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'soil_map') : null,
     yield_map: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'yield_map') : null,
+    planting_map: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'planting_map') : null,
   }
 
   const stats = isPlotLevel ? null : ranchStats(visiblePlots.length, areaHa)
@@ -329,6 +334,7 @@ function RanchView({
   const isNdviSession = isSessionLevel && selection.session?.kind === 'ndvi'
   const isSoilMapSession = isSessionLevel && selection.session?.kind === 'soil_map'
   const isYieldMapSession = isSessionLevel && selection.session?.kind === 'yield_map'
+  const isPlantingMapSession = isSessionLevel && selection.session?.kind === 'planting_map'
 
   const backToPlotButton = (
     <button
@@ -349,7 +355,8 @@ function RanchView({
         !isPhytoSession &&
         !isNdviSession &&
         !isSoilMapSession &&
-        !isYieldMapSession && (
+        !isYieldMapSession &&
+        !isPlantingMapSession && (
           <SessionInfoCard
             sessionId={selection.session!.id}
             datacentralId={selection.datacentral?.id}
@@ -433,14 +440,30 @@ function RanchView({
               }
             />
           ) : isYieldMapSession ? (
-            /* Rendimiento es el quinto dominio. El índice de sus cinco vistas rápidas
-               vive dentro del propio mapa; las sesiones siguen naciendo en Task Manager. */
             <YieldMap
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               mapSync={mapSync}
               comparisonMode={comparisonMode}
               toolbarStart={backToPlotButton}
+            />
+          ) : isPlantingMapSession ? (
+            <PlantingMap
+              sessionId={selection.session!.id}
+              plotId={selection.plot!.id}
+              mapSync={mapSync}
+              comparisonMode={comparisonMode}
+              toolbarStart={backToPlotButton}
+              sessionsSlot={
+                comparisonMode ? undefined : (
+                  <PlantingMapSessionsPanel
+                    plotId={selection.plot!.id}
+                    selectedSessionId={selection.session?.id ?? null}
+                    onSelectSession={(session) => onSelect(selectSession(selection, session))}
+                    allowedIds={allowed.planting_map}
+                  />
+                )
+              }
             />
           ) : (
             /* Sesión de aspersión: las 5 capas heatmap sobre la parcela (reuso Fase 6).
@@ -509,13 +532,15 @@ function PlotStats({ plotId }: { plotId: string }) {
   const ndviSessions = useNdviSessionHeaders(plotId)
   const soilMapSessions = useSoilMapSessionHeaders(plotId)
   const yieldMapSessions = useYieldMapHeaders(plotId)
+  const plantingMapSessions = usePlantingMapHeaders(plotId)
   const loading =
     plot.isLoading ||
     sessions.isLoading ||
     phytoSessions.isLoading ||
     ndviSessions.isLoading ||
     soilMapSessions.isLoading ||
-    yieldMapSessions.isLoading
+    yieldMapSessions.isLoading ||
+    plantingMapSessions.isLoading
   const officialAreaHa = parseArea(plot.data?.total_area)
   const stats = [
     ...plotStats(officialAreaHa, sessions.data?.length ?? 0),
@@ -523,6 +548,7 @@ function PlotStats({ plotId }: { plotId: string }) {
     { label: 'Sesiones NDVI', value: String(ndviSessions.data?.length ?? 0) },
     { label: 'Sesiones de mapeo de suelo', value: String(soilMapSessions.data?.length ?? 0) },
     { label: 'Sesiones de rendimiento', value: String(yieldMapSessions.data?.length ?? 0) },
+    { label: 'Sesiones de siembra', value: String(plantingMapSessions.data?.length ?? 0) },
   ]
   return <StatGrid loading={loading} stats={stats} />
 }
