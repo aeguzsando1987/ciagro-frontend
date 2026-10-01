@@ -126,6 +126,7 @@ type SessionRef =
   | { sesionId: string; sesionType: 'ndvi' }
   | { sesionId: string; sesionType: 'soil_map' }
   | { sesionId: string; sesionType: 'yield_map' }
+  | { sesionId: string; sesionType: 'planting_map' }
 
 type HijoSession =
   | {
@@ -159,6 +160,12 @@ type HijoSession =
       import_status: string
       harvest_date: string
     }
+  | {
+      id: string
+      kind: 'planting_map'
+      import_status: string
+      planting_date: string
+    }
 
 /** Cada tipo de sesion nombra su fecha distinto; esto la normaliza para ordenar y mostrar. */
 function sessionDate(s: HijoSession): string | null {
@@ -168,6 +175,7 @@ function sessionDate(s: HijoSession): string | null {
     case 'ndvi': return s.session_date
     case 'soil_map': return s.mapping_date
     case 'yield_map': return s.harvest_date
+    case 'planting_map': return s.planting_date
   }
 }
 
@@ -177,6 +185,7 @@ const SESSION_LABEL: Record<HijoSession['kind'], string> = {
   ndvi: '🍃 Índices vegetativos',
   soil_map: '🧪 Mapeo de suelo',
   yield_map: '🌾 Rendimiento',
+  planting_map: '🌱 Siembra',
 }
 
 interface HijoModalProps {
@@ -322,6 +331,7 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
     ...hijo.ndvi_sessions.map((s) => ({ ...s, kind: 'ndvi' as const })),
     ...hijo.soil_map_headers.map((s) => ({ ...s, kind: 'soil_map' as const })),
     ...(hijo.yield_map_headers ?? []).map((s) => ({ ...s, kind: 'yield_map' as const })),
+    ...(hijo.planting_map_headers ?? []).map((s) => ({ ...s, kind: 'planting_map' as const })),
   ].sort((a, b) => {
     // sessionDate puede ser null en NDVI (se rellena del CSV): orden nulo-seguro.
     return (sessionDate(a) ?? '').localeCompare(sessionDate(b) ?? '')
@@ -649,7 +659,7 @@ function ViewMode({
   onStatusChange: (s: ProgramaStatus) => void
   onNavigateSesion: (ref: {
     sesionId: string
-    sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' | 'yield_map'
+    sesionType: 'aspersion' | 'phyto' | 'ndvi' | 'soil_map' | 'yield_map' | 'planting_map'
   }) => void
   onCreateSesion: () => void
   canCargarLote: boolean

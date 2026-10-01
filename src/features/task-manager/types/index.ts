@@ -16,11 +16,23 @@ export type MasterProgram = components['schemas']['MasterProgram']
  */
 export type YieldMapSessionSummary = components['schemas']['YieldMapSessionSummary']
 
+export interface PlantingMapSessionSummary {
+  id: string
+  type: 'planting_map'
+  planting_date: string
+  import_status: string
+  status: string
+}
+
 /** Programa Hijo anidado bajo un Maestro. */
-export type ProgramaTree = components['schemas']['ProgramaTree']
+export type ProgramaTree = components['schemas']['ProgramaTree'] & {
+  planting_map_headers?: PlantingMapSessionSummary[]
+}
 
 /** Arbol completo Maestro + Hijos + Sesiones (endpoint /tree/). */
-export type MasterProgramTree = components['schemas']['MasterProgramTree']
+export type MasterProgramTree = Omit<components['schemas']['MasterProgramTree'], 'programas'> & {
+  programas: ProgramaTree[]
+}
 
 /** Estados validos del Programa Maestro y Programa Hijo. */
 export type ProgramaStatus = components['schemas']['Status5a4Enum']
