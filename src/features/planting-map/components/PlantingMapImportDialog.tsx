@@ -143,6 +143,14 @@ export function PlantingMapImportDialog({
                 <p className="text-xs font-semibold text-emerald-700">
                   CSV válido para Siembra · {preview.row_count.toLocaleString('es-MX')} filas
                 </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Perfil detectado:{' '}
+                  {preview.planting_mode === 'mass'
+                    ? 'Siembra por masa (kg/ha)'
+                    : preview.planting_mode === 'count'
+                      ? 'Siembra por conteo de semillas'
+                      : 'Telemetría de siembra'}
+                </p>
                 <div className="mt-2 flex flex-wrap gap-1">
                   {preview.available_layers.map((key) => (
                     <Badge key={key} variant="secondary" className="text-[10px]">
