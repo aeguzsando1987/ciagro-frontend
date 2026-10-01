@@ -1293,5 +1293,6 @@ en el Task Manager, creacion de sesiones y flush/borrado por niveles.
 - [x] **SB-9** `front` — preexistente: `dateUtils.test` dependia de la fecha real
 - [x] **SB-10** `verify` — typecheck, suite y prueba manual del dev
 - [x] **SB-11** `docs` — bitacoras y `GAP-SB-002`
+- [x] **SB-13** `merge` — incremento de Jorge posterior a la prueba manual: siembra por masa. Reverificado
 
-**Despliegue:** junto con el backend (migraciones 0046 a 0050).
+**Despliegue:** junto con el backend (migraciones 0046 a 0051).
