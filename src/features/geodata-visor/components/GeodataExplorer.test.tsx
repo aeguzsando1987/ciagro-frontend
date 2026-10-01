@@ -92,6 +92,9 @@ vi.mock('@/features/yield-map/hooks/useYieldMapHeaders', () => ({
     isLoading: false, isError: false, refetch: vi.fn(),
   }),
 }))
+vi.mock('@/features/planting-map/hooks/usePlantingMapHeaders', () => ({
+  usePlantingMapHeaders: () => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() }),
+}))
 
 import { GeodataExplorer } from './GeodataExplorer'
 

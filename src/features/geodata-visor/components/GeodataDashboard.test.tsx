@@ -63,6 +63,9 @@ vi.mock('@/features/yield-map/hooks/useYieldMapHeaders', () => ({
     isLoading: false, isError: false, refetch: vi.fn(),
   }),
 }))
+vi.mock('@/features/planting-map/hooks/usePlantingMapHeaders', () => ({
+  usePlantingMapHeaders: () => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() }),
+}))
 vi.mock('./YieldMap', () => ({
   YieldMap: ({ sessionId }: { sessionId: string }) => <div data-testid="yield-map">{sessionId}<button>Parcela</button><span>Vista rápida</span></div>,
 }))

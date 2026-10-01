@@ -14,6 +14,7 @@ import {
   isAllowedSession,
   isSearchActive,
   searchFromCriteria,
+  SESSION_KINDS,
   sessionIdsForPlot,
 } from './advancedSearch'
 import type { AdvancedSearchResult } from '../types'
@@ -101,11 +102,11 @@ describe('criteriaToQuery', () => {
     })
   })
 
-  it('omite el tipo cuando están los cinco (equivale a no filtrar)', () => {
+  it('omite el tipo cuando están todos (equivale a no filtrar)', () => {
     const query = criteriaToQuery({
       ...EMPTY_CRITERIA,
       from: '2025-01-01',
-      types: ['aspersion', 'phyto', 'ndvi', 'soil_map', 'yield_map'],
+      types: [...SESSION_KINDS],
     })
     expect(query.type).toBeUndefined()
   })
