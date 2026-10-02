@@ -394,8 +394,8 @@ export function NdviTimelineView({
 
       <section
         className={[
-          'flex shrink-0 flex-col overflow-hidden rounded-xl border bg-background',
-          analysisOpen ? 'min-h-[520px]' : 'min-h-[680px] flex-1',
+          'flex flex-1 flex-col overflow-hidden rounded-xl border bg-background',
+          analysisOpen ? 'min-h-[520px]' : 'min-h-[680px]',
         ].join(' ')}
       >
         <div className="flex h-10 shrink-0 items-center border-b px-3">
