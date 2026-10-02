@@ -3843,3 +3843,78 @@ Typecheck limpio, 819 tests en verde, prueba manual del dev el 2026-10-01 en ver
 ### Lo que queda abierto
 
 `GAP-SB-002`: el front de Siembra (~2100 lineas) no tiene ni un test.
+
+## FASE CV (frontend) — Agrupamiento por ciclo productivo en el Visor (2026-10-01, rama `dev-agrupamiento-visor`)
+
+### De donde nace
+
+El arbol de la parcela en el Visor agrupaba por tipo de sesion, en orden fijo, y pintaba un "Sin
+sesiones de ..." por cada tipo vacio. El negocio pidio otra jerarquia: **Generales** (mapeos de
+suelo) y un nodo por temporada del subprograma, rotulado **Ciclo productivo &lt;temporada&gt;**, con
+los tipos, el año y las sesiones debajo, y sin grupos vacios. Prompt
+`.context/prompts/01102026-cambio-orden-visor.md`, contrato
+`.context/sessions/session-visor-cycle-tree.json`. El backend (campo `program_cycle` y la unicidad
+de temporada) se registra en `../CIAgro_alpha_back/logs/development.md`.
+
+### Una sola regla de agrupado para tres pantallas
+
+`lib/plotSessionTree.ts` es logica pura (sin React, 12 tests) y la consumen el explorador, la
+busqueda avanzada y el modal de subprograma. Antes cada pantalla ordenaba a su manera; ahora no
+pueden divergir. Reglas: mapeos siempre a Generales; el resto por `Programa.cycle` literal (P-V,
+V-P y P son distintas; vacio o nulo a "Sin ciclo"); ciclos por su sesion mas reciente con "Sin
+ciclo" al final; tipos en orden fijo (Seguimiento a campo, Aplicaciones, Fitosanitario, Siembra,
+Rendimiento); años desc con "Sin fecha" al final; sesiones por fecha desc. Etiquetas confirmadas
+por el dev (D8).
+
+Se eliminaron los sub-agrupados que tenian NDVI (subciclo, via `useNdviTimeline`) y Rendimiento
+(subprograma, via `useHijoDetail`) (D3): con el ciclo como nivel superior eran redundantes.
+
+### Explorador y busqueda
+
+- `usePlotSessionTree` junta los seis listados que el arbol ya pedia al expandir la parcela: cero
+  peticiones nuevas. NDVI pasa a `useNdviSessionHeaders` porque ya trae la temporada.
+- Los nodos de agrupacion usan una fila propia (`GroupRow`): `TreeRow` alterna con doble clic y
+  selecciona con clic, y en un grupo que no selecciona nada un doble clic lo abriria y cerraria
+  varias veces. Todo arranca colapsado y la rama de la sesion seleccionada se abre sola (D7).
+- La busqueda arma el mismo arbol con las coincidencias, ya expandido (D5), y deja de pedir timeline
+  y rendimiento por parcela solo para reagrupar.
+
+### Retiro de la tarjeta de sesiones (D6) y lo que escondia
+
+Fuera `PlotSessionsPanel` y los cuatro paneles por tipo que entraban por `sessionsSlot`. Dos
+dependencias ocultas, la segunda no estaba en el analisis previo: en `AspersionMap` la tarjeta de
+categorias y en `SoilMap` las de estadisticas solo se pintaban **dentro** de la columna del slot.
+No se cambio a "siempre" porque esos mapas tambien se usan en el modal del Task Manager y en las
+capturas del reporte PDF: el slot se sustituyo por `showCategoryStats` / `showStatsCards`, que
+solo el Visor activa y fuera de comparacion, exactamente como antes. En `PhytoMap` y `PlantingMap`
+el aspecto sin slot es el mismo que ya tenian en sus modales. El control Satelite/Hibrido sigue en
+los mapas de rancho y productor, donde ya estaba.
+
+### Modal de subprograma (D10, ampliacion del dev)
+
+La lista plana ascendente pasa a Generales + tipos > año > sesiones, sin nivel de ciclo (el
+subprograma ya es una temporada), con `buildProgramTree`. Cada fila conserva su badge de
+importacion y su navegacion. Salio `SESSION_LABEL`, que llevaba emojis.
+
+### Verificacion
+
+- 822 tests en verde (118 archivos), typecheck limpio, eslint sin advertencias nuevas, build de
+  produccion correcto.
+- Tests reescritos: orden de grupos raiz, poda, un nodo por temporada compartida, mapeo en
+  Generales con la `VisorSelection` completa, auto-apertura de la rama seleccionada, estructura en
+  la busqueda y en el modal.
+- **Pendiente: prueba manual del desarrollador** (no se marca VALIDADA sin ella).
+
+### Lo que queda abierto
+
+`GAP-CV-7` (front): `NdviSessionsPanel` sigue sin consumidor desde antes de esta fase; no se toco.
+
+### Ajuste del 2026-10-02: el año solo en Generales (CV-17)
+
+El dev reviso la estructura y retiro el sub-nivel "actividad (año)" dentro de los ciclos: un ciclo
+productivo ya abarca una temporada, asi que agrupar por año debajo no aporta. Donde si tiene
+sentido es en **Generales**, que junta mapeos de varios años. `TypeGroup` pasa de `years` a
+`sessions` y desaparecen los rotulos "Indice vegetal (YYYY)", "Apl. liquidas (YYYY)"...; el
+modal de subprograma sigue la misma regla. Como las tres pantallas comparten `plotSessionTree`,
+el cambio fue de un solo modelo y el typecheck señalo exactamente a sus consumidores. 823 tests
+en verde.

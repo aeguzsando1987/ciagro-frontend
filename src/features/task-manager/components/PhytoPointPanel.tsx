@@ -43,7 +43,6 @@ interface PhytoPointPanelProps {
   diseaseLevel: PhytoIndexLevel
   lon: number
   lat: number
-  hasSessionsSlot?: boolean
   onClose: () => void
   onOpenPhoto: (url: string) => void
   onOpenNote: (note: string) => void
@@ -132,7 +131,6 @@ export function PhytoPointPanel({
   diseaseLevel,
   lon,
   lat,
-  hasSessionsSlot = false,
   onClose,
   onOpenPhoto,
   onOpenNote,
@@ -146,9 +144,7 @@ export function PhytoPointPanel({
   return (
     <aside
       aria-label={`Información del punto ${pointNumber}`}
-      className={`absolute bottom-2 left-2 right-2 z-30 flex max-h-[74%] flex-col overflow-hidden rounded-2xl border border-default bg-background/95 shadow-2xl backdrop-blur-sm sm:bottom-auto sm:left-auto sm:top-2 sm:max-h-[calc(100%-1rem)] sm:w-[25rem] sm:rounded-2xl ${
-        hasSessionsSlot ? 'sm:right-[15rem]' : 'sm:right-2'
-      }`}
+      className={`absolute bottom-2 left-2 right-2 z-30 flex max-h-[74%] flex-col overflow-hidden rounded-2xl border border-default bg-background/95 shadow-2xl backdrop-blur-sm sm:bottom-auto sm:left-auto sm:top-2 sm:max-h-[calc(100%-1rem)] sm:right-2 sm:w-[25rem] sm:rounded-2xl`}
     >
       <div className="shrink-0 border-b border-default bg-background px-4 pb-3 pt-4">
         <div className="flex items-start justify-between gap-3">

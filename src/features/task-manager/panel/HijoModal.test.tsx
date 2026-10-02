@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
@@ -177,12 +177,24 @@ describe('HijoModal', () => {
     expect(screen.getByText('Primavera-2026')).toBeInTheDocument()
   })
 
-  it('lista las sesiones de aspersión, fitosanitario y mapeo de suelo', async () => {
+  // FASE CV: agrupadas como en el Visor (Generales + tipos > año > sesiones), sin ciclo.
+  it('agrupa las sesiones en Generales (por año) y por tipo', async () => {
     renderModal(3)
     await waitFor(() => screen.getByRole('dialog'))
-    expect(screen.getByText(/Aspersión.*2026-06-10/i)).toBeInTheDocument()
-    expect(screen.getByText(/Fitosanitario.*2026-06-20/i)).toBeInTheDocument()
-    expect(screen.getByText(/Mapeo de suelo.*2026-06-25/i)).toBeInTheDocument()
+    const grupos = screen.getAllByRole('region').map((region) => region.getAttribute('aria-label'))
+    expect(grupos).toEqual(['Generales', 'Aplicaciones', 'Fitosanitario'])
+
+    const generales = within(screen.getByRole('region', { name: 'Generales' }))
+    expect(generales.getByText('Mapeos (2026)')).toBeInTheDocument()
+    expect(generales.getByText('2026-06-25')).toBeInTheDocument()
+
+    // En los tipos no hay nivel de año: el subprograma ya acota la temporada.
+    const aplicaciones = within(screen.getByRole('region', { name: 'Aplicaciones' }))
+    expect(aplicaciones.getByText('2026-06-10')).toBeInTheDocument()
+    expect(aplicaciones.queryByText(/\(2026\)/)).toBeNull()
+
+    const fito = within(screen.getByRole('region', { name: 'Fitosanitario' }))
+    expect(fito.getByText('2026-06-20')).toBeInTheDocument()
   })
 
   it('navega a la sesión de suelo con el tipo soil_map', async () => {
@@ -190,7 +202,7 @@ describe('HijoModal', () => {
     const { onNavigateSesion } = renderModal(3)
     await waitFor(() => screen.getByRole('dialog'))
 
-    await user.click(screen.getByText(/Mapeo de suelo.*2026-06-25/i))
+    await user.click(within(screen.getByRole('region', { name: 'Generales' })).getByText('2026-06-25'))
 
     expect(onNavigateSesion).toHaveBeenCalledWith({
       sesionId: 'soil-1',

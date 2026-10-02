@@ -311,7 +311,7 @@ describe('SoilMap', () => {
   })
 
   it('muestra únicamente las capas presentes en el CSV y siete rangos para Countrate', async () => {
-    await renderMap(<SoilMap sessionId="soil-1" plotId={null} sessionsSlot={<div>Sesiones</div>} />)
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} showStatsCards />)
 
     const selector = screen.getByRole('combobox', { name: 'Variable del mapa' })
     expect(selector).toHaveValue('countrate')
@@ -334,7 +334,7 @@ describe('SoilMap', () => {
         elevation_relative_pct: index * 50,
       }))
     )
-    await renderMap(<SoilMap sessionId="soil-1" plotId={null} sessionsSlot={<div>Sesiones</div>} />)
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} showStatsCards />)
     fireEvent.change(screen.getByRole('combobox', { name: 'Variable del mapa' }), {
       target: { value: 'elevation' },
     })
@@ -526,7 +526,7 @@ describe('SoilMap', () => {
       },
     } as never)
 
-    await renderMap(<SoilMap sessionId="soil-1" plotId={null} sessionsSlot={<div>Sesiones</div>} />)
+    await renderMap(<SoilMap sessionId="soil-1" plotId={null} showStatsCards />)
 
     await waitFor(() => expect(screen.getAllByText(/30.0% · 6 ha/).length).toBeGreaterThan(0))
     expect(screen.getAllByText(/20.0% · 4 ha/).length).toBeGreaterThan(0)
@@ -600,20 +600,20 @@ describe('SoilMap', () => {
    */
   describe('modo captura', () => {
     it('sin los props nuevos el visor se comporta igual que antes', async () => {
-      await renderMap(<SoilMap sessionId="soil-1" plotId={null} sessionsSlot={<div>Sesiones</div>} />)
+      await renderMap(<SoilMap sessionId="soil-1" plotId={null} showStatsCards />)
 
       expect(screen.getByRole('combobox', { name: 'Variable del mapa' })).toBeInTheDocument()
-      expect(screen.getByText('Sesiones')).toBeInTheDocument()
+      expect(screen.getByText(/^Estadísticas ·/)).toBeInTheDocument()
     })
 
     it('locked quita la barra y las tarjetas: la foto es del terreno', async () => {
       // Si no, el combobox y la leyenda saldrian dibujados DENTRO de la imagen del PDF.
       await renderMap(
-        <SoilMap sessionId="soil-1" plotId={null} locked sessionsSlot={<div>Sesiones</div>} />
+        <SoilMap sessionId="soil-1" plotId={null} locked showStatsCards />
       )
 
       expect(screen.queryByRole('combobox', { name: 'Variable del mapa' })).toBeNull()
-      expect(screen.queryByText('Sesiones')).toBeNull()
+      expect(screen.queryByText(/^Estadísticas ·/)).toBeNull()
     })
 
     it('activeLayerKey manda sobre el selector interno', async () => {

@@ -132,9 +132,9 @@ describe('filtrado de sesiones por resultado', () => {
                 id: 'plot-1',
                 code: 'P-001',
                 sessions: [
-                  { id: 's-asp', kind: 'aspersion', date: '2025-03-10', points_count: 5 },
-                  { id: 's-ndvi', kind: 'ndvi', date: '2024-11-05', points_count: 1024 },
-                  { id: 's-yield', kind: 'yield_map', date: '2024-10-12', points_count: 1594 },
+                  { id: 's-asp', kind: 'aspersion', date: '2025-03-10', points_count: 5, program_cycle: null },
+                  { id: 's-ndvi', kind: 'ndvi', date: '2024-11-05', points_count: 1024, program_cycle: null },
+                  { id: 's-yield', kind: 'yield_map', date: '2024-10-12', points_count: 1594, program_cycle: null },
                 ],
               },
             ],

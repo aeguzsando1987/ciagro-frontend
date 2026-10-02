@@ -9663,6 +9663,7 @@ export interface components {
             readonly program: string;
             /** Format: uuid */
             program_id: string;
+            readonly program_cycle: string | null;
             /**
              * Parcela
              * Format: uuid
@@ -10913,6 +10914,7 @@ export interface components {
             readonly program: string;
             /** Format: uuid */
             program_id: string;
+            readonly program_cycle: string | null;
             /**
              * Parcela
              * Format: uuid
@@ -11910,6 +11912,7 @@ export interface components {
             readonly program?: string;
             /** Format: uuid */
             program_id?: string;
+            readonly program_cycle?: string | null;
             /**
              * Parcela
              * Format: uuid
@@ -12202,6 +12205,7 @@ export interface components {
             readonly program?: string;
             /** Format: uuid */
             program_id?: string;
+            readonly program_cycle?: string | null;
             /**
              * Parcela
              * Format: uuid
@@ -12472,6 +12476,7 @@ export interface components {
              * @description Programa planificado que contempla esta sesión. Al vincularlo se heredan automáticamente parcela, cultivo y variedad.
              */
             readonly field_task?: string | null;
+            readonly program_cycle?: string | null;
             /**
              * Cultivo
              * @description Cultivo asociado a esta sesión. Se hereda del programa si no se indica.
@@ -12651,6 +12656,7 @@ export interface components {
             readonly program?: string;
             /** Format: uuid */
             program_id?: string;
+            readonly program_cycle?: string | null;
             /** Format: uuid */
             readonly plot?: string;
             /** Format: uuid */
@@ -13017,6 +13023,7 @@ export interface components {
             readonly program?: string;
             /** Format: uuid */
             program_id?: string;
+            readonly program_cycle?: string | null;
             /**
              * Parcela
              * Format: uuid
@@ -13093,6 +13100,7 @@ export interface components {
             readonly program?: string;
             /** Format: uuid */
             program_id?: string;
+            readonly program_cycle?: string | null;
             /**
              * Parcela
              * Format: uuid
@@ -13323,6 +13331,7 @@ export interface components {
              * @description Programa planificado que contempla esta sesión. Al vincularlo se heredan automáticamente parcela, cultivo y variedad.
              */
             readonly field_task: string | null;
+            readonly program_cycle: string | null;
             /**
              * Cultivo
              * @description Cultivo asociado a esta sesión. Se hereda del programa si no se indica.
@@ -13552,6 +13561,7 @@ export interface components {
             readonly program: string;
             /** Format: uuid */
             program_id: string;
+            readonly program_cycle: string | null;
             /** Format: uuid */
             readonly plot: string;
             /** Format: uuid */
@@ -14162,6 +14172,7 @@ export interface components {
             readonly program: string;
             /** Format: uuid */
             program_id: string;
+            readonly program_cycle: string | null;
             /**
              * Parcela
              * Format: uuid
@@ -14627,6 +14638,7 @@ export interface components {
             readonly program: string;
             /** Format: uuid */
             program_id: string;
+            readonly program_cycle: string | null;
             /**
              * Parcela
              * Format: uuid

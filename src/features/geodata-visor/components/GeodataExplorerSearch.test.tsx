@@ -66,8 +66,8 @@ const result: AdvancedSearchResult = {
               id: 'plot-1',
               code: 'P-001',
               sessions: [
-                { id: 's-asp', kind: 'aspersion', date: '2025-03-10', points_count: 5 },
-                { id: 's-ndvi', kind: 'ndvi', date: '2024-11-05', points_count: 1024 },
+                { id: 's-asp', kind: 'aspersion', date: '2025-03-10', points_count: 5, program_cycle: null },
+                { id: 's-ndvi', kind: 'ndvi', date: '2024-11-05', points_count: 1024, program_cycle: null },
               ],
             },
           ],
@@ -110,6 +110,40 @@ describe('GeodataExplorer en modo resultados', () => {
         session: { id: 's-ndvi', kind: 'ndvi', date: '2024-11-05' },
       })
     )
+  })
+
+  // FASE CV (D5): misma estructura que el arbol normal, ya expandida.
+  it('agrupa las coincidencias en Generales y ciclos productivos', () => {
+    const conCiclos: AdvancedSearchResult = {
+      ...result,
+      producers: [{
+        ...result.producers[0]!,
+        ranches: [{
+          ...result.producers[0]!.ranches[0]!,
+          plots: [{
+            id: 'plot-1',
+            code: 'P-001',
+            sessions: [
+              { id: 's-asp', kind: 'aspersion', date: '2025-03-10', points_count: 5, program_cycle: 'Primavera-Verano-2025' },
+              { id: 's-soil', kind: 'soil_map', date: '2025-01-20', points_count: 8, program_cycle: 'Primavera-Verano-2025' },
+              { id: 's-ndvi', kind: 'ndvi', date: '2024-11-05', points_count: 1024, program_cycle: null },
+            ],
+          }],
+        }],
+      }],
+    }
+    render(<GeodataExplorer selection={null} onSelect={vi.fn()} searchActive searchResult={conCiclos} />)
+
+    expect(screen.getByText('Generales')).toBeInTheDocument()
+    expect(screen.getByText('Mapeos (2025)')).toBeInTheDocument()
+    expect(screen.getByText('Ciclo productivo Primavera-Verano 2025')).toBeInTheDocument()
+    expect(screen.getByText('Aplicaciones')).toBeInTheDocument()
+    expect(screen.getByText('2025-03-10 · 5 pts')).toBeInTheDocument()
+    expect(screen.getByText('Sin ciclo')).toBeInTheDocument()
+    expect(screen.getByText('2024-11-05 · 1024 pts')).toBeInTheDocument()
+    // El año solo agrupa en Generales.
+    expect(screen.queryByText(/^Apl\. líquidas/)).toBeNull()
+    expect(screen.queryByText('Fitosanitario')).toBeNull()
   })
 
   it('avisa cuando el resultado viene recortado', () => {

@@ -201,10 +201,9 @@ describe('GeodataDashboard', () => {
     }
     render(<GeodataDashboard selection={sel} onSelect={vi.fn()} />)
     showStats()
-    // "Sesiones de aspersión" es la tarjeta de stat. El panel de este nivel es
-    // PlotSessionsPanel, que titula "Sesiones" y etiqueta la sección "Aspersión".
+    // "Sesiones de aspersión" es la tarjeta de stat (FASE CV: ya no hay panel de sesiones).
     expect(screen.getAllByText('Sesiones de aspersión').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('3').length).toBeGreaterThan(0) // 3 sesiones (stat y listado)
+    expect(screen.getAllByText('3').length).toBeGreaterThan(0) // 3 sesiones
     expect(screen.getByText(/4.5 ha/)).toBeTruthy()
     expect(screen.getAllByText('Sesiones de mapeo de suelo').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Sesiones de rendimiento').length).toBeGreaterThan(0)

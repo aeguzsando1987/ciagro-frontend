@@ -42,8 +42,6 @@ interface PhytoMapProps {
    * `true`: toolbar flotante transparente sobre el mapa (visor de datos).
    */
   floatingToolbar?: boolean
-  /** Columna derecha sobre el mapa (p. ej. panel de sesiones + tarjeta de stats). */
-  sessionsSlot?: React.ReactNode
   /** En comparación A/B separa las leyendas P y E a lados opuestos. */
   comparisonMode?: boolean
   mapSync?: MapCameraSyncBinding
@@ -220,7 +218,6 @@ export function PhytoMap({
   toolbarStart,
   toolbarEnd,
   floatingToolbar = false,
-  sessionsSlot,
   comparisonMode = false,
   mapSync,
 }: PhytoMapProps) {
@@ -430,12 +427,6 @@ export function PhytoMap({
           </div>
         )}
 
-        {sessionsSlot && (
-          <div className="absolute bottom-2 right-2 top-2 z-10 flex w-56 flex-col gap-2">
-            {sessionsSlot}
-          </div>
-        )}
-
         {isLoading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 text-sm text-muted-foreground">
             <LoadingState
@@ -452,9 +443,7 @@ export function PhytoMap({
         )}
 
         <div
-          className={`absolute z-10 rounded-xl border border-white/80 bg-white/90 text-xs shadow-lg backdrop-blur-md transition-all ${
-            sessionsSlot ? 'bottom-2 left-2' : 'right-2 top-2'
-          } ${legendCollapsed ? 'px-2 py-1.5' : 'px-3 py-2'}`}
+          className={`absolute right-2 top-2 z-10 rounded-xl border border-white/80 bg-white/90 text-xs shadow-lg backdrop-blur-md transition-all ${legendCollapsed ? 'px-2 py-1.5' : 'px-3 py-2'}`}
         >
           <div
             className={`flex items-center justify-between gap-2 ${legendCollapsed ? '' : 'mb-1'}`}
@@ -827,7 +816,6 @@ export function PhytoMap({
             diseaseLevel={popup.diseaseLevel}
             lon={popup.lon}
             lat={popup.lat}
-            hasSessionsSlot={Boolean(sessionsSlot)}
             onClose={() => setPopup(null)}
             onOpenPhoto={setPhotoModal}
             onOpenNote={setNoteModal}

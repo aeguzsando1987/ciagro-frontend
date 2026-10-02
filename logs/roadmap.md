@@ -1296,3 +1296,26 @@ en el Task Manager, creacion de sesiones y flush/borrado por niveles.
 - [x] **SB-13** `merge` — incremento de Jorge posterior a la prueba manual: siembra por masa. Reverificado
 
 **Despliegue:** junto con el backend (migraciones 0046 a 0051).
+
+---
+
+## FASE CV (frontend) — Agrupamiento por ciclo en el Visor (rama `dev-agrupamiento-visor`, 2026-10-01)
+**Estado:** `[x] IMPLEMENTADA 2026-10-01 (ajuste CV-17 el 2026-10-02), VALIDADA POR EL DEV Y HOMOLOGADA 2026-10-02. 823 tests en verde, typecheck y build limpios. PENDIENTE: despliegue (requiere MF + SB antes). GAP-CV-7 y GAP-CV-10 abiertos.`
+
+Explorador del Visor: Parcela > Generales (mapeos) + un nodo por temporada del subprograma >
+tipo > sesiones (el año solo agrupa los mapeos de Generales), sin grupos vacios y con "Sin ciclo" al final. La busqueda avanzada usa la
+misma estructura. Se retira la tarjeta de sesiones (nivel parcela y sesion). Depende del campo
+`program_cycle` del backend (`../CIAgro_alpha_back/logs/roadmap.md`, CV-1 a CV-5).
+
+- [x] **CV-6** `types` — `api.d.ts` regenerado y `program_cycle` en `SearchSessionRef`
+- [x] **CV-7** `tree-model` — `lib/plotSessionTree.ts` (agrupado y orden puros) con tests
+- [x] **CV-8** `explorer` — `usePlotSessionTree` y el arbol nuevo en `GeodataExplorer`
+- [x] **CV-9** `search-tree` — resultados de busqueda con la misma estructura
+- [x] **CV-10** `panels` — fuera `PlotSessionsPanel` y `sessionsSlot`; `CategoryStatsCard` se conserva
+- [x] **CV-16** `hijo-modal` — D10: el modal de subprograma agrupa sus sesiones igual (Generales por año + tipos > sesiones), reusando `plotSessionTree`
+- [x] **CV-17** `no-year-in-cycle` — correccion del dev (2026-10-02): el sub-nivel por año solo en Generales; dentro del ciclo y en el modal, tipo > sesiones
+- [x] **CV-11** `tests` — tests del explorador y de busqueda actualizados
+- [x] **CV-12** `verify` — typecheck, suite y build en verde; prueba manual del dev completa (2026-10-02)
+- [x] **CV-13** `docs` — bitacoras, GAP-CV-7 y solicitud de despliegue combinada (`../CIAgro_alpha_back/logs/deploy-2026-10-01-cv.md`)
+
+**Despliegue:** junto con el backend, que trae la migracion `field_ops.0026` (ver la solicitud). Reconstruir el front.
