@@ -364,12 +364,10 @@ interface AspersionMapProps {
    *  flujo arriba del mapa. */
   floatingToolbar?: boolean
   /**
-   * Contenido a fijar en la columna derecha sobre el mapa (p. ej. el `SessionsPanel`
-   * del visor). Cuando se provee, debajo de él se renderiza la tarjeta de categorías
-   * de % de aplicación (solo en la capa categórica). Si se omite (modal del
-   * task-manager), no se dibuja columna derecha alguna.
+   * Tarjeta de categorías de % de aplicación en la columna derecha (solo capa
+   * categórica). La activa el visor; el modal del task-manager y el reporte no.
    */
-  sessionsSlot?: React.ReactNode
+  showCategoryStats?: boolean
   /** Clases extra para el contenedor raíz. */
   className?: string
   /**
@@ -406,7 +404,7 @@ export function AspersionMap({
   toolbarStart,
   toolbarEnd,
   floatingToolbar = false,
-  sessionsSlot,
+  showCategoryStats = false,
   className,
   locked = false,
   preserveDrawingBuffer = false,
@@ -547,22 +545,20 @@ export function AspersionMap({
           </div>
         )}
 
-        {/* ─ Columna derecha (slot de sesiones + tarjeta de categorías) ─ */}
-        {sessionsSlot && (
-          <div className="absolute bottom-2 right-2 top-2 z-10 flex w-56 flex-col gap-2">
-            {sessionsSlot}
-            {layerData &&
-              layerData.legendDefs.length > 0 &&
-              ASPERSION_LAYERS[activeLayerIdx]!.kind === 'category' && (
-                <CategoryStatsCard
-                  legendDefs={layerData.legendDefs}
-                  areaByBucket={layerData.areaByBucket}
-                  checkedBuckets={checkedBuckets ?? new Set(layerData.legendDefs.map((d) => d.key))}
-                  onToggle={toggleBucket}
-                />
-              )}
-          </div>
-        )}
+        {/* ─ Columna derecha: tarjeta de categorías ─ */}
+        {showCategoryStats &&
+          layerData &&
+          layerData.legendDefs.length > 0 &&
+          ASPERSION_LAYERS[activeLayerIdx]!.kind === 'category' && (
+            <div className="absolute right-2 top-2 z-10 flex w-56 flex-col gap-2">
+              <CategoryStatsCard
+                legendDefs={layerData.legendDefs}
+                areaByBucket={layerData.areaByBucket}
+                checkedBuckets={checkedBuckets ?? new Set(layerData.legendDefs.map((d) => d.key))}
+                onToggle={toggleBucket}
+              />
+            </div>
+          )}
 
         {loadingPoints && (
           <MapOverlay>

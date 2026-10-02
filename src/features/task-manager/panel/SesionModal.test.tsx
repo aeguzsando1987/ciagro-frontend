@@ -39,6 +39,7 @@ const detail: SoilMapSessionDetail = {
   id: 'soil-header-1',
   program: 'program-1',
   program_id: 'program-1',
+  program_cycle: null,
   plot: 'plot-1',
   mapping_date: '2026-07-12',
   status: 'pending',

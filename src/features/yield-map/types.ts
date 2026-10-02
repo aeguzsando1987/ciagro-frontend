@@ -4,6 +4,7 @@ export type YieldSessionStatus = 'pending' | 'in_progress' | 'loaded' | 'complet
 export interface YieldMapHeader {
   id: string
   program: string
+  program_cycle: string | null
   plot: string | null
   harvest_date: string
   status: YieldSessionStatus

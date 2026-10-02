@@ -24,6 +24,7 @@ export type PlantingLayerKey =
 export interface PlantingMapHeader {
   id: string
   program: string
+  program_cycle: string | null
   plot: string
   planting_date: string
   est_init_date: string | null

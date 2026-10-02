@@ -29,6 +29,8 @@ export interface SearchSessionRef {
   kind: SessionKind
   date: string | null
   points_count: number
+  /** FASE CV: temporada del subprograma; null cae en "Sin ciclo". */
+  program_cycle: string | null
 }
 
 export interface SearchPlotNode {

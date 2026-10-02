@@ -10,8 +10,8 @@
  */
 import { useEffect, useState, useMemo } from 'react'
 import {
-  Building2, Bug, ChevronDown, ChevronRight, FlaskConical, Layers, Leaf,
-  MapPin, RefreshCw, Sprout, Tractor, Wheat,
+  Building2, Bug, CalendarDays, CalendarRange, ChevronDown, ChevronRight, FlaskConical,
+  Layers, Leaf, MapPin, RefreshCw, Sprout, Tractor, Wheat,
   LayoutDashboard,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -23,20 +23,20 @@ import { useDataCentralMains, useDataCentrals } from '@/features/admin/hooks/use
 import { useProducers } from '@/features/admin/hooks/useProducers'
 import { useRanches } from '@/features/admin/hooks/useRanches'
 import { usePlots } from '@/features/admin/hooks/usePlots'
-import { useAspersionSessionHeaders } from '../hooks/useAspersionSessionHeaders'
-import { usePhytoSessionHeaders } from '../hooks/usePhytoSessionHeaders'
-import { useNdviTimeline } from '../hooks/useNdviTimeline'
-import { groupSessionsByCycle, type NdviCycleGroup } from '../lib/ndviCycleTimeline'
-import { useSoilMapSessionHeaders } from '../hooks/useSoilMapSessionHeaders'
-import { useYieldMapHeaders } from '@/features/yield-map/hooks/useYieldMapHeaders'
-import { usePlantingMapHeaders } from '@/features/planting-map/hooks/usePlantingMapHeaders'
-import type { YieldMapHeader } from '@/features/yield-map/types'
-import { useHijoDetail } from '@/features/task-manager/hooks/useHijoDetail'
+import { usePlotSessionTree } from '../hooks/usePlotSessionTree'
+import {
+  GENERALES_LABEL,
+  buildPlotTree,
+  sessionIdsOf,
+  type PlotTree,
+  type TreeSession,
+  type TypeGroup,
+  type YearGroup,
+} from '../lib/plotSessionTree'
 import {
   activeIdFor,
   type AdvancedSearchResult,
   type SearchProducerNode,
-  type SearchSessionRef,
   type SessionKind,
   type VisorSelection,
 } from '../types'
@@ -148,621 +148,190 @@ function InlineError({ depth, text, onRetry }: { depth: number; text: string; on
   )
 }
 
-// ─── Nivel 6: Sesiones (agrupadas por tipo) ───────────────────────────────────
+// ─── Nivel 6: Sesiones (FASE CV: Generales > año / ciclo productivo > tipo) ──
 
-/** Encabezado de grupo dentro del árbol (no seleccionable). */
-function GroupLabel({ depth, icon, text }: { depth: number; icon: React.ReactNode; text: string }) {
-  return (
-    <div
-      className="flex items-center gap-1.5 px-1 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground"
-      style={{ paddingLeft: depth * 14 + 22 }}
-    >
-      <span className="shrink-0">{icon}</span>
-      {text}
-    </div>
-  )
-}
-
-/** Lista de sesiones de aspersión de la parcela. */
-function AspersionSessionList({ depth, plot, base, selection, onSelect }: {
+/** Fila de agrupacion (Generales, ciclo, tipo, año): un clic abre o cierra, no selecciona. */
+function GroupRow({ depth, icon, label, expanded, active, onToggle }: {
   depth: number
-  plot: { id: string; name: string }
-  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
-  selection: VisorSelection | null
-  onSelect: (sel: VisorSelection) => void
-}) {
-  const { data, isLoading, isError, refetch } = useAspersionSessionHeaders(plot.id)
-  if (isLoading) return <Loading depth={depth} />
-  if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones." onRetry={() => void refetch()} />
-  if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones de aspersión." />
-  const activeId = activeIdFor(selection)
-  return (
-    <>
-      {data.map((s) => (
-        <TreeRow
-          key={s.id}
-          depth={depth}
-          icon={<Layers className="h-3.5 w-3.5" />}
-          label={`${s.aspersion_date ?? 'Sin fecha'}${s.points_count ? ` · ${s.points_count} pts` : ''}`}
-          selected={selection?.level === 'session' && selection.session?.kind === 'aspersion' && activeId === s.id}
-          onSelect={() => onSelect({
-            ...base,
-            plot,
-            session: { id: s.id, date: s.aspersion_date ?? null, kind: 'aspersion' },
-            level: 'session',
-          })}
-        />
-      ))}
-    </>
-  )
-}
-
-/** Lista de sesiones fitosanitarias de la parcela. */
-function PhytoSessionList({ depth, plot, base, selection, onSelect }: {
-  depth: number
-  plot: { id: string; name: string }
-  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
-  selection: VisorSelection | null
-  onSelect: (sel: VisorSelection) => void
-}) {
-  const { data, isLoading, isError, refetch } = usePhytoSessionHeaders(plot.id)
-  if (isLoading) return <Loading depth={depth} />
-  if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones." onRetry={() => void refetch()} />
-  if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones fitosanitarias." />
-  const activeId = activeIdFor(selection)
-  return (
-    <>
-      {data.map((s) => {
-        const count = Number(s.checkpoints_count ?? 0)
-        return (
-          <TreeRow
-            key={s.id}
-            depth={depth}
-            icon={<Bug className="h-3.5 w-3.5" />}
-            label={`${s.estimated_start_date ?? 'Sin fecha'}${count ? ` · ${count} pts` : ''}`}
-            selected={selection?.level === 'session' && selection.session?.kind === 'phyto' && activeId === s.id}
-            onSelect={() => onSelect({
-              ...base,
-              plot,
-              session: { id: s.id, date: s.estimated_start_date ?? null, kind: 'phyto' },
-              level: 'session',
-            })}
-          />
-        )
-      })}
-    </>
-  )
-}
-
-/** Formatea una fecha del ciclo para mostrarla compacta dentro del árbol. */
-function formatExplorerCycleDate(value: string | null | undefined): string {
-  if (!value) return '—'
-
-  const date = new Date(`${value}T12:00:00`)
-  if (Number.isNaN(date.getTime())) return value
-
-  return new Intl.DateTimeFormat('es-MX', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-    .format(date)
-    .replace('.', '')
-}
-
-/** Rango visible de un subciclo productivo (Programa hijo). */
-function cycleRangeLabel(group: NdviCycleGroup): string {
-  return `${formatExplorerCycleDate(group.cycle_start)} → ${formatExplorerCycleDate(group.cycle_end)}`
-}
-
-/**
- * Fila expandible del subciclo productivo dentro del grupo NDVI.
- * No cambia la selección actual: únicamente abre/cierra sus sesiones.
- */
-function NdviCycleRow({
-  depth,
-  group,
-  expanded,
-  active,
-  onToggle,
-}: {
-  depth: number
-  group: NdviCycleGroup
+  icon: React.ReactNode
+  label: string
   expanded: boolean
   active: boolean
   onToggle: () => void
 }) {
-  const subtitle = cycleRangeLabel(group)
-
   return (
     <div
       role="treeitem"
       aria-expanded={expanded}
       onClick={onToggle}
-      className={`mx-1 flex min-h-12 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 transition-colors duration-150 hover:bg-surface-secondary ${
-        active ? 'bg-primary-soft/70 text-brand' : 'text-secondary'
+      className={`mx-1 flex min-h-10 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 text-[15px] transition-colors duration-150 hover:bg-surface-secondary hover:text-foreground ${
+        active ? 'text-brand' : 'text-secondary'
       }`}
       style={{ paddingLeft: depth * 14 + 8 }}
-      title={subtitle}
     >
       <button
         type="button"
-        aria-label={expanded ? 'Contraer subciclo productivo' : 'Expandir subciclo productivo'}
-        onClick={(event) => {
-          event.stopPropagation()
-          onToggle()
-        }}
+        aria-label={expanded ? 'Contraer' : 'Expandir'}
+        onClick={(e) => { e.stopPropagation(); onToggle() }}
         className="flex h-6 w-5 shrink-0 items-center justify-center rounded text-muted hover:bg-surface hover:text-foreground"
       >
-        {expanded ? (
-          <ChevronDown className="h-3.5 w-3.5" />
-        ) : (
-          <ChevronRight className="h-3.5 w-3.5" />
-        )}
+        {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
       </button>
-
-      <span className={active ? 'shrink-0 text-brand' : 'shrink-0 text-muted'}>
-        <Layers className="h-3.5 w-3.5" />
-      </span>
-
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-semibold leading-4">
-          {group.program_name || 'Subciclo productivo'}
-        </span>
-        <span className="block truncate text-[11px] leading-4 text-muted">
-          {subtitle}
-        </span>
-      </span>
+      <span className={active ? 'shrink-0 text-brand' : 'shrink-0 text-muted'}>{icon}</span>
+      <span className="truncate">{label}</span>
     </div>
   )
 }
 
-/** Un subciclo NDVI (Programa hijo) y sus sesiones. */
-function NdviCycleBranch({
-  depth,
-  group,
-  plot,
-  base,
-  selection,
-  onSelect,
-  defaultExpanded = false,
-}: {
+/** Nodo de agrupacion; se abre solo si contiene la sesion seleccionada. */
+function GroupNode({ depth, icon, label, ids, selection, defaultExpanded = false, children }: {
   depth: number
-  group: NdviCycleGroup
-  plot: { id: string; name: string }
-  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
+  icon: React.ReactNode
+  label: string
+  ids: Set<string>
   selection: VisorSelection | null
-  onSelect: (sel: VisorSelection) => void
   defaultExpanded?: boolean
+  children: React.ReactNode
 }) {
   const activeId = activeIdFor(selection)
-
-  const containsSelectedSession =
-    selection?.level === 'session' &&
-    selection.session?.kind === 'ndvi' &&
-    group.sessions.some((session) => session.id === activeId)
-
-  /**
-   * El subciclo que contiene la sesión seleccionada inicia abierto.
-   * Si la selección cambia a otra sesión del mismo subciclo, también se vuelve a abrir.
-   */
-  const [expanded, setExpanded] = useState(containsSelectedSession || defaultExpanded)
+  const containsSelected = selection?.level === 'session' && activeId !== null && ids.has(activeId)
+  const [expanded, setExpanded] = useState(defaultExpanded || containsSelected)
 
   useEffect(() => {
-    if (containsSelectedSession) setExpanded(true)
-  }, [containsSelectedSession, activeId])
-
-  /** En el árbol mostramos primero la imagen NDVI más reciente. */
-  const orderedSessions = useMemo(
-    () =>
-      [...group.sessions].sort((a, b) =>
-        (b.session_date ?? '').localeCompare(a.session_date ?? '')
-      ),
-    [group.sessions]
-  )
+    if (containsSelected) setExpanded(true)
+  }, [containsSelected, activeId])
 
   return (
     <>
-      <NdviCycleRow
+      <GroupRow
         depth={depth}
-        group={group}
+        icon={icon}
+        label={label}
         expanded={expanded}
-        active={containsSelectedSession}
+        active={containsSelected}
         onToggle={() => setExpanded((value) => !value)}
       />
-
-      {expanded && (
-        <>
-          {orderedSessions.map((session) => (
-            <TreeRow
-              key={session.id}
-              depth={depth + 1}
-              icon={<Leaf className="h-3.5 w-3.5" />}
-              label={`${session.session_date ?? 'Sin fecha'}${
-                session.points_count ? ` · ${session.points_count} pts` : ''
-              }`}
-              selected={
-                selection?.level === 'session' &&
-                selection.session?.kind === 'ndvi' &&
-                activeId === session.id
-              }
-              onSelect={() =>
-                onSelect({
-                  ...base,
-                  plot,
-                  session: {
-                    id: session.id,
-                    date: session.session_date,
-                    kind: 'ndvi',
-                  },
-                  level: 'session',
-                })
-              }
-            />
-          ))}
-        </>
-      )}
+      {expanded && children}
     </>
   )
 }
 
-/**
- * Lista de sesiones NDVI agrupadas por subciclo productivo (Programa hijo).
- *
- * Usa el mismo endpoint temporal que alimenta la línea de tiempo porque, además de la
- * fecha y los puntos, ya trae program_id, program_name, cycle_start y cycle_end.
- */
-function NdviSessionList({ depth, plot, base, selection, onSelect }: {
-  depth: number
-  plot: { id: string; name: string }
-  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
-  selection: VisorSelection | null
-  onSelect: (sel: VisorSelection) => void
-}) {
-  const { data, isLoading, isError, refetch } = useNdviTimeline(plot.id)
-
-  /**
-   * El helper ya separa por programa + cycle_start + cycle_end.
-   * En el explorador mostramos primero el subciclo más reciente.
-   */
-  const groups = useMemo(
-    () =>
-      groupSessionsByCycle(data ?? [])
-        .slice()
-        .sort((a, b) =>
-          (b.cycle_start ?? '').localeCompare(a.cycle_start ?? '')
-        ),
-    [data]
-  )
-
-  if (isLoading) return <Loading depth={depth} />
-  if (isError) {
-    return (
-      <InlineError
-        depth={depth}
-        text="No pudimos cargar las sesiones NDVI."
-        onRetry={() => void refetch()}
-      />
-    )
-  }
-  if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones de NDVI." />
-  if (groups.length === 0) return <Empty depth={depth} text="Sin subciclos productivos NDVI." />
-
-  return (
-    <>
-      {groups.map((group) => (
-        <NdviCycleBranch
-          key={group.key}
-          depth={depth}
-          group={group}
-          plot={plot}
-          base={base}
-          selection={selection}
-          onSelect={onSelect}
-        />
-      ))}
-    </>
-  )
-}
-
-/** Lista de sesiones de mapeo de suelo de la parcela. */
-function SoilMapSessionList({ depth, plot, base, selection, onSelect }: {
-  depth: number
-  plot: { id: string; name: string }
-  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
-  selection: VisorSelection | null
-  onSelect: (sel: VisorSelection) => void
-}) {
-  const { data, isLoading, isError, refetch } = useSoilMapSessionHeaders(plot.id)
-  if (isLoading) return <Loading depth={depth} />
-  if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones." onRetry={() => void refetch()} />
-  if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones de mapeo de suelo." />
-  const activeId = activeIdFor(selection)
-  return (
-    <>
-      {data.map((s) => {
-        const count = Number(s.points_count ?? 0)
-        return (
-          <TreeRow
-            key={s.id}
-            depth={depth}
-            icon={<FlaskConical className="h-3.5 w-3.5" />}
-            label={`${s.mapping_date ?? 'Sin fecha'}${count ? ` · ${count} pts` : ''}`}
-            selected={selection?.level === 'session' && selection.session?.kind === 'soil_map' && activeId === s.id}
-            onSelect={() => onSelect({
-              ...base,
-              plot,
-              session: { id: s.id, date: s.mapping_date ?? null, kind: 'soil_map' },
-              level: 'session',
-            })}
-          />
-        )
-      })}
-    </>
-  )
-}
-
-/** Grupo de sesiones de rendimiento que pertenecen al mismo Programa hijo. */
-interface YieldProgramGroup {
-  key: string
-  programId: string
-  sessions: YieldMapHeader[]
-  latestHarvestDate: string
-}
-
-/** Rendimiento se clasifica por Programa hijo, igual que NDVI por subciclo productivo. */
-function groupYieldSessionsByProgram(sessions: YieldMapHeader[]): YieldProgramGroup[] {
-  const groups = new Map<string, YieldMapHeader[]>()
-
-  for (const session of sessions) {
-    const programId = session.program
-    const current = groups.get(programId) ?? []
-    current.push(session)
-    groups.set(programId, current)
-  }
-
-  return Array.from(groups.entries())
-    .map(([programId, groupedSessions]) => {
-      const ordered = [...groupedSessions].sort((a, b) =>
-        (b.harvest_date ?? '').localeCompare(a.harvest_date ?? '')
-      )
-      return {
-        key: `yield-program:${programId}`,
-        programId,
-        sessions: ordered,
-        latestHarvestDate: ordered[0]?.harvest_date ?? '',
-      }
-    })
-    .sort((a, b) => b.latestHarvestDate.localeCompare(a.latestHarvestDate))
-}
-
-function yieldProgramSubtitle(program: ReturnType<typeof useHijoDetail>['data'], sessionCount: number) {
-  const start = program?.est_start_date?.slice(0, 10) ?? null
-  const end = program?.est_finish_date?.slice(0, 10) ?? null
-  const range = start || end
-    ? `${formatExplorerCycleDate(start)} → ${formatExplorerCycleDate(end)}`
-    : null
-  const pieces = [program?.cycle?.trim() || null, range]
-    .filter((value): value is string => Boolean(value))
-
-  return pieces.length > 0
-    ? pieces.join(' · ')
-    : `${sessionCount} ${sessionCount === 1 ? 'sesión' : 'sesiones'}`
-}
-
-/**
- * Un Programa hijo de Rendimiento y sus cosechas.
- *
- * El header de rendimiento ya trae `program` (UUID). Solo consultamos el detalle una
- * vez por subprograma para mostrar su nombre/ciclo; TanStack Query lo deja cacheado.
- */
-function YieldProgramBranch({
-  depth,
-  group,
-  plot,
-  base,
-  selection,
-  onSelect,
-  defaultExpanded = false,
-}: {
-  depth: number
-  group: YieldProgramGroup
+interface SessionTreeProps {
   plot: { id: string; name: string }
   base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
   defaultExpanded?: boolean
+}
+
+function SessionLeaf({ depth, session, plot, base, selection, onSelect }: SessionTreeProps & {
+  depth: number
+  session: TreeSession
 }) {
   const activeId = activeIdFor(selection)
-  const programQuery = useHijoDetail(group.programId)
-  const containsSelectedSession =
-    selection?.level === 'session' &&
-    selection.session?.kind === 'yield_map' &&
-    group.sessions.some((session) => session.id === activeId)
-
-  const [expanded, setExpanded] = useState(containsSelectedSession || defaultExpanded)
-
-  useEffect(() => {
-    if (containsSelectedSession) setExpanded(true)
-  }, [containsSelectedSession, activeId])
-
-  const programName =
-    programQuery.data?.title?.trim() ||
-    programQuery.data?.voucher_code?.trim() ||
-    `Subprograma ${group.programId.slice(0, 8)}`
-  const subtitle = yieldProgramSubtitle(programQuery.data, group.sessions.length)
-
   return (
-    <>
-      <div
-        role="treeitem"
-        aria-expanded={expanded}
-        onClick={() => setExpanded((value) => !value)}
-        className={`mx-1 flex min-h-12 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 transition-colors duration-150 hover:bg-surface-secondary ${
-          containsSelectedSession ? 'bg-primary-soft/70 text-brand' : 'text-secondary'
-        }`}
-        style={{ paddingLeft: depth * 14 + 8 }}
-        title={subtitle}
-      >
-        <button
-          type="button"
-          aria-label={expanded ? 'Contraer subprograma de rendimiento' : 'Expandir subprograma de rendimiento'}
-          onClick={(event) => {
-            event.stopPropagation()
-            setExpanded((value) => !value)
-          }}
-          className="flex h-6 w-5 shrink-0 items-center justify-center rounded text-muted hover:bg-surface hover:text-foreground"
-        >
-          {expanded ? (
-            <ChevronDown className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5" />
-          )}
-        </button>
-
-        <span className={containsSelectedSession ? 'shrink-0 text-brand' : 'shrink-0 text-muted'}>
-          <Layers className="h-3.5 w-3.5" />
-        </span>
-
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-semibold leading-4">
-            {programQuery.isLoading ? 'Cargando subprograma…' : programName}
-          </span>
-          <span className="block truncate text-[11px] leading-4 text-muted">
-            {subtitle}
-          </span>
-        </span>
-      </div>
-
-      {expanded && (
-        <>
-          {group.sessions.map((session) => {
-            const count = Number(session.points_count ?? 0)
-            return (
-              <TreeRow
-                key={session.id}
-                depth={depth + 1}
-                icon={<Wheat className="h-3.5 w-3.5" />}
-                label={`${session.harvest_date ?? 'Sin fecha'}${count ? ` · ${count} pts` : ''}`}
-                selected={
-                  selection?.level === 'session' &&
-                  selection.session?.kind === 'yield_map' &&
-                  activeId === session.id
-                }
-                onSelect={() =>
-                  onSelect({
-                    ...base,
-                    plot,
-                    session: {
-                      id: session.id,
-                      date: session.harvest_date ?? null,
-                      kind: 'yield_map',
-                    },
-                    level: 'session',
-                  })
-                }
-              />
-            )
-          })}
-        </>
-      )}
-    </>
+    <TreeRow
+      depth={depth}
+      icon={SESSION_ICONS[session.kind]}
+      label={`${session.date ?? 'Sin fecha'}${session.points_count ? ` · ${session.points_count} pts` : ''}`}
+      selected={selection?.level === 'session' && selection.session?.kind === session.kind && activeId === session.id}
+      onSelect={() => onSelect({
+        ...base,
+        plot,
+        session: { id: session.id, date: session.date, kind: session.kind },
+        level: 'session',
+      })}
+    />
   )
 }
 
-/** Lista de sesiones de rendimiento de la parcela, agrupadas por Programa hijo. */
-function YieldMapSessionList({ depth, plot, base, selection, onSelect }: {
-  depth: number
-  plot: { id: string; name: string }
-  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
-  selection: VisorSelection | null
-  onSelect: (sel: VisorSelection) => void
-}) {
-  const { data, isLoading, isError, refetch } = useYieldMapHeaders(plot.id)
-  const groups = useMemo(() => groupYieldSessionsByProgram(data ?? []), [data])
-
-  if (isLoading) return <Loading depth={depth} />
-  if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones de rendimiento." onRetry={() => void refetch()} />
-  if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones de rendimiento." />
-  if (groups.length === 0) return <Empty depth={depth} text="Sin subprogramas de rendimiento." />
-
+function YearNodes({ depth, years, ...props }: SessionTreeProps & { depth: number; years: YearGroup[] }) {
   return (
     <>
-      {groups.map((group) => (
-        <YieldProgramBranch
-          key={group.key}
+      {years.map((year) => (
+        <GroupNode
+          key={year.key}
           depth={depth}
-          group={group}
-          plot={plot}
-          base={base}
-          selection={selection}
-          onSelect={onSelect}
-        />
+          icon={<CalendarDays className="h-3.5 w-3.5" />}
+          label={year.label}
+          ids={sessionIdsOf(year)}
+          selection={props.selection}
+          defaultExpanded={props.defaultExpanded}
+        >
+          {year.sessions.map((session) => (
+            <SessionLeaf key={session.id} depth={depth + 1} session={session} {...props} />
+          ))}
+        </GroupNode>
       ))}
     </>
   )
 }
 
-function PlantingMapSessionList({ depth, plot, base, selection, onSelect }: {
-  depth: number
-  plot: { id: string; name: string }
-  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
-  selection: VisorSelection | null
-  onSelect: (sel: VisorSelection) => void
-}) {
-  const { data, isLoading, isError, refetch } = usePlantingMapHeaders(plot.id)
-  if (isLoading) return <Loading depth={depth} />
-  if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones de siembra." onRetry={() => void refetch()} />
-  if (!data || data.length === 0) return <Empty depth={depth} text="Sin sesiones de siembra." />
-  const activeId = activeIdFor(selection)
-
+function TypeNodes({ depth, types, ...props }: SessionTreeProps & { depth: number; types: TypeGroup[] }) {
   return (
     <>
-      {[...data]
-        .sort((a, b) => (b.planting_date ?? '').localeCompare(a.planting_date ?? ''))
-        .map((session) => (
-          <TreeRow
-            key={session.id}
-            depth={depth}
-            icon={<Sprout className="h-3.5 w-3.5" />}
-            label={`${session.planting_date ?? 'Sin fecha'}${session.points_count ? ` · ${session.points_count} pts` : ''}`}
-            selected={selection?.level === 'session' && selection.session?.kind === 'planting_map' && activeId === session.id}
-            onSelect={() => onSelect({
-              ...base,
-              plot,
-              session: { id: session.id, date: session.planting_date ?? null, kind: 'planting_map' },
-              level: 'session',
-            })}
-          />
-        ))}
+      {types.map((type) => (
+        <GroupNode
+          key={type.key}
+          depth={depth}
+          icon={SESSION_ICONS[type.kind]}
+          label={type.label}
+          ids={sessionIdsOf(type)}
+          selection={props.selection}
+          defaultExpanded={props.defaultExpanded}
+        >
+          {type.sessions.map((session) => (
+            <SessionLeaf key={session.id} depth={depth + 1} session={session} {...props} />
+          ))}
+        </GroupNode>
+      ))}
     </>
   )
 }
 
-/** Grupos de sesiones de la parcela, cada uno bajo su encabezado. */
-function SessionGroups({ depth, plot, base, selection, onSelect }: {
-  depth: number
-  plot: { id: string; name: string }
-  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
-  selection: VisorSelection | null
-  onSelect: (sel: VisorSelection) => void
-}) {
+/** Generales + ciclos productivos (FASE CV). Lo usan el arbol normal y la busqueda. */
+function SessionTreeNodes({ depth, tree, ...props }: SessionTreeProps & { depth: number; tree: PlotTree }) {
+  const generalesIds = new Set(tree.generales.flatMap((year) => [...sessionIdsOf(year)]))
   return (
     <>
-      <GroupLabel depth={depth} icon={<Layers className="h-3 w-3" />} text="Aspersión" />
-      <AspersionSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
-      <GroupLabel depth={depth} icon={<Bug className="h-3 w-3" />} text="Fitosanitarias" />
-      <PhytoSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
-      <GroupLabel depth={depth} icon={<Leaf className="h-3 w-3" />} text="NDVI" />
-      <NdviSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
-      <GroupLabel depth={depth} icon={<FlaskConical className="h-3 w-3" />} text="Mapeo de suelo" />
-      <SoilMapSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
-      <GroupLabel depth={depth} icon={<Wheat className="h-3 w-3" />} text="Rendimiento" />
-      <YieldMapSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
-      <GroupLabel depth={depth} icon={<Sprout className="h-3 w-3" />} text="Siembra" />
-      <PlantingMapSessionList depth={depth + 1} plot={plot} base={base} selection={selection} onSelect={onSelect} />
+      {tree.generales.length > 0 && (
+        <GroupNode
+          depth={depth}
+          icon={<FlaskConical className="h-3.5 w-3.5" />}
+          label={GENERALES_LABEL}
+          ids={generalesIds}
+          selection={props.selection}
+          defaultExpanded={props.defaultExpanded}
+        >
+          <YearNodes depth={depth + 1} years={tree.generales} {...props} />
+        </GroupNode>
+      )}
+      {tree.cycles.map((cycle) => (
+        <GroupNode
+          key={cycle.key}
+          depth={depth}
+          icon={<CalendarRange className="h-3.5 w-3.5" />}
+          label={cycle.label}
+          ids={sessionIdsOf(cycle)}
+          selection={props.selection}
+          defaultExpanded={props.defaultExpanded}
+        >
+          <TypeNodes depth={depth + 1} types={cycle.types} {...props} />
+        </GroupNode>
+      ))}
     </>
   )
+}
+
+/** Sesiones de la parcela agrupadas por Generales y ciclo productivo. */
+function PlotSessionTree({ depth, ...props }: SessionTreeProps & { depth: number }) {
+  const { tree, isLoading, isError, refetch } = usePlotSessionTree(props.plot.id)
+  if (isLoading) return <Loading depth={depth} />
+  if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones." onRetry={refetch} />
+  if (tree.generales.length === 0 && tree.cycles.length === 0) {
+    return <Empty depth={depth} text="Sin sesiones." />
+  }
+  return <SessionTreeNodes depth={depth} tree={tree} {...props} />
 }
 
 // ─── Nivel 5: Parcelas ────────────────────────────────────────────────────────
@@ -788,7 +357,7 @@ function PlotNode({ depth, plotRef, base, selection, onSelect }: {
         onSelect={() => onSelect({ ...base, plot: plotRef, level: 'plot' })}
       />
       {expanded && (
-        <SessionGroups depth={depth + 1} plot={plotRef} base={base} selection={selection} onSelect={onSelect} />
+        <PlotSessionTree depth={depth + 1} plot={plotRef} base={base} selection={selection} onSelect={onSelect} />
       )}
     </>
   )
@@ -1084,21 +653,6 @@ const SESSION_ICONS: Record<SessionKind, React.ReactNode> = {
   planting_map: <Sprout className="h-3.5 w-3.5" />,
 }
 
-const SESSION_KIND_TEXT: Record<SessionKind, string> = {
-  aspersion: 'Aspersión',
-  phyto: 'Fitosanitaria',
-  ndvi: 'NDVI',
-  soil_map: 'Mapeo de suelo',
-  yield_map: 'Rendimiento',
-  planting_map: 'Siembra',
-}
-
-function sessionLabel(session: SearchSessionRef): string {
-  const date = session.date ?? 'Sin fecha'
-  const points = session.points_count ? ` · ${session.points_count} pts` : ''
-  return `${date}${points}`
-}
-
 /** Un productor del resultado, con sus ranchos y parcelas ya expandidos. */
 function SearchProducerBranch({ producer, selection, onSelect }: {
   producer: SearchProducerNode
@@ -1174,167 +728,7 @@ function SearchRanchBranch({ ranch, base, selection, onSelect }: {
   )
 }
 
-/**
- * Resultados NDVI de una parcela en búsqueda avanzada, agrupados por subciclo productivo.
- *
- * El endpoint de búsqueda avanzada devuelve los ids que coincidieron con el filtro, pero
- * no incluye todavía program_id/cycle_start/cycle_end. Para no perder la clasificación
- * por subciclo, aquí consultamos la línea de tiempo de ESA parcela y conservamos únicamente
- * los ids que vinieron en la búsqueda.
- *
- * Si la línea de tiempo no pudiera cargarse, se conserva un fallback plano para que la
- * búsqueda siga siendo navegable y nunca oculte coincidencias.
- */
-function SearchNdviCycleResults({
-  depth,
-  plot,
-  matches,
-  base,
-  selection,
-  onSelect,
-}: {
-  depth: number
-  plot: { id: string; name: string }
-  matches: SearchSessionRef[]
-  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
-  selection: VisorSelection | null
-  onSelect: (sel: VisorSelection) => void
-}) {
-  const { data, isLoading, isError } = useNdviTimeline(plot.id)
-  const activeId = activeIdFor(selection)
-
-  const matchingIds = useMemo(() => new Set(matches.map((session) => session.id)), [matches])
-
-  const groups = useMemo(
-    () =>
-      groupSessionsByCycle((data ?? []).filter((session) => matchingIds.has(session.id)))
-        .slice()
-        .sort((a, b) => (b.cycle_start ?? '').localeCompare(a.cycle_start ?? '')),
-    [data, matchingIds]
-  )
-
-  if (isLoading) return <Loading depth={depth} />
-
-  // Fallback deliberado: una falla del endpoint temporal no debe volver inútil la
-  // búsqueda avanzada. Se muestran las coincidencias NDVI tal como llegaron.
-  if (isError || groups.length === 0) {
-    return (
-      <>
-        {matches.map((session) => (
-          <TreeRow
-            key={session.id}
-            depth={depth}
-            icon={<Leaf className="h-3.5 w-3.5" />}
-            label={sessionLabel(session)}
-            selected={
-              selection?.level === 'session' &&
-              selection.session?.kind === 'ndvi' &&
-              activeId === session.id
-            }
-            onSelect={() =>
-              onSelect({
-                ...base,
-                plot,
-                session: { id: session.id, date: session.date, kind: 'ndvi' },
-                level: 'session',
-              })
-            }
-          />
-        ))}
-      </>
-    )
-  }
-
-  return (
-    <>
-      {groups.map((group) => (
-        <NdviCycleBranch
-          key={group.key}
-          depth={depth}
-          group={group}
-          plot={plot}
-          base={base}
-          selection={selection}
-          onSelect={onSelect}
-          defaultExpanded
-        />
-      ))}
-    </>
-  )
-}
-
-/** Resultados de Rendimiento agrupados por Programa hijo, igual que el árbol normal. */
-function SearchYieldProgramResults({
-  depth,
-  plot,
-  matches,
-  base,
-  selection,
-  onSelect,
-}: {
-  depth: number
-  plot: { id: string; name: string }
-  matches: SearchSessionRef[]
-  base: Pick<VisorSelection, 'org' | 'datacentral' | 'producer' | 'ranch'>
-  selection: VisorSelection | null
-  onSelect: (sel: VisorSelection) => void
-}) {
-  const { data, isLoading, isError } = useYieldMapHeaders(plot.id)
-  const activeId = activeIdFor(selection)
-  const matchingIds = useMemo(() => new Set(matches.map((session) => session.id)), [matches])
-  const groups = useMemo(
-    () => groupYieldSessionsByProgram((data ?? []).filter((session) => matchingIds.has(session.id))),
-    [data, matchingIds]
-  )
-
-  if (isLoading) return <Loading depth={depth} />
-
-  if (isError || groups.length === 0) {
-    return (
-      <>
-        {matches.map((session) => (
-          <TreeRow
-            key={session.id}
-            depth={depth}
-            icon={<Wheat className="h-3.5 w-3.5" />}
-            label={sessionLabel(session)}
-            selected={
-              selection?.level === 'session' &&
-              selection.session?.kind === 'yield_map' &&
-              activeId === session.id
-            }
-            onSelect={() =>
-              onSelect({
-                ...base,
-                plot,
-                session: { id: session.id, date: session.date, kind: 'yield_map' },
-                level: 'session',
-              })
-            }
-          />
-        ))}
-      </>
-    )
-  }
-
-  return (
-    <>
-      {groups.map((group) => (
-        <YieldProgramBranch
-          key={group.key}
-          depth={depth}
-          group={group}
-          plot={plot}
-          base={base}
-          selection={selection}
-          onSelect={onSelect}
-          defaultExpanded
-        />
-      ))}
-    </>
-  )
-}
-
+/** Parcela del resultado con la misma estructura del arbol normal, ya expandida (D5). */
 function SearchPlotBranch({ plot, base, selection, onSelect }: {
   plot: SearchProducerNode['ranches'][number]['plots'][number]
   base: Pick<VisorSelection, 'org' | 'producer' | 'ranch'>
@@ -1344,11 +738,16 @@ function SearchPlotBranch({ plot, base, selection, onSelect }: {
   const [expanded, setExpanded] = useState(true)
   const activeId = activeIdFor(selection)
   const plotRef = { id: plot.id, name: plot.code }
-
-  const ndviSessions = plot.sessions.filter((session) => session.kind === 'ndvi')
-  const yieldSessions = plot.sessions.filter((session) => session.kind === 'yield_map')
-  const otherSessions = plot.sessions.filter(
-    (session) => session.kind !== 'ndvi' && session.kind !== 'yield_map'
+  // `date` es la del modo de la busqueda (programada o real): se ordena por la fecha filtrada.
+  const tree = useMemo(
+    () => buildPlotTree(plot.sessions.map((session) => ({
+      id: session.id,
+      kind: session.kind,
+      date: session.date,
+      points_count: session.points_count,
+      cycle: session.program_cycle,
+    }))),
+    [plot.sessions],
   )
 
   return (
@@ -1363,65 +762,16 @@ function SearchPlotBranch({ plot, base, selection, onSelect }: {
         selected={selection?.level === 'plot' && activeId === plot.id}
         onSelect={() => onSelect({ ...base, plot: plotRef, level: 'plot' })}
       />
-
       {expanded && (
-        <>
-          {/* Los otros tipos conservan exactamente el comportamiento anterior. */}
-          {otherSessions.map((session) => (
-            <TreeRow
-              key={`${session.kind}-${session.id}`}
-              depth={3}
-              icon={SESSION_ICONS[session.kind]}
-              label={sessionLabel(session)}
-              badge={SESSION_KIND_TEXT[session.kind]}
-              selected={
-                selection?.level === 'session' &&
-                selection.session?.kind === session.kind &&
-                activeId === session.id
-              }
-              onSelect={() =>
-                onSelect({
-                  ...base,
-                  plot: plotRef,
-                  session: { id: session.id, date: session.date, kind: session.kind },
-                  level: 'session',
-                })
-              }
-            />
-          ))}
-
-          {/* NDVI mantiene la misma jerarquía que el explorador normal:
-              NDVI → Subciclo productivo → sesiones que coincidieron con la búsqueda. */}
-          {ndviSessions.length > 0 && (
-            <>
-              <GroupLabel depth={3} icon={<Leaf className="h-3 w-3" />} text="NDVI" />
-              <SearchNdviCycleResults
-                depth={4}
-                plot={plotRef}
-                matches={ndviSessions}
-                base={base}
-                selection={selection}
-                onSelect={onSelect}
-              />
-            </>
-          )}
-
-          {/* Rendimiento también se ordena por Programa hijo para no mezclar cosechas
-              de subprogramas distintos dentro de la misma parcela. */}
-          {yieldSessions.length > 0 && (
-            <>
-              <GroupLabel depth={3} icon={<Wheat className="h-3 w-3" />} text="Rendimiento" />
-              <SearchYieldProgramResults
-                depth={4}
-                plot={plotRef}
-                matches={yieldSessions}
-                base={base}
-                selection={selection}
-                onSelect={onSelect}
-              />
-            </>
-          )}
-        </>
+        <SessionTreeNodes
+          depth={3}
+          tree={tree}
+          plot={plotRef}
+          base={base}
+          selection={selection}
+          onSelect={onSelect}
+          defaultExpanded
+        />
       )}
     </>
   )

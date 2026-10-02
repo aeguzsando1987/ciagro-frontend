@@ -24,7 +24,6 @@ interface Props {
   sessionId: string
   plotId: string | null
   toolbarStart?: React.ReactNode
-  sessionsSlot?: React.ReactNode
   className?: string
   mapSync?: MapCameraSyncBinding
   comparisonMode?: boolean
@@ -213,7 +212,7 @@ function rectangularCell(
 }
 
 export function PlantingMap({
-  sessionId, plotId, toolbarStart, sessionsSlot, className, mapSync, comparisonMode = false,
+  sessionId, plotId, toolbarStart, className, mapSync, comparisonMode = false,
 }: Props) {
   const instanceId = useId().replace(/:/g, '')
   const plotSourceId = `planting-plot-${instanceId}`
@@ -351,11 +350,11 @@ export function PlantingMap({
   useEffect(() => {
     if (!plotBounds || !mapRef.current) return
     mapRef.current.fitBounds(plotBounds, {
-      padding: sessionsSlot && !comparisonMode ? { top: 55, left: 55, bottom: 55, right: 300 } : 55,
+      padding: 55,
       duration: 450,
       maxZoom: 19,
     })
-  }, [comparisonMode, plotBounds, sessionsSlot])
+  }, [comparisonMode, plotBounds])
 
   function handlePointer(event: MapLayerMouseEvent) {
     const feature = event.features?.[0]
@@ -393,9 +392,7 @@ export function PlantingMap({
         onLoad={() => {
           if (plotBounds) {
             mapRef.current?.fitBounds(plotBounds, {
-              padding: sessionsSlot && !comparisonMode
-                ? { top: 55, left: 55, bottom: 55, right: 300 }
-                : 55,
+              padding: 55,
               duration: 0,
               maxZoom: 19,
             })
@@ -506,7 +503,7 @@ export function PlantingMap({
         </div>
       </div>
 
-      {!comparisonMode && !sessionsSlot && detail && (
+      {!comparisonMode && detail && (
         <div className="absolute right-3 top-3 z-20 w-60 rounded-xl border border-white/30 bg-white/95 p-3 text-xs shadow-lg backdrop-blur-sm dark:bg-slate-950/95">
           <p className="font-semibold">Resumen de la siembra</p>
           <div className="mt-2 space-y-1.5">
@@ -521,8 +518,6 @@ export function PlantingMap({
           </div>
         </div>
       )}
-
-      {!comparisonMode && sessionsSlot}
 
       {isLoading && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/55">

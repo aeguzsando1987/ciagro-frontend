@@ -30,10 +30,6 @@ import {
 import { VisorBreadcrumb } from './VisorBreadcrumb'
 import { RanchPlotsMap } from './RanchPlotsMap'
 import { ProducerRanchesMap } from './ProducerRanchesMap'
-import { SessionsPanel } from './SessionsPanel'
-import { PhytoSessionsPanel } from './PhytoSessionsPanel'
-import { SoilMapSessionsPanel } from './SoilMapSessionsPanel'
-import { PlotSessionsPanel } from './PlotSessionsPanel'
 import { SessionInfoCard } from './SessionInfoCard'
 import { SoilMapSessionInfoCard } from './SoilMapSessionInfoCard'
 import { AspersionMap } from './AspersionMap'
@@ -41,7 +37,6 @@ import { NdviTimelineView } from './NdviTimelineView'
 import { SoilMap as SoilMapMap } from './SoilMap'
 import { YieldMap } from './YieldMap'
 import { PlantingMap } from './PlantingMap'
-import { PlantingMapSessionsPanel } from './PlantingMapSessionsPanel'
 import { PhytoMap } from '@/features/task-manager/components/PhytoMap'
 import { PhytoStatsCard } from '@/features/task-manager/components/PhytoStatsCard'
 import { SessionReportToggle } from '@/features/session-report/components/SessionReportToggle'
@@ -317,17 +312,10 @@ function RanchView({
   const isPlotLevel = selection.level !== 'ranch'
   const isSessionLevel = selection.level === 'session'
 
-  // Ids que la búsqueda permite para ESTA parcela, por tipo. `null` sin búsqueda, con
-  // lo que los paneles se comportan como siempre.
+  // Ids NDVI que la búsqueda permite para ESTA parcela (`null` sin búsqueda): la línea
+  // de tiempo NDVI navega entre sesiones y no debe salirse del resultado.
   const plotId = selection.plot?.id ?? null
-  const allowed = {
-    aspersion: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'aspersion') : null,
-    phyto: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'phyto') : null,
-    ndvi: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'ndvi') : null,
-    soil_map: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'soil_map') : null,
-    yield_map: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'yield_map') : null,
-    planting_map: plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'planting_map') : null,
-  }
+  const allowedNdvi = plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'ndvi') : null
 
   const stats = isPlotLevel ? null : ranchStats(visiblePlots.length, areaHa)
   const isPhytoSession = isSessionLevel && selection.session?.kind === 'phyto'
@@ -384,51 +372,28 @@ function RanchView({
               tenantId={selection.org.id}
               mapSync={mapSync}
               comparisonMode={comparisonMode}
-              allowedIds={allowed.ndvi}
+              allowedIds={allowedNdvi}
               onSelectSession={(session) => onSelect(selectSession(selection, session))}
             />
           ) : isPhytoSession ? (
             /* Sesión fitosanitaria: mapa de calor de checkpoints sobre la parcela (reuso
-               del PhytoMap del task-manager). La lista de sesiones fitosanitarias va en la
-               columna derecha del mapa. */
+               del PhytoMap del task-manager). */
             <PhytoMap
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               floatingToolbar
               comparisonMode={comparisonMode}
               mapSync={mapSync}
-              sessionsSlot={
-                comparisonMode ? undefined : (
-                  <PhytoSessionsPanel
-                    floating={false}
-                    plotId={selection.plot!.id}
-                    selectedSessionId={selection.session?.id ?? null}
-                    onSelectSession={(session) => onSelect(selectSession(selection, session))}
-                    allowedIds={allowed.phyto}
-                  />
-                )
-              }
               toolbarStart={backToPlotButton}
             />
           ) : isSoilMapSession ? (
-            /* Sesión de mapeo de suelo: rangos espaciales dentro de la parcela.
-               La lista de sesiones comparte la columna derecha del visor. */
+            /* Sesión de mapeo de suelo: rangos espaciales dentro de la parcela. */
             <SoilMapMap
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               floatingToolbar
               mapSync={mapSync}
-              sessionsSlot={
-                comparisonMode ? undefined : (
-                  <SoilMapSessionsPanel
-                    floating={false}
-                    plotId={selection.plot!.id}
-                    selectedSessionId={selection.session?.id ?? null}
-                    onSelectSession={(session) => onSelect(selectSession(selection, session))}
-                    allowedIds={allowed.soil_map}
-                  />
-                )
-              }
+              showStatsCards={!comparisonMode}
               toolbarStart={backToPlotButton}
               toolbarEnd={
                 <SessionReportToggle
@@ -454,37 +419,17 @@ function RanchView({
               mapSync={mapSync}
               comparisonMode={comparisonMode}
               toolbarStart={backToPlotButton}
-              sessionsSlot={
-                comparisonMode ? undefined : (
-                  <PlantingMapSessionsPanel
-                    plotId={selection.plot!.id}
-                    selectedSessionId={selection.session?.id ?? null}
-                    onSelectSession={(session) => onSelect(selectSession(selection, session))}
-                    allowedIds={allowed.planting_map}
-                  />
-                )
-              }
             />
           ) : (
             /* Sesión de aspersión: las 5 capas heatmap sobre la parcela (reuso Fase 6).
-               La lista de sesiones va en la columna derecha del mapa, y debajo de ella la
-               tarjeta de categorías de % de aplicación (renderizada por AspersionMap). */
+               La tarjeta de categorías de % de aplicación la pinta AspersionMap. FASE CV:
+               sin lista de sesiones, el árbol del explorador ya cumple esa función. */
             <AspersionMap
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               floatingToolbar
               mapSync={mapSync}
-              sessionsSlot={
-                comparisonMode ? undefined : (
-                  <SessionsPanel
-                    floating={false}
-                    plotId={selection.plot!.id}
-                    selectedSessionId={selection.session?.id ?? null}
-                    onSelectSession={(session) => onSelect(selectSession(selection, session))}
-                    allowedIds={allowed.aspersion}
-                  />
-                )
-              }
+              showCategoryStats={!comparisonMode}
               toolbarStart={backToPlotButton}
               toolbarEnd={
                 <SessionReportToggle
@@ -507,17 +452,6 @@ function RanchView({
               selection.producer ? () => onSelect(selectProducerLevel(selection)) : undefined
             }
             mapSync={mapSync}
-          />
-        )}
-        {/* Nivel parcela (sin sesión): las listas de sesiones por tipo
-            apiladas en una columna flotante sobre el mapa de parcelas. A nivel sesión la
-            lista vive dentro del mapa correspondiente (sessionsSlot). */}
-        {isPlotLevel && !isSessionLevel && !comparisonMode && (
-          <PlotSessionsPanel
-            plotId={selection.plot!.id}
-            selectedSessionId={selection.session?.id ?? null}
-            onSelectSession={(session) => onSelect(selectSession(selection, session))}
-            allowedIds={allowed}
           />
         )}
       </div>

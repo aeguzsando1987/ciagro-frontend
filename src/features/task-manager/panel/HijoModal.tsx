@@ -43,6 +43,7 @@ import { StatusChanger } from './StatusChanger'
 import { CreateSessionDialog } from '@/features/task-manager/dialogs/CreateSessionDialog'
 import { DeleteLevelDialog } from '../components/DeleteLevelDialog'
 import type { ProgramaTree, MasterProgram, ProgramaStatus } from '@/features/task-manager/types'
+import { buildProgramTree, GENERALES_LABEL } from '@/features/geodata-visor/lib/plotSessionTree'
 
 const STATUS_BADGE_COLORS: Record<string, string> = {
   pending: 'bg-slate-100 text-slate-700',
@@ -179,13 +180,22 @@ function sessionDate(s: HijoSession): string | null {
   }
 }
 
-const SESSION_LABEL: Record<HijoSession['kind'], string> = {
-  aspersion: '💧 Aspersión',
-  phyto: '🌿 Fitosanitario',
-  ndvi: '🍃 Índices vegetativos',
-  soil_map: '🧪 Mapeo de suelo',
-  yield_map: '🌾 Rendimiento',
-  planting_map: '🌱 Siembra',
+/**
+ * Grupos del modal (FASE CV), como el Visor sin el nivel de ciclo: Generales con un bloque
+ * por año; cada tipo con un solo bloque sin rotulo.
+ */
+function sessionGroups(sessions: HijoSession[]) {
+  const tree = buildProgramTree(
+    sessions.map((s) => ({ id: s.id, kind: s.kind, date: sessionDate(s), points_count: 0, cycle: null })),
+  )
+  return [
+    { key: 'generales', label: GENERALES_LABEL, blocks: tree.generales },
+    ...tree.types.map((type) => ({
+      key: type.key,
+      label: type.label,
+      blocks: [{ key: type.key, label: null, sessions: type.sessions }],
+    })),
+  ].filter((group) => group.blocks.length > 0)
 }
 
 interface HijoModalProps {
@@ -332,10 +342,7 @@ export function HijoModal({ hijo, master, datacentralId, onClose, onBack, onNavi
     ...hijo.soil_map_headers.map((s) => ({ ...s, kind: 'soil_map' as const })),
     ...(hijo.yield_map_headers ?? []).map((s) => ({ ...s, kind: 'yield_map' as const })),
     ...(hijo.planting_map_headers ?? []).map((s) => ({ ...s, kind: 'planting_map' as const })),
-  ].sort((a, b) => {
-    // sessionDate puede ser null en NDVI (se rellena del CSV): orden nulo-seguro.
-    return (sessionDate(a) ?? '').localeCompare(sessionDate(b) ?? '')
-  })
+  ]
 
   return (
     <>
@@ -665,6 +672,7 @@ function ViewMode({
   canCargarLote: boolean
   onCargarLote: () => void
 }) {
+  const sessionsById = new Map(allSessions.map((s) => [s.id, s]))
   return (
     <div className="flex min-h-0 flex-1 gap-4">
       {/* Columna izquierda: datos + status + sesiones */}
@@ -750,28 +758,42 @@ function ViewMode({
               sobra y scrollea dentro del recuadro en vez de estirar el modal. Sin
               esto, al anidarse las sesiones el modal crecia fuera de la pantalla. */}
           {allSessions.length > 0 && (
-            <ul className="min-h-0 flex-1 divide-y overflow-y-auto rounded border">
-              {allSessions.map((s) => {
-                const fecha = sessionDate(s)
-                const label = SESSION_LABEL[s.kind]
-                return (
-                  <li key={`${s.kind}-${s.id}`}>
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-accent"
-                      onClick={() => onNavigateSesion({ sesionId: s.id, sesionType: s.kind })}
-                    >
-                      <span className="text-sm">
-                        {label} — {fecha ?? 'Sin fecha'}
-                      </span>
-                      <Badge className="text-xs">
-                        {IMPORT_STATUS_LABELS[s.import_status] ?? s.import_status}
-                      </Badge>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
+            <div className="min-h-0 flex-1 overflow-y-auto rounded border">
+              {sessionGroups(allSessions).map((group) => (
+                <section key={group.key} aria-label={group.label}>
+                  <h4 className="bg-muted/50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {group.label}
+                  </h4>
+                  {group.blocks.map((block) => (
+                    <div key={block.key}>
+                      {block.label && (
+                        <p className="px-3 pt-2 text-xs font-medium text-muted-foreground">{block.label}</p>
+                      )}
+                      <ul className="divide-y">
+                        {block.sessions.map((ts) => {
+                          const s = sessionsById.get(ts.id)
+                          if (!s) return null
+                          return (
+                            <li key={`${s.kind}-${s.id}`}>
+                              <button
+                                type="button"
+                                className="flex w-full items-center justify-between px-3 py-2 pl-6 text-left hover:bg-accent"
+                                onClick={() => onNavigateSesion({ sesionId: s.id, sesionType: s.kind })}
+                              >
+                                <span className="text-sm">{ts.date ?? 'Sin fecha'}</span>
+                                <Badge className="text-xs">
+                                  {IMPORT_STATUS_LABELS[s.import_status] ?? s.import_status}
+                                </Badge>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  ))}
+                </section>
+              ))}
+            </div>
           )}
         </section>
       </div>

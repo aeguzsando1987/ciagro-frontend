@@ -49,7 +49,8 @@ interface SoilMapProps {
   toolbarStart?: React.ReactNode
   toolbarEnd?: React.ReactNode
   floatingToolbar?: boolean
-  sessionsSlot?: React.ReactNode
+  /** Tarjetas de estadísticas en la columna derecha; la activa el visor. */
+  showStatsCards?: boolean
   className?: string
   mapSync?: MapCameraSyncBinding
 
@@ -153,7 +154,7 @@ export function SoilMap({
   toolbarStart,
   toolbarEnd,
   floatingToolbar = false,
-  sessionsSlot,
+  showStatsCards = false,
   className,
   mapSync,
   locked = false,
@@ -488,9 +489,8 @@ export function SoilMap({
           )}
         </div>
 
-        {sessionsSlot && !locked && (
+        {showStatsCards && !locked && (
           <div className="absolute bottom-2 right-2 top-2 z-10 flex w-56 flex-col gap-2">
-            {sessionsSlot}
             <SoilMapVariableStatsCard
               activeField={activeLayer.field}
               activeLabel={activeLayer.label}
