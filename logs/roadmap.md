@@ -1300,7 +1300,7 @@ en el Task Manager, creacion de sesiones y flush/borrado por niveles.
 ---
 
 ## FASE CV (frontend) — Agrupamiento por ciclo en el Visor (rama `dev-agrupamiento-visor`, 2026-10-01)
-**Estado:** `[x] IMPLEMENTADA 2026-10-01 (ajuste CV-17 el 2026-10-02). 823 tests en verde, typecheck y build limpios. PENDIENTE: prueba manual del dev y homologacion.`
+**Estado:** `[x] IMPLEMENTADA 2026-10-01 (ajuste CV-17 el 2026-10-02), VALIDADA POR EL DEV Y HOMOLOGADA 2026-10-02. 823 tests en verde, typecheck y build limpios. PENDIENTE: despliegue (requiere MF + SB antes). GAP-CV-7 y GAP-CV-10 abiertos.`
 
 Explorador del Visor: Parcela > Generales (mapeos) + un nodo por temporada del subprograma >
 tipo > sesiones (el año solo agrupa los mapeos de Generales), sin grupos vacios y con "Sin ciclo" al final. La busqueda avanzada usa la
@@ -1315,7 +1315,7 @@ misma estructura. Se retira la tarjeta de sesiones (nivel parcela y sesion). Dep
 - [x] **CV-16** `hijo-modal` — D10: el modal de subprograma agrupa sus sesiones igual (Generales por año + tipos > sesiones), reusando `plotSessionTree`
 - [x] **CV-17** `no-year-in-cycle` — correccion del dev (2026-10-02): el sub-nivel por año solo en Generales; dentro del ciclo y en el modal, tipo > sesiones
 - [x] **CV-11** `tests` — tests del explorador y de busqueda actualizados
-- [ ] **CV-12** `verify` — typecheck, suite y build en verde; **falta la prueba manual del dev**
+- [x] **CV-12** `verify` — typecheck, suite y build en verde; prueba manual del dev completa (2026-10-02)
 - [x] **CV-13** `docs` — bitacoras, GAP-CV-7 y solicitud de despliegue combinada (`../CIAgro_alpha_back/logs/deploy-2026-10-01-cv.md`)
 
 **Despliegue:** junto con el backend, que trae la migracion `field_ops.0026` (ver la solicitud). Reconstruir el front.
