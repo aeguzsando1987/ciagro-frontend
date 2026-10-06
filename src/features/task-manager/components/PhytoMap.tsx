@@ -240,7 +240,7 @@ export function PhytoMap({
   const [popup, setPopup] = useState<HoverInfo | null>(null)
   const [photoModal, setPhotoModal] = useState<string | null>(null)
   const [noteModal, setNoteModal] = useState<string | null>(null)
-  const [renderMode, setRenderMode] = useState<'heat' | 'disc'>('disc')
+  const [renderMode, setRenderMode] = useState<'heat' | 'disc'>('heat')
   const [heatIndex, setHeatIndex] = useState<'pest' | 'disease'>(initialHeatIndex)
   const [showInfo, setShowInfo] = useState(false)
   const [legendCollapsed, setLegendCollapsed] = useState(false)
@@ -254,7 +254,6 @@ export function PhytoMap({
       // El visor sigue funcionando aunque el navegador bloquee storage.
     }
   }, [heatIndex])
-
 
   const plotGeojson = plot?.geometry
   const plotRing = plot?.geometry?.coordinates?.[0] as number[][] | undefined
