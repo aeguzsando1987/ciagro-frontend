@@ -1319,3 +1319,15 @@ misma estructura. Se retira la tarjeta de sesiones (nivel parcela y sesion). Dep
 - [x] **CV-13** `docs` — bitacoras, GAP-CV-7 y solicitud de despliegue combinada (`../CIAgro_alpha_back/logs/deploy-2026-10-01-cv.md`)
 
 **Despliegue:** junto con el backend, que trae la migracion `field_ops.0026` (ver la solicitud). Reconstruir el front.
+
+---
+
+## FASE LT (frontend) — Homologacion de mejoras de Jorge: linea de tiempo NDVI y vista fitosanitaria (2026-10-06, rama `dev-linea-tiempo-ndvi`)
+**Estado:** `[x] HOMOLOGADA 2026-10-06. 823 tests en verde, typecheck y build limpios. Sin backend ni migraciones. Va en el despliegue combinado con MF + SB y CV.`
+
+Commit `a81aabf` de Jorge23Leon (rama `siembra-linea-tiempo-ndvi`). La variante `linea-tiempo-ndvi`
+lleva el mismo cambio sobre una base vieja y se descarta.
+
+- [x] **LT-1** `merge` — `NdviTimelineView`: seccion de mapa y linea de tiempo siempre `flex-1`. `PhytoMap`: recuerda plagas/enfermedades en `sessionStorage` y no fuerza plagas al cambiar de modo
+- [x] **LT-2** `front` — decision del dev: la vista fitosanitaria abre en **mapa de calor** (la rama proponia discos)
+
