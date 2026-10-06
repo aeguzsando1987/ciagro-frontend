@@ -3918,3 +3918,20 @@ sentido es en **Generales**, que junta mapeos de varios años. `TypeGroup` pasa 
 modal de subprograma sigue la misma regla. Como las tres pantallas comparten `plotSessionTree`,
 el cambio fue de un solo modelo y el typecheck señalo exactamente a sus consumidores. 823 tests
 en verde.
+
+## FASE LT (frontend) — Mejoras de Jorge en la linea de tiempo NDVI y la vista fitosanitaria (2026-10-06)
+
+Al revisar el estado antes de redactar el despliegue aparecieron dos ramas nuevas de Jorge23Leon con
+**el mismo commit** (`a81aabf` y `5056862`) sobre bases distintas. Se integro la que nace de una base
+ya contenida en `dev` (`siembra-linea-tiempo-ndvi`). Son 2 archivos, +27/-8, sin conflictos con la
+FASE CV aunque esta habia tocado `PhytoMap`.
+
+- `NdviTimelineView`: la seccion de mapa y linea de tiempo se estira siempre (`flex-1`).
+- `PhytoMap`: recuerda la eleccion plagas/enfermedades durante la sesion del navegador
+  (`sessionStorage`, protegido con `try/catch`) y al volver a mapa de calor ya no fuerza plagas.
+- La rama cambiaba el modo inicial a discos; **el dev decidio que abra en mapa de calor**, asi que
+  ese valor se revirtio.
+
+Se integro antes del despliegue para que MF + SB, CV y este cambio salgan en un solo release y Jorge
+no siga sobre un front que ya cambio. Avisarle: su rama ya esta en `dev`.
+
