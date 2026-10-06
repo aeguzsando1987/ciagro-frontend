@@ -124,6 +124,18 @@ const CIRCLE_COLOR = [
 
 const PROBLEM_RADIUS_M = 7.5
 const PROBLEM_AREA_M2 = Math.PI * PROBLEM_RADIUS_M ** 2
+const PHYTO_HEAT_INDEX_STORAGE_KEY = 'ciagro:phyto:heat-index'
+
+function initialHeatIndex(): 'pest' | 'disease' {
+  if (typeof window === 'undefined') return 'pest'
+  try {
+    return window.sessionStorage.getItem(PHYTO_HEAT_INDEX_STORAGE_KEY) === 'disease'
+      ? 'disease'
+      : 'pest'
+  } catch {
+    return 'pest'
+  }
+}
 
 function fmtHa(m2: number): string {
   return `${(m2 / 10000).toLocaleString('es-MX', {
@@ -228,11 +240,21 @@ export function PhytoMap({
   const [popup, setPopup] = useState<HoverInfo | null>(null)
   const [photoModal, setPhotoModal] = useState<string | null>(null)
   const [noteModal, setNoteModal] = useState<string | null>(null)
-  const [renderMode, setRenderMode] = useState<'heat' | 'disc'>('heat')
-  const [heatIndex, setHeatIndex] = useState<'pest' | 'disease'>('pest')
+  const [renderMode, setRenderMode] = useState<'heat' | 'disc'>('disc')
+  const [heatIndex, setHeatIndex] = useState<'pest' | 'disease'>(initialHeatIndex)
   const [showInfo, setShowInfo] = useState(false)
   const [legendCollapsed, setLegendCollapsed] = useState(false)
   const [mapZoom, setMapZoom] = useState(18)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      window.sessionStorage.setItem(PHYTO_HEAT_INDEX_STORAGE_KEY, heatIndex)
+    } catch {
+      // El visor sigue funcionando aunque el navegador bloquee storage.
+    }
+  }, [heatIndex])
+
 
   const plotGeojson = plot?.geometry
   const plotRing = plot?.geometry?.coordinates?.[0] as number[][] | undefined
@@ -396,10 +418,7 @@ export function PhytoMap({
 
   function handleRenderModeChange(mode: 'heat' | 'disc') {
     setRenderMode(mode)
-    if (mode === 'heat') {
-      setHeatIndex('pest')
-      setPopup(null)
-    }
+    setPopup(null)
   }
 
   function handleMapMove(event: ViewStateChangeEvent) {
