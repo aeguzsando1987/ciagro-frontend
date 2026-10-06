@@ -1268,7 +1268,7 @@ segundo consumidor real fuera del navegador.
 ---
 
 ## FASE MF (frontend) — Homologacion de mejoras-fitosanitario: mapa de calor e indices P/E (2026-09-29 / 2026-10-01)
-**Estado:** `[x] IMPLEMENTADA, VALIDADA POR EL DEV Y HOMOLOGADA 2026-10-01 junto con la FASE SB (rama dev-siembra). Trabajo de Jorge23Leon. Sin gaps propios.`
+**Estado:** `[✅] DESPLEGADA en producción — 2026-10-06 — front ec04552, contra back fa908ea (release combinado MF + SB + CV + LT). Acta completa en ../CIAgro_alpha_back/logs/deploy-2026-10-06-mf-sb-cv-lt.md`. Antes: `[x] IMPLEMENTADA, VALIDADA POR EL DEV Y HOMOLOGADA 2026-10-01 junto con la FASE SB (rama dev-siembra). Trabajo de Jorge23Leon. Sin gaps propios.`
 
 Mapa de calor fitosanitario por plagas y por enfermedades (`phytoHeatSurface`), indices P/E
 (`phytoIndices`, 7 tests), panel de punto (`PhytoPointPanel`), selector de "Umbral de tolerancia" y
@@ -1281,7 +1281,7 @@ ajustes de comparacion en `GeodataDashboard`. Backend en `../CIAgro_alpha_back/l
 ---
 
 ## FASE SB (frontend) — Homologacion de Siembra: visor y sesiones de siembra (2026-10-01, rama `dev-siembra`)
-**Estado:** `[x] IMPLEMENTADA, VALIDADA POR EL DEV Y HOMOLOGADA 2026-10-01. Trabajo de Jorge23Leon. Typecheck limpio, 819 tests en verde. Tres arreglos sobre la rama (SB-7, SB-8) y uno preexistente (SB-9). GAP-SB-002 abierto.`
+**Estado:** `[✅] DESPLEGADA en producción — 2026-10-06 — front ec04552, contra back fa908ea (release combinado MF + SB + CV + LT). Acta completa en ../CIAgro_alpha_back/logs/deploy-2026-10-06-mf-sb-cv-lt.md`. Antes: `[x] IMPLEMENTADA, VALIDADA POR EL DEV Y HOMOLOGADA 2026-10-01. Trabajo de Jorge23Leon. Typecheck limpio, 819 tests en verde. Tres arreglos sobre la rama (SB-7, SB-8) y uno preexistente (SB-9). GAP-SB-002 abierto.`
 
 Feature `planting-map` (api, hooks, tipos, capas, importacion), `PlantingMap` y
 `PlantingMapSessionsPanel` en el visor con comparador y celdas rectangulares, `PlantingSesionModal`
@@ -1300,7 +1300,7 @@ en el Task Manager, creacion de sesiones y flush/borrado por niveles.
 ---
 
 ## FASE CV (frontend) — Agrupamiento por ciclo en el Visor (rama `dev-agrupamiento-visor`, 2026-10-01)
-**Estado:** `[x] IMPLEMENTADA 2026-10-01 (ajuste CV-17 el 2026-10-02), VALIDADA POR EL DEV Y HOMOLOGADA 2026-10-02. 823 tests en verde, typecheck y build limpios. PENDIENTE: despliegue (requiere MF + SB antes). GAP-CV-7 y GAP-CV-10 abiertos.`
+**Estado:** `[✅] DESPLEGADA en producción — 2026-10-06 — front ec04552, contra back fa908ea (release combinado MF + SB + CV + LT). Acta completa en ../CIAgro_alpha_back/logs/deploy-2026-10-06-mf-sb-cv-lt.md`. Antes: `[x] IMPLEMENTADA 2026-10-01 (ajuste CV-17 el 2026-10-02), VALIDADA POR EL DEV Y HOMOLOGADA 2026-10-02. 823 tests en verde, typecheck y build limpios. PENDIENTE: despliegue (requiere MF + SB antes). GAP-CV-7 y GAP-CV-10 abiertos.`
 
 Explorador del Visor: Parcela > Generales (mapeos) + un nodo por temporada del subprograma >
 tipo > sesiones (el año solo agrupa los mapeos de Generales), sin grupos vacios y con "Sin ciclo" al final. La busqueda avanzada usa la
@@ -1323,7 +1323,7 @@ misma estructura. Se retira la tarjeta de sesiones (nivel parcela y sesion). Dep
 ---
 
 ## FASE LT (frontend) — Homologacion de mejoras de Jorge: linea de tiempo NDVI y vista fitosanitaria (2026-10-06, rama `dev-linea-tiempo-ndvi`)
-**Estado:** `[x] HOMOLOGADA 2026-10-06. 823 tests en verde, typecheck y build limpios. Sin backend ni migraciones. Va en el despliegue combinado con MF + SB y CV.`
+**Estado:** `[✅] DESPLEGADA en producción — 2026-10-06 — front ec04552, contra back fa908ea (release combinado MF + SB + CV + LT). Acta completa en ../CIAgro_alpha_back/logs/deploy-2026-10-06-mf-sb-cv-lt.md`. Antes: `[x] HOMOLOGADA 2026-10-06. 823 tests en verde, typecheck y build limpios. Sin backend ni migraciones. Va en el despliegue combinado con MF + SB y CV.`
 
 Commit `a81aabf` de Jorge23Leon (rama `siembra-linea-tiempo-ndvi`). La variante `linea-tiempo-ndvi`
 lleva el mismo cambio sobre una base vieja y se descarta.
