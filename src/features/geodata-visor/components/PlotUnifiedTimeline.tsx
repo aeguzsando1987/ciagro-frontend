@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useIsFetching } from '@tanstack/react-query'
 import {
   Bug,
@@ -72,8 +72,8 @@ const KIND_META: Record<TimelineKind, {
     icon: <Layers3 className="h-3.5 w-3.5" />,
   },
   aspersion: {
-    label: 'AspersiÃ³n',
-    shortLabel: 'AspersiÃ³n',
+    label: 'Aspersión',
+    shortLabel: 'Aspersión',
     color: '#2563eb',
     soft: '#eff6ff',
     icon: <Droplets className="h-3.5 w-3.5" />,
@@ -204,7 +204,7 @@ function curvePath(
 }
 
 function formatNumber(value: number | null | undefined): string {
-  return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(2) : 'â€”'
+  return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(2) : '—'
 }
 
 export function PlotUnifiedTimeline({
@@ -218,8 +218,8 @@ export function PlotUnifiedTimeline({
   const [selectedCycle, setSelectedCycle] = useState<string>('all')
   const [isPlaying, setIsPlaying] = useState(false)
   const [playCursor, setPlayCursor] = useState<number | null>(null)
-  // La lÃ­nea de tiempo siempre inicia expandida, incluso al entrar directo a una sesiÃ³n.
-  // El usuario puede contraerla manualmente con el botÃ³n, pero nunca arranca cerrada.
+  // La línea de tiempo siempre inicia expandida, incluso al entrar directo a una sesión.
+  // El usuario puede contraerla manualmente con el botón, pero nunca arranca cerrada.
   const [isCollapsed, setIsCollapsed] = useState(false)
 
   const sessions = plotTree.sessions
@@ -311,8 +311,8 @@ export function PlotUnifiedTimeline({
 
 
   useEffect(() => {
-    // Al cambiar de parcela la lÃ­nea vuelve a mostrarse expandida.
-    // Entrar directo a una sesiÃ³n tambiÃ©n queda abierto porque el estado inicial es false.
+    // Al cambiar de parcela la línea vuelve a mostrarse expandida.
+    // Entrar directo a una sesión también queda abierto porque el estado inicial es false.
     setIsCollapsed(false)
   }, [plotId])
 
@@ -320,14 +320,14 @@ export function PlotUnifiedTimeline({
     () => sessions.filter((session) => {
       if (selectedCycle === 'all') return true
 
-      // La etiqueta program_cycle de headers viejos puede venir vacÃ­a o desfasada.
-      // El Programa hijo ya define una ventana real (reference_start/end), asÃ­ que
-      // cualquier sesiÃ³n fechada dentro de esa ventana pertenece visualmente al ciclo.
+      // La etiqueta program_cycle de headers viejos puede venir vacía o desfasada.
+      // El Programa hijo ya define una ventana real (reference_start/end), así que
+      // cualquier sesión fechada dentro de esa ventana pertenece visualmente al ciclo.
       if ((session.cycle?.trim() || null) === selectedCycle) return true
       if (isInsideSelectedCycle(session.date)) return true
 
-      // Suelo no pertenece al ciclo como entidad, pero sÃ³lo se dibuja si su fecha cae
-      // dentro del eje del ciclo seleccionado; nunca debe estirar el rango a otro aÃ±o.
+      // Suelo no pertenece al ciclo como entidad, pero sólo se dibuja si su fecha cae
+      // dentro del eje del ciclo seleccionado; nunca debe estirar el rango a otro año.
       return false
     }),
     [selectedCycle, selectedCycleWindow, sessions]
@@ -342,7 +342,7 @@ export function PlotUnifiedTimeline({
     [cycleBySessionId, ndviItems, selectedCycle, selectedCycleWindow]
   )
 
-  // Importante: aquÃ­ NO hay agrupaciÃ³n semanal. Cada sesiÃ³n NDVI del endpoint
+  // Importante: aquí NO hay agrupación semanal. Cada sesión NDVI del endpoint
   // permanece como un punto independiente, aunque existan 2 o 3 en la misma semana.
   const realNdvi = useMemo(
     () => ndviForCycle
@@ -355,7 +355,7 @@ export function PlotUnifiedTimeline({
 
   const range = useMemo(() => {
     // Para un ciclo concreto el eje SIEMPRE respeta Inicio/Fin del Programa hijo.
-    // Esto evita que una sesiÃ³n de suelo fuera del ciclo comprima los NDVI de enero-abril.
+    // Esto evita que una sesión de suelo fuera del ciclo comprima los NDVI de enero-abril.
     if (selectedCycle !== 'all' && selectedCycleWindow) {
       return { start: selectedCycleWindow.start, end: selectedCycleWindow.end }
     }
@@ -385,11 +385,11 @@ export function PlotUnifiedTimeline({
     }).filter((point): point is { date: string; value: number } => point !== null)
   }, [referenceItem])
 
-  // Fuente canÃ³nica de eventos de la lÃ­nea de tiempo:
+  // Fuente canónica de eventos de la línea de tiempo:
   // - NDVI sale directamente de useNdviTimeline para no perder headers/sesiones
-  //   que el Ã¡rbol histÃ³rico todavÃ­a no exponga.
-  // - El resto de tipos viene del Ã¡rbol normalizado.
-  // AsÃ­, cada punto real de la grÃ¡fica NDVI siempre tiene un icono debajo.
+  //   que el árbol histórico todavía no exponga.
+  // - El resto de tipos viene del árbol normalizado.
+  // Así, cada punto real de la gráfica NDVI siempre tiene un icono debajo.
   const cycleEvents = useMemo<TreeSession[]>(() => {
     const nonNdvi = cycleSessions.filter((session) => session.kind !== 'ndvi')
     const ndvi = ndviForCycle
@@ -411,6 +411,17 @@ export function PlotUnifiedTimeline({
     return [...unique.values()]
   }, [cycleBySessionId, cycleSessions, ndviForCycle, selectedCycle, sessionById])
 
+  const sessionCounts = useMemo(() => {
+    const counts = Object.fromEntries(
+      KIND_ORDER.map((kind) => [kind, 0])
+    ) as Record<TimelineKind, number>
+
+    for (const session of cycleEvents) {
+      counts[session.kind] += 1
+    }
+
+    return counts
+  }, [cycleEvents])
   const visibleSessions = useMemo(
     () => cycleEvents.filter((session) => activeKinds.has(session.kind)),
     [activeKinds, cycleEvents]
@@ -441,7 +452,7 @@ export function PlotUnifiedTimeline({
       selectedSession?.id === current.id && selectedSession?.kind === current.kind
     if (!selectedMatches) return
 
-    // No avanzamos mientras cualquier query de la sesiÃ³n seleccionada siga cargando.
+    // No avanzamos mientras cualquier query de la sesión seleccionada siga cargando.
     if (selectedSessionFetches > 0) return
 
     // Una vez lista, la dejamos visible al menos medio segundo antes de avanzar.
@@ -527,7 +538,7 @@ export function PlotUnifiedTimeline({
   if (plotTree.isLoading || ndviQuery.isLoading) {
     return (
       <div className="flex h-40 items-center justify-center gap-2 rounded-xl border bg-background text-xs text-muted-foreground">
-        <GpaLoader size="xs" /> Cargando lÃ­nea de tiempo de la parcelaâ€¦
+        <GpaLoader size="xs" /> Cargando línea de tiempo de la parcela…
       </div>
     )
   }
@@ -627,8 +638,8 @@ export function PlotUnifiedTimeline({
       <div className="flex flex-wrap items-start justify-between gap-2 px-3 pb-1.5 pt-2">
         <div>
           <h3 className="text-sm font-semibold">
-            LÃ­nea de tiempo de Ã­ndice vegetativo
-            {referenceItem?.crop_name ? ` Â· ${referenceItem.crop_name}` : ''}
+            Línea de tiempo de índice vegetativo
+            {referenceItem?.crop_name ? ` · ${referenceItem.crop_name}` : ''}
           </h3>
           <p className="text-[10px] text-muted-foreground">
             Todos los eventos comparten el mismo eje de fechas; cada marcador abre su mapa.
@@ -660,7 +671,7 @@ export function PlotUnifiedTimeline({
             aria-expanded={!isCollapsed}
           >
             {isCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
-            {isCollapsed ? 'Mostrar lÃ­nea de tiempo' : 'Ocultar lÃ­nea de tiempo'}
+            {isCollapsed ? 'Mostrar línea de tiempo' : 'Ocultar línea de tiempo'}
           </button>
         </div>
       </div>
@@ -668,10 +679,10 @@ export function PlotUnifiedTimeline({
 
       {!isCollapsed && (<>
 
-      <div className="mx-3 mb-1 flex min-h-7 flex-wrap items-center gap-x-3 gap-y-1 rounded-md border bg-muted/20 px-2 py-1 text-[9px]">
+      <div className="mx-3 mb-1 flex min-h-9 flex-wrap items-center gap-x-4 gap-y-1.5 rounded-md border bg-muted/20 px-3 py-1.5 text-[11px]">
         {selectedSession && selectedSession.kind !== 'ndvi' && selectedTreeSession ? (
           <>
-            <span className="font-semibold">SesiÃ³n seleccionada:</span>
+            <span className="font-semibold">Sesión seleccionada:</span>
             <span
               className="inline-flex items-center gap-1 font-semibold"
               style={{ color: KIND_META[selectedTreeSession.kind].color }}
@@ -687,8 +698,8 @@ export function PlotUnifiedTimeline({
             <span>Fecha: <strong>{longDate(selectedNdvi.session_date)}</strong></span>
             <span>Esperado: <strong className="text-blue-600">{formatNumber(selectedExpected)}</strong></span>
             <span>Real: <strong style={{ color: performanceMeta.color }}>{formatNumber(selectedNdvi.mean)}</strong></span>
-            <span>Diferencia: <strong style={{ color: selectedDifference !== null && selectedDifference < 0 ? '#ef4444' : '#16a34a' }}>{selectedDifference === null ? 'â€”' : `${selectedDifference >= 0 ? '+' : ''}${selectedDifference.toFixed(2)}`}</strong></span>
-            <span>Etapa: <strong>{selectedStage?.label ?? 'â€”'}</strong>{selectedStage?.description ? ` Â· ${selectedStage.description}` : ''}</span>
+            <span>Diferencia: <strong style={{ color: selectedDifference !== null && selectedDifference < 0 ? '#ef4444' : '#16a34a' }}>{selectedDifference === null ? '—' : `${selectedDifference >= 0 ? '+' : ''}${selectedDifference.toFixed(2)}`}</strong></span>
+            <span>Etapa: <strong>{selectedStage?.label ?? '—'}</strong>{selectedStage?.description ? ` · ${selectedStage.description}` : ''}</span>
             <span className="inline-flex items-center gap-1 font-semibold" style={{ color: performanceMeta.color }}>
               <span className="h-2.5 w-2.5 rounded-full" style={{ background: performanceMeta.color }} />
               {performanceMeta.label}
@@ -702,7 +713,7 @@ export function PlotUnifiedTimeline({
       <div className="border-t bg-muted/[0.08] px-3 pb-1.5 pt-1.5">
         <div className="mb-0.5 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-3 text-[9px]">
-            <strong>Ãndice de vegetaciÃ³n (NDVI)</strong>
+            <strong>Índice de vegetación (NDVI)</strong>
             <span className="inline-flex items-center gap-1 text-blue-600"><span className="w-5 border-t-2 border-dashed border-blue-500" />Esperado</span>
             <span className="inline-flex items-center gap-1 text-green-700"><span className="w-5 border-t-2 border-green-700" />Real</span>
             <span className="text-muted-foreground">{realNdvi.length} sesiones</span>
@@ -712,7 +723,7 @@ export function PlotUnifiedTimeline({
 
         {range ? (
           <>
-            <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="block w-full" role="img" aria-label="EvoluciÃ³n NDVI real y esperada">
+            <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="block w-full" role="img" aria-label="Evolución NDVI real y esperada">
               {[0, 0.25, 0.5, 0.75, 1].map((value) => {
                 const y = padY + (1 - value) * (chartHeight - padY * 2)
                 return (
@@ -738,14 +749,14 @@ export function PlotUnifiedTimeline({
                   <g key={point.item.id} className="cursor-pointer" onClick={() => { stopPlay(); onSelectSession({ id: point.item.id, date: point.item.session_date, kind: 'ndvi' }) }}>
                     {selected && <circle cx={x} cy={y} r="7" fill="none" stroke="#14532d" strokeWidth="1.5" />}
                     <circle cx={x} cy={y} r="4.2" fill="#16813a" stroke="white" strokeWidth="1.5">
-                      <title>{`${shortDate(point.date)} Â· NDVI ${point.value.toFixed(2)}`}</title>
+                      <title>{`${shortDate(point.date)} · NDVI ${point.value.toFixed(2)}`}</title>
                     </circle>
                   </g>
                 )
               })}
             </svg>
 
-            <div className="relative h-11 border-t" aria-label="Eventos de la parcela en la lÃ­nea de tiempo">
+            <div className="relative h-11 border-t" aria-label="Eventos de la parcela en la línea de tiempo">
               {axisLabels.map((item) => (
                 <span
                   key={item.left}
@@ -762,7 +773,7 @@ export function PlotUnifiedTimeline({
                 const meta = KIND_META[session.kind]
                 const selected = selectedSession?.id === session.id
                 // Nunca ocultamos eventos que comparten fecha. Los repartimos en dos
-                // alturas y aplicamos un pequeÃ±o desplazamiento horizontal a partir del
+                // alturas y aplicamos un pequeño desplazamiento horizontal a partir del
                 // tercer elemento para que todos sigan siendo visibles/clicables.
                 const row = stackIndex % 2
                 const pair = Math.floor(stackIndex / 2)
@@ -782,7 +793,7 @@ export function PlotUnifiedTimeline({
                       borderColor: selected ? '#111827' : meta.color,
                       boxShadow: selected ? `0 0 0 2px ${meta.color}` : '0 1px 2px rgba(0,0,0,.12)',
                     }}
-                    title={`${longDate(session.date)} Â· ${sessionTitle(session, ndviById)} Â· ${session.points_count} puntos`}
+                    title={`${longDate(session.date)} · ${sessionTitle(session, ndviById)} · ${session.points_count} puntos`}
                     aria-label={`${meta.label}, ${longDate(session.date)}`}
                   >
                     <span className="[&>svg]:h-3 [&>svg]:w-3">{meta.icon}</span>
@@ -795,7 +806,7 @@ export function PlotUnifiedTimeline({
           <div className="flex h-[100px] items-center justify-center text-[10px] text-muted-foreground">Sin sesiones fechadas para este filtro.</div>
         )}
 
-        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-1 text-[8px]">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-2 text-[10px]">
           {KIND_ORDER.map((kind) => {
             const meta = KIND_META[kind]
             const active = activeKinds.has(kind)
@@ -805,12 +816,12 @@ export function PlotUnifiedTimeline({
                 type="button"
                 aria-pressed={active}
                 onClick={() => toggleKind(kind)}
-                className="inline-flex items-center gap-1 rounded px-1 py-0.5 transition hover:bg-accent"
+                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-medium transition hover:bg-accent"
                 style={{ color: active ? meta.color : '#a1a1aa', opacity: active ? 1 : 0.5 }}
                 title={`${active ? 'Ocultar' : 'Mostrar'} ${meta.label}`}
               >
                 <span className="[&>svg]:h-3 [&>svg]:w-3">{meta.icon}</span>
-                <span className={active ? '' : 'line-through'}>{meta.label}</span>
+                <span className={active ? '' : 'line-through'}>{meta.label} ({sessionCounts[kind]})</span>
               </button>
             )
           })}
@@ -820,5 +831,3 @@ export function PlotUnifiedTimeline({
     </section>
   )
 }
-
-
