@@ -125,7 +125,9 @@ describe('CreateSessionDialog — fitosanitario', () => {
 
     await selectSessionType(user, 'Fitosanitario')
 
-    expect(screen.getByRole('radiogroup', { name: /Umbral de tolerancia de plagas por punto/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('radiogroup', { name: /Umbral de tolerancia de plagas por punto/i })
+    ).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: '1' })).toHaveAttribute('aria-checked', 'true')
 
     await user.click(screen.getByRole('radio', { name: '2' }))
@@ -198,16 +200,50 @@ describe('CreateSessionDialog — mapeo de suelo', () => {
   })
 })
 
-describe('CreateSessionDialog — rendimiento', () => {
-  it('muestra Rancho, Parcela y Fecha de cosecha para el quinto dominio', async () => {
+describe('CreateSessionDialog — siembra y rendimiento', () => {
+  it('Siembra hereda la parcela del subprograma y no pide Rancho/Parcela', async () => {
+    const user = userEvent.setup()
+    renderDialog()
+
+    await selectSessionType(user, 'Siembra')
+
+    expect(screen.queryByText('Rancho *')).not.toBeInTheDocument()
+    expect(screen.queryByText('Parcela *')).not.toBeInTheDocument()
+    expect(screen.getByText(/se tomarán automáticamente del subprograma/i)).toBeInTheDocument()
+    expect(screen.getByLabelText('Fecha de siembra *')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Crear Sesión' })).toBeEnabled()
+  })
+
+  it('Rendimiento hereda la parcela del subprograma y no pide Rancho/Parcela', async () => {
     const user = userEvent.setup()
     renderDialog()
 
     await selectSessionType(user, 'Rendimiento')
 
-    expect(screen.getByText('Rancho *')).toBeInTheDocument()
-    expect(screen.getByText('Parcela *')).toBeInTheDocument()
+    expect(screen.queryByText('Rancho *')).not.toBeInTheDocument()
+    expect(screen.queryByText('Parcela *')).not.toBeInTheDocument()
+    expect(screen.getByText(/se tomarán automáticamente del subprograma/i)).toBeInTheDocument()
     expect(screen.getByLabelText('Fecha de cosecha *')).toBeInTheDocument()
-    expect(screen.getByText(/dominio independiente/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Crear Sesión' })).toBeEnabled()
+  })
+
+  it('bloquea Siembra si el subprograma no tiene parcela', async () => {
+    const user = userEvent.setup()
+    renderDialog(null)
+
+    await selectSessionType(user, 'Siembra')
+
+    expect(screen.getByText(/no tiene parcela asignada/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Crear Sesión' })).toBeDisabled()
+  })
+
+  it('bloquea Rendimiento si el subprograma no tiene parcela', async () => {
+    const user = userEvent.setup()
+    renderDialog(null)
+
+    await selectSessionType(user, 'Rendimiento')
+
+    expect(screen.getByText(/no tiene parcela asignada/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Crear Sesión' })).toBeDisabled()
   })
 })
