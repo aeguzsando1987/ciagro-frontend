@@ -87,7 +87,7 @@ function TreeRow({ depth, icon, label, expanded, onToggle, selected, onSelect, b
       aria-expanded={expanded}
       onClick={onSelect}
       onDoubleClick={onToggle}
-      className={`mx-1 flex min-h-10 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 text-[15px] text-secondary transition-colors duration-150 hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+      className={`mx-1 flex min-h-10 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 text-[13px] text-secondary transition-colors duration-150 hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
         selected ? 'bg-primary-soft font-medium text-brand' : ''
       }`}
       style={{ paddingLeft: depth * 14 + 8 }}
@@ -106,7 +106,7 @@ function TreeRow({ depth, icon, label, expanded, onToggle, selected, onSelect, b
       </button>
       <span className={selected ? 'shrink-0 text-brand' : 'shrink-0 text-muted'}>{icon}</span>
       <TruncatedText text={label} />
-      {badge && <span className="ml-auto shrink-0 text-[13px] text-muted">{badge}</span>}
+      {badge && <span className="ml-auto shrink-0 text-[12px] text-muted">{badge}</span>}
     </div>
   )
 }
@@ -166,7 +166,7 @@ function GroupRow({ depth, icon, label, expanded, active, onToggle }: {
       role="treeitem"
       aria-expanded={expanded}
       onClick={onToggle}
-      className={`mx-1 flex min-h-10 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 text-[15px] transition-colors duration-150 hover:bg-surface-secondary hover:text-foreground ${
+      className={`mx-1 flex min-h-10 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 text-[13px] transition-colors duration-150 hover:bg-surface-secondary hover:text-foreground ${
         active ? 'text-brand' : 'text-secondary'
       }`}
       style={{ paddingLeft: depth * 14 + 8 }}

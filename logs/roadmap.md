@@ -1357,3 +1357,4 @@ vieja `linea-tiempo-ndvi` se descarta: ya entro como `a81aabf` y LT-2 la ajusto.
 
 - [x] **TT-1** `front` — `TruncatedText` (tooltip solo si el texto esta cortado) en `TreeRow` y `GroupRow` del Explorador
 - [x] **TT-2** `test` — `truncated-text.test.tsx`; suite completa, tsc, eslint y build en `node:20-alpine`
+- [x] **TT-3** `front` — letra mas pequeña en las filas del Explorador (15 px a 13 px; contador 13 a 12 px), pedido del usuario; altura de fila sin cambios
