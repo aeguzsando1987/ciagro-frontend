@@ -1353,8 +1353,9 @@ vieja `linea-tiempo-ndvi` se descarta: ya entro como `a81aabf` y LT-2 la ajusto.
 ---
 
 ## FASE TT (frontend) — Tooltip con el texto completo en el Explorador del Visor (2026-10-09, rama `dev-explorer-tooltip`)
-**Estado:** `[✅] DESPLEGADA en producción — 2026-10-09 — front 235c1d9 (solo front). Bundle index-PSINR3Z0.js. PENDIENTE: revision visual del usuario. Acta en logs/deploy-2026-10-09-tt.md`. Antes: `[x] IMPLEMENTADA en rama 2026-10-09, sin homologar ni desplegar. tsc OK, eslint limpio, 842/842 tests (3 nuevos), build limpio. Solo front, sin back ni migraciones. Pedida por el usuario en la revision visual de la FASE PAG.`
+**Estado:** `[✅] DESPLEGADA en producción — 2026-10-09 — front 235c1d9 (solo front). Revision visual del usuario OK (tooltip y letra de 13 px). Acta en logs/deploy-2026-10-09-tt.md`. Antes: `[x] IMPLEMENTADA en rama 2026-10-09, sin homologar ni desplegar. tsc OK, eslint limpio, 842/842 tests (3 nuevos), build limpio. Solo front, sin back ni migraciones. Pedida por el usuario en la revision visual de la FASE PAG.`
 
 - [x] **TT-1** `front` — `TruncatedText` (tooltip solo si el texto esta cortado) en `TreeRow` y `GroupRow` del Explorador
 - [x] **TT-2** `test` — `truncated-text.test.tsx`; suite completa, tsc, eslint y build en `node:20-alpine`
 - [x] **TT-3** `front` — letra mas pequeña en las filas del Explorador (15 px a 13 px; contador 13 a 12 px), pedido del usuario; altura de fila sin cambios
+- [x] **TT-4** `front` — Explorador compacto: filas de 40 a 28 px (`min-h-7`), boton de desplegar 24 a 20 px, filas de estado con menos relleno y 12 px

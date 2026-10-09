@@ -87,7 +87,7 @@ function TreeRow({ depth, icon, label, expanded, onToggle, selected, onSelect, b
       aria-expanded={expanded}
       onClick={onSelect}
       onDoubleClick={onToggle}
-      className={`mx-1 flex min-h-10 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 text-[13px] text-secondary transition-colors duration-150 hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+      className={`mx-1 flex min-h-7 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 text-[13px] text-secondary transition-colors duration-150 hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
         selected ? 'bg-primary-soft font-medium text-brand' : ''
       }`}
       style={{ paddingLeft: depth * 14 + 8 }}
@@ -96,7 +96,7 @@ function TreeRow({ depth, icon, label, expanded, onToggle, selected, onSelect, b
         type="button"
         aria-label={expanded ? 'Contraer' : 'Expandir'}
         onClick={(e) => { e.stopPropagation(); onToggle?.() }}
-        className="flex h-6 w-5 shrink-0 items-center justify-center rounded text-muted hover:bg-surface hover:text-foreground"
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted hover:bg-surface hover:text-foreground"
       >
         {expanded === undefined ? null : expanded ? (
           <ChevronDown className="h-3.5 w-3.5" />
@@ -114,7 +114,7 @@ function TreeRow({ depth, icon, label, expanded, onToggle, selected, onSelect, b
 function StatusRow({ depth, children }: { depth: number; children: React.ReactNode }) {
   return (
     <div
-      className="flex items-center gap-1.5 px-1 py-1 text-sm text-muted-foreground"
+      className="flex items-center gap-1.5 px-1 py-0.5 text-[12px] text-muted-foreground"
       style={{ paddingLeft: depth * 14 + 22 }}
     >
       {children}
@@ -166,7 +166,7 @@ function GroupRow({ depth, icon, label, expanded, active, onToggle }: {
       role="treeitem"
       aria-expanded={expanded}
       onClick={onToggle}
-      className={`mx-1 flex min-h-10 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 text-[13px] transition-colors duration-150 hover:bg-surface-secondary hover:text-foreground ${
+      className={`mx-1 flex min-h-7 cursor-pointer select-none items-center gap-1.5 rounded-md pr-2 text-[13px] transition-colors duration-150 hover:bg-surface-secondary hover:text-foreground ${
         active ? 'text-brand' : 'text-secondary'
       }`}
       style={{ paddingLeft: depth * 14 + 8 }}
@@ -175,7 +175,7 @@ function GroupRow({ depth, icon, label, expanded, active, onToggle }: {
         type="button"
         aria-label={expanded ? 'Contraer' : 'Expandir'}
         onClick={(e) => { e.stopPropagation(); onToggle() }}
-        className="flex h-6 w-5 shrink-0 items-center justify-center rounded text-muted hover:bg-surface hover:text-foreground"
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted hover:bg-surface hover:text-foreground"
       >
         {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
       </button>
