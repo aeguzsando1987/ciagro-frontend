@@ -1331,3 +1331,13 @@ lleva el mismo cambio sobre una base vieja y se descarta.
 - [x] **LT-1** `merge` — `NdviTimelineView`: seccion de mapa y linea de tiempo siempre `flex-1`. `PhytoMap`: recuerda plagas/enfermedades en `sessionStorage` y no fuerza plagas al cambiar de modo
 - [x] **LT-2** `front` — decision del dev: la vista fitosanitaria abre en **mapa de calor** (la rama proponia discos)
 
+---
+
+## FASE AV (frontend) — Homologacion de Jorge: linea de tiempo agro visual y siembra (2026-10-09, rama `Siembra_linea_agro`)
+**Estado:** `[x] HOMOLOGADA en dev 2026-10-09. 826/826 tests, build (tsc -b) limpio. Requiere el back de la misma fase.`
+
+Commits `b93f482`, `81411d7` (rama `Linea_agro_visual`, contenida) y `3e97a74` de Jorge23Leon. La rama
+vieja `linea-tiempo-ndvi` se descarta: ya entro como `a81aabf` y LT-2 la ajusto.
+
+- [x] **AV-1** `merge` — `PlotUnifiedTimeline` (linea de tiempo unificada por parcela) en `GeodataDashboard`, `usePlotSessionTree`; `CreateSessionDialog` sin selector de parcela
+- [x] **AV-2** `test` — `GeodataDashboard.test` mockea `PlotUnifiedTimeline` (usa React Query y rompia 4 tests)
