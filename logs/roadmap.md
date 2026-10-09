@@ -1334,7 +1334,7 @@ lleva el mismo cambio sobre una base vieja y se descarta.
 ---
 
 ## FASE AV (frontend) — Homologacion de Jorge: linea de tiempo agro visual y siembra (2026-10-09, rama `Siembra_linea_agro`)
-**Estado:** `[x] HOMOLOGADA en dev 2026-10-09. 826/826 tests, build (tsc -b) limpio. Requiere el back de la misma fase.`
+**Estado:** `[x] HOMOLOGADA en dev y master 2026-10-09 (061b945). PENDIENTE: despliegue (rebuild frontend) junto con el back 9583c39. 826/826 tests, build (tsc -b) limpio. Requiere el back de la misma fase.`
 
 Commits `b93f482`, `81411d7` (rama `Linea_agro_visual`, contenida) y `3e97a74` de Jorge23Leon. La rama
 vieja `linea-tiempo-ndvi` se descarta: ya entro como `a81aabf` y LT-2 la ajusto.
