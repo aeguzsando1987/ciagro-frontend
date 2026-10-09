@@ -1349,3 +1349,11 @@ vieja `linea-tiempo-ndvi` se descarta: ya entro como `a81aabf` y LT-2 la ajusto.
 
 - [x] **PAG-1** `front` — los seis hooks de headers leen todas las paginas (`fetchAllPagesWithTotal`, `conTotal`); `usePlotSessionTree` expone `total`/`missing`; aviso "Se muestran X de Y sesiones" en el Explorador y en `PlotUnifiedTimeline`
 - [x] **PAG-2** `test` — union de paginas, helpers, arbol con 4 ciclos de `Pivote_1_DM`, aviso; verificado en contenedor `node:20-alpine` con `npm ci`
+
+---
+
+## FASE TT (frontend) — Tooltip con el texto completo en el Explorador del Visor (2026-10-09, rama `dev-explorer-tooltip`)
+**Estado:** `[x] IMPLEMENTADA en rama 2026-10-09, sin homologar ni desplegar. tsc OK, eslint limpio, 842/842 tests (3 nuevos), build limpio. Solo front, sin back ni migraciones. Pedida por el usuario en la revision visual de la FASE PAG.`
+
+- [x] **TT-1** `front` — `TruncatedText` (tooltip solo si el texto esta cortado) en `TreeRow` y `GroupRow` del Explorador
+- [x] **TT-2** `test` — `truncated-text.test.tsx`; suite completa, tsc, eslint y build en `node:20-alpine`

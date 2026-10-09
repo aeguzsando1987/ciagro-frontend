@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { TruncatedText } from '@/components/ui/truncated-text'
 import { SiloIcon } from '@/components/ui/silo-icon'
 import { resolveExplorerRoot } from '../lib/explorerRoot'
 import { useAuthStore } from '@/features/auth/useAuthStore'
@@ -104,7 +105,7 @@ function TreeRow({ depth, icon, label, expanded, onToggle, selected, onSelect, b
         )}
       </button>
       <span className={selected ? 'shrink-0 text-brand' : 'shrink-0 text-muted'}>{icon}</span>
-      <span className="truncate">{label}</span>
+      <TruncatedText text={label} />
       {badge && <span className="ml-auto shrink-0 text-[13px] text-muted">{badge}</span>}
     </div>
   )
@@ -179,7 +180,7 @@ function GroupRow({ depth, icon, label, expanded, active, onToggle }: {
         {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
       </button>
       <span className={active ? 'shrink-0 text-brand' : 'shrink-0 text-muted'}>{icon}</span>
-      <span className="truncate">{label}</span>
+      <TruncatedText text={label} />
     </div>
   )
 }
