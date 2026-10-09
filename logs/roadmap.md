@@ -1341,3 +1341,11 @@ vieja `linea-tiempo-ndvi` se descarta: ya entro como `a81aabf` y LT-2 la ajusto.
 
 - [x] **AV-1** `merge` — `PlotUnifiedTimeline` (linea de tiempo unificada por parcela) en `GeodataDashboard`, `usePlotSessionTree`; `CreateSessionDialog` sin selector de parcela
 - [x] **AV-2** `test` — `GeodataDashboard.test` mockea `PlotUnifiedTimeline` (usa React Query y rompia 4 tests)
+
+---
+
+## FASE PAG (frontend) — El Visor muestra el historial completo de cada parcela (2026-10-09, rama `dev-visor-paginacion`)
+**Estado:** `[x] IMPLEMENTADA en rama 2026-10-09, sin homologar ni desplegar. tsc OK, 839/839 tests (13 nuevos), build limpio. Requiere el back de la misma fase. Cierra GAP-PAG-1 al desplegar. Diagnostico en ../CIAgro_alpha_back/logs/diag-2026-10-09-visor-ciclos-truncados.md.`
+
+- [x] **PAG-1** `front` — los seis hooks de headers leen todas las paginas (`fetchAllPagesWithTotal`, `conTotal`); `usePlotSessionTree` expone `total`/`missing`; aviso "Se muestran X de Y sesiones" en el Explorador y en `PlotUnifiedTimeline`
+- [x] **PAG-2** `test` — union de paginas, helpers, arbol con 4 ciclos de `Pivote_1_DM`, aviso; verificado en contenedor `node:20-alpine` con `npm ci`

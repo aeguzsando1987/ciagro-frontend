@@ -22,7 +22,7 @@ import {
   ndviStageAtDate,
   type NdviPerformance,
 } from '../lib/ndviExpected'
-import type { TreeSession } from '../lib/plotSessionTree'
+import { incompleteSessionsNotice, type TreeSession } from '../lib/plotSessionTree'
 import type { SessionKind, VisorSession } from '../types'
 
 interface PlotUnifiedTimelineProps {
@@ -223,6 +223,8 @@ export function PlotUnifiedTimeline({
   const [isCollapsed, setIsCollapsed] = useState(false)
 
   const sessions = plotTree.sessions
+  // FASE PAG: si el backend declara mas sesiones de las que llegaron, se avisa.
+  const incompleteNotice = incompleteSessionsNotice(plotTree.total, plotTree.missing)
   const ndviItems = useMemo(() => (ndviQuery.data ?? []).slice().sort((a, b) =>
     (a.session_date ?? '').localeCompare(b.session_date ?? '')
   ), [ndviQuery.data])
@@ -644,6 +646,11 @@ export function PlotUnifiedTimeline({
           <p className="text-[10px] text-muted-foreground">
             Todos los eventos comparten el mismo eje de fechas; cada marcador abre su mapa.
           </p>
+          {incompleteNotice && (
+            <p role="status" className="text-[10px] font-medium text-warning-foreground">
+              {incompleteNotice}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           <select

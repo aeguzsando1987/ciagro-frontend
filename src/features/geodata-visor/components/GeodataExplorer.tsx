@@ -27,6 +27,7 @@ import { usePlotSessionTree } from '../hooks/usePlotSessionTree'
 import {
   GENERALES_LABEL,
   buildPlotTree,
+  incompleteSessionsNotice,
   sessionIdsOf,
   type PlotTree,
   type TreeSession,
@@ -325,13 +326,23 @@ function SessionTreeNodes({ depth, tree, ...props }: SessionTreeProps & { depth:
 
 /** Sesiones de la parcela agrupadas por Generales y ciclo productivo. */
 function PlotSessionTree({ depth, ...props }: SessionTreeProps & { depth: number }) {
-  const { tree, isLoading, isError, refetch } = usePlotSessionTree(props.plot.id)
+  const { tree, total, missing, isLoading, isError, refetch } = usePlotSessionTree(props.plot.id)
   if (isLoading) return <Loading depth={depth} />
   if (isError) return <InlineError depth={depth} text="No pudimos cargar las sesiones." onRetry={refetch} />
   if (tree.generales.length === 0 && tree.cycles.length === 0) {
     return <Empty depth={depth} text="Sin sesiones." />
   }
-  return <SessionTreeNodes depth={depth} tree={tree} {...props} />
+  const notice = incompleteSessionsNotice(total, missing)
+  return (
+    <>
+      {notice && (
+        <StatusRow depth={depth}>
+          <span role="status" className="text-warning-foreground">{notice}</span>
+        </StatusRow>
+      )}
+      <SessionTreeNodes depth={depth} tree={tree} {...props} />
+    </>
+  )
 }
 
 // ─── Nivel 5: Parcelas ────────────────────────────────────────────────────────
