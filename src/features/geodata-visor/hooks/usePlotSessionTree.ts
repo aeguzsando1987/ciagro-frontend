@@ -74,9 +74,16 @@ export function usePlotSessionTree(plotId: string) {
 
   const tree = useMemo<PlotTree>(() => buildPlotTree(sessions), [sessions])
 
+  // FASE PAG: el Visor no trunca en silencio. `total` es lo que declara el backend;
+  // si llegaron menos sesiones de las que existen, la vista lo avisa ("X de Y").
+  const total = queries.reduce((sum, q) => sum + (q.total ?? q.data?.length ?? 0), 0)
+  const missing = Math.max(0, total - sessions.length)
+
   return {
     tree,
     sessions,
+    total,
+    missing,
     isLoading: queries.some((q) => q.isLoading),
     isError: queries.some((q) => q.isError),
     refetch: () => queries.filter((q) => q.isError).forEach((q) => void q.refetch()),
