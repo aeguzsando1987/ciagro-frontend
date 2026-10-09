@@ -33,7 +33,8 @@ import { ProducerRanchesMap } from './ProducerRanchesMap'
 import { SessionInfoCard } from './SessionInfoCard'
 import { SoilMapSessionInfoCard } from './SoilMapSessionInfoCard'
 import { AspersionMap } from './AspersionMap'
-import { NdviTimelineView } from './NdviTimelineView'
+import { NdviMap } from './NdviMap'
+import { PlotUnifiedTimeline } from './PlotUnifiedTimeline'
 import { SoilMap as SoilMapMap } from './SoilMap'
 import { YieldMap } from './YieldMap'
 import { PlantingMap } from './PlantingMap'
@@ -41,7 +42,6 @@ import { PhytoMap } from '@/features/task-manager/components/PhytoMap'
 import { PhytoStatsCard } from '@/features/task-manager/components/PhytoStatsCard'
 import { SessionReportToggle } from '@/features/session-report/components/SessionReportToggle'
 import { ArrowLeft } from 'lucide-react'
-import { sessionIdsForPlot } from '../lib/advancedSearch'
 import type { MapCameraSyncBinding } from '../lib/mapCameraSync'
 import type { AdvancedSearchResult, VisorSelection, VisorSession } from '../types'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -312,11 +312,6 @@ function RanchView({
   const isPlotLevel = selection.level !== 'ranch'
   const isSessionLevel = selection.level === 'session'
 
-  // Ids NDVI que la búsqueda permite para ESTA parcela (`null` sin búsqueda): la línea
-  // de tiempo NDVI navega entre sesiones y no debe salirse del resultado.
-  const plotId = selection.plot?.id ?? null
-  const allowedNdvi = plotId ? sessionIdsForPlot(searchResult ?? null, plotId, 'ndvi') : null
-
   const stats = isPlotLevel ? null : ranchStats(visiblePlots.length, areaHa)
   const isPhytoSession = isSessionLevel && selection.session?.kind === 'phyto'
   const isNdviSession = isSessionLevel && selection.session?.kind === 'ndvi'
@@ -335,7 +330,7 @@ function RanchView({
   )
 
   return (
-    <div className="flex h-full flex-col gap-2.5">
+    <div className="flex h-full flex-col gap-2.5 overflow-y-auto pr-1">
       {!statsHidden && stats && <StatGrid loading={plots.isLoading} stats={stats} />}
       {!statsHidden && isPlotLevel && <PlotStats plotId={selection.plot!.id} />}
       {!statsHidden &&
@@ -357,6 +352,14 @@ function RanchView({
           datacentralId={selection.datacentral?.id}
         />
       )}
+      {isPlotLevel && !comparisonMode && (
+        <PlotUnifiedTimeline
+          plotId={selection.plot!.id}
+          selectedSession={selection.session ?? null}
+          onSelectSession={(session) => onSelect(selectSession(selection, session))}
+          defaultCollapsed={isSessionLevel}
+        />
+      )}
       <div
         className={`relative min-h-[320px] flex-1 rounded-lg border ${
           isNdviSession && !comparisonMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'
@@ -364,16 +367,13 @@ function RanchView({
       >
         {isSessionLevel ? (
           isNdviSession ? (
-            /* NDVI temporal: mapa + línea de tiempo + evolución + distribución Gauss +
-               observación. La vista es autocontenida para no afectar aspersión, fito ni suelo. */
-            <NdviTimelineView
+            /* La línea de tiempo unificada vive arriba. Aquí se muestra únicamente el mapa
+               de la sesión NDVI seleccionada para no duplicar controles ni gráficas. */
+            <NdviMap
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               tenantId={selection.org.id}
               mapSync={mapSync}
-              comparisonMode={comparisonMode}
-              allowedIds={allowedNdvi}
-              onSelectSession={(session) => onSelect(selectSession(selection, session))}
             />
           ) : isPhytoSession ? (
             /* Sesión fitosanitaria: mapa de calor de checkpoints sobre la parcela (reuso

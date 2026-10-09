@@ -2,7 +2,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -26,8 +26,6 @@ import { tokens } from '@/lib/auth/tokens'
 import { applyDrfErrors } from '../hooks/useDrfErrorMap'
 import { useEvaluations } from '../hooks/useEvaluations'
 import { useDatacentralUsers } from '../hooks/useDatacentralUsers'
-import { useRanches } from '../hooks/useRanches'
-import { usePlots, usePlotsByProducer } from '../hooks/usePlots'
 import type { MasterProgram } from '../types'
 import { PlantingApiError, plantingApiFetch } from '@/features/planting-map/api'
 
@@ -95,7 +93,6 @@ const soilMapSchema = z.object({
 
 const yieldMapSchema = z.object({
   program_id: z.string().uuid(),
-  plot_id: z.string().uuid('Selecciona una parcela'),
   harvest_date: z.string().min(1, 'Requerido'),
   est_init_date: z.string().optional(),
   est_finish_date: z.string().optional(),
@@ -104,7 +101,6 @@ const yieldMapSchema = z.object({
 
 const plantingMapSchema = z.object({
   program_id: z.string().uuid(),
-  plot_id: z.string().uuid('Selecciona una parcela'),
   planting_date: z.string().min(1, 'Requerido'),
   est_init_date: z.string().optional(),
   est_finish_date: z.string().optional(),
@@ -153,7 +149,6 @@ const SOIL_MAP_FIELDS = [
 ] as const
 const YIELD_MAP_FIELDS = [
   'program_id',
-  'plot_id',
   'harvest_date',
   'est_init_date',
   'est_finish_date',
@@ -161,7 +156,6 @@ const YIELD_MAP_FIELDS = [
 ] as const
 const PLANTING_MAP_FIELDS = [
   'program_id',
-  'plot_id',
   'planting_date',
   'est_init_date',
   'est_finish_date',
@@ -269,7 +263,6 @@ export function CreateSessionDialog({
               programaId={programa.id}
               masterId={master.id}
               programPlotId={programa.plot ?? null}
-              producerId={master.agro_unit}
               datacentralId={datacentralId}
               queryClient={queryClient}
               onClose={() => onOpenChange(false)}
@@ -279,7 +272,6 @@ export function CreateSessionDialog({
               programaId={programa.id}
               masterId={master.id}
               programPlotId={programa.plot ?? null}
-              producerId={master.agro_unit}
               datacentralId={datacentralId}
               queryClient={queryClient}
               onClose={() => onOpenChange(false)}
@@ -650,7 +642,9 @@ function PhytoForm({
                     }`}
                   >
                     <span className="font-semibold">3+</span>
-                    <span className="ml-1 hidden text-[10px] opacity-80 sm:inline">Personalizada</span>
+                    <span className="ml-1 hidden text-[10px] opacity-80 sm:inline">
+                      Personalizada
+                    </span>
                   </button>
                 </div>
 
@@ -687,7 +681,9 @@ function PhytoForm({
                         }}
                         className="h-10 text-base font-semibold"
                       />
-                      <span className="whitespace-nowrap text-xs text-muted-foreground">plagas</span>
+                      <span className="whitespace-nowrap text-xs text-muted-foreground">
+                        plagas
+                      </span>
                     </div>
                   </div>
                 )}
@@ -995,7 +991,6 @@ function PlantingMapForm({
   programaId,
   masterId,
   programPlotId,
-  producerId,
   datacentralId,
   queryClient,
   onClose,
@@ -1003,65 +998,41 @@ function PlantingMapForm({
   programaId: string
   masterId: string
   programPlotId: string | null
-  producerId: string
   datacentralId: string
   queryClient: ReturnType<typeof useQueryClient>
   onClose: () => void
 }) {
   const { data: dcUsers = [] } = useDatacentralUsers(datacentralId)
-  const { data: ranches = [], isLoading: loadingRanches } = useRanches(producerId)
-  const { data: producerPlots = [] } = usePlotsByProducer(producerId)
-  const [selectedRanch, setSelectedRanch] = useState<string | undefined>()
-  const { data: plots = [], isLoading: loadingPlots } = usePlots(selectedRanch)
 
   const {
     register,
     handleSubmit,
     control,
     setError,
-    setValue,
-    watch,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<PlantingMapValues>({
     resolver: zodResolver(plantingMapSchema),
     defaultValues: {
       program_id: programaId,
-      plot_id: programPlotId ?? '',
     },
   })
-
-  const selectedPlot = watch('plot_id')
-
-  useEffect(() => {
-    if (!programPlotId || selectedRanch) return
-    const current = producerPlots.find((plot) => plot.id === programPlotId)
-    const ranchId = current?.properties?.ranch
-    if (ranchId) {
-      setSelectedRanch(ranchId)
-      setValue('plot_id', programPlotId, { shouldValidate: true })
-    }
-  }, [producerPlots, programPlotId, selectedRanch, setValue])
 
   const mutation = useMutation({
     mutationFn: async (values: PlantingMapValues) => {
       const body = {
         program_id: values.program_id,
-        plot_id: values.plot_id,
         planting_date: values.planting_date,
         ...(values.est_init_date ? { est_init_date: values.est_init_date } : {}),
         ...(values.est_finish_date ? { est_finish_date: values.est_finish_date } : {}),
         ...(values.assigned_to_id ? { assigned_to_id: values.assigned_to_id } : {}),
       }
       try {
-        return await plantingApiFetch(
-          '/monitoring/planting-map/headers/',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-          },
-        )
+        return await plantingApiFetch('/monitoring/planting-map/headers/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
       } catch (error) {
         if (
           error instanceof PlantingApiError &&
@@ -1077,85 +1048,23 @@ function PlantingMapForm({
       void queryClient.invalidateQueries({ queryKey: ['planting-map', 'headers'] })
       void queryClient.invalidateQueries({ queryKey: ['master-tree', masterId] })
       reset()
-      setSelectedRanch(undefined)
       onClose()
     },
   })
 
   return (
     <form onSubmit={handleSubmit((values) => mutation.mutate(values))} className="space-y-4">
-      <div className="rounded-md border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">
-        Crea la sesión con la parcela real. Después podrás cargar el CSV del monitor de siembra;
-        el backend detectará automáticamente las variables que existan.
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
-          <Label>Rancho *</Label>
-          <Select
-            disabled={loadingRanches}
-            value={selectedRanch ?? ''}
-            onValueChange={(value) => {
-              setSelectedRanch(value)
-              setValue('plot_id', '', { shouldValidate: true })
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={loadingRanches ? 'Cargando...' : 'Selecciona rancho'} />
-            </SelectTrigger>
-            <SelectContent>
-              {ranches.map((ranch) => (
-                <SelectItem key={ranch.id} value={ranch.id ?? ''}>
-                  {ranch.properties?.name ?? ranch.properties?.code ?? ranch.id}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {programPlotId ? (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">
+          El rancho y la parcela se tomarán automáticamente del subprograma. Después podrás cargar
+          el CSV del monitor de siembra; el backend detectará automáticamente las variables que
+          existan.
         </div>
-
-        <div className="space-y-1">
-          <Label>Parcela *</Label>
-          <Controller
-            name="plot_id"
-            control={control}
-            render={({ field }) => (
-              <Select
-                disabled={!selectedRanch || loadingPlots}
-                value={field.value ?? ''}
-                onValueChange={field.onChange}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      !selectedRanch
-                        ? 'Primero el rancho'
-                        : loadingPlots
-                          ? 'Cargando...'
-                          : 'Selecciona parcela'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {plots.map((plot) => (
-                    <SelectItem key={plot.id} value={plot.id ?? ''}>
-                      {plot.properties?.code ?? plot.properties?.description ?? plot.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.plot_id && (
-            <p className="text-xs text-destructive">{errors.plot_id.message}</p>
-          )}
+      ) : (
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+          Este subprograma no tiene parcela asignada. Asigna una parcela al subprograma antes de
+          crear la sesión de siembra.
         </div>
-      </div>
-
-      {programPlotId && selectedPlot && selectedPlot !== programPlotId && (
-        <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
-          La sesión usará una parcela distinta a la parcela referencial del subprograma.
-          La sesión conservará explícitamente la parcela elegida.
-        </p>
       )}
 
       <div className="space-y-1">
@@ -1203,7 +1112,12 @@ function PlantingMapForm({
         />
       </div>
 
-      {mutation.error && (
+      {errors.root && (
+        <p className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {errors.root.message}
+        </p>
+      )}
+      {mutation.error && !errors.root && (
         <p className="rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
           {mutation.error.message}
         </p>
@@ -1213,7 +1127,7 @@ function PlantingMapForm({
         <Button type="button" variant="outline" onClick={onClose}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={!selectedPlot || isSubmitting || mutation.isPending}>
+        <Button type="submit" disabled={!programPlotId || isSubmitting || mutation.isPending}>
           {isSubmitting || mutation.isPending ? 'Guardando...' : 'Crear Sesión'}
         </Button>
       </DialogFooter>
@@ -1227,7 +1141,6 @@ function YieldMapForm({
   programaId,
   masterId,
   programPlotId,
-  producerId,
   datacentralId,
   queryClient,
   onClose,
@@ -1235,55 +1148,31 @@ function YieldMapForm({
   programaId: string
   masterId: string
   programPlotId: string | null
-  producerId: string
   datacentralId: string
   queryClient: ReturnType<typeof useQueryClient>
   onClose: () => void
 }) {
   const { data: dcUsers = [] } = useDatacentralUsers(datacentralId)
-  const { data: ranches = [], isLoading: loadingRanches } = useRanches(producerId)
-  const { data: producerPlots = [] } = usePlotsByProducer(producerId)
-  const [selectedRanch, setSelectedRanch] = useState<string | undefined>()
-  const { data: plots = [], isLoading: loadingPlots } = usePlots(selectedRanch)
 
   const {
     register,
     handleSubmit,
     control,
     setError,
-    setValue,
-    watch,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<YieldMapValues>({
     resolver: zodResolver(yieldMapSchema),
     defaultValues: {
       program_id: programaId,
-      plot_id: programPlotId ?? '',
     },
   })
-
-  const selectedPlot = watch('plot_id')
-
-  // Si el subprograma ya trae parcela, Rendimiento la preselecciona; a diferencia
-  // del flujo anterior, el usuario puede corregir Rancho/Parcela antes de crear la
-  // sesión. Esto evita terminar con el CSV pintado sobre una parcela equivocada.
-  useEffect(() => {
-    if (!programPlotId || selectedRanch) return
-    const current = producerPlots.find((plot) => plot.id === programPlotId)
-    const ranchId = current?.properties?.ranch
-    if (ranchId) {
-      setSelectedRanch(ranchId)
-      setValue('plot_id', programPlotId, { shouldValidate: true })
-    }
-  }, [producerPlots, programPlotId, selectedRanch, setValue])
 
   const mutation = useMutation({
     mutationFn: async (values: YieldMapValues) => {
       const baseUrl = import.meta.env.VITE_API_BASE_URL as string
       const body = {
         program_id: values.program_id,
-        plot_id: values.plot_id,
         harvest_date: values.harvest_date,
         ...(values.est_init_date ? { est_init_date: values.est_init_date } : {}),
         ...(values.est_finish_date ? { est_finish_date: values.est_finish_date } : {}),
@@ -1312,83 +1201,22 @@ function YieldMapForm({
       queryClient.invalidateQueries({ queryKey: ['master-tree', masterId] })
       queryClient.invalidateQueries({ queryKey: ['yield-map', 'headers'] })
       reset()
-      setSelectedRanch(undefined)
       onClose()
     },
   })
 
   return (
     <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-4">
-      <div className="rounded-md border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">
-        Rendimiento es un dominio independiente. Selecciona el rancho y la parcela donde se cosechó;
-        después podrás cargar el CSV del monitor de cosecha.
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
-          <Label>Rancho *</Label>
-          <Select
-            disabled={loadingRanches}
-            value={selectedRanch ?? ''}
-            onValueChange={(value) => {
-              setSelectedRanch(value)
-              setValue('plot_id', '', { shouldValidate: true })
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={loadingRanches ? 'Cargando...' : 'Selecciona rancho'} />
-            </SelectTrigger>
-            <SelectContent>
-              {ranches.map((ranch) => (
-                <SelectItem key={ranch.id} value={ranch.id ?? ''}>
-                  {ranch.properties?.name ?? ranch.properties?.code ?? ranch.id}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {programPlotId ? (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">
+          El rancho y la parcela se tomarán automáticamente del subprograma. Después podrás cargar
+          el CSV del monitor de cosecha.
         </div>
-
-        <div className="space-y-1">
-          <Label>Parcela *</Label>
-          <Controller
-            name="plot_id"
-            control={control}
-            render={({ field }) => (
-              <Select
-                disabled={!selectedRanch || loadingPlots}
-                value={field.value ?? ''}
-                onValueChange={field.onChange}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      !selectedRanch
-                        ? 'Primero el rancho'
-                        : loadingPlots
-                          ? 'Cargando...'
-                          : 'Selecciona parcela'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {plots.map((plot) => (
-                    <SelectItem key={plot.id} value={plot.id ?? ''}>
-                      {plot.properties?.code ?? plot.properties?.description ?? plot.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.plot_id && <p className="text-xs text-destructive">{errors.plot_id.message}</p>}
+      ) : (
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+          Este subprograma no tiene parcela asignada. Asigna una parcela al subprograma antes de
+          crear la sesión de rendimiento.
         </div>
-      </div>
-
-      {programPlotId && selectedPlot && selectedPlot !== programPlotId && (
-        <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
-          Esta sesión usará una parcela distinta a la parcela referencial del subprograma.
-          Rendimiento conservará la parcela elegida en la sesión.
-        </p>
       )}
 
       <div className="space-y-1">
@@ -1451,7 +1279,7 @@ function YieldMapForm({
         <Button type="button" variant="outline" onClick={onClose}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={!selectedPlot || isSubmitting || mutation.isPending}>
+        <Button type="submit" disabled={!programPlotId || isSubmitting || mutation.isPending}>
           {isSubmitting || mutation.isPending ? 'Guardando...' : 'Crear Sesión'}
         </Button>
       </DialogFooter>
