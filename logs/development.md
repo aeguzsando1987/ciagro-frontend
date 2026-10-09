@@ -3979,3 +3979,38 @@ muestra el historial completo, sin truncar en silencio. El usuario aviso persona
   recientes); texto del aviso; `missing` en `usePlotSessionTree`.
 
 **Despliegue:** rebuild del front junto con el back de la misma fase (sin migraciones).
+
+## FASE TT (frontend) — Tooltip con el texto completo en el Explorador del Visor (2026-10-09, rama `dev-explorer-tooltip`)
+
+**Origen.** En la revision visual de la FASE PAG el usuario detecto que, en el Explorador, los textos
+de ciclos y de algunas actividades se cortan por el ancho del panel ("Ciclo productivo Primav...") y no
+habia forma de leerlos. Pidio un efecto al pasar el raton.
+
+### Que se hizo
+
+- `src/components/ui/truncated-text.tsx` (nuevo): `TruncatedText` pinta el mismo `<span className="truncate">`
+  de siempre y abre un tooltip con el texto completo **solo si el texto esta cortado**
+  (`scrollWidth > clientWidth`, medido al intentar abrir). Espera 300 ms y sale a la derecha, para no
+  tapar el arbol.
+- `GeodataExplorer`: `TreeRow` y `GroupRow` usan `TruncatedText`. Como esas dos filas pintan todos
+  los niveles (organizacion, CIAgro, productor, rancho, parcela, Generales, ciclos, tipos y sesiones),
+  el cambio cubre el arbol entero sin tocar cada nivel.
+
+### Decisiones y trampas
+
+- Reutiliza el `tooltip.tsx` de Radix que ya existia (con `TooltipProvider` en `App.tsx`); no entra
+  ninguna dependencia nueva.
+- `TruncatedText` lleva su propio `TooltipProvider`: los tests del Explorador montan el arbol sin el
+  de `App.tsx` y Radix revienta si no encuentra uno. Anidar proveedores es valido.
+- `isTruncated` queda interna al modulo: exportarla junto al componente rompe el fast refresh
+  (`react-refresh/only-export-components`).
+- **Limite conocido:** en pantallas tactiles no hay "pasar el raton"; ahi el tooltip no aparece. Si el
+  Visor se usa en tableta, se puede añadir despues mostrarlo con pulsacion larga.
+
+### Verificacion
+
+- En contenedor `node:20-alpine` con `npm ci`: `tsc` OK, eslint sin avisos, **842/842** (3 tests nuevos:
+  aparece cuando el texto esta cortado, no aparece cuando cabe, conserva el corte), `vite build` OK.
+- Los cuatro archivos de test del Explorador pasan sin cambios.
+
+**Despliegue:** solo front (rebuild de `frontend`). Sin back ni migraciones.
