@@ -37,6 +37,7 @@ export function AspersionMapModal({ open, onClose, sessionId, plotId, datacentra
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <AspersionMap
+          dcId={datacentralId ?? undefined}
           sessionId={sessionId}
           plotId={plotId}
           enabled={open}

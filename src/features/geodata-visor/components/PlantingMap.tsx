@@ -1,3 +1,4 @@
+import { useLayerAppearance, appearancePalette } from '@/features/analysis-colors/useLayerAppearance'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
 import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre'
@@ -21,6 +22,8 @@ import type { MapCameraSyncBinding } from '../lib/mapCameraSync'
 import { useMapCameraSync } from '../lib/mapCameraSync'
 
 interface Props {
+  /** Organización que consulta la sesión; el Task Manager puede usar resolución automática. */
+  tenantId?: string
   sessionId: string
   plotId: string | null
   toolbarStart?: React.ReactNode
@@ -212,6 +215,7 @@ function rectangularCell(
 }
 
 export function PlantingMap({
+  tenantId,
   sessionId, plotId, toolbarStart, className, mapSync, comparisonMode = false,
 }: Props) {
   const instanceId = useId().replace(/:/g, '')
@@ -245,7 +249,10 @@ export function PlantingMap({
     }
   }, [activeKey, availableLayers])
 
-  const activeLayer = PLANTING_LAYER_BY_KEY[activeKey]
+  const {data: appearance} = useLayerAppearance('planting_map',tenantId)
+  const layerAppearance = appearance?.layers[activeKey]
+  const baseLayer = PLANTING_LAYER_BY_KEY[activeKey]
+  const activeLayer = useMemo(() => ({...baseLayer,palette:appearancePalette(baseLayer.palette,layerAppearance)}),[baseLayer,layerAppearance])
   const valuesQuery = usePlantingLayerValues(sessionId, activeKey, availableLayers.includes(activeKey))
 
   const samples = useMemo<LayerSample[]>(() => {
@@ -275,7 +282,7 @@ export function PlantingMap({
   }, [valuesQuery.data?.points, valuesQuery.data?.samples])
 
   const classes = useMemo(
-    () => buildPlantingClasses(samples.map((sample) => sample.value), activeLayer),
+    () => buildPlantingClasses(samples.map((sample) => sample.value), activeLayer, layerAppearance),
     [activeLayer, samples],
   )
 

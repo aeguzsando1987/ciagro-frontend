@@ -56,7 +56,11 @@ function extractErrorDetail(error: unknown): string | undefined {
   return typeof raw === 'string' ? raw : undefined
 }
 
-export function NdviVariablesSection() {
+export function NdviVariablesSection({ tenantId: externalTenantId, onTenantChange, hideOrgPicker = false }: {
+  tenantId?: string
+  onTenantChange?: (tenantId: string) => void
+  hideOrgPicker?: boolean
+} = {}) {
   const user = useAuthStore((s) => s.user)
   const roleLevel = user?.role_level ?? 0
   const isSuperAdmin = roleLevel >= ROLE_LEVELS.SUPER_ADMIN
@@ -69,7 +73,9 @@ export function NdviVariablesSection() {
     [allOrgs, isSuperAdmin]
   )
 
-  const [tenantId, setTenantId] = useState<string>('')
+  const [localTenantId, setLocalTenantId] = useState<string>('')
+  const tenantId = externalTenantId ?? localTenantId
+  const setTenantId = onTenantChange ?? setLocalTenantId
 
   // Con una sola organización configurable, se selecciona sola; si hay varias (o es
   // SuperAdmin), el usuario debe elegir explícitamente.
@@ -106,7 +112,7 @@ export function NdviVariablesSection() {
     [variables, selected]
   )
 
-  const orgPicker = needsTenantChoice && !loadingOrgs && (
+  const orgPicker = !hideOrgPicker && needsTenantChoice && !loadingOrgs && (
     <div className="max-w-xs space-y-1">
       <Label>Organización</Label>
       <Select value={tenantId} onValueChange={setTenantId}>

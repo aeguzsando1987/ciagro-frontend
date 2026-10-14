@@ -1,4 +1,5 @@
 import type { PlantingLayerKey } from '../types'
+import type { LayerAppearance } from '@/features/analysis-colors/useLayerAppearance'
 
 export type PlantingLayerKind = 'numeric' | 'category'
 
@@ -42,6 +43,7 @@ export const PLANTING_LAYER_BY_KEY = Object.fromEntries(
 export function buildPlantingClasses(
   values: Array<number | string>,
   layer: PlantingLayerDef,
+  appearance?: LayerAppearance,
 ): PlantingClass[] {
   if (layer.kind === 'category') {
     const categories = Array.from(new Set(values.map((value) => String(value ?? '').trim()).filter(Boolean)))
@@ -49,7 +51,7 @@ export function buildPlantingClasses(
       key: `cat-${index}`,
       label: category,
       category,
-      color: layer.palette[index % layer.palette.length] ?? '#64748b',
+      color: appearance?.category_colors?.[category] ?? layer.palette[index % layer.palette.length] ?? '#64748b',
     }))
   }
 
@@ -60,7 +62,7 @@ export function buildPlantingClasses(
 
   const min = Math.min(...numbers)
   const max = Math.max(...numbers)
-  if (min === max) {
+  if (min === max && !appearance?.breaks) {
     return [{
       key: 'range-0',
       min,
@@ -70,12 +72,13 @@ export function buildPlantingClasses(
     }]
   }
 
-  const bucketCount = Math.min(layer.palette.length, 7)
+  const bucketCount = layer.palette.length
+  const manualBreaks = appearance?.breaks?.length === bucketCount-1 ? appearance.breaks : null
   const step = (max - min) / bucketCount
 
   return Array.from({ length: bucketCount }, (_, index) => {
-    const lower = min + step * index
-    const upper = index === bucketCount - 1 ? max : min + step * (index + 1)
+    const lower = manualBreaks ? (index === 0 ? (appearance?.range_min ?? Math.min(min, manualBreaks[0]!)) : manualBreaks[index-1]!) : min + step * index
+    const upper = manualBreaks ? (index === bucketCount - 1 ? (appearance?.range_max ?? Math.max(max,manualBreaks[index-1]!)) : manualBreaks[index]!) : index === bucketCount - 1 ? max : min + step * (index + 1)
     return {
       key: `range-${index}`,
       min: lower,
@@ -100,7 +103,7 @@ export function bucketForValue(
   for (const [index, entry] of classes.entries()) {
     if (entry.min == null || entry.max == null) continue
     const isLast = index === classes.length - 1
-    if (value >= entry.min && (value < entry.max || (isLast && value <= entry.max))) {
+    if ((index === 0 || value >= entry.min) && (value < entry.max || isLast)) {
       return entry.key
     }
   }

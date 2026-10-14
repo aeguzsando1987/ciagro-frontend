@@ -1,3 +1,4 @@
+import { useLayerAppearance, appearancePalette } from '@/features/analysis-colors/useLayerAppearance'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
 import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre'
@@ -24,6 +25,7 @@ import {
   normalizeSoilCategory,
   numericBucket,
   type SoilMapCategoryLayerDef,
+  type SoilMapLayerDef,
   type SoilMapLegendEntry,
 } from '@/features/task-manager/lib/soilMapLayers'
 import { useSoilSurfaceAnalysis } from '@/features/task-manager/hooks/useSoilSurfaceAnalysis'
@@ -43,6 +45,9 @@ import { SoilElevationSummary } from './SoilElevationSummary'
 import { LoadingState } from '@/components/ui/loading-state'
 
 interface SoilMapProps {
+  /** Organización que consulta la sesión; el Task Manager puede usar resolución automática. */
+  tenantId?: string
+  dcId?: string
   sessionId: string
   plotId: string | null
   enabled?: boolean
@@ -148,6 +153,8 @@ function LoadingOverlay({ children }: { children: React.ReactNode }) {
 }
 
 export function SoilMap({
+  tenantId,
+  dcId,
   sessionId,
   plotId,
   enabled = true,
@@ -180,7 +187,15 @@ export function SoilMap({
 
   const { data: points, isLoading, error } = useSoilMapPoints(sessionId, enabled)
   const { data: plot } = usePlotGeometry(plotId)
-  const activeLayer = SOIL_MAP_LAYERS[activeLayerIndex]!
+  const {data: appearance} = useLayerAppearance('soil_map',tenantId,dcId)
+  const baseLayer = SOIL_MAP_LAYERS[activeLayerIndex]!
+  const layerAppearance = appearance?.layers[baseLayer.key]
+  const activeLayer = useMemo<SoilMapLayerDef>(() => {
+    const palette = appearancePalette(baseLayer.palette, layerAppearance)
+    return baseLayer.kind === 'category'
+      ? {...baseLayer,palette,categoryColors:{...baseLayer.categoryColors,...layerAppearance?.category_colors}}
+      : {...baseLayer,palette}
+  },[baseLayer,layerAppearance])
   // Los valores de la capa activa viajan aparte de la geometría: la precarga trae
   // dónde están los puntos y esto trae cuánto valen. Cambiar de capa dispara una
   // petición nueva, y react-query devuelve sin red las capas ya visitadas.
@@ -257,33 +272,39 @@ export function SoilMap({
   // capa. La clave del caché incluye la sesión, la capa y el número de muestras,
   // que es lo que cambia si se reimportan los puntos.
   const surfaceCacheKey = boundaryRing
-    ? `${sessionId}|${activeLayer.key}|${activeLayer.unit}|${samples.length}${activeLayer.field === 'Elevation' ? `|${valuesUpdatedAt}` : ''}`
+    ? `${sessionId}|${tenantId??'auto'}|${activeLayer.key}|${activeLayer.unit}|${samples.length}|${JSON.stringify(layerAppearance??{})}${activeLayer.field === 'Elevation' ? `|${valuesUpdatedAt}` : ''}`
     : null
   const { analysis: surfaceAnalysis, isComputing: isComputingSurface } = useSoilSurfaceAnalysis({
     ring: boundaryRing,
     samples,
     paletteSize: activeLayer.palette.length,
+    manualBreaks: layerAppearance?.breaks,
     cacheKey: surfaceCacheKey,
     enabled: activeLayer.kind === 'numeric',
   })
 
   const numericScale = useMemo(() => {
     if (activeLayer.kind !== 'numeric') return null
+    const manualCuts = layerAppearance?.breaks?.length === activeLayer.palette.length-1
+      ? layerAppearance.breaks : null
     if (surfaceAnalysis) {
+      const cuts = manualCuts ?? surfaceAnalysis.breaks
       return buildNumericScaleFromBreaks(
-        surfaceAnalysis.min,
-        surfaceAnalysis.max,
-        surfaceAnalysis.breaks,
-        activeLayer.palette,
-        activeLayer.unit
+        manualCuts && layerAppearance?.range_min != null ? layerAppearance.range_min : Math.min(surfaceAnalysis.min, cuts[0] ?? surfaceAnalysis.min),
+        manualCuts && layerAppearance?.range_max != null ? layerAppearance.range_max : Math.max(surfaceAnalysis.max, cuts[cuts.length-1] ?? surfaceAnalysis.max),
+        cuts, activeLayer.palette, activeLayer.unit
       )
     }
-    return buildNumericScale(
-      samples.map((sample) => Number(sample.value)),
-      activeLayer.palette,
-      activeLayer.unit
-    )
-  }, [activeLayer, samples, surfaceAnalysis])
+    const numericValues = samples.map(sample => Number(sample.value)).filter(Number.isFinite)
+    if (manualCuts && numericValues.length) {
+      return buildNumericScaleFromBreaks(
+        layerAppearance?.range_min ?? Math.min(...numericValues,manualCuts[0]!),
+        layerAppearance?.range_max ?? Math.max(...numericValues,manualCuts[manualCuts.length-1]!),
+        manualCuts,activeLayer.palette,activeLayer.unit
+      )
+    }
+    return buildNumericScale(numericValues, activeLayer.palette, activeLayer.unit)
+  }, [activeLayer, samples, surfaceAnalysis, layerAppearance])
 
   const legendEntries = useMemo(
     () =>

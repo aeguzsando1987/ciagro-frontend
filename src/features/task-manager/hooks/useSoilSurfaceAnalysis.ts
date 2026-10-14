@@ -16,13 +16,14 @@ interface Params {
   /** Se acepta el valor crudo (numérico o texto); la conversión va aquí adentro. */
   samples: SoilMapSample[]
   paletteSize: number
+  manualBreaks?: number[]
   /** Identifica el resultado en el caché. `null` desactiva el cacheo. */
   cacheKey: string | null
   /** Las capas categóricas no interpolan: sus rangos son las categorías mismas. */
   enabled: boolean
 }
 
-export function useSoilSurfaceAnalysis({ ring, samples, paletteSize, cacheKey, enabled }: Params) {
+export function useSoilSurfaceAnalysis({ ring, samples, paletteSize, manualBreaks, cacheKey, enabled }: Params) {
   const [result, setResult] = useState<{
     key: string | null
     analysis: SoilSurfaceAnalysis | null
@@ -52,6 +53,7 @@ export function useSoilSurfaceAnalysis({ ring, samples, paletteSize, cacheKey, e
           value: Number(sample.value),
         })),
         paletteSize,
+        manualBreaks,
       },
       cacheKey
     )
@@ -70,7 +72,7 @@ export function useSoilSurfaceAnalysis({ ring, samples, paletteSize, cacheKey, e
     return () => {
       requestRef.current += 1
     }
-  }, [cacheKey, enabled, paletteSize, ring, samples])
+  }, [cacheKey, enabled, paletteSize, manualBreaks, ring, samples])
 
   // Nunca reutiliza rangos de otra variable mientras termina el worker: una
   // leyenda de elevación no puede mostrar cortes de pH con la unidad «m».

@@ -1,3 +1,4 @@
+import { useLayerAppearance, appearancePalette, appearanceCategoryColor, type LayerAppearance } from '@/features/analysis-colors/useLayerAppearance'
 /**
  * Mapa de calor de los datos de aspersión de una sesión — componente presentacional
  * auto-contenido, embebible tanto en un modal (task-manager) como en el dashboard del
@@ -46,8 +47,6 @@ import {
   classifyApplication,
   classifyRateQuality,
   computeQuartiles,
-  quartileOf,
-  buildQuartileDefs,
   buildTargetDefs,
   targetBucketOf,
   applicationPercent,
@@ -89,27 +88,13 @@ function buildCategoryColorExpr(defs: CategoryDef[]): unknown[] {
   return expr
 }
 
-function buildQuartileColorExpr(palette: [string, string, string, string]): unknown[] {
-  return [
-    'match',
-    ['get', 'bucket'],
-    'q1',
-    palette[0],
-    'q2',
-    palette[1],
-    'q3',
-    palette[2],
-    'q4',
-    palette[3],
-    '#94a3b8',
-  ]
-}
 
 // ─── Cómputo de datos por capa ───────────────────────────────────────────────
 
 function buildLayerData(
   baseFC: GeoJSON.FeatureCollection<GeoJSON.Polygon, RectangleProps>,
-  layerDef: LayerDef
+  layerDef: LayerDef,
+  appearance?: LayerAppearance,
 ): LayerData | null {
   if (baseFC.features.length === 0) return null
 
@@ -137,46 +122,59 @@ function buildLayerData(
   if (layerDef.kind === 'category') {
     return buildCategorical(
       (f) => classifyApplication(f.properties.applied_rate_l, f.properties.target_rate_l),
-      APPLICATION_CATEGORIES
+      APPLICATION_CATEGORIES.map((d,i)=>({...d,color:appearanceCategoryColor(appearance?.colors?.[i] ?? d.color,d.key,appearance)}))
     )
   }
 
   if (layerDef.kind === 'quality') {
     return buildCategorical(
       (f) => classifyRateQuality(f.properties.rate_quality),
-      RATE_QUALITY_CATEGORIES
+      RATE_QUALITY_CATEGORIES.map((d,i)=>({...d,color:appearanceCategoryColor(appearance?.colors?.[i] ?? d.color,d.key,appearance)}))
     )
   }
 
   if (layerDef.kind === 'target') {
     const defs = buildTargetDefs(baseFC.features.map((f) => f.properties.target_rate_l))
-    return buildCategorical((f) => targetBucketOf(f.properties.target_rate_l), defs)
+    return buildCategorical((f) => targetBucketOf(f.properties.target_rate_l), defs.map((d,i)=>({...d,color:appearance?.category_colors?.[d.key] ?? (appearance?.colors?.[i % appearance.colors.length] ?? d.color)})))
   }
 
-  // Quartile layer
+  // Numeric layer: original quartiles by default, optionally arbitrary colors/count or manual cuts.
   const fieldKey = layerDef.field as keyof RectangleProps
-  const values = baseFC.features
-    .map((f) => f.properties[fieldKey] as number | null)
+  const values = baseFC.features.map(f => f.properties[fieldKey] as number | null)
     .filter((v): v is number => v != null && Number.isFinite(v))
   const cuts = computeQuartiles(values)
-  const palette = QUARTILE_PALETTES[layerDef.key as QuartileLayerKey]
-  const annotated = {
-    ...baseFC,
-    features: baseFC.features.map((f) => ({
-      ...f,
-      properties: {
-        ...f.properties,
-        bucket: cuts ? (quartileOf(f.properties[fieldKey] as number | null, cuts) ?? 'q1') : 'q1',
-      },
-    })),
-  } as LayerData['annotated']
-  return {
-    annotated,
-    legendDefs: cuts ? (buildQuartileDefs(palette, cuts, layerDef.unit) as LegendEntry[]) : [],
-    colorExpr: buildQuartileColorExpr(palette),
-    quartilesRef: cuts ? { q1: cuts.q1, q2: cuts.q2, q3: cuts.q3 } : null,
-    areaByBucket: sumAreaByBucket(annotated),
+  const original = QUARTILE_PALETTES[layerDef.key as QuartileLayerKey]
+  const palette = appearancePalette(original, appearance)
+  const thresholds = appearance?.breaks?.length === palette.length-1
+    ? appearance.breaks : (()=> {
+        const sorted=[...values].sort((a,b)=>a-b)
+        return Array.from({length:palette.length-1},(_,i)=>{
+          const index=(sorted.length-1)*(i+1)/palette.length
+          const lo=Math.floor(index),hi=Math.ceil(index)
+          return sorted.length ? sorted[lo]!+(sorted[hi]!-sorted[lo]!)*(index-lo) : 0
+        })
+      })()
+  const keys = palette.map((_,i)=>`q${i+1}`)
+  const bucketOf=(value: number | null) => {
+    if(value==null || !Number.isFinite(value)) return 'sin_dato'
+    const index=thresholds.findIndex(c=>value<c)
+    return keys[index===-1?keys.length-1:index]!
   }
+  const annotated = {...baseFC, features:baseFC.features.map(f=>({...f,properties:{...f.properties,bucket:bucketOf(f.properties[fieldKey] as number|null)}}))} as LayerData['annotated']
+  const fixed = appearance?.range_min != null && appearance?.range_max != null && !!appearance.breaks
+  const legendDefs: LegendEntry[] = values.length ? palette.map((color,i)=>({
+    key:keys[i]!,color,
+    label:`${appearance?.breaks ? 'Clase' : 'Q'}${i+1} ${fixed
+      ? `${(i===0 ? appearance!.range_min! : thresholds[i-1]!).toFixed(2)}–${(i===palette.length-1 ? appearance!.range_max! : thresholds[i]!).toFixed(2)}`
+      : i===0 ? '< ' + thresholds[0]!.toFixed(2) : i===palette.length-1 ? '≥ ' + thresholds[i-1]!.toFixed(2) : thresholds[i-1]!.toFixed(2)+'–'+thresholds[i]!.toFixed(2)} ${layerDef.unit}`,
+  })) : []
+  return {
+    annotated,legendDefs,
+    colorExpr:buildCategoryColorExpr(legendDefs),
+    quartilesRef:cuts ? {q1:cuts.q1,q2:cuts.q2,q3:cuts.q3} : null,
+    areaByBucket:sumAreaByBucket(annotated),
+  }
+
 }
 
 // ─── Sub-componentes ─────────────────────────────────────────────────────────
@@ -352,6 +350,9 @@ function LegendCard({
 
 interface AspersionMapProps {
   /** UUID de la AspersionSessionHeader. */
+  /** Organización que consulta la sesión; el Task Manager puede usar resolución automática. */
+  tenantId?: string
+  dcId?: string
   sessionId: string
   plotId: string | null
   /** Si los datos deben cargarse. El modal pasa `open`; embebido por defecto true. */
@@ -398,6 +399,8 @@ interface AspersionMapProps {
 // ─── Componente principal ────────────────────────────────────────────────────
 
 export function AspersionMap({
+  tenantId,
+  dcId,
   sessionId,
   plotId,
   enabled = true,
@@ -438,12 +441,14 @@ export function AspersionMap({
 
   // FeatureCollection base de rectángulos (calculada una vez cuando llegan los puntos)
   const baseFC = useMemo(() => (points ? pointsToRectangleCollection(points) : null), [points])
+  const {data: appearance} = useLayerAppearance('aspersion',tenantId,dcId)
 
   // Datos clasificados + leyenda + expresión de color, recalculados al cambiar capa
   const layerData = useMemo(() => {
     if (!baseFC) return null
-    return buildLayerData(baseFC, ASPERSION_LAYERS[activeLayerIdx]!)
-  }, [baseFC, activeLayerIdx])
+    const layer=ASPERSION_LAYERS[activeLayerIdx]!
+    return buildLayerData(baseFC, layer, appearance?.layers[layer.key])
+  }, [baseFC, activeLayerIdx, appearance])
 
   // Reiniciar checkboxes a "todos activos" al cambiar de capa.
   useEffect(() => {

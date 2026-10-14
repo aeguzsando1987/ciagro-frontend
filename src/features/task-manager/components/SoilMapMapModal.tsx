@@ -30,6 +30,7 @@ export function SoilMapMapModal({
           Visualización geográfica de las muestras y variables del mapa de suelo.
         </DialogDescription>
         <SoilMap
+          dcId={datacentralId ?? undefined}
           sessionId={sessionId}
           plotId={plotId}
           enabled={open}
