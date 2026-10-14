@@ -95,6 +95,7 @@ export interface AnalyzeSoilSurfaceOptions {
   ring: number[][]
   samples: SoilSample[]
   paletteSize: number
+  manualBreaks?: number[]
   maxSize?: number
 }
 
@@ -111,6 +112,7 @@ export function analyzeSoilSurface({
   ring,
   samples,
   paletteSize,
+  manualBreaks,
   maxSize = 260,
 }: AnalyzeSoilSurfaceOptions): SoilSurfaceAnalysis | null {
   if (ring.length < 3 || samples.length < 3 || paletteSize === 0) return null
@@ -150,9 +152,11 @@ export function analyzeSoilSurface({
   const sorted = Array.from(values).sort((left, right) => left - right)
   const min = sorted[0]!
   const max = sorted[sorted.length - 1]!
-  const breaks = Array.from({ length: Math.max(0, paletteSize - 1) }, (_, index) =>
-    quantile(sorted, (index + 1) / paletteSize)
-  )
+  const breaks = manualBreaks?.length === paletteSize - 1
+    ? manualBreaks
+    : Array.from({ length: Math.max(0, paletteSize - 1) }, (_, index) =>
+      quantile(sorted, (index + 1) / paletteSize)
+    )
   const bucketCellCounts: Record<string, number> = {}
 
   for (let index = 0; index < values.length; index += 1) {

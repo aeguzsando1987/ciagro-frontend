@@ -389,6 +389,7 @@ function RanchView({
           ) : isSoilMapSession ? (
             /* Sesión de mapeo de suelo: rangos espaciales dentro de la parcela. */
             <SoilMapMap
+              tenantId={selection.org.id}
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               floatingToolbar
@@ -406,6 +407,7 @@ function RanchView({
             />
           ) : isYieldMapSession ? (
             <YieldMap
+              tenantId={selection.org.id}
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               mapSync={mapSync}
@@ -414,6 +416,7 @@ function RanchView({
             />
           ) : isPlantingMapSession ? (
             <PlantingMap
+              tenantId={selection.org.id}
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               mapSync={mapSync}
@@ -425,6 +428,7 @@ function RanchView({
                La tarjeta de categorías de % de aplicación la pinta AspersionMap. FASE CV:
                sin lista de sesiones, el árbol del explorador ya cumple esa función. */
             <AspersionMap
+              tenantId={selection.org.id}
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               floatingToolbar

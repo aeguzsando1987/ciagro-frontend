@@ -71,22 +71,30 @@ function quantile(sorted: number[], p: number): number {
   return sorted[lower]! * (1 - weight) + sorted[upper]! * weight
 }
 
-export function buildYieldClasses(values: Array<number | null | undefined>, layer: YieldLayerDef): YieldClass[] {
+export function buildYieldClasses(values: Array<number | null | undefined>, layer: YieldLayerDef, manualBreaks?: number[], fixedMin?: number, fixedMax?: number): YieldClass[] {
   const sorted = values.filter((v): v is number => typeof v === 'number' && Number.isFinite(v)).sort((a, b) => a - b)
   if (sorted.length === 0) return []
 
   const min = sorted[0]!
   const max = sorted[sorted.length - 1]!
-  if (min === max) {
+  if (min === max && !manualBreaks) {
     return [{ key: 'band-0', min, max, color: layer.palette[Math.floor(layer.palette.length / 2)]!, label: `${formatYieldValue(min)} ${layer.unit}` }]
   }
 
-  const breakSet = new Set<number>([min])
-  for (let i = 1; i < layer.palette.length; i += 1) {
-    breakSet.add(quantile(sorted, i / layer.palette.length))
+  let breaks: number[]
+  if (manualBreaks?.length === layer.palette.length - 1) {
+    // Manual thresholds: a lower/higher outlier still belongs to an outer class.
+    breaks = [fixedMin ?? Math.min(min,manualBreaks[0]!),...manualBreaks,
+      fixedMax ?? Math.max(max,manualBreaks[manualBreaks.length-1]!)]
+  } else {
+    // Preserve the original quantile de-duplication when no overrides exist.
+    const breakSet = new Set<number>([min])
+    for (let i = 1; i < layer.palette.length; i += 1) {
+      breakSet.add(quantile(sorted, i / layer.palette.length))
+    }
+    breakSet.add(max)
+    breaks = Array.from(breakSet).sort((a, b) => a - b)
   }
-  breakSet.add(max)
-  const breaks = Array.from(breakSet).sort((a, b) => a - b)
   const classes: YieldClass[] = []
   for (let i = 0; i < breaks.length - 1; i += 1) {
     const low = breaks[i]!

@@ -181,6 +181,7 @@ export function SessionReportPanel({
             {mapOpen && (
               <div className="fixed bottom-2 left-2 right-[36rem] top-2 z-50 hidden overflow-hidden rounded-md border bg-background shadow-xl sm:block lg:right-[42rem]">
                 <AspersionMap
+                  dcId={datacentralId ?? undefined}
                   sessionId={objectId}
                   plotId={plotId}
                   enabled={open && mapOpen}

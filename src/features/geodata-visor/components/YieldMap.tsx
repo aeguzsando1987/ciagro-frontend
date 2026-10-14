@@ -1,3 +1,4 @@
+import { useLayerAppearance, appearancePalette } from '@/features/analysis-colors/useLayerAppearance'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
 import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre'
@@ -19,6 +20,8 @@ import type { MapCameraSyncBinding } from '../lib/mapCameraSync'
 import { useMapCameraSync } from '../lib/mapCameraSync'
 
 interface YieldMapProps {
+  /** Organización que consulta la sesión; el Task Manager puede usar resolución automática. */
+  tenantId?: string
   sessionId: string
   plotId: string | null
   toolbarStart?: React.ReactNode
@@ -81,6 +84,7 @@ function asFeature(geometry: unknown): GeoJSON.Feature | null {
 }
 
 export function YieldMap({
+  tenantId,
   sessionId,
   plotId,
   toolbarStart,
@@ -109,13 +113,16 @@ export function YieldMap({
   const statsQuery = useYieldMapStats(sessionId)
   const plotQuery = usePlotGeometry(plotId)
   const points = pointsQuery.data ?? []
-  const activeLayer = YIELD_LAYERS.find((layer) => layer.key === activeKey) ?? YIELD_LAYERS[0]!
+  const {data: appearance} = useLayerAppearance('yield_map',tenantId)
+  const baseLayer = YIELD_LAYERS.find((layer) => layer.key === activeKey) ?? YIELD_LAYERS[0]!
+  const layerAppearance = appearance?.layers[activeKey]
+  const activeLayer = useMemo(() => ({...baseLayer,palette:appearancePalette(baseLayer.palette,layerAppearance)}),[baseLayer,layerAppearance])
 
   const values = useMemo(
     () => points.map((point) => point[activeKey] as number | null),
     [activeKey, points]
   )
-  const classes = useMemo(() => buildYieldClasses(values, activeLayer), [activeLayer, values])
+  const classes = useMemo(() => buildYieldClasses(values, activeLayer, layerAppearance?.breaks, layerAppearance?.range_min, layerAppearance?.range_max), [activeLayer, values, layerAppearance])
 
   useEffect(() => {
     setVisibleBuckets(new Set(classes.map((entry) => entry.key)))
