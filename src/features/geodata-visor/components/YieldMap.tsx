@@ -1,5 +1,6 @@
 import { MapModeSelector } from './MapModeSelector'
 import { useMapMode } from '../lib/mapModes'
+import { usePersistentMapLayer } from '../lib/usePersistentMapLayer'
 import { useLayerAppearance, appearancePalette } from '@/features/analysis-colors/useLayerAppearance'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
@@ -105,7 +106,9 @@ export function YieldMap({
   const pointsSourceId = `yield-points-${instanceId}`
   const pointsLayerId = `yield-points-fallback-${instanceId}`
 
-  const [activeKey, setActiveKey] = useState<YieldLayerKey>('yield_t_ha')
+  const [activeKey, setActiveKey] = usePersistentMapLayer<YieldLayerKey>(
+    'yield-layer', tenantId, plotId, 'yield_t_ha', YIELD_LAYERS.map((layer) => layer.key)
+  )
   const [layerMenuOpen, setLayerMenuOpen] = useState(false)
   const [visibleBuckets, setVisibleBuckets] = useState<Set<string>>(new Set())
   const [popup, setPopup] = useState<{ lng: number; lat: number; point: YieldMapPoint } | null>(null)

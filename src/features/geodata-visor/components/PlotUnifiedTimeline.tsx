@@ -231,6 +231,18 @@ function ParcelStackedTimeline({
       }))
     : []
 
+  const populatedKinds = KIND_ORDER.filter((kind) =>
+    events.some((event) => event.kind === kind)
+  )
+
+  if (populatedKinds.length === 0) {
+    return (
+      <div className="px-3 py-2 text-center text-[10px] text-muted-foreground">
+        Sin sesiones con datos cargados para este filtro.
+      </div>
+    )
+  }
+
   return (
     <div className="px-3 pb-1 pt-0.5" aria-label="Resumen agrícola apilado por parcela">
       <div className="flex h-5 items-center">
@@ -255,7 +267,7 @@ function ParcelStackedTimeline({
         </div>
       </div>
 
-      {KIND_ORDER.map((kind) => {
+      {populatedKinds.map((kind) => {
         const meta = KIND_META[kind]
         const kindEvents = events.filter((event) => event.kind === kind)
         const repeats = new Map<string, number>()
@@ -340,6 +352,7 @@ export function PlotUnifiedTimeline({
   const ndviQuery = useNdviTimeline(plotId)
   const [activeKinds, setActiveKinds] = useState<Set<TimelineKind>>(() => new Set(KIND_ORDER))
   const [selectedCycle, setSelectedCycle] = useState<string>('all')
+  const [cyclePickedByUser, setCyclePickedByUser] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playCursor, setPlayCursor] = useState<number | null>(null)
   const [detailRequested, setDetailRequested] = useState(false)
@@ -358,16 +371,25 @@ export function PlotUnifiedTimeline({
       }
     }
     return {
-      parcel: stored('ciagro.timeline.parcel.collapsed'),
+      parcel: false,
       cycle: stored('ciagro.timeline.cycle.collapsed'),
     }
   })
+  useEffect(() => {
+    if (displayMode !== 'parcel') return
+    setCollapsedByMode((previous) =>
+      previous.parcel ? { ...previous, parcel: false } : previous
+    )
+  }, [displayMode, plotId])
+
   const isCollapsed = collapsedByMode[displayMode]
   const toggleCollapsed = () => {
     setCollapsedByMode((previous) => {
       const value = !previous[displayMode]
       try {
-        window.localStorage.setItem('ciagro.timeline.' + displayMode + '.collapsed', value ? '1' : '0')
+        if (displayMode === 'cycle') {
+          window.localStorage.setItem('ciagro.timeline.cycle.collapsed', value ? '1' : '0')
+        }
       } catch {
         // El visor sigue funcionando si el almacenamiento está bloqueado.
       }
@@ -453,21 +475,24 @@ export function PlotUnifiedTimeline({
   }, [sessions])
 
   useEffect(() => {
-    if (selectedCycle !== 'all' || cycles.length === 0) return
+    if (cyclePickedByUser || selectedCycle !== 'all' || cycles.length === 0) return
     const selectedCycleValue = selectedSession ? cycleBySessionId.get(selectedSession.id) : null
     setSelectedCycle(selectedCycleValue || cycles[0] || 'all')
-  }, [cycleBySessionId, cycles, selectedCycle, selectedSession])
+  }, [cycleBySessionId, cycles, selectedCycle, selectedSession, cyclePickedByUser])
 
   useEffect(() => {
     if (!selectedSession || selectedSession.kind === 'soil_map') return
+    // "Todos los ciclos" elegido manualmente se conserva durante Play.
+    if (cyclePickedByUser && selectedCycle === 'all') return
     const cycle = cycleBySessionId.get(selectedSession.id)
-    if (cycle) setSelectedCycle(cycle)
-  }, [cycleBySessionId, selectedSession])
+    if (cycle && cycle !== selectedCycle) setSelectedCycle(cycle)
+  }, [cycleBySessionId, selectedSession, cyclePickedByUser, selectedCycle])
 
 
   useEffect(() => {
     setDetailRequested(false)
     setScrubPercent(null)
+    setCyclePickedByUser(false)
   }, [plotId, mode])
 
   useEffect(() => {
@@ -569,20 +594,32 @@ export function PlotUnifiedTimeline({
     return [...unique.values()]
   }, [cycleBySessionId, cycleSessions, ndviForCycle, selectedCycle, sessionById])
 
+  // Ocultamos sólo en la línea de tiempo: nunca borramos headers ni registros.
+  // NDVI puede tener points_count=0 y valores NDVI válidos (incluso valor 0.00).
+  const sessionsWithData = useMemo(
+    () => cycleEvents.filter((session) => {
+      if (session.kind === 'ndvi') {
+        return ndviById.get(session.id)?.has_ndvi === true
+      }
+      return Number.isFinite(session.points_count) && session.points_count > 0
+    }),
+    [cycleEvents, ndviById]
+  )
+
   const sessionCounts = useMemo(() => {
     const counts = Object.fromEntries(
       KIND_ORDER.map((kind) => [kind, 0])
     ) as Record<TimelineKind, number>
 
-    for (const session of cycleEvents) {
+    for (const session of sessionsWithData) {
       counts[session.kind] += 1
     }
 
     return counts
-  }, [cycleEvents])
+  }, [sessionsWithData])
   const visibleSessions = useMemo(
-    () => cycleEvents.filter((session) => activeKinds.has(session.kind)),
-    [activeKinds, cycleEvents]
+    () => sessionsWithData.filter((session) => activeKinds.has(session.kind)),
+    [activeKinds, sessionsWithData]
   )
 
   const playable = useMemo(
@@ -935,6 +972,29 @@ export function PlotUnifiedTimeline({
   for (const point of realNdvi) ndviDateCounts.set(point.date, (ndviDateCounts.get(point.date) ?? 0) + 1)
   const ndviDateIndex = new Map<string, number>()
 
+  const chooseCycle = (cycle: string) => {
+    stopPlay()
+    setScrubPercent(null)
+    setCyclePickedByUser(true)
+    setSelectedCycle(cycle)
+    setPlayCursor(null)
+    if (cycle === 'all') {
+      // El usuario eligió explícitamente mostrar todos los ciclos.
+      return
+    }
+    // Modo detalle siempre muestra el ciclo elegido.
+    setDetailRequested(true)
+    // Se prioriza la primera sesión CON DATOS de ese ciclo.
+    const candidates = [
+      ...sessions.filter((s) => s.cycle?.trim() === cycle && s.date && s.kind !== 'ndvi' && s.points_count > 0)
+        .map((s) => ({ id: s.id, kind: s.kind, date: s.date })),
+      ...ndviItems.filter((s) => cycleBySessionId.get(s.id) === cycle && s.session_date && s.has_ndvi)
+        .map((s) => ({ id: s.id, kind: 'ndvi' as const, date: s.session_date })),
+    ].filter((s): s is { id: string; kind: TimelineKind; date: string } => !!s.date)
+      .sort((a, b) => a.date.localeCompare(b.date) || KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind))
+    if (candidates[0]) onSelectSession(candidates[0])
+  }
+
   return (
     <section
       className="flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border bg-background shadow-sm"
@@ -964,7 +1024,7 @@ export function PlotUnifiedTimeline({
         <div className="flex items-center gap-1.5">
           <select
             value={selectedCycle}
-            onChange={(event) => { stopPlay(); setSelectedCycle(event.target.value) }}
+            onChange={(event) => chooseCycle(event.target.value)}
             className="h-8 max-w-[260px] rounded-md border bg-background px-2 text-[10px] font-medium"
             aria-label="Ciclo productivo"
           >
@@ -1006,7 +1066,7 @@ export function PlotUnifiedTimeline({
       {!isCollapsed && (displayMode === 'parcel' ? (
         <ParcelStackedTimeline
           range={range}
-          events={cycleEvents}
+          events={sessionsWithData}
           selectedSession={selectedSession}
           onSelectSession={(session) => {
             stopPlay()
@@ -1060,7 +1120,7 @@ export function PlotUnifiedTimeline({
         </div>
         )}
 
-        {range ? (
+        {range && sessionsWithData.length > 0 ? (
           <>
             <div className="relative" style={{ containerType: 'inline-size' }}>
             {realNdvi.length > 0 && (
@@ -1258,11 +1318,11 @@ export function PlotUnifiedTimeline({
             </div>
           </>
         ) : (
-          <div className="flex h-[100px] items-center justify-center text-[10px] text-muted-foreground">Sin sesiones fechadas para este filtro.</div>
+          <div className="flex min-h-10 items-center justify-center text-[10px] text-muted-foreground">Sin sesiones con datos cargados para este filtro.</div>
         )}
 
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 pt-0.5 text-[10px]">
-          {KIND_ORDER.map((kind) => {
+          {KIND_ORDER.filter((kind) => sessionCounts[kind] > 0).map((kind) => {
             const meta = KIND_META[kind]
             const active = activeKinds.has(kind)
             return (

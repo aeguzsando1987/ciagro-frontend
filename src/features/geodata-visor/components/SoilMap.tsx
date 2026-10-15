@@ -1,5 +1,6 @@
 import { MapModeSelector } from './MapModeSelector'
 import { useMapMode } from '../lib/mapModes'
+import { usePersistentMapLayer } from '../lib/usePersistentMapLayer'
 import { useLayerAppearance, appearancePalette } from '@/features/analysis-colors/useLayerAppearance'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
@@ -175,7 +176,12 @@ export function SoilMap({
   activeLayerKey,
   onLayerComputed,
 }: SoilMapProps) {
-  const [internalLayerIndex, setInternalLayerIndex] = useState(0)
+  const [preferredLayerIndex, setPreferredLayerIndex] = usePersistentMapLayer<number>(
+    'soil-layer', tenantId ?? dcId, plotId, 0, SOIL_MAP_LAYERS.map((_, i) => i)
+  )
+  const [internalLayerIndex, setInternalLayerIndex] = useState(preferredLayerIndex)
+  // Una capa sin datos puede mostrar temporalmente otra, sin borrar la preferencia.
+  useEffect(() => { setInternalLayerIndex(preferredLayerIndex) }, [sessionId, preferredLayerIndex])
   // Capa CONTROLADA: si viene `activeLayerKey`, manda quien monta el mapa. Se
   // resuelve aqui y no en el estado para que el prop siempre gane, incluso si el
   // selector interno hubiera guardado otra cosa antes.
@@ -460,7 +466,10 @@ export function SoilMap({
           disabled={!hasLayerCounts}
           onChange={(event) => {
             const nextIndex = SOIL_MAP_LAYERS.findIndex((layer) => layer.key === event.target.value)
-            if (nextIndex >= 0) setActiveLayerIndex(nextIndex)
+            if (nextIndex >= 0) {
+              setPreferredLayerIndex(nextIndex)
+              setActiveLayerIndex(nextIndex)
+            }
           }}
         >
           {/*

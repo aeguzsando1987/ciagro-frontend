@@ -1,5 +1,6 @@
 import { MapModeSelector } from './MapModeSelector'
 import { useMapMode } from '../lib/mapModes'
+import { usePersistentMapLayer } from '../lib/usePersistentMapLayer'
 import { useLayerAppearance, appearancePalette } from '@/features/analysis-colors/useLayerAppearance'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
@@ -241,16 +242,18 @@ export function PlantingMap({
     return PLANTING_MAP_LAYERS.map((layer) => layer.key).filter((key) => allowed.has(key))
   }, [detail?.available_layers, stats?.available_layers])
 
-  const [activeKey, setActiveKey] = useState<PlantingLayerKey>('density')
+  const [preferredKey, setActiveKey] = usePersistentMapLayer<PlantingLayerKey>(
+    'planting-layer', tenantId, plotId, 'density', PLANTING_MAP_LAYERS.map((layer) => layer.key)
+  )
   const [menuOpen, setMenuOpen] = useState(false)
   const [visibleBuckets, setVisibleBuckets] = useState<Set<string>>(new Set())
   const [popup, setPopup] = useState<{ lng: number; lat: number; value: number | string } | null>(null)
 
-  useEffect(() => {
-    if (availableLayers.length > 0 && !availableLayers.includes(activeKey)) {
-      setActiveKey(availableLayers[0]!)
-    }
-  }, [activeKey, availableLayers])
+  // Mostrar la primera variable disponible sólo en esta sesión;
+  // nunca sobrescribir la elección hecha en otra sesión.
+  const activeKey = availableLayers.length > 0 && !availableLayers.includes(preferredKey)
+    ? availableLayers[0]!
+    : preferredKey
 
   const {data: appearance} = useLayerAppearance('planting_map',tenantId)
   const layerAppearance = appearance?.layers[activeKey]

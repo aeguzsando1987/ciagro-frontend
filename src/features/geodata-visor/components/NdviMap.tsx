@@ -1,5 +1,6 @@
 import { MapModeSelector } from './MapModeSelector'
 import { useMapMode } from '../lib/mapModes'
+import { usePersistentMapLayer } from '../lib/usePersistentMapLayer'
 /**
  * Mapa de una sesión NDVI — superficie interpolada (gradiente continuo).
  *
@@ -146,7 +147,9 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
   // Mismo endpoint que la tabla de resumen de la sesion en el task-manager.
   const { data: varStats, isLoading: isStatsLoading } = useNdviVariableStats(sessionId)
 
-  const [indexKey, setIndexKey] = useState<keyof NdviPoint>('ndvi')
+  const [indexKey, setIndexKey] = usePersistentMapLayer<keyof NdviPoint>(
+    'ndvi-index', tenantId ?? dcId, plotId, 'ndvi', INDICES.map((index) => index.key)
+  )
   // El tooltip se abre al hacer clic en un punto (no al pasar el cursor): con la
   // superficie de color debajo, un tooltip que sigue al mouse estorba la lectura.
   const [selected, setSelected] = useState<PointSelection | null>(null)
@@ -555,7 +558,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
           </Popup>
         )}
       </Map>
-      {showMapModeSelector && <MapModeSelector position="center" active={mapMode} onChange={setMapMode} />}
+      {showMapModeSelector && <MapModeSelector position="center" attributionBelow={Boolean(copernicusNote)} active={mapMode} onChange={setMapMode} />}
 
       {/* Mensaje explícito para una fecha sin información. El mapa permanece visible
           y centrado en la parcela, pero no inventa una superficie con valor cero. */}
@@ -584,15 +587,15 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
         </div>
       )}
 
-      {/* Marca de agua de atribucion. Abajo al centro: las cuatro esquinas estan ocupadas
-          por el selector, el modo, la leyenda y la tarjeta de superficie. */}
+      {/* Atribucion compacta debajo de Satelite / Mapa, sin cubrir la parcela. */}
       {copernicusNote && (
-        <p
-          className="pointer-events-none absolute bottom-2 left-1/2 z-10 max-w-[80%] -translate-x-1/2 rounded-md bg-white/90 px-2.5 py-1 text-center text-[11px] leading-tight text-gray-700 shadow"
+        <span
           data-testid="ndvi-copernicus-note"
+          title={copernicusNote}
+          className="pointer-events-auto absolute bottom-1 right-2 z-20 rounded bg-white/85 px-1 py-0.5 text-[9px] leading-none text-gray-700 shadow-sm"
         >
-          {copernicusNote}
-        </p>
+          © Copernicus
+        </span>
       )}
 
       <div className="absolute left-3 top-3 z-10 rounded-md bg-white/90 p-2 shadow">
@@ -693,13 +696,16 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
                     Pasa facil: las clases manuales nacen en 0..1 y varios indices se
                     salen de ahi (VARI y suelo desnudo dan negativos, MSAVI2 pasa de 1). */}
                 {surface.outsideBands > 0.01 && (
-                  <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] leading-snug text-amber-800">
-                    {(surface.outsideBands * 100).toFixed(0)}% del área queda sin pintar: esos
-                    valores no caen en ninguna clase configurada. El índice va de{' '}
-                    <span className="tabular-nums">{surface.min.toFixed(3)}</span> a{' '}
-                    <span className="tabular-nums">{surface.max.toFixed(3)}</span>; ajusta los
-                    umbrales en Configuración de variables de análisis.
-                  </p>
+                  <div
+                    role="status"
+                    title={`El ${(surface.outsideBands * 100).toFixed(0)}% del área queda sin clasificar porque los valores no coinciden con las clases. Rango del índice: ${surface.min.toFixed(3)} a ${surface.max.toFixed(3)}. Revisa los umbrales en Variables de análisis.`}
+                    className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md border border-amber-200 bg-amber-50/70 px-2 py-1 text-[10px] leading-4 text-amber-900"
+                  >
+                    <span className="font-semibold tabular-nums">
+                      {(surface.outsideBands * 100).toFixed(0)}% sin clasificar
+                    </span>
+                    <span className="text-amber-800">Revisar rangos</span>
+                  </div>
                 )}
               </>
             ) : quartileLegend ? (
