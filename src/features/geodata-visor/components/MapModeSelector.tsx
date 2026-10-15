@@ -8,13 +8,15 @@ export function MapModeSelector({
   active,
   onChange,
   position = 'right',
+  attributionBelow = false,
 }: {
   active: MapModeKey
   onChange: (mode: MapModeKey) => void
   position?: 'right' | 'center'
+  attributionBelow?: boolean
 }) {
   return (
-    <div className={`absolute bottom-3 z-20 flex overflow-hidden rounded border bg-background/90 shadow-sm backdrop-blur-sm ${position === 'center' ? 'right-2' : 'right-3'}`}>
+    <div className={`absolute z-20 flex overflow-hidden rounded border bg-background/90 shadow-sm backdrop-blur-sm ${attributionBelow ? 'bottom-6' : 'bottom-3'} ${position === 'center' ? 'right-2' : 'right-3'}`}>
       {(Object.entries(MAP_MODES) as [MapModeKey, (typeof MAP_MODES)[MapModeKey]][]).map(
         ([key, mode], i) => (
           <button

@@ -1,5 +1,6 @@
 import { MapModeSelector } from './MapModeSelector'
 import { useMapMode } from '../lib/mapModes'
+import { usePersistentMapLayer } from '../lib/usePersistentMapLayer'
 import { useLayerAppearance, appearancePalette, appearanceCategoryColor, type LayerAppearance } from '@/features/analysis-colors/useLayerAppearance'
 /**
  * Mapa de calor de los datos de aspersión de una sesión — componente presentacional
@@ -419,7 +420,9 @@ export function AspersionMap({
   mapSync,
   showMapModeSelector = false,
 }: AspersionMapProps) {
-  const [activeLayerIdx, setActiveLayerIdx] = useState(0)
+  const [activeLayerIdx, setActiveLayerIdx] = usePersistentMapLayer<number>(
+    'aspersion-layer', tenantId, plotId, 0, ASPERSION_LAYERS.map((_, i) => i)
+  )
   // null = sin inicializar (tratar como "todos activos"); Set vacío = usuario desmarcó todo
   const [checkedBuckets, setCheckedBuckets] = useState<Set<string> | null>(null)
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null)
