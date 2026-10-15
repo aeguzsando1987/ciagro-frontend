@@ -5,6 +5,7 @@ import {
   buildPlotTree,
   buildProgramTree,
   cycleLabel,
+  incompleteSessionsNotice,
   sessionIdsOf,
   type TreeSession,
 } from './plotSessionTree'
@@ -143,5 +144,49 @@ describe('sessionIdsOf', () => {
     const cycle = buildPlotTree([a, b]).cycles[0]!
     expect(sessionIdsOf(cycle)).toEqual(new Set([a.id, b.id]))
     expect(sessionIdsOf(cycle.types[1]!)).toEqual(new Set([b.id]))
+  })
+})
+
+/**
+ * FASE PAG (GAP-PAG-1): caso real de produccion. Pivote_1_DM tiene 92 sesiones NDVI en
+ * cuatro ciclos; con solo las 25 mas recientes el Visor mostraba dos.
+ */
+describe('historial completo de la parcela', () => {
+  const ciclos: Array<[string, number, string]> = [
+    ['Primavera-Invierno-2023', 33, '2023'],
+    ['Primavera-Invierno-2024', 22, '2024'],
+    ['Primavera-Invierno-2025', 25, '2025'],
+    ['Primavera-Verano-2026', 12, '2026'],
+  ]
+  const sesiones = ciclos.flatMap(([cycle, n, year]) =>
+    Array.from({ length: n }, (_, i) =>
+      s('ndvi', `${year}-${String((i % 12) + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}`, cycle)
+    )
+  )
+
+  it('con las 92 sesiones aparecen los cuatro ciclos, del mas reciente al mas antiguo', () => {
+    const tree = buildPlotTree(sesiones)
+    expect(tree.cycles.map((c) => c.label)).toEqual([
+      'Ciclo productivo Primavera-Verano 2026',
+      'Ciclo productivo Primavera-Invierno 2025',
+      'Ciclo productivo Primavera-Invierno 2024',
+      'Ciclo productivo Primavera-Invierno 2023',
+    ])
+    expect(tree.cycles.map((c) => c.types[0]!.sessions.length)).toEqual([12, 25, 22, 33])
+  })
+
+  it('con solo las 25 mas recientes se perdian dos ciclos (la regresion que se protege)', () => {
+    const recientes = [...sesiones].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')).slice(0, 25)
+    expect(buildPlotTree(recientes).cycles).toHaveLength(2)
+  })
+})
+
+describe('incompleteSessionsNotice', () => {
+  it('no avisa cuando llegaron todas', () => {
+    expect(incompleteSessionsNotice(92, 0)).toBeNull()
+  })
+
+  it('dice cuantas se muestran de cuantas existen', () => {
+    expect(incompleteSessionsNotice(92, 67)).toBe('Se muestran 25 de 92 sesiones.')
   })
 })

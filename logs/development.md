@@ -3935,3 +3935,82 @@ FASE CV aunque esta habia tocado `PhytoMap`.
 Se integro antes del despliegue para que MF + SB, CV y este cambio salgan en un solo release y Jorge
 no siga sobre un front que ya cambio. Avisarle: su rama ya esta en `dev`.
 
+
+## FASE PAG (frontend) — El Visor muestra el historial completo de cada parcela (2026-10-09, rama `dev-visor-paginacion`)
+
+**Origen.** GAP-PAG-1 (diagnostico en `../CIAgro_alpha_back/logs/diag-2026-10-09-visor-ciclos-truncados.md`):
+los seis hooks de headers por parcela devolvian `data.results` de la primera pagina sin seguir
+`next`, y el back paginaba a 25. `Pivote_1_DM` mostraba 2 de sus 4 ciclos en el arbol del Explorador
+y en `PlotUnifiedTimeline`. Requisito del usuario: el Visor es la herramienta principal de consulta y
+muestra el historial completo, sin truncar en silencio. El usuario aviso personalmente al dev.
+
+### Que se hizo
+
+- `src/lib/api/paginated.ts`: `fetchAllPagesWithTotal` devuelve `{ items, total }` (el `count` del
+  back); `fetchAllPages` delega en ella, asi sus tres usuarios de admin no cambian. `conTotal` adapta
+  el resultado de `useQuery`: `data` sigue siendo el array y aparece `total`.
+- Los seis hooks (`useAspersionSessionHeaders`, `usePhytoSessionHeaders`, `useNdviSessionHeaders`,
+  `useSoilMapSessionHeaders`, `useYieldMapHeaders`, `usePlantingMapHeaders`) piden `page_size=1000`
+  y siguen paginas hasta el `count`; en la practica, una peticion por tipo. Siembra y Rendimiento ya
+  mandaban `page_size=2000`, pero el back lo ignoraba.
+- `usePlotSessionTree` expone `total` y `missing`; el Explorador (`PlotSessionTree`) y
+  `PlotUnifiedTimeline` muestran **"Se muestran X de Y sesiones."** si `missing > 0`
+  (`incompleteSessionsNotice` en `plotSessionTree.ts`). Hoy no aparece nunca: el tope practico es
+  20 000 sesiones por tipo y parcela.
+
+### Trampas evitadas
+
+- **No cambiar la forma de los hooks.** Cinco tests del Explorador y del Dashboard mockean los hooks
+  devolviendo `{ data: [...] }` y no montan `QueryClientProvider`; leer el total con un `useQueries`
+  aparte los habria roto. `conTotal` mantiene `data` como array y los mocks sin `total` no generan
+  avisos falsos.
+- **`node_modules` del servidor desactualizados** (falta `@radix-ui/react-tooltip`): `tsc` y tres
+  archivos de test fallan en el host aunque el codigo este bien. Se verifico en un contenedor
+  `node:20-alpine` con `npm ci` (la misma imagen del build de produccion), con las dependencias en el
+  volumen `ciagro-front-test-nm`, sin tocar el host.
+
+### Verificacion
+
+- Linea base en contenedor limpio: `tsc` OK, 826/826. Despues: `tsc` OK, **839/839** (13 nuevos),
+  `vite build` correcto, eslint sin errores en lo tocado (2 avisos preexistentes de `exhaustive-deps`
+  en `PlotUnifiedTimeline`, codigo de AV).
+- Tests nuevos: union de 2 paginas en el hook de suelo; `fetchAllPagesWithTotal` y `conTotal`;
+  `buildPlotTree` con el caso real de `Pivote_1_DM` (4 ciclos con 92 sesiones; 2 con solo las 25 mas
+  recientes); texto del aviso; `missing` en `usePlotSessionTree`.
+
+**Despliegue:** rebuild del front junto con el back de la misma fase (sin migraciones).
+
+## FASE TT (frontend) — Tooltip con el texto completo en el Explorador del Visor (2026-10-09, rama `dev-explorer-tooltip`)
+
+**Origen.** En la revision visual de la FASE PAG el usuario detecto que, en el Explorador, los textos
+de ciclos y de algunas actividades se cortan por el ancho del panel ("Ciclo productivo Primav...") y no
+habia forma de leerlos. Pidio un efecto al pasar el raton.
+
+### Que se hizo
+
+- `src/components/ui/truncated-text.tsx` (nuevo): `TruncatedText` pinta el mismo `<span className="truncate">`
+  de siempre y abre un tooltip con el texto completo **solo si el texto esta cortado**
+  (`scrollWidth > clientWidth`, medido al intentar abrir). Espera 300 ms y sale a la derecha, para no
+  tapar el arbol.
+- `GeodataExplorer`: `TreeRow` y `GroupRow` usan `TruncatedText`. Como esas dos filas pintan todos
+  los niveles (organizacion, CIAgro, productor, rancho, parcela, Generales, ciclos, tipos y sesiones),
+  el cambio cubre el arbol entero sin tocar cada nivel.
+
+### Decisiones y trampas
+
+- Reutiliza el `tooltip.tsx` de Radix que ya existia (con `TooltipProvider` en `App.tsx`); no entra
+  ninguna dependencia nueva.
+- `TruncatedText` lleva su propio `TooltipProvider`: los tests del Explorador montan el arbol sin el
+  de `App.tsx` y Radix revienta si no encuentra uno. Anidar proveedores es valido.
+- `isTruncated` queda interna al modulo: exportarla junto al componente rompe el fast refresh
+  (`react-refresh/only-export-components`).
+- **Limite conocido:** en pantallas tactiles no hay "pasar el raton"; ahi el tooltip no aparece. Si el
+  Visor se usa en tableta, se puede añadir despues mostrarlo con pulsacion larga.
+
+### Verificacion
+
+- En contenedor `node:20-alpine` con `npm ci`: `tsc` OK, eslint sin avisos, **842/842** (3 tests nuevos:
+  aparece cuando el texto esta cortado, no aparece cuando cabe, conserva el corte), `vite build` OK.
+- Los cuatro archivos de test del Explorador pasan sin cambios.
+
+**Despliegue:** solo front (rebuild de `frontend`). Sin back ni migraciones.

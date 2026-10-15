@@ -31,15 +31,25 @@ function elementosDe<T>(respuesta: RespuestaPaginada<T>): T[] {
   return results.features ?? []
 }
 
+/** Elementos leídos más el total que declaró el backend (`count`). */
+export interface ListadoCompleto<T> {
+  items: T[]
+  total: number
+}
+
 /**
- * Recorre todas las páginas de un listado.
+ * Recorre todas las páginas de un listado y conserva el `count` del backend.
+ *
+ * `total > items.length` solo ocurre si se agotó la cota de MAX_PAGINAS o el backend
+ * dejó de servir páginas: es la señal para avisar "se muestran X de Y" en vez de
+ * truncar en silencio (FASE PAG).
  *
  * @param pedir recibe los parámetros de página y devuelve la respuesta cruda.
  *   Se pasa como función para que cada hook conserve su propia ruta y sus tipos.
  */
-export async function fetchAllPages<T>(
+export async function fetchAllPagesWithTotal<T>(
   pedir: (params: { page: number; page_size: number }) => Promise<RespuestaPaginada<T>>
-): Promise<T[]> {
+): Promise<ListadoCompleto<T>> {
   const primera = await pedir({ page: 1, page_size: MAX_PAGE_SIZE })
   const acumulado = elementosDe(primera)
 
@@ -53,5 +63,27 @@ export async function fetchAllPages<T>(
     acumulado.push(...lote)
   }
 
-  return acumulado
+  return { items: acumulado, total: Math.max(total, acumulado.length) }
 }
+
+/** Recorre todas las páginas de un listado. Ver `fetchAllPagesWithTotal`. */
+export async function fetchAllPages<T>(
+  pedir: (params: { page: number; page_size: number }) => Promise<RespuestaPaginada<T>>
+): Promise<T[]> {
+  return (await fetchAllPagesWithTotal(pedir)).items
+}
+
+/**
+ * Adapta el resultado de un `useQuery` cuyo dato es un `ListadoCompleto`: los
+ * consumidores siguen leyendo `data` como array y además tienen `total`.
+ */
+export function conTotal<Q extends { data: ListadoCompleto<unknown> | undefined }>(
+  query: Q
+): Omit<Q, 'data'> & { data: ElementoDe<Q>[] | undefined; total: number | undefined } {
+  const listado = query.data as ListadoCompleto<ElementoDe<Q>> | undefined
+  return { ...query, data: listado?.items, total: listado?.total }
+}
+
+/** Tipo de elemento del `ListadoCompleto` que guarda un query. */
+type ElementoDe<Q extends { data: unknown }> =
+  NonNullable<Q['data']> extends ListadoCompleto<infer T> ? T : never

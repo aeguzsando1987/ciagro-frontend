@@ -73,6 +73,10 @@ vi.mock('./YieldMap', () => ({
 vi.mock('./SessionInfoCard', () => ({
   SessionInfoCard: () => <div data-testid="session-info-card" />,
 }))
+// La linea de tiempo unificada consulta con React Query; aqui se aisla.
+vi.mock('./PlotUnifiedTimeline', () => ({
+  PlotUnifiedTimeline: () => <div data-testid="plot-unified-timeline" />,
+}))
 vi.mock('./SoilMapSessionInfoCard', () => ({
   SoilMapSessionInfoCard: () => <div data-testid="soil-map-session-info-card" />,
 }))

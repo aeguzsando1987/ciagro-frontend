@@ -10,6 +10,7 @@
  */
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/client'
+import { conTotal, fetchAllPagesWithTotal, type ListadoCompleto } from '@/lib/api/paginated'
 import type { components } from '@/types/api'
 
 export type PhytoSessionHeader = components['schemas']['PhytoMonitoringHeader']
@@ -20,17 +21,21 @@ export function phytoSessionHeadersQueryOptions(plotId: string | null) {
   return queryOptions({
     queryKey: [...PHYTO_HEADERS_KEY, { plot: plotId ?? null }] as const,
     enabled: !!plotId,
-    queryFn: async (): Promise<PhytoSessionHeader[]> => {
-      const { data, error } = await apiClient.GET('/api/v1/monitoring/phyto/headers/', {
-        params: { query: { plot: plotId } as never },
-      })
-      if (error) throw new Error('No se pudieron cargar las sesiones fitosanitarias')
-      return data?.results ?? []
-    },
+    // FASE PAG: el Visor muestra el historial completo de la parcela. Se piden
+    // todas las paginas (en la practica una, de hasta 1000) y se guarda el
+    // `count` del backend para avisar si algo quedara fuera.
+    queryFn: (): Promise<ListadoCompleto<PhytoSessionHeader>> =>
+      fetchAllPagesWithTotal(async ({ page, page_size }) => {
+        const { data, error } = await apiClient.GET('/api/v1/monitoring/phyto/headers/', {
+          params: { query: { plot: plotId, page, page_size } as never },
+        })
+        if (error) throw new Error('No se pudieron cargar las sesiones fitosanitarias')
+        return data ?? null
+      }),
     staleTime: 30_000,
   })
 }
 
 export function usePhytoSessionHeaders(plotId: string | null) {
-  return useQuery(phytoSessionHeadersQueryOptions(plotId))
+  return conTotal(useQuery(phytoSessionHeadersQueryOptions(plotId)))
 }

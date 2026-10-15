@@ -1331,3 +1331,31 @@ lleva el mismo cambio sobre una base vieja y se descarta.
 - [x] **LT-1** `merge` — `NdviTimelineView`: seccion de mapa y linea de tiempo siempre `flex-1`. `PhytoMap`: recuerda plagas/enfermedades en `sessionStorage` y no fuerza plagas al cambiar de modo
 - [x] **LT-2** `front` — decision del dev: la vista fitosanitaria abre en **mapa de calor** (la rama proponia discos)
 
+---
+
+## FASE AV (frontend) — Homologacion de Jorge: linea de tiempo agro visual y siembra (2026-10-09, rama `Siembra_linea_agro`)
+**Estado:** `[✅] DESPLEGADA en producción — 2026-10-09 — front fdbdcfa, contra back 3853341 (desde master). Bundle index-YHHrrd2G.js. PENDIENTE: prueba manual del dev (S6.2). Acta completa en ../CIAgro_alpha_back/logs/deploy-2026-10-09-av.md`. Antes: `[x] HOMOLOGADA en dev y master 2026-10-09 (061b945). PENDIENTE: despliegue (rebuild frontend) junto con el back 9583c39; solicitud en ../CIAgro_alpha_back/logs/deploy-2026-10-09-av.md. 826/826 tests, build (tsc -b) limpio. Requiere el back de la misma fase.`
+
+Commits `b93f482`, `81411d7` (rama `Linea_agro_visual`, contenida) y `3e97a74` de Jorge23Leon. La rama
+vieja `linea-tiempo-ndvi` se descarta: ya entro como `a81aabf` y LT-2 la ajusto.
+
+- [x] **AV-1** `merge` — `PlotUnifiedTimeline` (linea de tiempo unificada por parcela) en `GeodataDashboard`, `usePlotSessionTree`; `CreateSessionDialog` sin selector de parcela
+- [x] **AV-2** `test` — `GeodataDashboard.test` mockea `PlotUnifiedTimeline` (usa React Query y rompia 4 tests)
+
+---
+
+## FASE PAG (frontend) — El Visor muestra el historial completo de cada parcela (2026-10-09, rama `dev-visor-paginacion`)
+**Estado:** `[✅] DESPLEGADA en producción — 2026-10-09 — front 236c8e8, contra back cb73db9. Bundle index-BTFvsPEZ.js. Revision visual del usuario OK: Pivote_1_DM muestra los 4 ciclos. Acta completa en ../CIAgro_alpha_back/logs/deploy-2026-10-09-pag.md`. Antes: `[x] IMPLEMENTADA en rama 2026-10-09, sin homologar ni desplegar. tsc OK, 839/839 tests (13 nuevos), build limpio. Requiere el back de la misma fase. Cierra GAP-PAG-1 al desplegar. Diagnostico en ../CIAgro_alpha_back/logs/diag-2026-10-09-visor-ciclos-truncados.md.`
+
+- [x] **PAG-1** `front` — los seis hooks de headers leen todas las paginas (`fetchAllPagesWithTotal`, `conTotal`); `usePlotSessionTree` expone `total`/`missing`; aviso "Se muestran X de Y sesiones" en el Explorador y en `PlotUnifiedTimeline`
+- [x] **PAG-2** `test` — union de paginas, helpers, arbol con 4 ciclos de `Pivote_1_DM`, aviso; verificado en contenedor `node:20-alpine` con `npm ci`
+
+---
+
+## FASE TT (frontend) — Tooltip con el texto completo en el Explorador del Visor (2026-10-09, rama `dev-explorer-tooltip`)
+**Estado:** `[✅] DESPLEGADA en producción — 2026-10-09 — front 235c1d9 (solo front). Revision visual del usuario OK (tooltip, letra de 13 px y Explorador compacto). Acta en logs/deploy-2026-10-09-tt.md`. Antes: `[x] IMPLEMENTADA en rama 2026-10-09, sin homologar ni desplegar. tsc OK, eslint limpio, 842/842 tests (3 nuevos), build limpio. Solo front, sin back ni migraciones. Pedida por el usuario en la revision visual de la FASE PAG.`
+
+- [x] **TT-1** `front` — `TruncatedText` (tooltip solo si el texto esta cortado) en `TreeRow` y `GroupRow` del Explorador
+- [x] **TT-2** `test` — `truncated-text.test.tsx`; suite completa, tsc, eslint y build en `node:20-alpine`
+- [x] **TT-3** `front` — letra mas pequeña en las filas del Explorador (15 px a 13 px; contador 13 a 12 px), pedido del usuario; altura de fila sin cambios
+- [x] **TT-4** `front` — Explorador compacto: filas de 40 a 28 px (`min-h-7`), boton de desplegar 24 a 20 px, filas de estado con menos relleno y 12 px

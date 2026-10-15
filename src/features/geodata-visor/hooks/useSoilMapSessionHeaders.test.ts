@@ -35,10 +35,29 @@ describe('soilMapSessionHeadersQueryOptions', () => {
     const queryClient = new QueryClient()
     const result = await queryClient.fetchQuery(soilMapSessionHeadersQueryOptions('plot-1'))
 
+    // FASE PAG: pide el maximo por pagina y guarda el `count` del backend.
     expect(getMock).toHaveBeenCalledWith('/api/v1/monitoring/soil-map/headers/', {
-      params: { query: { plot: 'plot-1' } },
+      params: { query: { plot: 'plot-1', page: 1, page_size: 1000 } },
     })
-    expect(result).toEqual([header])
+    expect(result).toEqual({ items: [header], total: 1 })
+  })
+
+  it('reune todas las paginas cuando el backend reporta mas de las recibidas', async () => {
+    // GAP-PAG-1: antes solo se leia la primera pagina y el Visor perdia ciclos enteros.
+    const a = { id: 'a', mapping_date: '2026-07-23' }
+    const b = { id: 'b', mapping_date: '2025-07-23' }
+    getMock
+      .mockResolvedValueOnce({ data: { count: 2, next: 'p2', previous: null, results: [a] }, error: undefined } as never)
+      .mockResolvedValueOnce({ data: { count: 2, next: null, previous: 'p1', results: [b] }, error: undefined } as never)
+
+    const queryClient = new QueryClient()
+    const result = await queryClient.fetchQuery(soilMapSessionHeadersQueryOptions('plot-1'))
+
+    expect(getMock).toHaveBeenCalledTimes(2)
+    expect(getMock).toHaveBeenLastCalledWith('/api/v1/monitoring/soil-map/headers/', {
+      params: { query: { plot: 'plot-1', page: 2, page_size: 1000 } },
+    })
+    expect(result).toEqual({ items: [a, b], total: 2 })
   })
 
   it('traduce el error del backend a un mensaje del visor', async () => {

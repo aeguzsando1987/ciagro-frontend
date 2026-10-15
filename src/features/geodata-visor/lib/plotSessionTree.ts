@@ -151,3 +151,12 @@ export function sessionIdsOf(node: YearGroup | TypeGroup | CycleGroup): Set<stri
   if ('sessions' in node) return new Set(node.sessions.map((s) => s.id))
   return new Set(node.types.flatMap((type) => type.sessions.map((s) => s.id)))
 }
+
+/**
+ * Aviso cuando llegaron menos sesiones de las que declara el backend (FASE PAG).
+ * El Visor es la herramienta principal de consulta: nunca trunca en silencio.
+ */
+export function incompleteSessionsNotice(total: number, missing: number): string | null {
+  if (missing <= 0) return null
+  return `Se muestran ${total - missing} de ${total} sesiones.`
+}
