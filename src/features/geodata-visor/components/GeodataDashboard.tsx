@@ -6,7 +6,7 @@
  * en un polígono se selecciona esa parcela. La integración del visor de aspersión
  * (al elegir una sesión) se añade en 7.E.
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { useProducers } from '@/features/admin/hooks/useProducers'
@@ -102,7 +102,7 @@ function plotsInSearch<T extends { id: string }>(
 
 function StatCard({ label, value }: StatEntry) {
   return (
-    <div className="min-w-0 flex-1 px-3 py-2.5 sm:min-w-28 sm:flex-none sm:px-4">
+    <div className="min-w-[112px] shrink-0 flex-1 px-3 py-2.5 sm:min-w-28 sm:flex-none sm:px-4">
       <span className="block text-xl font-semibold tabular-nums leading-none text-foreground">
         {value}
       </span>
@@ -117,7 +117,7 @@ function StatGrid({ stats, loading }: { stats: StatEntry[]; loading?: boolean })
       <div
         role="status"
         aria-label="Calculando estadísticas"
-        className="flex gap-px overflow-hidden rounded-xl border border-default bg-border-light"
+        className="flex min-h-[76px] shrink-0 gap-px overflow-hidden rounded-xl border border-default bg-border-light"
       >
         <span className="sr-only">Calculando estadísticas…</span>
         {Array.from({ length: 4 }).map((_, index) => (
@@ -130,7 +130,7 @@ function StatGrid({ stats, loading }: { stats: StatEntry[]; loading?: boolean })
     )
   }
   return (
-    <div className="flex divide-x divide-border-light overflow-hidden rounded-xl border border-default bg-surface">
+    <div className="flex min-h-[76px] shrink-0 divide-x divide-border-light overflow-x-auto overflow-y-hidden rounded-xl border border-default bg-surface">
       {stats.map((s) => (
         <StatCard key={s.label} {...s} />
       ))}
@@ -311,6 +311,13 @@ function RanchView({
   const areaHa = sumArea(visiblePlots)
   const isPlotLevel = selection.level !== 'ranch'
   const isSessionLevel = selection.level === 'session'
+  const viewRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!statsHidden) {
+      viewRef.current?.scrollTo({ top: 0 })
+    }
+  }, [statsHidden, selection.level, selection.plot?.id])
 
   const stats = isPlotLevel ? null : ranchStats(visiblePlots.length, areaHa)
   const isPhytoSession = isSessionLevel && selection.session?.kind === 'phyto'
@@ -330,7 +337,7 @@ function RanchView({
   )
 
   return (
-    <div className="flex h-full flex-col gap-2.5 overflow-y-auto pr-1">
+    <div ref={viewRef} className="flex h-full min-h-0 flex-col gap-2.5 overflow-y-auto pr-1">
       {!statsHidden && stats && <StatGrid loading={plots.isLoading} stats={stats} />}
       {!statsHidden && isPlotLevel && <PlotStats plotId={selection.plot!.id} />}
       {!statsHidden &&
@@ -354,6 +361,7 @@ function RanchView({
       )}
       {isPlotLevel && !comparisonMode && (
         <PlotUnifiedTimeline
+          mode={selection.level === 'plot' ? 'parcel' : 'cycle'}
           plotId={selection.plot!.id}
           selectedSession={selection.session ?? null}
           onSelectSession={(session) => onSelect(selectSession(selection, session))}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useIsFetching } from '@tanstack/react-query'
 import {
   Bug,
@@ -30,6 +30,7 @@ interface PlotUnifiedTimelineProps {
   selectedSession?: VisorSession | null
   onSelectSession: (session: VisorSession) => void
   defaultCollapsed?: boolean
+  mode?: 'parcel' | 'cycle'
 }
 
 type TimelineKind = SessionKind
@@ -204,13 +205,136 @@ function curvePath(
 }
 
 function formatNumber(value: number | null | undefined): string {
-  return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(2) : '—'
+  return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(2) : '\u2014'
+}
+
+
+function ParcelStackedTimeline({
+  range,
+  events,
+  selectedSession,
+  onSelectSession,
+}: {
+  range: { start: number; end: number } | null
+  events: TreeSession[]
+  selectedSession: VisorSession | null
+  onSelectSession: (session: VisorSession) => void
+}) {
+  const span = range ? Math.max(DAY_MS, range.end - range.start) : DAY_MS
+  const guides = range
+    ? Array.from({ length: 7 }, (_, index) => ({
+        position: (index / 6) * 100,
+        label: new Intl.DateTimeFormat('es-MX', {
+          month: 'short',
+          year: 'numeric',
+        }).format(new Date(range.start + (span * index) / 6)),
+      }))
+    : []
+
+  return (
+    <div className="px-3 pb-1 pt-0.5" aria-label="Resumen agrícola apilado por parcela">
+      <div className="flex h-5 items-center">
+        <div className="w-36 shrink-0" />
+        <div className="relative h-full min-w-0 flex-1">
+          {guides.map((guide, index) => (
+            <span
+              key={index}
+              className="absolute top-1 whitespace-nowrap text-[9px] text-muted-foreground"
+              style={{
+                left: String(guide.position) + '%',
+                transform: index === 0
+                  ? 'none'
+                  : index === guides.length - 1
+                    ? 'translateX(-100%)'
+                    : 'translateX(-50%)',
+              }}
+            >
+              {guide.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {KIND_ORDER.map((kind) => {
+        const meta = KIND_META[kind]
+        const kindEvents = events.filter((event) => event.kind === kind)
+        const repeats = new Map<string, number>()
+
+        return (
+          <div key={kind} className="flex h-[26px] items-center border-t border-border-light">
+            <div
+              className="flex w-36 shrink-0 items-center gap-1.5 truncate pr-2 text-[10px] font-medium"
+              style={{ color: meta.color }}
+            >
+              <span className="[&>svg]:h-3.5 [&>svg]:w-3.5">{meta.icon}</span>
+              <span className="truncate">{meta.label} ({kindEvents.length})</span>
+            </div>
+
+            <div className="relative h-[26px] min-w-0 flex-1 bg-muted/[0.06]">
+              {guides.map((guide, index) => (
+                <span
+                  key={index}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-y-0 border-l border-dashed border-border-light"
+                  style={{ left: String(guide.position) + '%' }}
+                />
+              ))}
+
+              {range && kindEvents.map((session) => {
+                const position = xPercent(session.date, range)
+                if (position === null) return null
+
+                const date = session.date ?? ''
+                const repeat = repeats.get(date) ?? 0
+                repeats.set(date, repeat + 1)
+                const offset = repeat === 0
+                  ? 0
+                  : (repeat % 2 ? 1 : -1) * Math.ceil(repeat / 2) * 8
+                const selected =
+                  selectedSession?.id === session.id &&
+                  selectedSession?.kind === session.kind
+
+                return (
+                  <button
+                    key={session.kind + ':' + session.id}
+                    type="button"
+                    className="absolute top-[6px] z-10 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 transition hover:scale-125 focus:outline-none focus:ring-2"
+                    style={{
+                      left: String(position) + '%',
+                      marginLeft: offset,
+                      borderColor: meta.color,
+                      background: meta.color,
+                      boxShadow: selected ? '0 0 0 2px #111827' : undefined,
+                    }}
+                    aria-label={meta.label + ', ' + longDate(session.date)}
+                    title={meta.label + ' · ' + longDate(session.date)}
+                    onClick={() => onSelectSession({
+                      id: session.id,
+                      date: session.date,
+                      kind: session.kind,
+                    })}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
+
+      {!range && (
+        <p className="pt-2 text-center text-[10px] text-muted-foreground">
+          No hay sesiones fechadas para este filtro.
+        </p>
+      )}
+    </div>
+  )
 }
 
 export function PlotUnifiedTimeline({
   plotId,
   selectedSession = null,
   onSelectSession,
+  mode = 'parcel',
 }: PlotUnifiedTimelineProps) {
   const plotTree = usePlotSessionTree(plotId)
   const ndviQuery = useNdviTimeline(plotId)
@@ -218,9 +342,38 @@ export function PlotUnifiedTimeline({
   const [selectedCycle, setSelectedCycle] = useState<string>('all')
   const [isPlaying, setIsPlaying] = useState(false)
   const [playCursor, setPlayCursor] = useState<number | null>(null)
-  // La línea de tiempo siempre inicia expandida, incluso al entrar directo a una sesión.
-  // El usuario puede contraerla manualmente con el botón, pero nunca arranca cerrada.
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [detailRequested, setDetailRequested] = useState(false)
+  const [scrubPercent, setScrubPercent] = useState<number | null>(null)
+
+  // CIAGRO_TIMELINE_COMPACT_LIVE_V1
+  const liveSeekRef = useRef({ key: '', time: 0 })
+  const displayMode = mode === 'cycle' || detailRequested ? 'cycle' : 'parcel'
+
+  const [collapsedByMode, setCollapsedByMode] = useState<Record<'parcel' | 'cycle', boolean>>(() => {
+    const stored = (key: string) => {
+      try {
+        return typeof window !== 'undefined' && window.localStorage.getItem(key) === '1'
+      } catch {
+        return false
+      }
+    }
+    return {
+      parcel: stored('ciagro.timeline.parcel.collapsed'),
+      cycle: stored('ciagro.timeline.cycle.collapsed'),
+    }
+  })
+  const isCollapsed = collapsedByMode[displayMode]
+  const toggleCollapsed = () => {
+    setCollapsedByMode((previous) => {
+      const value = !previous[displayMode]
+      try {
+        window.localStorage.setItem('ciagro.timeline.' + displayMode + '.collapsed', value ? '1' : '0')
+      } catch {
+        // El visor sigue funcionando si el almacenamiento está bloqueado.
+      }
+      return { ...previous, [displayMode]: value }
+    })
+  }
 
   const sessions = plotTree.sessions
   const ndviItems = useMemo(() => (ndviQuery.data ?? []).slice().sort((a, b) =>
@@ -311,10 +464,13 @@ export function PlotUnifiedTimeline({
 
 
   useEffect(() => {
-    // Al cambiar de parcela la línea vuelve a mostrarse expandida.
-    // Entrar directo a una sesión también queda abierto porque el estado inicial es false.
-    setIsCollapsed(false)
-  }, [plotId])
+    setDetailRequested(false)
+    setScrubPercent(null)
+  }, [plotId, mode])
+
+  useEffect(() => {
+    setScrubPercent(null)
+  }, [selectedCycle])
 
   const cycleSessions = useMemo(
     () => sessions.filter((session) => {
@@ -327,7 +483,7 @@ export function PlotUnifiedTimeline({
       if (isInsideSelectedCycle(session.date)) return true
 
       // Suelo no pertenece al ciclo como entidad, pero sólo se dibuja si su fecha cae
-      // dentro del eje del ciclo seleccionado; nunca debe estirar el rango a otro año.
+      // dentro del eje del ciclo seleccionado; nunca debe estirar el rango a otro aÁ±o.
       return false
     }),
     [selectedCycle, selectedCycleWindow, sessions]
@@ -535,10 +691,125 @@ export function PlotUnifiedTimeline({
   }
 
 
+
+
+  const selectedPlayableIndex = selectedSession
+    ? playable.findIndex(
+        (item) => item.id === selectedSession.id &&
+                  item.kind === selectedSession.kind
+      )
+    : -1
+
+  const currentIndex = selectedPlayableIndex >= 0
+    ? selectedPlayableIndex
+    : Math.max(0, Math.min(playCursor ?? 0, playable.length - 1))
+
+  const relativePercent = (date: string | null | undefined): number => {
+    if (!range) return 0
+    const ms = dateMs(date)
+    if (ms === null) return 0
+    return Math.max(0, Math.min(100,
+      ((ms - range.start) /
+       Math.max(DAY_MS, range.end - range.start)) * 100
+    ))
+  }
+
+  const progressPct = scrubPercent ??
+    relativePercent(
+      selectedSession?.date ?? playable[currentIndex]?.date ?? null
+    )
+
+  const seekTo = (index: number) => {
+    const safe = Math.max(0, Math.min(playable.length - 1, index))
+    const session = playable[safe]
+    if (!session) return
+    stopPlay()
+    setPlayCursor(safe)
+    onSelectSession({
+      id: session.id,
+      date: session.date,
+      kind: session.kind,
+    })
+  }
+
+  const commitSeek = (percent: number) => {
+    if (!range || playable.length === 0) return
+
+    const target = range.start +
+      (percent / 100) * Math.max(DAY_MS, range.end - range.start)
+
+    let nearest = 0
+    let bestDistance = Number.POSITIVE_INFINITY
+
+    playable.forEach((session, index) => {
+      const ms = dateMs(session.date)
+      if (ms === null) return
+      const distance = Math.abs(ms - target)
+      if (distance < bestDistance) {
+        bestDistance = distance
+        nearest = index
+      }
+    })
+
+    seekTo(nearest)
+    setScrubPercent(null)
+  }
+
+
+  const previewSeekAtPercent = (percent: number) => {
+    if (!range || playable.length === 0) return;
+
+    const target =
+      range.start +
+      (percent / 100) *
+      Math.max(DAY_MS, range.end - range.start);
+
+    let nearest = -1;
+    let distance = Number.POSITIVE_INFINITY;
+
+    playable.forEach((session, index) => {
+      const ms = dateMs(session.date);
+      if (ms === null) return;
+
+      const delta = Math.abs(ms - target);
+      if (delta < distance) {
+        nearest = index;
+        distance = delta;
+      }
+    });
+
+    if (nearest < 0) return;
+
+    const session = playable[nearest];
+    if (!session) return;
+
+    const key = session.kind + ':' + session.id;
+
+    // Evita solicitar dos veces seguidas la misma sesion.
+    if (liveSeekRef.current.key === key) return;
+
+    // Reduce la cantidad de consultas durante movimientos
+    // rapidos del mouse. Maximo aprox. 7 cambios por segundo.
+    const now = Date.now();
+
+    if (now - liveSeekRef.current.time < 140) {
+      return;
+    }
+
+    liveSeekRef.current = {
+      key,
+      time: now,
+    };
+
+    // Actualiza el reproductor y solicita el nuevo mapa
+    // mientras el usuario sigue arrastrando.
+    seekTo(nearest);
+  };
+
   if (plotTree.isLoading || ndviQuery.isLoading) {
     return (
       <div className="flex h-40 items-center justify-center gap-2 rounded-xl border bg-background text-xs text-muted-foreground">
-        <GpaLoader size="xs" /> Cargando línea de tiempo de la parcela…
+        <GpaLoader size="xs" /> Cargando línea de tiempo de la parcela...
       </div>
     )
   }
@@ -566,6 +837,31 @@ export function PlotUnifiedTimeline({
   const padX = 48
   const padY = 10
   const padPercent = (padX / chartWidth) * 100
+
+  // CIAGRO_TIMELINE_FINAL_V1
+  const selectedGuide = (() => {
+    if (!range || selectedSession?.kind !== 'ndvi' ||
+        !activeKinds.has('ndvi')) return null
+
+    const item = ndviById.get(selectedSession.id)
+    const ms = dateMs(item?.session_date)
+
+    if (!item || typeof item.mean !== 'number' ||
+        !Number.isFinite(item.mean) || ms === null ||
+        ms < range.start || ms > range.end) return null
+
+    const x = chartXPercent(item.session_date, range, padPercent)
+    if (x === null) return null
+
+    const y = padY +
+      (1 - Math.max(0, Math.min(1, item.mean))) *
+      (chartHeight - padY * 2)
+
+    return {
+      x,
+      top: (y / chartWidth) * 100,
+    }
+  })()
   const ndviCurveVisible = activeKinds.has('ndvi')
   const realPath = range && ndviCurveVisible
     ? curvePath(realNdvi, range, chartWidth, chartHeight, padX, padY)
@@ -634,15 +930,24 @@ export function PlotUnifiedTimeline({
   const ndviDateIndex = new Map<string, number>()
 
   return (
-    <section className="shrink-0 overflow-hidden rounded-xl border bg-background shadow-sm">
+    <section
+      className="flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border bg-background shadow-sm"
+
+    >
       <div className="flex flex-wrap items-start justify-between gap-2 px-3 pb-1.5 pt-2">
         <div>
           <h3 className="text-sm font-semibold">
-            Línea de tiempo de índice vegetativo
-            {referenceItem?.crop_name ? ` · ${referenceItem.crop_name}` : ''}
+            {displayMode === 'parcel'
+              ? 'Línea de tiempo agrícola · Parcela'
+              : 'Línea de tiempo de índice vegetativo'}
+            {displayMode === 'cycle' && referenceItem?.crop_name
+              ? ' · ' + referenceItem.crop_name
+              : ''}
           </h3>
           <p className="text-[10px] text-muted-foreground">
-            Todos los eventos comparten el mismo eje de fechas; cada marcador abre su mapa.
+            {displayMode === 'parcel'
+              ? 'Resumen por tipo de sesión. Todas las filas comparten el mismo eje de fechas.'
+              : 'Todos los eventos comparten el mismo eje de fechas; cada marcador abre su mapa.'}
           </p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -655,6 +960,15 @@ export function PlotUnifiedTimeline({
             <option value="all">Todos los ciclos</option>
             {cycles.map((cycle) => <option key={cycle} value={cycle}>{cycleLabel(cycle)}</option>)}
           </select>
+          {mode === 'parcel' && (
+            <button
+              type="button"
+              onClick={() => { stopPlay(); setDetailRequested((value) => !value) }}
+              className="h-8 rounded-md border px-2 text-[10px] font-medium hover:bg-accent"
+            >
+              {detailRequested ? 'Vista parcela' : 'Ver ciclo'}
+            </button>
+          )}
           <button
             type="button"
             disabled={playable.length === 0}
@@ -666,7 +980,7 @@ export function PlotUnifiedTimeline({
           </button>
           <button
             type="button"
-            onClick={() => setIsCollapsed((value) => !value)}
+            onClick={toggleCollapsed}
             className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-[10px] font-medium hover:bg-accent"
             aria-expanded={!isCollapsed}
           >
@@ -677,7 +991,19 @@ export function PlotUnifiedTimeline({
       </div>
 
 
-      {!isCollapsed && (<>
+      <div className="min-w-0">
+      {!isCollapsed && (displayMode === 'parcel' ? (
+        <ParcelStackedTimeline
+          range={range}
+          events={cycleEvents}
+          selectedSession={selectedSession}
+          onSelectSession={(session) => {
+            stopPlay()
+            onSelectSession(session)
+          }}
+        />
+      ) : (<>
+
 
       <div className="mx-3 mb-1 flex min-h-9 flex-wrap items-center gap-x-4 gap-y-1.5 rounded-md border bg-muted/20 px-3 py-1.5 text-[11px]">
         {selectedSession && selectedSession.kind !== 'ndvi' && selectedTreeSession ? (
@@ -698,8 +1024,8 @@ export function PlotUnifiedTimeline({
             <span>Fecha: <strong>{longDate(selectedNdvi.session_date)}</strong></span>
             <span>Esperado: <strong className="text-blue-600">{formatNumber(selectedExpected)}</strong></span>
             <span>Real: <strong style={{ color: performanceMeta.color }}>{formatNumber(selectedNdvi.mean)}</strong></span>
-            <span>Diferencia: <strong style={{ color: selectedDifference !== null && selectedDifference < 0 ? '#ef4444' : '#16a34a' }}>{selectedDifference === null ? '—' : `${selectedDifference >= 0 ? '+' : ''}${selectedDifference.toFixed(2)}`}</strong></span>
-            <span>Etapa: <strong>{selectedStage?.label ?? '—'}</strong>{selectedStage?.description ? ` · ${selectedStage.description}` : ''}</span>
+            <span>Diferencia: <strong style={{ color: selectedDifference !== null && selectedDifference < 0 ? '#ef4444' : '#16a34a' }}>{selectedDifference === null ? '\u2014' : `${selectedDifference >= 0 ? '+' : ''}${selectedDifference.toFixed(2)}`}</strong></span>
+            <span>Etapa: <strong>{selectedStage?.label ?? '\u2014'}</strong>{selectedStage?.description ? ` · ${selectedStage.description}` : ''}</span>
             <span className="inline-flex items-center gap-1 font-semibold" style={{ color: performanceMeta.color }}>
               <span className="h-2.5 w-2.5 rounded-full" style={{ background: performanceMeta.color }} />
               {performanceMeta.label}
@@ -723,6 +1049,7 @@ export function PlotUnifiedTimeline({
 
         {range ? (
           <>
+            <div className="relative" style={{ containerType: 'inline-size' }}>
             <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="block w-full" role="img" aria-label="Evolución NDVI real y esperada">
               {[0, 0.25, 0.5, 0.75, 1].map((value) => {
                 const y = padY + (1 - value) * (chartHeight - padY * 2)
@@ -756,6 +1083,74 @@ export function PlotUnifiedTimeline({
               })}
             </svg>
 
+
+            {playable.length > 0 && range && (
+              <div
+                className="relative h-10 border-t"
+                aria-label="Control de avance temporal"
+              >
+                <button
+                  type="button"
+                  onClick={() => seekTo(currentIndex - 1)}
+                  disabled={currentIndex <= 0}
+                  className="absolute left-0 top-1 z-20 flex h-8 w-7 items-center justify-center rounded border bg-background text-[11px] disabled:opacity-30"
+                  aria-label="Retroceder una sesion"
+                >
+                  &#9664;
+                </button>
+
+                <input
+                  type="range"
+                  min={0}
+                  max={1000}
+                  step={1}
+                  value={Math.round(progressPct * 10)}
+                  disabled={playable.length <= 1}
+                  onPointerDown={stopPlay}
+                  onChange={(event) => {
+                    stopPlay()
+                    const nextPercent =
+                      Number(event.currentTarget.value) / 10
+
+                    setScrubPercent(nextPercent)
+                    previewSeekAtPercent(nextPercent)
+                  }}
+                  onPointerUp={(event) => {
+                    commitSeek(Number(event.currentTarget.value) / 10)
+                  }}
+                  onKeyUp={(event) => {
+                    commitSeek(Number(event.currentTarget.value) / 10)
+                  }}
+                  onBlur={(event) => {
+                    if (scrubPercent !== null) {
+                      commitSeek(Number(event.currentTarget.value) / 10)
+                    }
+                  }}
+                  onPointerCancel={() => setScrubPercent(null)}
+                  aria-label="Adelantar o retroceder por fecha"
+                  className="absolute top-[15px] z-10 h-[7px] cursor-pointer appearance-none rounded-full outline-none disabled:cursor-default [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-green-700 [&::-webkit-slider-thumb]:shadow-sm [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-green-700"
+                  style={{
+                    left: String(padPercent) + '%',
+                    width: String(100 - padPercent * 2) + '%',
+                    background:
+                      'linear-gradient(to right, ' +
+                      '#16813a 0%, #16813a ' + progressPct + '%, ' +
+                      '#d4d4d8 ' + progressPct + '%, #d4d4d8 100%)',
+                  }}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => seekTo(currentIndex + 1)}
+                  disabled={currentIndex >= playable.length - 1}
+                  className="absolute right-0 top-1 z-20 flex h-8 w-7 items-center justify-center rounded border bg-background text-[11px] disabled:opacity-30"
+                  aria-label="Adelantar una sesion"
+                >
+                  &#9654;
+                </button>
+              </div>
+            )}
+
             <div className="relative h-11 border-t" aria-label="Eventos de la parcela en la línea de tiempo">
               {axisLabels.map((item) => (
                 <span
@@ -773,7 +1168,7 @@ export function PlotUnifiedTimeline({
                 const meta = KIND_META[session.kind]
                 const selected = selectedSession?.id === session.id
                 // Nunca ocultamos eventos que comparten fecha. Los repartimos en dos
-                // alturas y aplicamos un pequeño desplazamiento horizontal a partir del
+                // alturas y aplicamos un pequeÁ±o desplazamiento horizontal a partir del
                 // tercer elemento para que todos sigan siendo visibles/clicables.
                 const row = stackIndex % 2
                 const pair = Math.floor(stackIndex / 2)
@@ -801,6 +1196,18 @@ export function PlotUnifiedTimeline({
                 )
               })}
             </div>
+            {selectedGuide && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute z-[1] border-l border-dashed border-green-700/60"
+                style={{
+                  left: String(selectedGuide.x) + '%',
+                  top: String(selectedGuide.top) + 'cqw',
+                  bottom: '18px',
+                }}
+              />
+            )}
+            </div>
           </>
         ) : (
           <div className="flex h-[100px] items-center justify-center text-[10px] text-muted-foreground">Sin sesiones fechadas para este filtro.</div>
@@ -827,7 +1234,8 @@ export function PlotUnifiedTimeline({
           })}
         </div>
       </div>
-      </>)}
+      </>))}
+      </div>
     </section>
   )
 }
