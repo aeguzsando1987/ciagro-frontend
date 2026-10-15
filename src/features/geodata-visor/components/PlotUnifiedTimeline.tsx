@@ -214,11 +214,13 @@ function ParcelStackedTimeline({
   events,
   selectedSession,
   onSelectSession,
+  compact,
 }: {
   range: { start: number; end: number } | null
   events: TreeSession[]
   selectedSession: VisorSession | null
   onSelectSession: (session: VisorSession) => void
+  compact: boolean
 }) {
   const span = range ? Math.max(DAY_MS, range.end - range.start) : DAY_MS
   const guides = range
@@ -301,7 +303,7 @@ function ParcelStackedTimeline({
                 repeats.set(date, repeat + 1)
                 const offset = repeat === 0
                   ? 0
-                  : (repeat % 2 ? 1 : -1) * Math.ceil(repeat / 2) * 8
+                  : (repeat % 2 ? 1 : -1) * Math.ceil(repeat / 2) * (compact ? 6 : 8)
                 const selected =
                   selectedSession?.id === session.id &&
                   selectedSession?.kind === session.kind
@@ -310,7 +312,7 @@ function ParcelStackedTimeline({
                   <button
                     key={session.kind + ':' + session.id}
                     type="button"
-                    className="absolute top-[6px] z-10 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 transition hover:scale-125 focus:outline-none focus:ring-2"
+                    className={`absolute z-10 -translate-x-1/2 rounded-full border-2 transition hover:scale-125 focus:outline-none focus:ring-2 ${compact ? 'top-[8px] h-2.5 w-2.5' : 'top-[6px] h-3.5 w-3.5'}`}
                     style={{
                       left: String(position) + '%',
                       marginLeft: offset,
@@ -482,8 +484,8 @@ export function PlotUnifiedTimeline({
 
   useEffect(() => {
     if (!selectedSession || selectedSession.kind === 'soil_map') return
-    // "Todos los ciclos" elegido manualmente se conserva durante Play.
-    if (cyclePickedByUser && selectedCycle === 'all') return
+    // Conservar cualquier ciclo elegido manualmente.
+    if (cyclePickedByUser) return
     const cycle = cycleBySessionId.get(selectedSession.id)
     if (cycle && cycle !== selectedCycle) setSelectedCycle(cycle)
   }, [cycleBySessionId, selectedSession, cyclePickedByUser, selectedCycle])
@@ -549,24 +551,63 @@ export function PlotUnifiedTimeline({
     (item) => item.ndvi_reference && item.reference_start && item.reference_end
   ) ?? null
 
-  const expectedPoints = useMemo(() => {
-    if (!referenceItem?.ndvi_reference || !referenceItem.reference_start || !referenceItem.reference_end) return []
-    const start = dateMs(referenceItem.reference_start)
-    const end = dateMs(referenceItem.reference_end)
-    if (start === null || end === null || end < start) return []
-    const samples = 40
-    return Array.from({ length: samples }, (_, index) => {
-      const ms = start + ((end - start) * index) / (samples - 1)
-      const date = isoFromMs(ms)
-      const value = expectedNdviAtDate(
-        date,
-        referenceItem.reference_start,
-        referenceItem.reference_end,
-        referenceItem.ndvi_reference
-      )
-      return value === null ? null : { date, value }
-    }).filter((point): point is { date: string; value: number } => point !== null)
-  }, [referenceItem])
+  const expectedCurves = useMemo(() => {
+    const references = new Map<string, {
+      item: NdviTimelineItem
+      start: number
+      end: number
+    }>()
+
+    for (const item of ndviForCycle) {
+      if (
+        !item.ndvi_reference ||
+        item.ndvi_reference.values.length < 2 ||
+        !item.reference_start ||
+        !item.reference_end
+      ) continue
+
+      const start = dateMs(item.reference_start)
+      const end = dateMs(item.reference_end)
+
+      if (start === null || end === null || end < start) continue
+
+      const cycleKey =
+        item.productive_cycle_id ||
+        cycleBySessionId.get(item.id) ||
+        item.reference_start + ':' + item.reference_end
+
+      const key =
+        cycleKey + '|' + item.reference_start + '|' + item.reference_end
+
+      if (!references.has(key)) {
+        references.set(key, { item, start, end })
+      }
+    }
+
+    return [...references.entries()]
+      .map(([key, { item, start, end }]) => {
+        const points = Array.from({ length: 40 }, (_, index) => {
+          const date = isoFromMs(
+            start + ((end - start) * index) / 39
+          )
+
+          const value = expectedNdviAtDate(
+            date,
+            item.reference_start,
+            item.reference_end,
+            item.ndvi_reference
+          )
+
+          return value === null ? null : { date, value }
+        }).filter(
+          (point): point is { date: string; value: number } =>
+            point !== null
+        )
+
+        return { key, points }
+      })
+      .filter(({ points }) => points.length >= 2)
+  }, [ndviForCycle, cycleBySessionId])
 
   // Fuente canónica de eventos de la línea de tiempo:
   // - NDVI sale directamente de useNdviTimeline para no perder headers/sesiones
@@ -905,9 +946,12 @@ export function PlotUnifiedTimeline({
   const realPath = range && ndviCurveVisible
     ? curvePath(realNdvi, range, chartWidth, chartHeight, padX, padY)
     : ''
-  const expectedPath = range && ndviCurveVisible
-    ? curvePath(expectedPoints, range, chartWidth, chartHeight, padX, padY)
-    : ''
+  const expectedPaths = range && ndviCurveVisible
+    ? expectedCurves.map(({ key, points }) => ({
+        key,
+        path: curvePath(points, range, chartWidth, chartHeight, padX, padY),
+      }))
+    : []
 
   const axisLabels = range
     ? Array.from({ length: 7 }, (_, index) => {
@@ -982,8 +1026,9 @@ export function PlotUnifiedTimeline({
       // El usuario eligió explícitamente mostrar todos los ciclos.
       return
     }
-    // Modo detalle siempre muestra el ciclo elegido.
-    setDetailRequested(true)
+    // CIAGRO_FIX_PARCEL_CYCLES_MULTI_EXPECTED_20261015
+    // En Parcela, el selector solo filtra la linea apilada.
+    if (mode === 'parcel' && !detailRequested) return
     // Se prioriza la primera sesión CON DATOS de ese ciclo.
     const candidates = [
       ...sessions.filter((s) => s.cycle?.trim() === cycle && s.date && s.kind !== 'ndvi' && s.points_count > 0)
@@ -1067,6 +1112,7 @@ export function PlotUnifiedTimeline({
         <ParcelStackedTimeline
           range={range}
           events={sessionsWithData}
+          compact={selectedCycle === 'all'}
           selectedSession={selectedSession}
           onSelectSession={(session) => {
             stopPlay()
@@ -1134,7 +1180,16 @@ export function PlotUnifiedTimeline({
                   </g>
                 )
               })}
-              {expectedPath && <path d={expectedPath} fill="none" stroke="#3b82f6" strokeWidth="2" strokeDasharray="6 5" />}
+              {expectedPaths.map((curve) => (
+                <path
+                  key={curve.key}
+                  d={curve.path}
+                  fill="none"
+                  stroke="#3b82f6"
+                  strokeWidth="2"
+                  strokeDasharray="6 5"
+                />
+              ))}
               {realPath && <path d={realPath} fill="none" stroke="#16813a" strokeWidth="2" />}
               {ndviCurveVisible && realNdvi.map((point) => {
                 const ms = dateMs(point.date) ?? range.start
