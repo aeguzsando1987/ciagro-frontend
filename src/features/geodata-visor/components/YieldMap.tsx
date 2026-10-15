@@ -1,3 +1,5 @@
+import { MapModeSelector } from './MapModeSelector'
+import { useMapMode } from '../lib/mapModes'
 import { useLayerAppearance, appearancePalette } from '@/features/analysis-colors/useLayerAppearance'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
@@ -28,6 +30,7 @@ interface YieldMapProps {
   toolbarEnd?: React.ReactNode
   className?: string
   mapSync?: MapCameraSyncBinding
+  showMapModeSelector?: boolean
   /** En comparación A/B el resumen inicia contraído para no tapar el mapa. */
   comparisonMode?: boolean
 }
@@ -91,6 +94,7 @@ export function YieldMap({
   toolbarEnd,
   className,
   mapSync,
+  showMapModeSelector = false,
   comparisonMode = false,
 }: YieldMapProps) {
   const instanceId = useId().replace(/:/g, '')
@@ -107,6 +111,7 @@ export function YieldMap({
   const [popup, setPopup] = useState<{ lng: number; lat: number; point: YieldMapPoint } | null>(null)
   const [summaryCollapsed, setSummaryCollapsed] = useState(comparisonMode)
   const mapRef = useRef<MapRef>(null)
+  const { mapMode, setMapMode } = useMapMode(mapRef)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
   const pointsQuery = useYieldMapPoints(sessionId)
@@ -261,9 +266,10 @@ export function YieldMap({
           </Popup>
         )}
       </MapGL>
+      {showMapModeSelector && <MapModeSelector position="center" active={mapMode} onChange={setMapMode} />}
 
       {/* Índice de vistas rápidas DENTRO del mapa. */}
-      <div className="absolute left-3 top-3 z-20 flex items-start gap-2">
+      <div className="absolute left-3 top-3 z-40 flex items-start gap-2">
         {toolbarStart}
         <div className="relative w-64 rounded-xl border border-white/30 bg-white/95 shadow-lg backdrop-blur-sm dark:bg-slate-950/95">
           <button
@@ -280,7 +286,7 @@ export function YieldMap({
             <ChevronDown className={`h-4 w-4 transition-transform ${layerMenuOpen ? 'rotate-180' : ''}`} />
           </button>
           {layerMenuOpen && (
-            <div className="border-t p-1.5">
+            <div className="max-h-[min(55vh,300px)] overflow-y-auto border-t p-1.5">
               {YIELD_LAYERS.map((layer, index) => (
                 <button
                   key={layer.key}
@@ -301,7 +307,7 @@ export function YieldMap({
       </div>
 
       <div
-        className={`absolute bottom-3 left-3 z-20 rounded-xl border border-white/30 bg-white/95 shadow-lg backdrop-blur-sm dark:bg-slate-950/95 ${
+        className={`absolute bottom-3 left-3 z-20 ${layerMenuOpen ? "hidden" : ""} rounded-xl border border-white/30 bg-white/95 shadow-lg backdrop-blur-sm dark:bg-slate-950/95 ${
           comparisonMode ? 'w-48 p-2' : 'w-64 p-3'
         }`}
       >

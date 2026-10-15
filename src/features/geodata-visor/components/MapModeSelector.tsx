@@ -7,12 +7,14 @@ import { MAP_MODES, type MapModeKey } from '../lib/mapModes'
 export function MapModeSelector({
   active,
   onChange,
+  position = 'right',
 }: {
   active: MapModeKey
   onChange: (mode: MapModeKey) => void
+  position?: 'right' | 'center'
 }) {
   return (
-    <div className="absolute bottom-3 right-3 z-20 flex overflow-hidden rounded border bg-background/90 shadow-sm backdrop-blur-sm">
+    <div className={`absolute bottom-3 z-20 flex overflow-hidden rounded border bg-background/90 shadow-sm backdrop-blur-sm ${position === 'center' ? 'right-2' : 'right-3'}`}>
       {(Object.entries(MAP_MODES) as [MapModeKey, (typeof MAP_MODES)[MapModeKey]][]).map(
         ([key, mode], i) => (
           <button

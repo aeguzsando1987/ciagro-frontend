@@ -1,3 +1,5 @@
+import { MapModeSelector } from './MapModeSelector'
+import { useMapMode } from '../lib/mapModes'
 /**
  * Mapa de una sesión NDVI — superficie interpolada (gradiente continuo).
  *
@@ -106,6 +108,7 @@ interface NdviMapProps {
    */
   dcId?: string
   mapSync?: MapCameraSyncBinding
+  showMapModeSelector?: boolean
   /** Informa al reproductor cuando los datos de la sesión actual ya terminaron de cargar. */
   onReadyChange?: (ready: boolean) => void
 }
@@ -121,8 +124,9 @@ interface PointSelection {
 
 const POINTS_LAYER_ID = 'ndvi-points'
 
-export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyChange }: NdviMapProps) {
+export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyChange, showMapModeSelector = false }: NdviMapProps) {
   const mapRef = useRef<MapRef>(null)
+  const { mapMode, setMapMode } = useMapMode(mapRef)
   const containerRef = useRef<HTMLDivElement>(null)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
@@ -551,6 +555,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
           </Popup>
         )}
       </Map>
+      {showMapModeSelector && <MapModeSelector position="center" active={mapMode} onChange={setMapMode} />}
 
       {/* Mensaje explícito para una fecha sin información. El mapa permanece visible
           y centrado en la parcela, pero no inventa una superficie con valor cero. */}

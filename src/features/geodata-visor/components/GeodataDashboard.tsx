@@ -378,6 +378,7 @@ function RanchView({
             /* La línea de tiempo unificada vive arriba. Aquí se muestra únicamente el mapa
                de la sesión NDVI seleccionada para no duplicar controles ni gráficas. */
             <NdviMap
+              showMapModeSelector={!comparisonMode}
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               tenantId={selection.org.id}
@@ -387,6 +388,7 @@ function RanchView({
             /* Sesión fitosanitaria: mapa de calor de checkpoints sobre la parcela (reuso
                del PhytoMap del task-manager). */
             <PhytoMap
+              showMapModeSelector={!comparisonMode}
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
               floatingToolbar
@@ -397,6 +399,7 @@ function RanchView({
           ) : isSoilMapSession ? (
             /* Sesión de mapeo de suelo: rangos espaciales dentro de la parcela. */
             <SoilMapMap
+              showMapModeSelector={!comparisonMode}
               tenantId={selection.org.id}
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
@@ -415,6 +418,7 @@ function RanchView({
             />
           ) : isYieldMapSession ? (
             <YieldMap
+              showMapModeSelector={!comparisonMode}
               tenantId={selection.org.id}
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
@@ -424,6 +428,7 @@ function RanchView({
             />
           ) : isPlantingMapSession ? (
             <PlantingMap
+              showMapModeSelector={!comparisonMode}
               tenantId={selection.org.id}
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}
@@ -436,6 +441,7 @@ function RanchView({
                La tarjeta de categorías de % de aplicación la pinta AspersionMap. FASE CV:
                sin lista de sesiones, el árbol del explorador ya cumple esa función. */
             <AspersionMap
+              showMapModeSelector={!comparisonMode}
               tenantId={selection.org.id}
               sessionId={selection.session!.id}
               plotId={selection.plot!.id}

@@ -15,7 +15,7 @@ export type MapModeKey = 'satellite' | 'hybrid'
  */
 export const MAP_MODES: Record<MapModeKey, { label: string }> = {
   satellite: { label: 'Satélite' },
-  hybrid: { label: 'Híbrido' },
+  hybrid: { label: 'Mapa' },
 }
 
 /** IDs de las capas de referencia que se muestran en modo híbrido (definidas en ESRI_STYLE). */

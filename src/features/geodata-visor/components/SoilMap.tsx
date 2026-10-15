@@ -1,3 +1,5 @@
+import { MapModeSelector } from './MapModeSelector'
+import { useMapMode } from '../lib/mapModes'
 import { useLayerAppearance, appearancePalette } from '@/features/analysis-colors/useLayerAppearance'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
@@ -58,6 +60,7 @@ interface SoilMapProps {
   showStatsCards?: boolean
   className?: string
   mapSync?: MapCameraSyncBinding
+  showMapModeSelector?: boolean
 
   // ── Modo captura (FASE RS, RS-15) ──
   // Cuatro interruptores APAGADOS por defecto: sin ellos el visor se comporta
@@ -164,6 +167,7 @@ export function SoilMap({
   showStatsCards = false,
   className,
   mapSync,
+  showMapModeSelector = false,
   locked = false,
   preserveDrawingBuffer = false,
   onIdle,
@@ -183,6 +187,7 @@ export function SoilMap({
   const [checkedBuckets, setCheckedBuckets] = useState<Set<string> | null>(null)
   const [hoveredSample, setHoveredSample] = useState<PopupInfo | null>(null)
   const mapRef = useRef<MapRef>(null)
+  const { mapMode, setMapMode } = useMapMode(mapRef)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
   const { data: points, isLoading, error } = useSoilMapPoints(sessionId, enabled)
@@ -656,6 +661,7 @@ export function SoilMap({
             </Popup>
           )}
         </MapGL>
+        {showMapModeSelector && <MapModeSelector position="center" active={mapMode} onChange={setMapMode} />}
       </div>
 
       <div className="shrink-0 space-y-1 border-t bg-background px-4 py-2 text-xs">

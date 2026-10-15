@@ -1,3 +1,5 @@
+import { MapModeSelector } from './MapModeSelector'
+import { useMapMode } from '../lib/mapModes'
 import { useLayerAppearance, appearancePalette, appearanceCategoryColor, type LayerAppearance } from '@/features/analysis-colors/useLayerAppearance'
 /**
  * Mapa de calor de los datos de aspersión de una sesión — componente presentacional
@@ -394,6 +396,7 @@ interface AspersionMapProps {
   tightFrame?: boolean
   /** Sincronizacion opcional de camara entre los paneles A/B del visor. */
   mapSync?: MapCameraSyncBinding
+  showMapModeSelector?: boolean
 }
 
 // ─── Componente principal ────────────────────────────────────────────────────
@@ -414,12 +417,14 @@ export function AspersionMap({
   onIdle,
   tightFrame = false,
   mapSync,
+  showMapModeSelector = false,
 }: AspersionMapProps) {
   const [activeLayerIdx, setActiveLayerIdx] = useState(0)
   // null = sin inicializar (tratar como "todos activos"); Set vacío = usuario desmarcó todo
   const [checkedBuckets, setCheckedBuckets] = useState<Set<string> | null>(null)
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null)
   const mapRef = useRef<MapRef>(null)
+  const { mapMode, setMapMode } = useMapMode(mapRef)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
   const {
@@ -686,6 +691,7 @@ export function AspersionMap({
             )}
           </Map>
         )}
+        {showMapModeSelector && layerData && <MapModeSelector position="center" active={mapMode} onChange={setMapMode} />}
       </div>
 
       {/* ─ Tarjeta de leyenda ──────────────────────────────────────── */}

@@ -879,6 +879,10 @@ export function PlotUnifiedTimeline({
         return {
           left: `${padPercent + (rawPercent / 100) * (100 - padPercent * 2)}%`,
           label: shortDate(isoFromMs(ms)),
+          month: new Date(ms).toLocaleDateString('es-MX', {
+            month: 'long',
+            timeZone: 'UTC',
+          }),
         }
       })
     : []
@@ -1044,6 +1048,7 @@ export function PlotUnifiedTimeline({
       </div>
 
       <div className="border-t bg-muted/[0.08] px-3 pb-1.5 pt-1.5">
+        {realNdvi.length > 0 && (
         <div className="mb-0.5 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-3 text-[9px]">
             <strong>Índice de vegetación (NDVI)</strong>
@@ -1053,10 +1058,12 @@ export function PlotUnifiedTimeline({
           </div>
           {!referenceItem && <span className="text-[9px] text-muted-foreground">Sin referencia NDVI configurada para este ciclo.</span>}
         </div>
+        )}
 
         {range ? (
           <>
             <div className="relative" style={{ containerType: 'inline-size' }}>
+            {realNdvi.length > 0 && (
             <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="block w-full" role="img" aria-label="Evolución NDVI real y esperada">
               {[0, 0.25, 0.5, 0.75, 1].map((value) => {
                 const y = padY + (1 - value) * (chartHeight - padY * 2)
@@ -1089,11 +1096,12 @@ export function PlotUnifiedTimeline({
                 )
               })}
             </svg>
+            )}
 
 
             {playable.length > 0 && range && (
               <div
-                className="relative h-10 border-t"
+                className="relative h-9 border-t"
                 aria-label="Control de avance temporal"
               >
                 <button
@@ -1135,7 +1143,7 @@ export function PlotUnifiedTimeline({
                   }}
                   onPointerCancel={() => setScrubPercent(null)}
                   aria-label="Adelantar o retroceder por fecha"
-                  className="absolute top-[15px] z-10 h-[7px] cursor-pointer appearance-none rounded-full outline-none disabled:cursor-default [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-green-700 [&::-webkit-slider-thumb]:shadow-sm [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-green-700"
+                  className="absolute top-[15px] z-10 h-[7px] cursor-pointer appearance-none rounded-full outline-none disabled:cursor-default [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-transparent [&::-webkit-slider-thumb]:bg-transparent [&::-webkit-slider-thumb]:shadow-sm [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-transparent [&::-moz-range-thumb]:bg-transparent"
                   style={{
                     left: String(padPercent) + '%',
                     width: String(100 - padPercent * 2) + '%',
@@ -1145,6 +1153,24 @@ export function PlotUnifiedTimeline({
                       '#d4d4d8 ' + progressPct + '%, #d4d4d8 100%)',
                   }}
                 />
+
+                {selectedSession && (
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute z-30 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 bg-white shadow-sm"
+                    style={{
+                      top: '19px',
+                      left: (padPercent + (progressPct / 100) * (100 - padPercent * 2)) + '%',
+                      color: KIND_META[selectedSession.kind].color,
+                      borderColor: KIND_META[selectedSession.kind].color,
+                      boxShadow: '0 0 0 4px rgba(22,129,58,0.12)',
+                    }}
+                  >
+                    <span className="[&>svg]:h-4 [&>svg]:w-4">
+                      {KIND_META[selectedSession.kind].icon}
+                    </span>
+                  </div>
+                )}
 
                 <button
                   type="button"
@@ -1158,16 +1184,30 @@ export function PlotUnifiedTimeline({
               </div>
             )}
 
-            <div className="relative h-11 border-t" aria-label="Eventos de la parcela en la línea de tiempo">
+            <div className="relative h-[30px]" aria-label="Eventos de la parcela en la línea de tiempo">
               {axisLabels.map((item) => (
                 <span
                   key={item.left}
-                  className="absolute top-[25px] -translate-x-1/2 whitespace-nowrap text-[8px] text-muted-foreground"
+                  className="absolute top-0 -translate-x-1/2 whitespace-nowrap text-center text-[8px] leading-3 text-muted-foreground"
                   style={{ left: item.left }}
                 >
-                  {item.label}
+                  <span className="block font-medium text-foreground/75">
+                    {item.month.charAt(0).toUpperCase() + item.month.slice(1)}
+                  </span>
+                  <span className="block">{item.label}</span>
                 </span>
               ))}
+
+              {(selectedSession?.date || playable[currentIndex]?.date) && (
+                <span
+                  className="pointer-events-none absolute top-[15px] z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-green-700 px-2 py-0.5 text-[9px] font-semibold text-white shadow-sm"
+                  style={{
+                    left: (padPercent + (progressPct / 100) * (100 - padPercent * 2)) + '%',
+                  }}
+                >
+                  {longDate(selectedSession?.date ?? playable[currentIndex]?.date)}
+                </span>
+              )}
 
               {visibleEvents.map(({ session, stackIndex }) => {
                 const left = chartXPercent(session.date, range, padPercent)
@@ -1177,10 +1217,10 @@ export function PlotUnifiedTimeline({
                 // Nunca ocultamos eventos que comparten fecha. Los repartimos en dos
                 // alturas y aplicamos un pequeÁ±o desplazamiento horizontal a partir del
                 // tercer elemento para que todos sigan siendo visibles/clicables.
-                const row = stackIndex % 2
-                const pair = Math.floor(stackIndex / 2)
-                const horizontalOffset = pair === 0 ? 0 : (pair % 2 === 1 ? -1 : 1) * Math.ceil(pair / 2) * 10
-                const top = row * 13 + 2
+                const horizontalOffset = stackIndex === 0
+                  ? 0
+                  : (stackIndex % 2 === 1 ? -1 : 1) * Math.ceil(stackIndex / 2) * 20
+                const top = -26
                 return (
                   <button
                     key={`${session.kind}:${session.id}`}
@@ -1194,6 +1234,7 @@ export function PlotUnifiedTimeline({
                       color: meta.color,
                       borderColor: selected ? '#111827' : meta.color,
                       boxShadow: selected ? `0 0 0 2px ${meta.color}` : '0 1px 2px rgba(0,0,0,.12)',
+                      opacity: selected ? 0 : 1,
                     }}
                     title={`${longDate(session.date)} · ${sessionTitle(session, ndviById)} · ${session.points_count} puntos`}
                     aria-label={`${meta.label}, ${longDate(session.date)}`}
@@ -1210,7 +1251,7 @@ export function PlotUnifiedTimeline({
                 style={{
                   left: String(selectedGuide.x) + '%',
                   top: String(selectedGuide.top) + 'cqw',
-                  bottom: '18px',
+                  bottom: '48px',
                 }}
               />
             )}
@@ -1220,7 +1261,7 @@ export function PlotUnifiedTimeline({
           <div className="flex h-[100px] items-center justify-center text-[10px] text-muted-foreground">Sin sesiones fechadas para este filtro.</div>
         )}
 
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-2 text-[10px]">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 pt-0.5 text-[10px]">
           {KIND_ORDER.map((kind) => {
             const meta = KIND_META[kind]
             const active = activeKinds.has(kind)

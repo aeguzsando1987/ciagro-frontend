@@ -1,3 +1,5 @@
+import { MapModeSelector } from '@/features/geodata-visor/components/MapModeSelector'
+import { useMapMode } from '@/features/geodata-visor/lib/mapModes'
 /**
  * Mapa de monitoreo fitosanitario de una sesión.
  *
@@ -45,6 +47,7 @@ interface PhytoMapProps {
   /** En comparación A/B separa las leyendas P y E a lados opuestos. */
   comparisonMode?: boolean
   mapSync?: MapCameraSyncBinding
+  showMapModeSelector?: boolean
 }
 
 function bboxFromCoords(coords: number[][]): [number, number, number, number] {
@@ -232,10 +235,12 @@ export function PhytoMap({
   floatingToolbar = false,
   comparisonMode = false,
   mapSync,
+  showMapModeSelector = false,
 }: PhytoMapProps) {
   const { data: fc, isLoading } = usePhytoCheckPoints(sessionId, enabled)
   const { data: plot } = usePlotGeometry(plotId)
   const mapRef = useRef<MapRef>(null)
+  const { mapMode, setMapMode } = useMapMode(mapRef)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
   const [popup, setPopup] = useState<HoverInfo | null>(null)
   const [photoModal, setPhotoModal] = useState<string | null>(null)
@@ -245,6 +250,22 @@ export function PhytoMap({
   const [showInfo, setShowInfo] = useState(false)
   const [legendCollapsed, setLegendCollapsed] = useState(false)
   const [mapZoom, setMapZoom] = useState(18)
+  const [compactLegends, setCompactLegends] = useState(false)
+  const legendViewportRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const viewport = legendViewportRef.current
+    if (!viewport || typeof ResizeObserver === 'undefined') return
+
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) {
+        setCompactLegends(entry.contentRect.height < 580)
+      }
+    })
+
+    observer.observe(viewport)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -437,7 +458,7 @@ export function PhytoMap({
         </div>
       )}
 
-      <div className="relative flex-1">
+      <div ref={legendViewportRef} className="relative flex-1">
         {floatingToolbar && (toolbarStart || toolbarEnd) && (
           <div className="absolute left-2 top-2 z-20 flex flex-wrap items-center gap-2">
             {toolbarStart}
@@ -666,7 +687,7 @@ export function PhytoMap({
               </div>
             </>
           ) : (
-            <div className="absolute bottom-2 right-2 z-10 hidden w-52 flex-col gap-2 lg:flex">
+            <div className={`absolute bottom-2 z-10 hidden w-52 max-h-[calc(100%-4rem)] flex-col gap-2 overflow-y-auto lg:flex ${compactLegends ? 'left-2 right-auto' : 'right-2'}`}>
               <div className="rounded-xl border bg-background/95 p-3 text-xs shadow-md backdrop-blur-sm">
                 <p className="mb-2 font-bold text-foreground">Índice P · Plagas</p>
                 {(['none', 'low', 'medium', 'high'] as const).map((level) => (
@@ -823,6 +844,7 @@ export function PhytoMap({
               </Marker>
             ))}
         </Map>
+        {showMapModeSelector && <MapModeSelector position="center" active={mapMode} onChange={setMapMode} />}
 
         {popup && popup.items.length > 0 && (
           <PhytoPointPanel
