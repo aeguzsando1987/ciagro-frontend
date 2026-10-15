@@ -1,3 +1,5 @@
+import { MapModeSelector } from './MapModeSelector'
+import { useMapMode } from '../lib/mapModes'
 import { useLayerAppearance, appearancePalette } from '@/features/analysis-colors/useLayerAppearance'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
@@ -29,6 +31,7 @@ interface Props {
   toolbarStart?: React.ReactNode
   className?: string
   mapSync?: MapCameraSyncBinding
+  showMapModeSelector?: boolean
   comparisonMode?: boolean
 }
 
@@ -216,7 +219,7 @@ function rectangularCell(
 
 export function PlantingMap({
   tenantId,
-  sessionId, plotId, toolbarStart, className, mapSync, comparisonMode = false,
+  sessionId, plotId, toolbarStart, className, mapSync, comparisonMode = false, showMapModeSelector = false,
 }: Props) {
   const instanceId = useId().replace(/:/g, '')
   const plotSourceId = `planting-plot-${instanceId}`
@@ -349,6 +352,7 @@ export function PlantingMap({
   }, [classes.length, visibleBuckets])
 
   const mapRef = useRef<MapRef>(null)
+  const { mapMode, setMapMode } = useMapMode(mapRef)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
   const plotGeometry = plotQuery.data?.geometry as unknown
   const plotFeature = useMemo(() => asFeature(plotGeometry), [plotGeometry])
@@ -442,8 +446,9 @@ export function PlantingMap({
           </Popup>
         )}
       </MapGL>
+      {showMapModeSelector && <MapModeSelector position="center" active={mapMode} onChange={setMapMode} />}
 
-      <div className="absolute left-3 top-3 z-20 flex items-start gap-2">
+      <div className="absolute left-3 top-3 z-40 flex items-start gap-2">
         {toolbarStart}
         <div className="relative w-64 rounded-xl border border-white/30 bg-white/95 shadow-lg backdrop-blur-sm dark:bg-slate-950/95">
           <button type="button" onClick={() => setMenuOpen((open) => !open)}
@@ -458,7 +463,7 @@ export function PlantingMap({
             <ChevronDown className={`h-4 w-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
           </button>
           {menuOpen && (
-            <div className="max-h-[60vh] overflow-y-auto border-t p-1.5">
+            <div className="max-h-[min(55vh,300px)] overflow-y-auto border-t p-1.5">
               {availableLayers.map((key) => {
                 const layer = PLANTING_LAYER_BY_KEY[key]
                 return (
@@ -477,7 +482,7 @@ export function PlantingMap({
         </div>
       </div>
 
-      <div className={`absolute bottom-3 left-3 z-20 rounded-xl border border-white/30 bg-white/95 shadow-lg backdrop-blur-sm dark:bg-slate-950/95 ${
+      <div className={`absolute bottom-3 left-3 z-20 ${menuOpen ? "hidden" : ""} rounded-xl border border-white/30 bg-white/95 shadow-lg backdrop-blur-sm dark:bg-slate-950/95 ${
         comparisonMode ? 'w-48 p-2' : 'w-64 p-3'
       }`}>
         <div className="mb-2">
