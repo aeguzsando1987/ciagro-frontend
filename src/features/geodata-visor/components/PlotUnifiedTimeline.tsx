@@ -1,9 +1,12 @@
+// CIAGRO_LINEA_PRO_REFINEMENT_20261020: SOLO sesiones
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useIsFetching } from '@tanstack/react-query'
 import {
   Bug,
   ChevronDown,
   ChevronUp,
+  PanelLeftClose,
+  PanelLeftOpen,
   Droplets,
   Layers3,
   Leaf,
@@ -355,10 +358,23 @@ export function PlotUnifiedTimeline({
   const [activeKinds, setActiveKinds] = useState<Set<TimelineKind>>(() => new Set(KIND_ORDER))
   const [selectedCycle, setSelectedCycle] = useState<string>('all')
   const [cyclePickedByUser, setCyclePickedByUser] = useState(false)
+  // CIAGRO_LINEAPRO_ONLY_UI_STATE_20261020: el ciclo se controla solo en memoria durante el uso de esta vista.
   const [isPlaying, setIsPlaying] = useState(false)
   const [playCursor, setPlayCursor] = useState<number | null>(null)
   const [detailRequested, setDetailRequested] = useState(false)
   const [scrubPercent, setScrubPercent] = useState<number | null>(null)
+  // CIAGRO_SESSION_FOCUSED_LAYOUT_20261020: panel vertical SOLO en ciclo/sesión.
+  const [sessionFiltersCollapsed, setSessionFiltersCollapsed] = useState(() => {
+    try { return typeof window !== 'undefined' && window.localStorage.getItem('ciagro.timeline.session.filters.collapsed') === '1' }
+    catch { return false }
+  })
+  const toggleSessionFilters = () => {
+    setSessionFiltersCollapsed((value) => {
+      try { window.localStorage.setItem('ciagro.timeline.session.filters.collapsed', value ? '0' : '1') }
+      catch { /* Persistencia opcional. */ }
+      return !value
+    })
+  }
 
   // CIAGRO_TIMELINE_COMPACT_LIVE_V1
   const liveSeekRef = useRef({ key: '', time: 0 })
@@ -913,7 +929,7 @@ export function PlotUnifiedTimeline({
   }
 
   const chartWidth = 1200
-  const chartHeight = 100
+  const chartHeight = mode === 'cycle' ? 73 : 100
   const padX = 48
   const padY = 10
   const padPercent = (padX / chartWidth) * 100
@@ -1045,9 +1061,9 @@ export function PlotUnifiedTimeline({
       className="flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border bg-background shadow-sm"
 
     >
-      <div className="flex flex-wrap items-start justify-between gap-2 px-3 pb-1.5 pt-2">
+      <div className={mode === 'cycle' ? 'flex flex-wrap items-center justify-between gap-1 px-2 py-1' : 'flex flex-wrap items-start justify-between gap-2 px-3 pb-1.5 pt-2'}>
         <div>
-          <h3 className="text-sm font-semibold">
+          <h3 className={mode === 'cycle' ? 'text-xs font-semibold' : 'text-sm font-semibold'}>
             {displayMode === 'parcel'
               ? 'Línea de tiempo agrícola · Parcela'
               : 'Línea de tiempo de índice vegetativo'}
@@ -1055,11 +1071,11 @@ export function PlotUnifiedTimeline({
               ? ' · ' + referenceItem.crop_name
               : ''}
           </h3>
-          <p className="text-[10px] text-muted-foreground">
+          {mode !== 'cycle' && <p className="text-[10px] text-muted-foreground">
             {displayMode === 'parcel'
               ? 'Resumen por tipo de sesión. Todas las filas comparten el mismo eje de fechas.'
               : 'Todos los eventos comparten el mismo eje de fechas; cada marcador abre su mapa.'}
-          </p>
+          </p>}
           {incompleteNotice && (
             <p role="status" className="text-[10px] font-medium text-warning-foreground">
               {incompleteNotice}
@@ -1120,9 +1136,55 @@ export function PlotUnifiedTimeline({
           }}
         />
       ) : (<>
+      <div className={mode === 'cycle' ? 'flex min-w-0 flex-col gap-2 px-2 pb-2 sm:flex-row' : ''}>
+        {mode === 'cycle' && (
+          <aside
+            aria-label="Filtros de eventos del lote"
+            className={`flex shrink-0 flex-col rounded-lg border border-default bg-background transition-[width] duration-150 ${sessionFiltersCollapsed ? 'sm:w-9' : 'sm:w-40'}`}
+          >
+            <button
+              type="button"
+              onClick={toggleSessionFilters}
+              aria-expanded={!sessionFiltersCollapsed}
+              aria-label={sessionFiltersCollapsed ? 'Mostrar filtros de eventos' : 'Ocultar filtros de eventos'}
+              className="flex h-7 w-full items-center justify-between gap-1 rounded-md px-1.5 text-[10px] font-semibold hover:bg-accent"
+            >
+              {sessionFiltersCollapsed
+                ? <PanelLeftOpen className="h-4 w-4 shrink-0" />
+                : <><span>Eventos del lote</span><PanelLeftClose className="h-4 w-4 shrink-0" /></>}
+            </button>
+            {!sessionFiltersCollapsed && (
+              <div className="grid grid-cols-2 gap-0.5 border-t border-border-light p-1 sm:grid-cols-1">
+                {KIND_ORDER.map((kind) => {
+                  const meta = KIND_META[kind]
+                  const count = sessionCounts[kind]
+                  const active = activeKinds.has(kind)
+                  return (
+                    <button
+                      key={kind}
+                      type="button"
+                      disabled={count === 0}
+                      aria-pressed={active && count > 0}
+                      onClick={() => toggleKind(kind)}
+                      title={`${active ? 'Ocultar' : 'Mostrar'} ${meta.label}`}
+                      className="flex min-w-0 items-center gap-1 rounded-md px-1 py-1 text-left text-[10px] hover:bg-accent disabled:cursor-default disabled:opacity-45"
+                      style={{ color: meta.color }}
+                    >
+                      <span className="shrink-0">{meta.icon}</span>
+                      <span className={`min-w-0 flex-1 truncate ${active ? '' : 'line-through'}`}>{meta.label} ({count})</span>
+                      <span aria-hidden="true" className={`flex h-3 w-3 shrink-0 items-center justify-center rounded-sm border ${active && count > 0 ? 'border-blue-600 bg-blue-600 text-white' : 'border-muted'}`}>
+                        {active && count > 0 ? '✓' : ''}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </aside>
+        )}
+        <div className={mode === 'cycle' ? 'min-w-0 flex-1 overflow-y-auto overflow-x-hidden' : ''} style={mode === 'cycle' ? { maxHeight: 'min(30dvh, 245px)' } : undefined}>
 
-
-      <div className="mx-3 mb-1 flex min-h-9 flex-wrap items-center gap-x-4 gap-y-1.5 rounded-md border bg-muted/20 px-3 py-1.5 text-[11px]">
+      <div className={mode === 'cycle' ? 'mx-1 mb-0.5 flex min-h-7 flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md border bg-muted/20 px-2 py-0.5 text-[10px]' : 'mx-3 mb-1 flex min-h-9 flex-wrap items-center gap-x-4 gap-y-1.5 rounded-md border bg-muted/20 px-3 py-1.5 text-[11px]'}>
         {selectedSession && selectedSession.kind !== 'ndvi' && selectedTreeSession ? (
           <>
             <span className="font-semibold">Sesión seleccionada:</span>
@@ -1153,7 +1215,7 @@ export function PlotUnifiedTimeline({
         )}
       </div>
 
-      <div className="border-t bg-muted/[0.08] px-3 pb-1.5 pt-1.5">
+      <div className={mode === 'cycle' ? 'border-t bg-muted/[0.08] px-1.5 pb-0.5 pt-0.5' : 'border-t bg-muted/[0.08] px-3 pb-1.5 pt-1.5'}>
         {realNdvi.length > 0 && (
         <div className="mb-0.5 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-3 text-[9px]">
@@ -1299,7 +1361,7 @@ export function PlotUnifiedTimeline({
               </div>
             )}
 
-            <div className="relative h-[30px]" aria-label="Eventos de la parcela en la línea de tiempo">
+            <div className={mode === 'cycle' ? 'relative h-[25px]' : 'relative h-[30px]'} aria-label="Eventos de la parcela en la línea de tiempo">
               {axisLabels.map((item) => (
                 <span
                   key={item.left}
@@ -1376,7 +1438,7 @@ export function PlotUnifiedTimeline({
           <div className="flex min-h-10 items-center justify-center text-[10px] text-muted-foreground">Sin sesiones con datos cargados para este filtro.</div>
         )}
 
-        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 pt-0.5 text-[10px]">
+        {mode !== 'cycle' && <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 pt-0.5 text-[10px]">
           {KIND_ORDER.filter((kind) => sessionCounts[kind] > 0).map((kind) => {
             const meta = KIND_META[kind]
             const active = activeKinds.has(kind)
@@ -1395,6 +1457,8 @@ export function PlotUnifiedTimeline({
               </button>
             )
           })}
+        </div>}
+      </div>
         </div>
       </div>
       </>))}

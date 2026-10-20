@@ -1,3 +1,4 @@
+// CIAGRO_LINEA_PRO_REFINEMENT_20261020: el modo PARCELA conserva su timeline
 /**
  * Dashboard del Visor de Datos Agrícolas: muestra estadísticas según el nivel
  * seleccionado en el explorador. Las estadísticas se calculan en cliente (decisión
@@ -80,6 +81,8 @@ interface DashboardProps {
   searchResult?: AdvancedSearchResult | null
   /** Reduce chrome y listas duplicadas para reservar ancho a la comparacion A/B. */
   comparisonMode?: boolean
+  /** CIAGRO_SESSION_FOCUSED_LAYOUT_20261020: ocultar chrome sólo en sesión. */
+  focusedSession?: boolean
   mapSync?: MapCameraSyncBinding
 }
 
@@ -337,7 +340,7 @@ function RanchView({
   )
 
   return (
-    <div ref={viewRef} className="flex h-full min-h-0 flex-col gap-2.5 overflow-y-auto pr-1">
+    <div ref={viewRef} className={`flex h-full min-h-0 flex-col overflow-y-auto pr-1 ${isSessionLevel ? 'gap-1.5' : 'gap-2.5'}`}>
       {!statsHidden && stats && <StatGrid loading={plots.isLoading} stats={stats} />}
       {!statsHidden && isPlotLevel && <PlotStats plotId={selection.plot!.id} />}
       {!statsHidden &&
@@ -359,7 +362,8 @@ function RanchView({
           datacentralId={selection.datacentral?.id}
         />
       )}
-      {isPlotLevel && !comparisonMode && (
+      {/* La línea de tiempo de PARCELA permanece exactamente arriba y sin cambios. */}
+      {selection.level === 'plot' && !comparisonMode && (
         <PlotUnifiedTimeline
           mode={selection.level === 'plot' ? 'parcel' : 'cycle'}
           plotId={selection.plot!.id}
@@ -375,8 +379,7 @@ function RanchView({
       >
         {isSessionLevel ? (
           isNdviSession ? (
-            /* La línea de tiempo unificada vive arriba. Aquí se muestra únicamente el mapa
-               de la sesión NDVI seleccionada para no duplicar controles ni gráficas. */
+            /* En sesión el mapa va ARRIBA y la línea de tiempo unificada ABAJO. */
             <NdviMap
               showMapModeSelector={!comparisonMode}
               sessionId={selection.session!.id}
@@ -473,6 +476,17 @@ function RanchView({
           />
         )}
       </div>
+      {/* CIAGRO_SESSION_FOCUSED_LAYOUT_20261020: sólo sesiones; el Play queda
+          visible incluso cuando el cuerpo de la línea de tiempo está contraído. */}
+      {isSessionLevel && !comparisonMode && (
+        <PlotUnifiedTimeline
+          mode="cycle"
+          plotId={selection.plot!.id}
+          selectedSession={selection.session ?? null}
+          onSelectSession={(session) => onSelect(selectSession(selection, session))}
+          defaultCollapsed
+        />
+      )}
     </div>
   )
 }
@@ -558,6 +572,7 @@ export function GeodataDashboard({
   onSelect,
   searchResult = null,
   comparisonMode = false,
+  focusedSession = false,
   mapSync,
 }: DashboardProps) {
   const [statsHidden, setStatsHidden] = useState(true)
@@ -570,7 +585,7 @@ export function GeodataDashboard({
 
   return (
     <div className="flex h-full flex-col gap-2.5">
-      {!comparisonMode && (
+      {!comparisonMode && !(focusedSession && selection.level === 'session') && (
         <div className="flex items-baseline justify-between gap-2">
           {/* Las migas sustituyen al titulo suelto: decian el nombre del nodo actual
               pero no como se llego a el, que es lo que el usuario necesita saber
@@ -602,7 +617,7 @@ export function GeodataDashboard({
         <LevelBody
           selection={selection}
           onSelect={onSelect}
-          statsHidden={comparisonMode || statsHidden}
+          statsHidden={comparisonMode || statsHidden || (focusedSession && selection.level === 'session')}
           searchResult={searchResult}
           comparisonMode={comparisonMode}
           mapSync={mapSync}

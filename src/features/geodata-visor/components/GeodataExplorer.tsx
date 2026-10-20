@@ -355,7 +355,10 @@ function PlotNode({ depth, plotRef, base, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const [expanded, setExpanded] = useState(false)
+  // CIAGRO_LINEA_PRO_REFINEMENT_20261020: expandir la ruta restaurada, sin forzar cada clic de contraer.
+  const selectedBelow = selection?.plot?.id === plotRef.id && selection.level === 'session'
+  const [expanded, setExpanded] = useState(Boolean(selectedBelow))
+  useEffect(() => { if (selectedBelow) setExpanded(true) }, [selectedBelow])
   const activeId = activeIdFor(selection)
   return (
     <>
@@ -418,7 +421,10 @@ function RanchNode({ depth, ranchRef, plots, base, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const [expanded, setExpanded] = useState(false)
+  // CIAGRO_LINEA_PRO_REFINEMENT_20261020: expandir la ruta restaurada, sin forzar cada clic de contraer.
+  const selectedBelow = selection?.ranch?.id === ranchRef.id && (selection.level === 'plot' || selection.level === 'session')
+  const [expanded, setExpanded] = useState(Boolean(selectedBelow))
+  useEffect(() => { if (selectedBelow) setExpanded(true) }, [selectedBelow])
   const activeId = activeIdFor(selection)
   return (
     <>
@@ -497,7 +503,10 @@ function ProducerNode({ depth, producerRef, ranches, base, selection, onSelect }
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const [expanded, setExpanded] = useState(false)
+  // CIAGRO_LINEA_PRO_REFINEMENT_20261020: expandir la ruta restaurada, sin forzar cada clic de contraer.
+  const selectedBelow = selection?.producer?.id === producerRef.id && ['ranch', 'plot', 'session'].includes(selection.level)
+  const [expanded, setExpanded] = useState(Boolean(selectedBelow))
+  useEffect(() => { if (selectedBelow) setExpanded(true) }, [selectedBelow])
   const activeId = activeIdFor(selection)
   return (
     <>
@@ -577,7 +586,10 @@ function DataCentralNode({ depth, dcRef, org, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const [expanded, setExpanded] = useState(false)
+  // CIAGRO_LINEA_PRO_REFINEMENT_20261020: expandir la ruta restaurada, sin forzar cada clic de contraer.
+  const selectedBelow = selection?.datacentral?.id === dcRef.id && ['producer', 'ranch', 'plot', 'session'].includes(selection.level)
+  const [expanded, setExpanded] = useState(Boolean(selectedBelow))
+  useEffect(() => { if (selectedBelow) setExpanded(true) }, [selectedBelow])
   const activeId = activeIdFor(selection)
   return (
     <>
@@ -632,7 +644,10 @@ function OrgNode({ orgRef, selection, onSelect }: {
   selection: VisorSelection | null
   onSelect: (sel: VisorSelection) => void
 }) {
-  const [expanded, setExpanded] = useState(false)
+  // CIAGRO_LINEA_PRO_REFINEMENT_20261020: expandir la ruta restaurada, sin forzar cada clic de contraer.
+  const selectedBelow = selection?.org.id === orgRef.id && selection.level !== 'org'
+  const [expanded, setExpanded] = useState(Boolean(selectedBelow))
+  useEffect(() => { if (selectedBelow) setExpanded(true) }, [selectedBelow])
   const activeId = activeIdFor(selection)
   const org = { id: orgRef.id, name: orgRef.name }
   return (

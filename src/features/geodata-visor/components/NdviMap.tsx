@@ -42,7 +42,7 @@ import { buildNdviClassAreas, type ClassBand } from '../lib/ndviClassArea'
 import { copernicusAttribution } from '../lib/ndviAttribution'
 import { NdviClassAreaCard } from './NdviClassAreaCard'
 import { GpaLoader } from '@/components/ui/gpa-loader'
-import { CloudOff } from 'lucide-react'
+import { ChevronDown, ChevronUp, CloudOff } from 'lucide-react'
 
 /**
  * Indices que se ofrecen en el visor, agrupados por lo que interpreta el agronomo.
@@ -156,6 +156,17 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
   // Solo para el cursor "pointer" sobre un punto clicable.
   const [hoveringPoint, setHoveringPoint] = useState(false)
   const [areaCardOpen, setAreaCardOpen] = useState(false)
+  // CIAGRO_LINEA_PRO_REFINEMENT_20261020: leyenda NDVI del mapa contraíble.
+  const [legendOpen, setLegendOpen] = useState(() => {
+    try { return window.localStorage.getItem('ciagro.ndvi.map.legend-open') !== '0' }
+    catch { return true }
+  })
+  const toggleLegend = () => setLegendOpen((previous) => {
+    const next = !previous
+    try { window.localStorage.setItem('ciagro.ndvi.map.legend-open', next ? '1' : '0') }
+    catch { /* leyenda sigue funcionando */ }
+    return next
+  })
 
   /* =====================================================
      SINCRONIZACIÓN ESTRICTA CON PLAY
@@ -620,17 +631,24 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
         <p className="mt-1 text-[10px] italic text-gray-400">Deslice para ver datos puntual</p>
       </div>
 
-      <div className="absolute bottom-3 left-3 z-10 w-56 rounded-md bg-white/90 p-3 shadow">
-        {isPointsLoading ? (
+      <div className={`absolute bottom-3 left-3 z-10 rounded-md bg-white/90 shadow ${legendOpen ? 'w-56 p-3' : 'w-auto max-w-[220px] px-2 py-1.5'}`}>
+        <button
+          type="button"
+          onClick={toggleLegend}
+          aria-expanded={legendOpen}
+          aria-label={legendOpen ? 'Contraer leyenda NDVI' : 'Mostrar leyenda NDVI'}
+          className={`flex w-full items-center justify-between gap-2 text-left text-xs font-semibold text-gray-700 ${legendOpen ? 'mb-2' : ''}`}
+        >
+          <span className="truncate">{INDICES.find((i) => i.key === indexKey)?.label} · {points?.length ?? 0} puntos</span>
+          {legendOpen ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronUp className="h-4 w-4 shrink-0" />}
+        </button>
+        {legendOpen && (isPointsLoading ? (
           <div role="status" className="flex items-center gap-2 text-sm font-medium text-secondary">
             <GpaLoader size="sm" />
             <span>Cargando puntos NDVI…</span>
           </div>
         ) : !surface ? (
           <div>
-            <p className="mb-2 text-xs font-semibold text-gray-700">
-              {INDICES.find((i) => i.key === indexKey)?.label}
-            </p>
             <dl className="mb-2 grid grid-cols-3 gap-x-2 gap-y-0.5 rounded bg-gray-100/70 px-2 py-1 text-[10px] text-gray-600">
               <div className="flex justify-between gap-1"><dt>Media</dt><dd>—</dd></div>
               <div className="flex justify-between gap-1"><dt>Mín</dt><dd>—</dd></div>
@@ -648,9 +666,6 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
           </div>
         ) : (
           <div>
-            <p className="mb-2 text-xs font-semibold text-gray-700">
-              {INDICES.find((i) => i.key === indexKey)?.label} · {points?.length ?? 0} puntos
-            </p>
 
             {/* Estadisticas del indice activo, del mismo endpoint que alimenta la tabla
                 de la sesion: asi el visor y el task-manager nunca muestran numeros
@@ -770,7 +785,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
               <span>Sin datos</span>
             </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   )
