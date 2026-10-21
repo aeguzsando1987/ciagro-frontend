@@ -19,6 +19,7 @@ import {
 } from '@/features/geodata-visor/lib/mapCameraSync'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { LoadingState } from '@/components/ui/loading-state'
+import { useSessionMapReady, type OnSessionMapReady } from '@/features/geodata-visor/hooks/useSessionMapReady'
 import { PhytoPointPanel } from './PhytoPointPanel'
 import { usePlotGeometry } from '../hooks/usePlotGeometry'
 import { usePhytoCheckPoints, type PhytoCheckpointProps } from '../hooks/usePhytoCheckPoints'
@@ -48,6 +49,7 @@ interface PhytoMapProps {
   comparisonMode?: boolean
   mapSync?: MapCameraSyncBinding
   showMapModeSelector?: boolean
+  onReadyChange?: OnSessionMapReady
 }
 
 function bboxFromCoords(coords: number[][]): [number, number, number, number] {
@@ -236,6 +238,7 @@ export function PhytoMap({
   comparisonMode = false,
   mapSync,
   showMapModeSelector = false,
+  onReadyChange,
 }: PhytoMapProps) {
   const { data: fc, isLoading } = usePhytoCheckPoints(sessionId, enabled)
   const { data: plot } = usePlotGeometry(plotId)
@@ -421,6 +424,9 @@ export function PhytoMap({
     })
   }, [mapBounds])
 
+  const markSessionReady = useSessionMapReady(
+    mapRef, sessionId, !!fc && !!plot && !isLoading, onReadyChange,
+  )
   const isEmpty = !isLoading && fc && fc.features.length === 0
 
   function openPointPopup(marker: (typeof indexMarkers)[number]) {
@@ -717,6 +723,7 @@ export function PhytoMap({
 
         <Map
           ref={mapRef}
+          onIdle={markSessionReady}
           onMove={handleMapMove}
           initialViewState={
             mapBounds

@@ -24,13 +24,13 @@ import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import { useMapCameraSync, type MapCameraSyncBinding } from '../lib/mapCameraSync'
 import { useNdviPoints, type NdviPoint } from '../hooks/useNdviPoints'
 import {
-  buildInterpolatedImage,
   quantileBreaks,
   ABSOLUTE_BANDS_SMOOTHING_FACTOR,
   DEFAULT_SMOOTHING_FACTOR,
   type InterpPoint,
   type ColorBand,
 } from '../lib/ndviInterpolation'
+import { useNdviInterpolatedSurface } from '../hooks/useNdviInterpolatedSurface'
 import {
   useNdviSessionVariableConfig,
   readVariableConfig,
@@ -111,7 +111,7 @@ interface NdviMapProps {
   mapSync?: MapCameraSyncBinding
   showMapModeSelector?: boolean
   /** Informa al reproductor cuando los datos de la sesión actual ya terminaron de cargar. */
-  onReadyChange?: (ready: boolean) => void
+  onReadyChange?: (ready: boolean, sessionId: string) => void
 }
 
 /** Propiedades que viajan en cada feature de punto (obj_id + índices). */
@@ -131,8 +131,8 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
   const containerRef = useRef<HTMLDivElement>(null)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
-  const { data: plot, isLoading: isPlotLoading } = usePlotGeometry(plotId ?? null)
-  const { data: points, isLoading: isPointsLoading } = useNdviPoints(sessionId)
+  const { data: plot, isLoading: isPlotLoading, dataUpdatedAt: plotUpdatedAt } = usePlotGeometry(plotId ?? null)
+  const { data: points, isLoading: isPointsLoading, dataUpdatedAt: pointsUpdatedAt } = useNdviPoints(sessionId)
 
   // Una fecha SIN NDVI puede tener cero puntos o puntos cuyo NDVI venga en null.
   // Importante: NDVI = 0 SI es un dato real y por eso `typeof 0 === 'number'` lo conserva.
@@ -143,7 +143,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
   // servidor). Un mismo productor puede estar asignado a CIAgros de organizaciones
   // distintas, así que sin ámbito el backend caería a la asignación más antigua y ambas
   // verían la misma config. Si no hay alcance/config, el visor usa el gradiente.
-  const { data: varConfig, isLoading: isConfigLoading } = useNdviSessionVariableConfig(sessionId, { tenantId, dcId })
+  const { data: varConfig, isLoading: isConfigLoading, dataUpdatedAt: configUpdatedAt } = useNdviSessionVariableConfig(sessionId, { tenantId, dcId })
   // Mismo endpoint que la tabla de resumen de la sesion en el task-manager.
   const { data: varStats, isLoading: isStatsLoading } = useNdviVariableStats(sessionId)
 
@@ -167,91 +167,6 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
     catch { /* leyenda sigue funcionando */ }
     return next
   })
-
-  /* =====================================================
-     SINCRONIZACIÓN ESTRICTA CON PLAY
-
-     No marcamos el mapa como listo solamente porque terminó
-     el fetch. El reproductor debe esperar a que:
-
-     1. geometría, puntos, configuración y estadísticas hayan
-        terminado de cargar;
-     2. MapLibre haya renderizado las fuentes/capas de la sesión;
-     3. el mapa emita `idle`, que significa que ya no tiene
-        trabajo de renderizado pendiente para ese cuadro.
-
-     Así evitamos brincar al siguiente NDVI mientras todavía se
-     está dibujando el mapa actual.
-     ===================================================== */
-
-  const readySessionRef = useRef<string | null>(null)
-
-  const mapDataReady =
-    !isPlotLoading &&
-    !isPointsLoading &&
-    !isConfigLoading &&
-    !isStatsLoading &&
-    plot !== undefined &&
-    points !== undefined
-
-  useEffect(() => {
-    readySessionRef.current = null
-    onReadyChange?.(false)
-  }, [sessionId, onReadyChange])
-
-  const handleMapIdle = () => {
-    if (!mapDataReady) return
-
-    if (readySessionRef.current === sessionId) {
-      return
-    }
-
-    readySessionRef.current = sessionId
-    onReadyChange?.(true)
-  }
-
-  /*
-   * Caso importante para Play:
-   * puede ocurrir que MapLibre haya emitido `idle` ANTES de que la última
-   * consulta de React Query termine. En ese caso no necesariamente habrá otro
-   * evento `idle` y el reproductor se quedaría esperando para siempre.
-   *
-   * Cuando todos los datos pasan a ready, comprobamos el estado actual del
-   * mapa. Si ya está cargado lo marcamos listo en el siguiente frame; si aún
-   * está procesando, esperamos explícitamente al próximo `idle`.
-   */
-  useEffect(() => {
-    if (!mapDataReady || readySessionRef.current === sessionId) return
-
-    const map = mapRef.current?.getMap()
-    if (!map) return
-
-    let cancelled = false
-    let frame: number | null = null
-
-    const markReady = () => {
-      if (cancelled || readySessionRef.current === sessionId) return
-      readySessionRef.current = sessionId
-      onReadyChange?.(true)
-    }
-
-    frame = window.requestAnimationFrame(() => {
-      if (cancelled) return
-
-      if (map.loaded() && !map.isMoving()) {
-        markReady()
-        return
-      }
-
-      map.once('idle', markReady)
-    })
-
-    return () => {
-      cancelled = true
-      if (frame !== null) window.cancelAnimationFrame(frame)
-      map.off('idle', markReady)
-    }
-  }, [mapDataReady, onReadyChange, sessionId])
 
   const activeStat = useMemo(
     () => varStats?.variables.find((v) => v.key === (indexKey as string)) ?? null,
@@ -313,24 +228,133 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
     const r = plot?.geometry?.coordinates?.[0]
     return r && r.length >= 3 ? (r as number[][]) : null
   }, [plot])
-  // Superficie interpolada del indice activo, recortada al casco de los puntos Y a la parcela.
-  // Superficie interpolada del índice activo, recortada a la parcela.
-  const surface = useMemo(() => {
-    if (!ring || !points || points.length === 0) return null
-    const interp: InterpPoint[] = []
-    for (const p of points) {
-      const v = p[indexKey]
-      if (typeof v === 'number' && p.geom) {
-        interp.push({ lon: p.geom.coordinates[0]!, lat: p.geom.coordinates[1]!, value: v })
-      }
+  // El cálculo pesado de kriging corre en un Worker y se conserva en RAM por
+  // sesión/índice. Al cambiar de sesión NO se reutiliza una imagen anterior.
+  const interpPoints = useMemo<InterpPoint[]>(() => {
+    if (!points) return []
+    return points.flatMap((p) => {
+      const value = p[indexKey]
+      return typeof value === 'number' && p.geom
+        ? [{ lon: p.geom.coordinates[0]!, lat: p.geom.coordinates[1]!, value }]
+        : []
+    })
+  }, [points, indexKey])
+  const surfaceQuery = useNdviInterpolatedSurface({
+    sessionId,
+    scope: tenantId ?? dcId ?? '',
+    plotId,
+    indexKey: indexKey as string,
+    pointsVersion: pointsUpdatedAt,
+    plotVersion: plotUpdatedAt,
+    configVersion: configUpdatedAt,
+    points: interpPoints,
+    ring,
+    manualBands,
+    quartileColors,
+    smoothing: manualBands ? ABSOLUTE_BANDS_SMOOTHING_FACTOR : DEFAULT_SMOOTHING_FACTOR,
+  })
+  // Sin puntos suficientes no hay superficie que esperar. Errores se muestran
+  // en el mapa; el reproductor no se queda bloqueado para siempre.
+  const shouldInterpolate = Boolean(ring && interpPoints.length >= 3)
+  const surface = shouldInterpolate ? surfaceQuery.data ?? null : null
+
+  /* =====================================================
+     SINCRONIZACIÓN ESTRICTA CON PLAY
+
+     No marcamos el mapa como listo solamente porque terminó
+     el fetch. El reproductor debe esperar a que:
+
+     1. geometría, puntos, configuración y estadísticas hayan
+        terminado de cargar;
+     2. MapLibre haya renderizado las fuentes/capas de la sesión;
+     3. el mapa emita `idle`, que significa que ya no tiene
+        trabajo de renderizado pendiente para ese cuadro.
+
+     Así evitamos brincar al siguiente NDVI mientras todavía se
+     está dibujando el mapa actual.
+     ===================================================== */
+
+  // La preparación debe invalidarse también cuando cambia el índice o cualquiera
+  // de las fuentes que alimentan la superficie. Sólo usar sessionId deja una
+  // ventana donde Play puede considerar listo un mapa que aún muestra datos
+  // de la versión anterior.
+  const readinessKey = [
+    sessionId,
+    indexKey,
+    pointsUpdatedAt,
+    plotUpdatedAt,
+    configUpdatedAt,
+    surfaceQuery.dataUpdatedAt,
+  ].join(':')
+  const readyKeyRef = useRef<string | null>(null)
+
+  const mapDataReady =
+    !isPlotLoading &&
+    !isPointsLoading &&
+    !isConfigLoading &&
+    !isStatsLoading &&
+    (!shouldInterpolate || (!surfaceQuery.isPending && !surfaceQuery.isError)) &&
+    plot !== undefined &&
+    points !== undefined
+
+  useEffect(() => {
+    readyKeyRef.current = null
+    onReadyChange?.(false, sessionId)
+  }, [readinessKey, sessionId, onReadyChange])
+
+  const handleMapIdle = () => {
+    if (!mapDataReady) return
+
+    if (readyKeyRef.current === readinessKey) {
+      return
     }
-    if (interp.length < 3) return null
-    // Con bandas manuales los cortes son ABSOLUTOS: suavizar desplazaria el valor de cada
-    // celda y la pintaria de otra clase. En cuartiles los cortes se recalculan desde la
-    // propia superficie, asi que ahi el suavizado no falsea nada y se conserva.
-    const smoothing = manualBands ? ABSOLUTE_BANDS_SMOOTHING_FACTOR : DEFAULT_SMOOTHING_FACTOR
-    return buildInterpolatedImage(interp, 'kriging', manualBands, quartileColors, 260, smoothing, ring)
-  }, [ring, points, indexKey, manualBands, quartileColors])
+
+    readyKeyRef.current = readinessKey
+    onReadyChange?.(true, sessionId)
+  }
+
+  /*
+   * Caso importante para Play:
+   * puede ocurrir que MapLibre haya emitido `idle` ANTES de que la última
+   * consulta de React Query termine. En ese caso no necesariamente habrá otro
+   * evento `idle` y el reproductor se quedaría esperando para siempre.
+   *
+   * Cuando todos los datos pasan a ready, comprobamos el estado actual del
+   * mapa. Si ya está cargado lo marcamos listo en el siguiente frame; si aún
+   * está procesando, esperamos explícitamente al próximo `idle`.
+   */
+  useEffect(() => {
+    if (!mapDataReady || readyKeyRef.current === readinessKey) return
+
+    const map = mapRef.current?.getMap()
+    if (!map) return
+
+    let cancelled = false
+    let frame: number | null = null
+
+    const markReady = () => {
+      if (cancelled || readyKeyRef.current === readinessKey) return
+      readyKeyRef.current = readinessKey
+      onReadyChange?.(true, sessionId)
+    }
+
+    frame = window.requestAnimationFrame(() => {
+      if (cancelled) return
+
+      if (map.loaded() && !map.isMoving()) {
+        markReady()
+        return
+      }
+
+      map.once('idle', markReady)
+    })
+
+    return () => {
+      cancelled = true
+      if (frame !== null) window.cancelAnimationFrame(frame)
+      map.off('idle', markReady)
+    }
+  }, [mapDataReady, onReadyChange, readinessKey, sessionId])
 
   // Bandas con las que se mide la superficie: las manuales del tenant, o los tramos por
   // cuantiles ya calculados para la leyenda. El modulo de area no distingue estrategias.
@@ -646,6 +670,18 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
           <div role="status" className="flex items-center gap-2 text-sm font-medium text-secondary">
             <GpaLoader size="sm" />
             <span>Cargando puntos NDVI…</span>
+          </div>
+        ) : shouldInterpolate && surfaceQuery.isPending ? (
+          <div role="status" className="flex items-center gap-2 text-xs font-medium text-secondary">
+            <GpaLoader size="sm" />
+            <span>Preparando mapa NDVI…</span>
+          </div>
+        ) : shouldInterpolate && surfaceQuery.isError ? (
+          <div role="alert" className="space-y-2 text-xs text-red-700">
+            <p>No se pudo preparar la superficie NDVI.</p>
+            <button type="button" className="rounded border px-2 py-1" onClick={() => void surfaceQuery.refetch()}>
+              Reintentar
+            </button>
           </div>
         ) : !surface ? (
           <div>

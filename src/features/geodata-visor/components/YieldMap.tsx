@@ -19,6 +19,7 @@ import {
 import { yieldPointsToPointFeatures, yieldPointsToRectangles } from '@/features/yield-map/lib/yieldMapGeometry'
 import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import { LoadingState } from '@/components/ui/loading-state'
+import { useSessionMapReady, type OnSessionMapReady } from '../hooks/useSessionMapReady'
 import type { MapCameraSyncBinding } from '../lib/mapCameraSync'
 import { useMapCameraSync } from '../lib/mapCameraSync'
 
@@ -34,6 +35,7 @@ interface YieldMapProps {
   showMapModeSelector?: boolean
   /** En comparación A/B el resumen inicia contraído para no tapar el mapa. */
   comparisonMode?: boolean
+  onReadyChange?: OnSessionMapReady
 }
 
 const LAYER_ICONS: Record<YieldLayerKey, React.ReactNode> = {
@@ -97,6 +99,7 @@ export function YieldMap({
   mapSync,
   showMapModeSelector = false,
   comparisonMode = false,
+  onReadyChange,
 }: YieldMapProps) {
   const instanceId = useId().replace(/:/g, '')
   const plotSourceId = `yield-plot-${instanceId}`
@@ -121,7 +124,8 @@ export function YieldMap({
   const statsQuery = useYieldMapStats(sessionId)
   const plotQuery = usePlotGeometry(plotId)
   const points = pointsQuery.data ?? []
-  const {data: appearance} = useLayerAppearance('yield_map',tenantId)
+  const appearanceQuery = useLayerAppearance('yield_map',tenantId)
+  const appearance = appearanceQuery.data
   const baseLayer = YIELD_LAYERS.find((layer) => layer.key === activeKey) ?? YIELD_LAYERS[0]!
   const layerAppearance = appearance?.layers[activeKey]
   const activeLayer = useMemo(() => ({...baseLayer,palette:appearancePalette(baseLayer.palette,layerAppearance)}),[baseLayer,layerAppearance])
@@ -191,11 +195,16 @@ export function YieldMap({
   const activeValueCount = values.filter((value) => typeof value === 'number' && Number.isFinite(value)).length
   const activeLayerHasData = activeValueCount > 0
   const isLoading = pointsQuery.isLoading || plotQuery.isLoading
+  const markSessionReady = useSessionMapReady(
+    mapRef, sessionId, !!pointsQuery.data && !!plotQuery.data &&
+      !pointsQuery.isError && !plotQuery.isError && !isLoading && !appearanceQuery.isLoading, onReadyChange,
+  )
 
   return (
     <div className={`relative h-full min-h-[430px] w-full overflow-hidden bg-muted ${className ?? ''}`}>
       <MapGL
         ref={mapRef}
+        onIdle={markSessionReady}
         mapStyle={ESRI_STYLE}
         initialViewState={{ longitude: -101, latitude: 20.7, zoom: 6 }}
         maxZoom={20}

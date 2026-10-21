@@ -503,6 +503,16 @@ export function buildInterpolatedImage(
 ): InterpolatedImage | null {
   const field = buildValueGrid(pts, method, gridSize, smoothingFactor, ring)
   if (!field) return null
+  return colorizeValueGrid(pts, field, bands, quartileColors)
+}
+
+/** Colorea exactamente la misma malla, venga del hilo principal o de un Web Worker. */
+export function colorizeValueGrid(
+  pts: InterpPoint[],
+  field: ValueGrid,
+  bands: ColorBand[] | null = null,
+  quartileColors: string[] | null = null,
+): InterpolatedImage | null {
   const { grid, w, h, xmin, xmax, ymin, ymax } = field
 
   const values = pts.map((p) => p.value)

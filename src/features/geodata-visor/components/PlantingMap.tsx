@@ -20,6 +20,7 @@ import {
 } from '@/features/planting-map/lib/plantingMapLayers'
 import type { PlantingLayerKey } from '@/features/planting-map/types'
 import { LoadingState } from '@/components/ui/loading-state'
+import { useSessionMapReady, type OnSessionMapReady } from '../hooks/useSessionMapReady'
 import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import type { MapCameraSyncBinding } from '../lib/mapCameraSync'
 import { useMapCameraSync } from '../lib/mapCameraSync'
@@ -34,6 +35,7 @@ interface Props {
   mapSync?: MapCameraSyncBinding
   showMapModeSelector?: boolean
   comparisonMode?: boolean
+  onReadyChange?: OnSessionMapReady
 }
 
 function collectPositions(value: unknown, output: [number, number][]) {
@@ -221,6 +223,7 @@ function rectangularCell(
 export function PlantingMap({
   tenantId,
   sessionId, plotId, toolbarStart, className, mapSync, comparisonMode = false, showMapModeSelector = false,
+  onReadyChange,
 }: Props) {
   const instanceId = useId().replace(/:/g, '')
   const plotSourceId = `planting-plot-${instanceId}`
@@ -255,7 +258,8 @@ export function PlantingMap({
     ? availableLayers[0]!
     : preferredKey
 
-  const {data: appearance} = useLayerAppearance('planting_map',tenantId)
+  const appearanceQuery = useLayerAppearance('planting_map',tenantId)
+  const appearance = appearanceQuery.data
   const layerAppearance = appearance?.layers[activeKey]
   const baseLayer = PLANTING_LAYER_BY_KEY[activeKey]
   const activeLayer = useMemo(() => ({...baseLayer,palette:appearancePalette(baseLayer.palette,layerAppearance)}),[baseLayer,layerAppearance])
@@ -389,12 +393,19 @@ export function PlantingMap({
   }
 
   const isLoading = detailQuery.isLoading || plotQuery.isLoading || statsQuery.isLoading || valuesQuery.isLoading
+  const markSessionReady = useSessionMapReady(
+    mapRef, sessionId, !!detailQuery.data && !!plotQuery.data && !!statsQuery.data &&
+      (availableLayers.length === 0 || !!valuesQuery.data) &&
+      !detailQuery.isError && !plotQuery.isError && !statsQuery.isError && !valuesQuery.isError &&
+      !isLoading && !appearanceQuery.isLoading, onReadyChange,
+  )
   const numericStats = stats?.numeric?.[activeKey]
 
   return (
     <div className={`relative h-full min-h-[430px] w-full overflow-hidden bg-muted ${className ?? ''}`}>
       <MapGL
         ref={mapRef}
+        onIdle={markSessionReady}
         mapStyle={ESRI_STYLE}
         initialViewState={{ longitude: -101, latitude: 20.7, zoom: 6 }}
         maxZoom={21}

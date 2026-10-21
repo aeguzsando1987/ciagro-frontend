@@ -34,6 +34,12 @@ interface PlotUnifiedTimelineProps {
   onSelectSession: (session: VisorSession) => void
   defaultCollapsed?: boolean
   mode?: 'parcel' | 'cycle'
+  /** Sólo en modo sesión NDVI: confirmación del mapa realmente pintado. */
+  mapReady?: boolean
+  /** Cancelar una transición NDVI al pausar, buscar o cambiar filtros. */
+  onCancelPendingSelection?: () => void
+  /** Detener Play si el siguiente mapa no se pudo preparar. */
+  stopToken?: number
 }
 
 type TimelineKind = SessionKind
@@ -352,6 +358,9 @@ export function PlotUnifiedTimeline({
   selectedSession = null,
   onSelectSession,
   mode = 'parcel',
+  mapReady,
+  onCancelPendingSelection,
+  stopToken,
 }: PlotUnifiedTimelineProps) {
   const plotTree = usePlotSessionTree(plotId)
   const ndviQuery = useNdviTimeline(plotId)
@@ -704,8 +713,13 @@ export function PlotUnifiedTimeline({
       selectedSession?.id === current.id && selectedSession?.kind === current.kind
     if (!selectedMatches) return
 
-    // No avanzamos mientras cualquier query de la sesión seleccionada siga cargando.
-    if (selectedSessionFetches > 0) return
+    // Cada tipo de mapa confirma que sus datos y MapLibre están listos.
+    // En nivel parcela (sin mapReady) conservamos la política anterior.
+    if (mode === 'cycle' && mapReady !== undefined) {
+      if (!mapReady) return
+    } else if (selectedSessionFetches > 0) {
+      return
+    }
 
     // Una vez lista, la dejamos visible al menos medio segundo antes de avanzar.
     const timer = window.setTimeout(() => {
@@ -722,6 +736,8 @@ export function PlotUnifiedTimeline({
   }, [
     isPlaying,
     onSelectSession,
+    mapReady,
+    mode,
     playCursor,
     playable,
     selectedSession?.id,
@@ -729,10 +745,14 @@ export function PlotUnifiedTimeline({
     selectedSessionFetches,
   ])
 
+  useEffect(() => {
+    if (stopToken) setIsPlaying(false)
+  }, [stopToken])
+
   const stopPlay = () => {
-    // Solo pausa. NO borramos playCursor para poder continuar
-    // exactamente desde la sesión donde se detuvo.
+    // La pausa conserva el cursor, pero nunca deja pendiente un cambio oculto.
     setIsPlaying(false)
+    onCancelPendingSelection?.()
   }
 
   const startPlay = () => {

@@ -46,6 +46,7 @@ import { SoilMapStatsCard } from './SoilMapStatsCard'
 import { SoilMapVariableStatsCard } from './SoilMapVariableStatsCard'
 import { SoilElevationSummary } from './SoilElevationSummary'
 import { LoadingState } from '@/components/ui/loading-state'
+import { useSessionMapReady, type OnSessionMapReady } from '../hooks/useSessionMapReady'
 
 interface SoilMapProps {
   /** Organización que consulta la sesión; el Task Manager puede usar resolución automática. */
@@ -75,6 +76,7 @@ interface SoilMapProps {
   preserveDrawingBuffer?: boolean
   /** Se dispara cuando el mapa termina de renderizar. `e.target` es el mapa nativo. */
   onIdle?: (event: { target: MapLibreMap }) => void
+  onReadyChange?: OnSessionMapReady
   /** Encuadre cerrado: el terreno vecino solo resta tamaño a lo que interesa. */
   tightFrame?: boolean
   /**
@@ -172,6 +174,7 @@ export function SoilMap({
   locked = false,
   preserveDrawingBuffer = false,
   onIdle,
+  onReadyChange,
   tightFrame = false,
   activeLayerKey,
   onLayerComputed,
@@ -198,7 +201,8 @@ export function SoilMap({
 
   const { data: points, isLoading, error } = useSoilMapPoints(sessionId, enabled)
   const { data: plot } = usePlotGeometry(plotId)
-  const {data: appearance} = useLayerAppearance('soil_map',tenantId,dcId)
+  const appearanceQuery = useLayerAppearance('soil_map',tenantId,dcId)
+  const appearance = appearanceQuery.data
   const baseLayer = SOIL_MAP_LAYERS[activeLayerIndex]!
   const layerAppearance = appearance?.layers[baseLayer.key]
   const activeLayer = useMemo<SoilMapLayerDef>(() => {
@@ -293,6 +297,14 @@ export function SoilMap({
     cacheKey: surfaceCacheKey,
     enabled: activeLayer.kind === 'numeric',
   })
+
+  const markSessionReady = useSessionMapReady(
+    mapRef, sessionId,
+    !!plot && !!points && !!layerValues && !!variableStats &&
+      !isLoading && !isLoadingValues && !isLoadingStats && !isComputingSurface && !appearanceQuery.isLoading &&
+      !error && !valuesError,
+    onReadyChange,
+  )
 
   const numericScale = useMemo(() => {
     if (activeLayer.kind !== 'numeric') return null
@@ -597,7 +609,7 @@ export function SoilMap({
           cooperativeGestures={!locked}
           attributionControl={false}
           preserveDrawingBuffer={preserveDrawingBuffer}
-          onIdle={onIdle}
+          onIdle={(event) => { onIdle?.(event); markSessionReady() }}
           // En captura el mapa es una foto: sin paneo, zoom ni rotacion, y sin
           // popups, que saldrian dibujados en la imagen.
           interactive={!locked}

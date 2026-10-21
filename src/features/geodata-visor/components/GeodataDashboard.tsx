@@ -7,7 +7,7 @@
  * en un polígono se selecciona esa parcela. La integración del visor de aspersión
  * (al elegir una sesión) se añade en 7.E.
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useAuthStore } from '@/features/auth/useAuthStore'
 import { useProducers } from '@/features/admin/hooks/useProducers'
@@ -328,6 +328,101 @@ function RanchView({
   const isSoilMapSession = isSessionLevel && selection.session?.kind === 'soil_map'
   const isYieldMapSession = isSessionLevel && selection.session?.kind === 'yield_map'
   const isPlantingMapSession = isSessionLevel && selection.session?.kind === 'planting_map'
+  // La transición se prepara sólo al pulsar Play o elegir otra sesión en la
+  // línea de tiempo. Mantenemos la sesión, la fecha y la capa visible hasta que
+  // el mapa siguiente (sea del tipo que sea) confirma datos + render de MapLibre.
+  const [readyMapKey, setReadyMapKey] = useState<string | null>(null)
+  const [pendingSession, setPendingSession] = useState<VisorSession | null>(null)
+  const [transitionStopToken, setTransitionStopToken] = useState(0)
+  const [transitionError, setTransitionError] = useState(false)
+  const selectionRef = useRef(selection)
+  const onSelectRef = useRef(onSelect)
+  const comparisonModeRef = useRef(comparisonMode)
+  const pendingSessionRef = useRef<VisorSession | null>(null)
+  const pendingPlotRef = useRef<string | null>(null)
+  const pendingSourceSessionRef = useRef<string | null>(null)
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  selectionRef.current = selection
+  onSelectRef.current = onSelect
+  comparisonModeRef.current = comparisonMode
+
+  const cancelPendingSession = useCallback(() => {
+    pendingSessionRef.current = null
+    pendingPlotRef.current = null
+    pendingSourceSessionRef.current = null
+    setPendingSession(null)
+    if (transitionTimerRef.current !== null) {
+      clearTimeout(transitionTimerRef.current)
+      transitionTimerRef.current = null
+    }
+  }, [])
+
+  const requestTimelineSession = useCallback((next: VisorSession) => {
+    const current = selectionRef.current
+    cancelPendingSession()
+    setTransitionError(false)
+    if (
+      !comparisonModeRef.current &&
+      current.level === 'session' &&
+      current.session && current.plot &&
+      (next.kind !== current.session.kind || next.id !== current.session.id)
+    ) {
+      pendingSessionRef.current = next
+      pendingPlotRef.current = current.plot.id
+      pendingSourceSessionRef.current = current.session.id
+      setPendingSession(next)
+      // No existe salto forzado a otro mapa: si falla o tarda demasiado,
+      // el usuario conserva la sesión actual y Play se detiene.
+      transitionTimerRef.current = setTimeout(() => {
+        if (pendingSessionRef.current?.id !== next.id ||
+            pendingSessionRef.current?.kind !== next.kind) return
+        cancelPendingSession()
+        setTransitionStopToken((token) => token + 1)
+        setTransitionError(true)
+      }, 60_000)
+      return
+    }
+    onSelectRef.current(selectSession(current, next))
+  }, [cancelPendingSession])
+
+  const onMapReadyChange = useCallback((ready: boolean, sessionId: string) => {
+    const current = selectionRef.current
+    const active = current.level === 'session' && current.session?.id === sessionId
+    const staged = pendingSessionRef.current
+    if (!active && staged?.id !== sessionId) return
+    const activeKey = active && current.session
+      ? `${current.session.kind}:${current.session.id}` : null
+    const stagedKey = staged && staged.id === sessionId
+      ? `${staged.kind}:${staged.id}` : null
+    if (activeKey && !stagedKey) {
+      setReadyMapKey((old) => ready ? activeKey : (old === activeKey ? null : old))
+    }
+    if (ready && stagedKey && pendingPlotRef.current === current.plot?.id &&
+        pendingSourceSessionRef.current === current.session?.id) {
+      // El mapa preparado conserva su key: React lo mantiene montado al hacerlo
+      // visible, evitando otra descarga o una pantalla de carga intermedia.
+      setReadyMapKey(stagedKey)
+      cancelPendingSession()
+      onSelectRef.current(selectSession(current, staged!))
+    }
+  }, [cancelPendingSession])
+
+  // Cambio externo desde el explorador: descarta cualquier mapa pendiente.
+  useEffect(() => {
+    if (!pendingSessionRef.current) return
+    if (selection.level !== 'session' || selection.plot?.id !== pendingPlotRef.current ||
+        selection.session?.id !== pendingSourceSessionRef.current) {
+      cancelPendingSession()
+    }
+  }, [selection.level, selection.session?.id, selection.plot?.id, cancelPendingSession])
+
+  useEffect(() => () => {
+    if (transitionTimerRef.current !== null) clearTimeout(transitionTimerRef.current)
+  }, [])
+
+  useEffect(() => {
+    setTransitionError(false)
+  }, [selection.plot?.id, selection.session?.id])
 
   const backToPlotButton = (
     <button
@@ -378,89 +473,114 @@ function RanchView({
         }`}
       >
         {isSessionLevel ? (
-          isNdviSession ? (
-            /* En sesión el mapa va ARRIBA y la línea de tiempo unificada ABAJO. */
-            <NdviMap
-              showMapModeSelector={!comparisonMode}
-              sessionId={selection.session!.id}
-              plotId={selection.plot!.id}
-              tenantId={selection.org.id}
-              mapSync={mapSync}
-            />
-          ) : isPhytoSession ? (
-            /* Sesión fitosanitaria: mapa de calor de checkpoints sobre la parcela (reuso
-               del PhytoMap del task-manager). */
-            <PhytoMap
-              showMapModeSelector={!comparisonMode}
-              sessionId={selection.session!.id}
-              plotId={selection.plot!.id}
-              floatingToolbar
-              comparisonMode={comparisonMode}
-              mapSync={mapSync}
-              toolbarStart={backToPlotButton}
-            />
-          ) : isSoilMapSession ? (
-            /* Sesión de mapeo de suelo: rangos espaciales dentro de la parcela. */
-            <SoilMapMap
-              showMapModeSelector={!comparisonMode}
-              tenantId={selection.org.id}
-              sessionId={selection.session!.id}
-              plotId={selection.plot!.id}
-              floatingToolbar
-              mapSync={mapSync}
-              showStatsCards={!comparisonMode}
-              toolbarStart={backToPlotButton}
-              toolbarEnd={
-                <SessionReportToggle
-                  objectId={selection.session!.id}
-                  plotId={selection.plot!.id}
-                  datacentralId={selection.datacentral?.id ?? null}
-                  sessionType="soilmap"
-                />
-              }
-            />
-          ) : isYieldMapSession ? (
-            <YieldMap
-              showMapModeSelector={!comparisonMode}
-              tenantId={selection.org.id}
-              sessionId={selection.session!.id}
-              plotId={selection.plot!.id}
-              mapSync={mapSync}
-              comparisonMode={comparisonMode}
-              toolbarStart={backToPlotButton}
-            />
-          ) : isPlantingMapSession ? (
-            <PlantingMap
-              showMapModeSelector={!comparisonMode}
-              tenantId={selection.org.id}
-              sessionId={selection.session!.id}
-              plotId={selection.plot!.id}
-              mapSync={mapSync}
-              comparisonMode={comparisonMode}
-              toolbarStart={backToPlotButton}
-            />
-          ) : (
-            /* Sesión de aspersión: las 5 capas heatmap sobre la parcela (reuso Fase 6).
-               La tarjeta de categorías de % de aplicación la pinta AspersionMap. FASE CV:
-               sin lista de sesiones, el árbol del explorador ya cumple esa función. */
-            <AspersionMap
-              showMapModeSelector={!comparisonMode}
-              tenantId={selection.org.id}
-              sessionId={selection.session!.id}
-              plotId={selection.plot!.id}
-              floatingToolbar
-              mapSync={mapSync}
-              showCategoryStats={!comparisonMode}
-              toolbarStart={backToPlotButton}
-              toolbarEnd={
-                <SessionReportToggle
-                  objectId={selection.session!.id}
-                  plotId={selection.plot!.id}
-                  datacentralId={selection.datacentral?.id ?? null}
-                />
-              }
-            />
-          )
+          <div className="relative h-full w-full">
+            {/* Un solo mapa visible y, si hay transición, UNO adicional oculto.
+                Sin precargar ciclos ni abrir capas de otra sesión por su cuenta. */}
+            {[selection.session!, ...(
+              pendingSession && (pendingSession.id !== selection.session!.id || pendingSession.kind !== selection.session!.kind)
+                ? [pendingSession] : []
+            )].map((session, index) => {
+              const staged = index !== 0
+              const activeMapSync = staged ? undefined : mapSync
+              const key = `${selection.plot!.id}:${session.kind}:${session.id}`
+              return (
+                <div
+                  key={key}
+                  className={`absolute inset-0 ${staged ? 'pointer-events-none z-0 opacity-0' : 'z-10'}`}
+                  aria-hidden={staged}
+                >
+                  {session.kind === 'ndvi' ? (
+                    <NdviMap
+                      showMapModeSelector={!comparisonMode}
+                      sessionId={session.id}
+                      plotId={selection.plot!.id}
+                      tenantId={selection.org.id}
+                      mapSync={activeMapSync}
+                      onReadyChange={onMapReadyChange}
+                    />
+                  ) : session.kind === 'phyto' ? (
+                    <PhytoMap
+                      showMapModeSelector={!comparisonMode}
+                      sessionId={session.id}
+                      plotId={selection.plot!.id}
+                      floatingToolbar
+                      comparisonMode={comparisonMode}
+                      mapSync={activeMapSync}
+                      toolbarStart={backToPlotButton}
+                      onReadyChange={onMapReadyChange}
+                    />
+                  ) : session.kind === 'soil_map' ? (
+                    <SoilMapMap
+                      showMapModeSelector={!comparisonMode}
+                      tenantId={selection.org.id}
+                      sessionId={session.id}
+                      plotId={selection.plot!.id}
+                      floatingToolbar
+                      mapSync={activeMapSync}
+                      showStatsCards={!comparisonMode}
+                      toolbarStart={backToPlotButton}
+                      toolbarEnd={<SessionReportToggle
+                        objectId={session.id}
+                        plotId={selection.plot!.id}
+                        datacentralId={selection.datacentral?.id ?? null}
+                        sessionType="soilmap"
+                      />}
+                      onReadyChange={onMapReadyChange}
+                    />
+                  ) : session.kind === 'yield_map' ? (
+                    <YieldMap
+                      showMapModeSelector={!comparisonMode}
+                      tenantId={selection.org.id}
+                      sessionId={session.id}
+                      plotId={selection.plot!.id}
+                      mapSync={activeMapSync}
+                      comparisonMode={comparisonMode}
+                      toolbarStart={backToPlotButton}
+                      onReadyChange={onMapReadyChange}
+                    />
+                  ) : session.kind === 'planting_map' ? (
+                    <PlantingMap
+                      showMapModeSelector={!comparisonMode}
+                      tenantId={selection.org.id}
+                      sessionId={session.id}
+                      plotId={selection.plot!.id}
+                      mapSync={activeMapSync}
+                      comparisonMode={comparisonMode}
+                      toolbarStart={backToPlotButton}
+                      onReadyChange={onMapReadyChange}
+                    />
+                  ) : (
+                    <AspersionMap
+                      showMapModeSelector={!comparisonMode}
+                      tenantId={selection.org.id}
+                      sessionId={session.id}
+                      plotId={selection.plot!.id}
+                      floatingToolbar
+                      mapSync={activeMapSync}
+                      showCategoryStats={!comparisonMode}
+                      toolbarStart={backToPlotButton}
+                      toolbarEnd={<SessionReportToggle
+                        objectId={session.id}
+                        plotId={selection.plot!.id}
+                        datacentralId={selection.datacentral?.id ?? null}
+                      />}
+                      onReadyChange={onMapReadyChange}
+                    />
+                  )}
+                </div>
+              )
+            })}
+            {pendingSession && (
+              <div role="status" className="pointer-events-none absolute bottom-3 right-3 z-20 rounded-md bg-black/65 px-3 py-2 text-xs text-white">
+                Preparando siguiente mapa…
+              </div>
+            )}
+            {transitionError && !pendingSession && (
+              <div role="alert" className="pointer-events-none absolute bottom-3 right-3 z-20 rounded-md bg-black/75 px-3 py-2 text-xs text-white">
+                No se pudo preparar el siguiente mapa. Se conserva la sesión actual.
+              </div>
+            )}
+          </div>
         ) : (
           <RanchPlotsMap
             plots={visiblePlots}
@@ -483,7 +603,10 @@ function RanchView({
           mode="cycle"
           plotId={selection.plot!.id}
           selectedSession={selection.session ?? null}
-          onSelectSession={(session) => onSelect(selectSession(selection, session))}
+          mapReady={readyMapKey === `${selection.session?.kind}:${selection.session?.id}`}
+          onSelectSession={requestTimelineSession}
+          onCancelPendingSelection={cancelPendingSession}
+          stopToken={transitionStopToken}
           defaultCollapsed
         />
       )}
