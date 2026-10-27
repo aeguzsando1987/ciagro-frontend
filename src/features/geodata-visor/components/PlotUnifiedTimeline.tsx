@@ -1,5 +1,5 @@
 // CIAGRO_LINEA_PRO_REFINEMENT_20261020: SOLO sesiones
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useIsFetching } from '@tanstack/react-query'
 import {
   Bug,
@@ -385,8 +385,6 @@ export function PlotUnifiedTimeline({
     })
   }
 
-  // CIAGRO_TIMELINE_COMPACT_LIVE_V1
-  const liveSeekRef = useRef({ key: '', time: 0 })
   const displayMode = mode === 'cycle' || detailRequested ? 'cycle' : 'parcel'
 
   const [collapsedByMode, setCollapsedByMode] = useState<Record<'parcel' | 'cycle', boolean>>(() => {
@@ -841,6 +839,7 @@ export function PlotUnifiedTimeline({
     if (!session) return
     stopPlay()
     setPlayCursor(safe)
+    if (selectedSession?.id === session.id && selectedSession.kind === session.kind) return
     onSelectSession({
       id: session.id,
       date: session.date,
@@ -848,7 +847,7 @@ export function PlotUnifiedTimeline({
     })
   }
 
-  const commitSeek = (percent: number) => {
+  const previewSeekAtPercent = (percent: number) => {
     if (!range || playable.length === 0) return
 
     const target = range.start +
@@ -868,59 +867,12 @@ export function PlotUnifiedTimeline({
     })
 
     seekTo(nearest)
-    setScrubPercent(null)
   }
 
-
-  const previewSeekAtPercent = (percent: number) => {
-    if (!range || playable.length === 0) return;
-
-    const target =
-      range.start +
-      (percent / 100) *
-      Math.max(DAY_MS, range.end - range.start);
-
-    let nearest = -1;
-    let distance = Number.POSITIVE_INFINITY;
-
-    playable.forEach((session, index) => {
-      const ms = dateMs(session.date);
-      if (ms === null) return;
-
-      const delta = Math.abs(ms - target);
-      if (delta < distance) {
-        nearest = index;
-        distance = delta;
-      }
-    });
-
-    if (nearest < 0) return;
-
-    const session = playable[nearest];
-    if (!session) return;
-
-    const key = session.kind + ':' + session.id;
-
-    // Evita solicitar dos veces seguidas la misma sesion.
-    if (liveSeekRef.current.key === key) return;
-
-    // Reduce la cantidad de consultas durante movimientos
-    // rapidos del mouse. Maximo aprox. 7 cambios por segundo.
-    const now = Date.now();
-
-    if (now - liveSeekRef.current.time < 140) {
-      return;
-    }
-
-    liveSeekRef.current = {
-      key,
-      time: now,
-    };
-
-    // Actualiza el reproductor y solicita el nuevo mapa
-    // mientras el usuario sigue arrastrando.
-    seekTo(nearest);
-  };
+  const commitSeek = (percent: number) => {
+    previewSeekAtPercent(percent)
+    setScrubPercent(null)
+  }
 
   if (plotTree.isLoading || ndviQuery.isLoading) {
     return (

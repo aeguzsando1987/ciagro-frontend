@@ -43,5 +43,6 @@ export function useNdviVariableStats(headerId: string | null | undefined, enable
       return (await res.json()) as NdviVariableStatsResponse
     },
     staleTime: 60_000,
+    refetchOnWindowFocus: false,
   })
 }

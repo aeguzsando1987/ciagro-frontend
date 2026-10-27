@@ -16,5 +16,6 @@ export function usePlotGeometry(plotId: string | null | undefined) {
     },
     enabled: !!plotId,
     staleTime: 300_000,
+    refetchOnWindowFocus: false,
   })
 }

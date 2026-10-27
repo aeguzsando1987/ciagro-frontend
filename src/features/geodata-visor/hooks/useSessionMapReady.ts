@@ -12,6 +12,7 @@ export function useSessionMapReady(
   sessionId: string,
   contentReady: boolean,
   onReadyChange?: OnSessionMapReady,
+  contentKey: string = sessionId,
 ) {
   const readyRef = useRef(contentReady)
   const reportedRef = useRef<string | null>(null)
@@ -28,7 +29,7 @@ export function useSessionMapReady(
   useEffect(() => {
     reportedRef.current = null
     onReadyChange?.(false, sessionId)
-  }, [onReadyChange, sessionId])
+  }, [onReadyChange, sessionId, contentReady, contentKey])
 
   useEffect(() => {
     if (!onReadyChange || !contentReady || reportedRef.current === sessionId) return
@@ -47,7 +48,7 @@ export function useSessionMapReady(
       cancelAnimationFrame(frame)
       map?.off('idle', onIdle)
     }
-  }, [mapRef, sessionId, contentReady, onReadyChange, markReady])
+  }, [mapRef, sessionId, contentReady, contentKey, onReadyChange, markReady])
 
   return markReady
 }

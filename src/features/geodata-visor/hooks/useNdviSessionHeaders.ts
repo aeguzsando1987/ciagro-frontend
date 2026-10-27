@@ -33,6 +33,7 @@ export function ndviSessionHeadersQueryOptions(plotId: string | null) {
         return data ?? null
       }),
     staleTime: 30_000,
+    refetchOnWindowFocus: false,
   })
 }
 

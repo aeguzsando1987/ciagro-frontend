@@ -1,7 +1,8 @@
 /** Caché temporal de superficies NDVI (solo RAM) y cálculo pesado fuera del hilo UI.
  * No precarga ciclos ni activa sesiones o capas adicionales.
  */
-import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { hashKey, useQuery } from '@tanstack/react-query'
 import {
   colorizeValueGrid,
   type ColorBand,
@@ -16,9 +17,6 @@ interface SurfaceRequest {
   scope: string
   plotId: string | null | undefined
   indexKey: string
-  pointsVersion: number
-  plotVersion: number
-  configVersion: number
   points: InterpPoint[]
   ring: number[][] | null
   manualBands: ColorBand[] | null
@@ -59,12 +57,24 @@ function calculateGrid(request: NdviWorkerRequest, signal: AbortSignal): Promise
 
 export function useNdviInterpolatedSurface(input: SurfaceRequest) {
   const enabled = !!input.ring && input.points.length >= 3
-  return useQuery({
+  // Una respuesta idéntica puede tener otro dataUpdatedAt. La superficie sólo
+  // depende del contenido: volver a la pestaña no invalida el cálculo existente.
+  const contentKey = useMemo(() => hashKey([
+    input.points, input.ring, input.manualBands, input.quartileColors, input.smoothing,
+  ]), [input.points, input.ring, input.manualBands, input.quartileColors, input.smoothing])
+  const query = useQuery<InterpolatedImage | null>({
     queryKey: [
       'ndvi-surface-worker', input.scope, input.plotId, input.sessionId,
-      input.indexKey, input.pointsVersion, input.plotVersion, input.configVersion,
+      input.indexKey, contentKey,
     ] as const,
     enabled,
+    // Una actualización real de ESTA sesión conserva la capa hasta terminar.
+    // Nunca arrastrar la imagen de otra sesión, parcela, ámbito o índice.
+    placeholderData: (previous, previousQuery) => {
+      const key = previousQuery?.queryKey
+      return key?.[1] === input.scope && key[2] === input.plotId &&
+        key[3] === input.sessionId && key[4] === input.indexKey ? previous : undefined
+    },
     queryFn: async ({ signal }): Promise<InterpolatedImage | null> => {
       const field = await calculateGrid({
         points: input.points,
@@ -76,10 +86,11 @@ export function useNdviInterpolatedSurface(input: SurfaceRequest) {
       return field ? colorizeValueGrid(input.points, field, input.manualBands, input.quartileColors) : null
     },
     // Un ciclo puede visitarse de nuevo: se reutiliza el resultado sin rehacer kriging.
-    // Las versiones de los datos/configuración invalidan la superficie automáticamente.
-    staleTime: 5 * 60_000,
+    // Los cambios reales de datos/configuración generan otra clave.
+    staleTime: Infinity,
     gcTime: 5 * 60_000,
     retry: false,
     refetchOnWindowFocus: false,
   })
+  return { ...query, contentKey }
 }

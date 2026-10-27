@@ -31,6 +31,7 @@ import {
   type ColorBand,
 } from '../lib/ndviInterpolation'
 import { useNdviInterpolatedSurface } from '../hooks/useNdviInterpolatedSurface'
+import { useSessionMapReady } from '../hooks/useSessionMapReady'
 import {
   useNdviSessionVariableConfig,
   readVariableConfig,
@@ -131,8 +132,8 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
   const containerRef = useRef<HTMLDivElement>(null)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
-  const { data: plot, isLoading: isPlotLoading, dataUpdatedAt: plotUpdatedAt } = usePlotGeometry(plotId ?? null)
-  const { data: points, isLoading: isPointsLoading, dataUpdatedAt: pointsUpdatedAt } = useNdviPoints(sessionId)
+  const { data: plot, isLoading: isPlotLoading } = usePlotGeometry(plotId ?? null)
+  const { data: points, isLoading: isPointsLoading } = useNdviPoints(sessionId)
 
   // Una fecha SIN NDVI puede tener cero puntos o puntos cuyo NDVI venga en null.
   // Importante: NDVI = 0 SI es un dato real y por eso `typeof 0 === 'number'` lo conserva.
@@ -143,7 +144,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
   // servidor). Un mismo productor puede estar asignado a CIAgros de organizaciones
   // distintas, así que sin ámbito el backend caería a la asignación más antigua y ambas
   // verían la misma config. Si no hay alcance/config, el visor usa el gradiente.
-  const { data: varConfig, isLoading: isConfigLoading, dataUpdatedAt: configUpdatedAt } = useNdviSessionVariableConfig(sessionId, { tenantId, dcId })
+  const { data: varConfig, isLoading: isConfigLoading } = useNdviSessionVariableConfig(sessionId, { tenantId, dcId })
   // Mismo endpoint que la tabla de resumen de la sesion en el task-manager.
   const { data: varStats, isLoading: isStatsLoading } = useNdviVariableStats(sessionId)
 
@@ -153,6 +154,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
   // El tooltip se abre al hacer clic en un punto (no al pasar el cursor): con la
   // superficie de color debajo, un tooltip que sigue al mouse estorba la lectura.
   const [selected, setSelected] = useState<PointSelection | null>(null)
+  useEffect(() => setSelected(null), [sessionId])
   // Solo para el cursor "pointer" sobre un punto clicable.
   const [hoveringPoint, setHoveringPoint] = useState(false)
   const [areaCardOpen, setAreaCardOpen] = useState(false)
@@ -244,9 +246,6 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
     scope: tenantId ?? dcId ?? '',
     plotId,
     indexKey: indexKey as string,
-    pointsVersion: pointsUpdatedAt,
-    plotVersion: plotUpdatedAt,
-    configVersion: configUpdatedAt,
     points: interpPoints,
     ring,
     manualBands,
@@ -274,87 +273,19 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
      está dibujando el mapa actual.
      ===================================================== */
 
-  // La preparación debe invalidarse también cuando cambia el índice o cualquiera
-  // de las fuentes que alimentan la superficie. Sólo usar sessionId deja una
-  // ventana donde Play puede considerar listo un mapa que aún muestra datos
-  // de la versión anterior.
-  const readinessKey = [
-    sessionId,
-    indexKey,
-    pointsUpdatedAt,
-    plotUpdatedAt,
-    configUpdatedAt,
-    surfaceQuery.dataUpdatedAt,
-  ].join(':')
-  const readyKeyRef = useRef<string | null>(null)
-
   const mapDataReady =
     !isPlotLoading &&
     !isPointsLoading &&
     !isConfigLoading &&
     !isStatsLoading &&
-    (!shouldInterpolate || (!surfaceQuery.isPending && !surfaceQuery.isError)) &&
+    (!shouldInterpolate || (!surfaceQuery.isPending && !surfaceQuery.isError && !surfaceQuery.isPlaceholderData)) &&
     plot !== undefined &&
     points !== undefined
 
-  useEffect(() => {
-    readyKeyRef.current = null
-    onReadyChange?.(false, sessionId)
-  }, [readinessKey, sessionId, onReadyChange])
-
-  const handleMapIdle = () => {
-    if (!mapDataReady) return
-
-    if (readyKeyRef.current === readinessKey) {
-      return
-    }
-
-    readyKeyRef.current = readinessKey
-    onReadyChange?.(true, sessionId)
-  }
-
-  /*
-   * Caso importante para Play:
-   * puede ocurrir que MapLibre haya emitido `idle` ANTES de que la última
-   * consulta de React Query termine. En ese caso no necesariamente habrá otro
-   * evento `idle` y el reproductor se quedaría esperando para siempre.
-   *
-   * Cuando todos los datos pasan a ready, comprobamos el estado actual del
-   * mapa. Si ya está cargado lo marcamos listo en el siguiente frame; si aún
-   * está procesando, esperamos explícitamente al próximo `idle`.
-   */
-  useEffect(() => {
-    if (!mapDataReady || readyKeyRef.current === readinessKey) return
-
-    const map = mapRef.current?.getMap()
-    if (!map) return
-
-    let cancelled = false
-    let frame: number | null = null
-
-    const markReady = () => {
-      if (cancelled || readyKeyRef.current === readinessKey) return
-      readyKeyRef.current = readinessKey
-      onReadyChange?.(true, sessionId)
-    }
-
-    frame = window.requestAnimationFrame(() => {
-      if (cancelled) return
-
-      if (map.loaded() && !map.isMoving()) {
-        markReady()
-        return
-      }
-
-      map.once('idle', markReady)
-    })
-
-    return () => {
-      cancelled = true
-      if (frame !== null) window.cancelAnimationFrame(frame)
-      map.off('idle', markReady)
-    }
-  }, [mapDataReady, onReadyChange, readinessKey, sessionId])
+  const handleMapIdle = useSessionMapReady(
+    mapRef, sessionId, mapDataReady, onReadyChange,
+    `${indexKey}:${surfaceQuery.contentKey}`,
+  )
 
   // Bandas con las que se mide la superficie: las manuales del tenant, o los tramos por
   // cuantiles ya calculados para la leyenda. El modulo de area no distingue estrategias.
@@ -422,14 +353,16 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
     return null
   }, [ring, points])
 
+  const framedPlotRef = useRef<string | null>(null)
+  const cameraScope = plotId ?? sessionId
   useEffect(() => {
-    if (!mapRef.current || !mapBounds) return
+    if (!mapRef.current || !mapBounds || framedPlotRef.current === cameraScope) return
     mapRef.current.fitBounds(mapBounds, { padding: 40, duration: 600, maxZoom: 18 })
-  }, [mapBounds])
+    framedPlotRef.current = cameraScope
+  }, [mapBounds, cameraScope])
 
   // El mapa cambia de ancho cuando se oculta/muestra la evaluación del programa.
-  // ResizeObserver obliga a MapLibre a recalcular su canvas y vuelve a encuadrar
-  // la parcela para aprovechar todo el espacio disponible.
+  // Reajustar el canvas conserva la cámara elegida por el usuario.
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -444,10 +377,6 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
         if (!map) return
 
         map.resize()
-
-        if (mapBounds) {
-          map.fitBounds(mapBounds, { padding: 40, duration: 0, maxZoom: 18 })
-        }
       })
     })
 
@@ -457,7 +386,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
       observer.disconnect()
       if (frame !== null) cancelAnimationFrame(frame)
     }
-  }, [mapBounds])
+  }, [])
 
   return (
     <div ref={containerRef} className="relative h-full w-full">
@@ -671,7 +600,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
             <GpaLoader size="sm" />
             <span>Cargando puntos NDVI…</span>
           </div>
-        ) : shouldInterpolate && surfaceQuery.isPending ? (
+        ) : shouldInterpolate && surfaceQuery.isFetching ? (
           <div role="status" className="flex items-center gap-2 text-xs font-medium text-secondary">
             <GpaLoader size="sm" />
             <span>Preparando mapa NDVI…</span>

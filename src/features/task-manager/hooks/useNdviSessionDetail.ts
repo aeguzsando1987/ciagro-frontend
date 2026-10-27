@@ -16,6 +16,7 @@ export function ndviSessionDetailQueryOptions(id: string | null) {
       return data!
     },
     staleTime: 30_000,
+    refetchOnWindowFocus: false,
     // Mientras Celery importa o contornea, refrescar para reflejar el avance sin recargar.
     refetchInterval: (query) => {
       const d = query.state.data as NdviSessionDetail | undefined

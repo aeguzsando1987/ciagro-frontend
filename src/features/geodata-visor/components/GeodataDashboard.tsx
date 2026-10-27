@@ -328,9 +328,8 @@ function RanchView({
   const isSoilMapSession = isSessionLevel && selection.session?.kind === 'soil_map'
   const isYieldMapSession = isSessionLevel && selection.session?.kind === 'yield_map'
   const isPlantingMapSession = isSessionLevel && selection.session?.kind === 'planting_map'
-  // La transición se prepara sólo al pulsar Play o elegir otra sesión en la
-  // línea de tiempo. Mantenemos la sesión, la fecha y la capa visible hasta que
-  // el mapa siguiente (sea del tipo que sea) confirma datos + render de MapLibre.
+  // La selección se mantiene visible hasta que el mapa siguiente confirma datos y
+  // render completo. Así no se enciman sesiones durante arrastre ni reproducción.
   const [readyMapKey, setReadyMapKey] = useState<string | null>(null)
   const [pendingSession, setPendingSession] = useState<VisorSession | null>(null)
   const [transitionStopToken, setTransitionStopToken] = useState(0)
