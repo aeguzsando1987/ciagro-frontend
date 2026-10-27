@@ -500,18 +500,18 @@ export function PlotUnifiedTimeline({
   }, [sessions])
 
   useEffect(() => {
-    if (cyclePickedByUser || selectedCycle !== 'all' || cycles.length === 0) return
+    if (displayMode === 'parcel' || cyclePickedByUser || selectedCycle !== 'all' || cycles.length === 0) return
     const selectedCycleValue = selectedSession ? cycleBySessionId.get(selectedSession.id) : null
     setSelectedCycle(selectedCycleValue || cycles[0] || 'all')
-  }, [cycleBySessionId, cycles, selectedCycle, selectedSession, cyclePickedByUser])
+  }, [cycleBySessionId, cycles, displayMode, selectedCycle, selectedSession, cyclePickedByUser])
 
   useEffect(() => {
-    if (!selectedSession || selectedSession.kind === 'soil_map') return
+    if (displayMode === 'parcel' || !selectedSession || selectedSession.kind === 'soil_map') return
     // Conservar cualquier ciclo elegido manualmente.
     if (cyclePickedByUser) return
     const cycle = cycleBySessionId.get(selectedSession.id)
     if (cycle && cycle !== selectedCycle) setSelectedCycle(cycle)
-  }, [cycleBySessionId, selectedSession, cyclePickedByUser, selectedCycle])
+  }, [cycleBySessionId, displayMode, selectedSession, cyclePickedByUser, selectedCycle])
 
 
   useEffect(() => {

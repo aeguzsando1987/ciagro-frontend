@@ -7,8 +7,12 @@
  * así que los tests que aseveran sobre las tarjetas abren el panel primero con
  * `showStats()`. Ese contrato lo fija `arranca con las estadísticas ocultas`.
  */
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { fireEvent, render as testingRender, screen } from '@testing-library/react'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { http, HttpResponse } from 'msw'
+import { createTestQueryClient } from '@/test/test-utils'
+import { server } from '@/test/msw-server'
 
 vi.mock('react-map-gl/maplibre', () => ({
   default: ({ children }: { children?: React.ReactNode }) => (
@@ -162,12 +166,21 @@ import type { VisorSelection } from '../types'
 
 const org = { id: 'org-1', name: 'Org' }
 
+function render(ui: React.ReactElement) {
+  const client = createTestQueryClient()
+  return testingRender(ui, { wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider> })
+}
+
 /** Despliega el panel de estadísticas, que nace colapsado en los niveles con mapa. */
 function showStats() {
   fireEvent.click(screen.getByRole('button', { name: 'Mostrar estadísticas' }))
 }
 
 describe('GeodataDashboard', () => {
+  beforeEach(() => {
+    server.use(http.get('*/api/v1/analytics-config/layers/:kind/', ({ params }) =>
+      HttpResponse.json({ tenant: 'org-1', session_type: params.kind, layers: {} })))
+  })
   // Este test existe porque el default de statsHidden pasó de false a true dentro del
   // merge de la línea de tiempo NDVI sin quedar declarado en ningún lado, y dejó tres
   // tests en rojo. Si el default vuelve a cambiar, que lo diga la suite.

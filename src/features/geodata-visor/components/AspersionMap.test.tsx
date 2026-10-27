@@ -9,6 +9,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { createTestQueryClient } from '@/test/test-utils'
+import { http, HttpResponse } from 'msw'
+import { server } from '@/test/msw-server'
 
 vi.mock('react-map-gl/maplibre', () => ({
   default: ({ children }: { children?: React.ReactNode }) => (
@@ -61,16 +63,19 @@ import { sumAreaByBucket, areaShareByBucket } from '../lib/aspersionMap.helpers'
 
 function renderMap() {
   const qc = createTestQueryClient()
-  return render(
+  return { ...render(
     <QueryClientProvider client={qc}>
       <AspersionMap sessionId="sess-1" plotId={null} />
     </QueryClientProvider>,
-  )
+  ), client: qc }
 }
 
 describe('AspersionMap', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sessionStorage.removeItem('ciagro:visor:layer:v1:sin-organizacion:sin-parcela:aspersion-layer')
+    server.use(http.get('*/api/v1/analytics-config/layers/aspersion/', () =>
+      HttpResponse.json({ tenant: 'test', session_type: 'aspersion', layers: {} })))
   })
 
   it('renderiza los botones de capa embebido (sin chrome de modal)', async () => {
@@ -112,8 +117,9 @@ describe('AspersionMap', () => {
   })
 
   it('el toggle de checkbox cambia el estado visual (tachado)', async () => {
-    renderMap()
+    const { client } = renderMap()
     await waitFor(() => screen.getByText(/Deficiente/))
+    await waitFor(() => expect(client.isFetching()).toBe(0))
     const deficienteLabel = screen.getByText(/Deficiente/).closest('label')!
     fireEvent.click(deficienteLabel)
     await waitFor(() => {

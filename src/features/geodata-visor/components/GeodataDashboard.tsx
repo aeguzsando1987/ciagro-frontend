@@ -456,16 +456,6 @@ function RanchView({
           datacentralId={selection.datacentral?.id}
         />
       )}
-      {/* La línea de tiempo de PARCELA permanece exactamente arriba y sin cambios. */}
-      {selection.level === 'plot' && !comparisonMode && (
-        <PlotUnifiedTimeline
-          mode={selection.level === 'plot' ? 'parcel' : 'cycle'}
-          plotId={selection.plot!.id}
-          selectedSession={selection.session ?? null}
-          onSelectSession={(session) => onSelect(selectSession(selection, session))}
-          defaultCollapsed={isSessionLevel}
-        />
-      )}
       <div
         className={`relative min-h-[320px] flex-1 rounded-lg border ${
           isNdviSession && !comparisonMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'
@@ -595,6 +585,15 @@ function RanchView({
           />
         )}
       </div>
+      {selection.level === 'plot' && !comparisonMode && (
+        <PlotUnifiedTimeline
+          mode="parcel"
+          plotId={selection.plot!.id}
+          selectedSession={selection.session ?? null}
+          onSelectSession={(session) => onSelect(selectSession(selection, session))}
+          defaultCollapsed={isSessionLevel}
+        />
+      )}
       {/* CIAGRO_SESSION_FOCUSED_LAYOUT_20261020: sólo sesiones; el Play queda
           visible incluso cuando el cuerpo de la línea de tiempo está contraído. */}
       {isSessionLevel && !comparisonMode && (

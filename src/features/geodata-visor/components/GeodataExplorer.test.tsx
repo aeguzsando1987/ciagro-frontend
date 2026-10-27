@@ -207,12 +207,15 @@ describe('GeodataExplorer', () => {
   it('abre sola la rama de la sesion seleccionada', async () => {
     const selection = {
       org: { id: 'org-1', name: 'Organización Uno' },
+      datacentral: { id: 'dc-1', name: 'CIAgro Hija A' },
+      producer: { id: 'prod-1', name: 'Productor X' },
+      ranch: { id: 'ranch-1', name: 'Rancho Norte' },
       plot: { id: 'plot-1', name: 'P-01' },
       session: { id: 'yield-session-1', date: '2024-10-12', kind: 'yield_map' as const },
       level: 'session' as const,
     }
     render(<GeodataExplorer selection={selection} onSelect={vi.fn()} />)
-    await abrirParcela()
+    await waitFor(() => expect(screen.getByText('2024-10-12 · 1594 pts')).toBeInTheDocument())
 
     // Sin ciclo > Rendimiento > sesion, sin un solo clic. Dentro del ciclo no hay nivel de año.
     expect(screen.getByText('Rendimiento')).toBeInTheDocument()

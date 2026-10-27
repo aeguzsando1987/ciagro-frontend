@@ -1,5 +1,9 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { http, HttpResponse } from 'msw'
+import { createTestQueryClient } from '@/test/test-utils'
+import { server } from '@/test/msw-server'
 
 const mocks = vi.hoisted(() => ({
   points: [] as Array<Record<string, unknown>>,
@@ -277,13 +281,17 @@ function soilPoint(id: string, offset: number) {
  * el navegador pasa lo mismo: los puntos aparecen primero y los colores despues.
  */
 async function renderMap(ui: React.ReactElement) {
-  const result = render(ui)
+  const client = createTestQueryClient()
+  const result = render(ui, { wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider> })
   await act(async () => {})
   return result
 }
 
 describe('SoilMap', () => {
   beforeEach(() => {
+    sessionStorage.removeItem('ciagro:visor:layer:v1:sin-organizacion:sin-parcela:soil-layer')
+    server.use(http.get('*/api/v1/analytics-config/layers/:kind/', ({ params }) =>
+      HttpResponse.json({ tenant: 'test', session_type: params.kind, layers: {} })))
     setPoints([soilPoint('point-1', 0), soilPoint('point-2', 1), soilPoint('point-3', 2)])
     mocks.plot = {
       geometry: {
