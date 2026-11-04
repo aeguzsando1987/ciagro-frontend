@@ -7,7 +7,7 @@
  * formulario + issues + sync). Atiende aspersión y mapeo de suelo; fitosanitario y NDVI
  * siguen pendientes (GAP-AC-001).
  *
- * El acceso ya viene gated (datos cargados + `role_level>=SUPERVISOR`); aquí calculamos
+ * El acceso ya viene gated (datos cargados + `role_level>=TECHNICIAN`); aquí calculamos
  * `canWrite` (>=TECHNICIAN) para habilitar acciones de escritura. El backend revalida permisos.
  */
 import { useState } from 'react'

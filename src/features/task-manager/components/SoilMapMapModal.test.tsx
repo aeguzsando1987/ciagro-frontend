@@ -101,11 +101,39 @@ describe('SoilMapMapModal', () => {
     expect(screen.queryByRole('button', { name: '📋 Reportes' })).not.toBeInTheDocument()
   })
 
-  it('no ofrece el reporteador a un rol por debajo de supervisor', () => {
+  it('permite al técnico acceder a reportes', () => {
     setRole(ROLE_LEVELS.TECHNICIAN)
     mockDetail.mockReturnValue({ data: { import_status: 'done', points_count: '16944' } })
     renderModal()
 
+    expect(screen.getByRole('button', { name: '📋 Reportes' })).toBeInTheDocument()
+  })
+
+  it('no permite al invitado acceder a reportes', () => {
+    setRole(ROLE_LEVELS.GUEST)
+    mockDetail.mockReturnValue({ data: { import_status: 'done', points_count: '16944' } })
+    renderModal()
+
     expect(screen.queryByRole('button', { name: '📋 Reportes' })).not.toBeInTheDocument()
+  })
+
+  it('no ofrece el reporteador si la importación sigue pendiente', () => {
+    setRole(ROLE_LEVELS.TECHNICIAN)
+    mockDetail.mockReturnValue({ data: { import_status: 'pending', points_count: '16944' } })
+    renderModal()
+
+    expect(screen.queryByRole('button', { name: '📋 Reportes' })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['supervisor', ROLE_LEVELS.SUPERVISOR],
+    ['gerente', ROLE_LEVELS.MANAGER],
+    ['superadministrador', ROLE_LEVELS.SUPER_ADMIN],
+  ])('conserva acceso para %s', (_label, role) => {
+    setRole(role)
+    mockDetail.mockReturnValue({ data: { import_status: 'done', points_count: '16944' } })
+    renderModal()
+
+    expect(screen.getByRole('button', { name: '📋 Reportes' })).toBeInTheDocument()
   })
 })
