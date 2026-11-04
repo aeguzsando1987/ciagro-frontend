@@ -81,7 +81,7 @@ export const workspaceTaskManagerRoute = createRoute({
     agro_unit: search.agro_unit,
   }),
   loader: ({ params, deps }) =>
-    queryClient.ensureQueryData(
+    queryClient.ensureInfiniteQueryData(
       masterProgramsQueryOptions({
         datacentral: params.dc,
         status: deps.status as ProgramaStatus | undefined,
@@ -138,6 +138,12 @@ function TaskManagerPage() {
     data: masters,
     isLoading,
     error,
+    totalCount,
+    loadedCount,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
   } = useMasterPrograms({
     datacentral: dc,
     status: search.status,
@@ -263,7 +269,24 @@ function TaskManagerPage() {
         </p>
       )}
       {masters && masters.length > 0 && (
-        <GanttHierarchy masters={masters} onTaskClick={handleTaskClick} />
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground" aria-live="polite">
+            <span>Mostrando {loadedCount} de {totalCount} programas.</span>
+            {hasNextPage && (
+              <Button size="sm" variant="outline" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                {isFetchingNextPage ? 'Cargando programas…' : 'Cargar más programas'}
+              </Button>
+            )}
+            {!hasNextPage && loadedCount > 0 && <span>Todos los programas están cargados.</span>}
+          </div>
+          {isFetchNextPageError && (
+            <div role="alert" className="flex items-center gap-2 text-sm text-destructive">
+              <span>No se pudo cargar la siguiente página. Los programas ya cargados siguen visibles.</span>
+              <Button size="sm" variant="outline" onClick={() => fetchNextPage()}>Reintentar</Button>
+            </div>
+          )}
+          <GanttHierarchy masters={masters} onTaskClick={handleTaskClick} />
+        </>
       )}
 
       <CreateMasterDialog
