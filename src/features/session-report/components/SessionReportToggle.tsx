@@ -1,6 +1,6 @@
 /**
  * Botón "📋 Reportes" + panel, reutilizable en cualquier toolbar de visor. Se auto-gatea
- * con el mismo criterio del visor: `role_level>=SUPERVISOR && import_status==='done' &&
+ * con el mismo criterio del visor: `role_level>=TECHNICIAN && import_status==='done' &&
  * points_count>0`. Si no aplica, no renderiza nada. La query de detalle dedupe por key
  * con la que ya usa el visor.
  *
@@ -43,7 +43,7 @@ export function SessionReportToggle({
   const detail = esSuelo ? suelo : aspersion
   const hasData =
     detail?.import_status === 'done' && parseInt(detail?.points_count ?? '0', 10) > 0
-  const canReport = roleLevel >= ROLE_LEVELS.SUPERVISOR && hasData
+  const canReport = roleLevel >= ROLE_LEVELS.TECHNICIAN && hasData
   if (!canReport) return null
 
   return (
