@@ -84,6 +84,7 @@ export function ReportMapCapture({
         locked
         tightFrame
         preserveDrawingBuffer
+        reportCapture
         onIdle={handleIdle}
         className="h-full w-full"
       />

@@ -1,5 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { tokens } from '@/lib/auth/tokens'
+import { z } from 'zod'
+
+export const variableStatsSchema = z.object({
+  points_count: z.number().int().nonnegative(),
+  variables: z.array(z.object({
+    key: z.string(), label: z.string(), count: z.number(),
+    mean: z.number().nullable(), min: z.number().nullable(), max: z.number().nullable(), stddev: z.number().nullable(),
+  })),
+})
 
 export interface VariableStat {
   key: string
@@ -28,7 +37,9 @@ export function useAspersionVariableStats(headerId: string | null, enabled = tru
         { headers: { Authorization: `Bearer ${tokens.getAccess() ?? ''}` } },
       )
       if (!res.ok) throw new Error('No se pudo cargar el resumen de la importación')
-      return (await res.json()) as VariableStatsResponse
+      const parsed = variableStatsSchema.safeParse(await res.json())
+      if (!parsed.success) throw new Error('El resumen de aspersión tiene un formato incorrecto. Reintenta la consulta.')
+      return parsed.data
     },
     staleTime: 60_000,
   })

@@ -9,6 +9,9 @@ import type { SessionReport } from '../types'
 
 // ─── Mocks de hooks ──────────────────────────────────────────────────────────
 const mockReport = vi.fn()
+vi.mock('../hooks/useReportPdfState', () => ({
+  useReportPdfState: () => ({ data: undefined, refetch: vi.fn(), refreshPoints: vi.fn() }),
+}))
 vi.mock('../hooks/useSessionReport', async () => {
   const actual = await vi.importActual<typeof import('../hooks/useSessionReport')>(
     '../hooks/useSessionReport'
@@ -209,6 +212,6 @@ describe('SessionReportPanel', () => {
     mockReport.mockReturnValue({ data: null, isLoading: false, isError: false, refetch: vi.fn() })
     renderPanel()
     fireEvent.click(screen.getByRole('button', { name: /Generar reporte de actividad/i }))
-    expect(screen.getByLabelText(/Observaciones/i)).toBeTruthy()
+    expect(screen.getByLabelText(/Observación general de la sesión/i)).toBeTruthy()
   })
 })

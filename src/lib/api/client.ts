@@ -101,6 +101,10 @@ const refreshMiddleware: Middleware = {
   },
 }
 
-export const apiClient = createClient<paths>({ baseUrl: apiClientBaseUrl })
+export const apiClient = createClient<paths>({
+  baseUrl: apiClientBaseUrl,
+  // Resolve fetch at request time so the same client can use the test network interceptor.
+  fetch: (...args) => globalThis.fetch(...args),
+})
 apiClient.use(authMiddleware)
 apiClient.use(refreshMiddleware)

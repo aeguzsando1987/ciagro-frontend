@@ -19,6 +19,8 @@ function authHeaders(): HeadersInit {
 }
 
 export interface ReportAssets {
+  prepare_pdf?: boolean
+  expected_source_version?: string
   map_snapshot?: Blob
   analyst_signature?: Blob
 }
@@ -33,6 +35,8 @@ export function useUploadReportAssets(
   return useMutation({
     mutationFn: async (assets: ReportAssets): Promise<SessionReport> => {
       const form = new FormData()
+      if (assets.prepare_pdf) form.append('prepare_pdf', 'true')
+      if (assets.expected_source_version) form.append('expected_source_version', assets.expected_source_version)
       if (assets.map_snapshot) {
         form.append('map_snapshot', assets.map_snapshot, 'map-snapshot.png')
       }
@@ -45,11 +49,15 @@ export function useUploadReportAssets(
         { method: 'PATCH', headers: authHeaders(), body: form }
       )
       if (!res.ok) {
-        throw new Error('No se pudo subir la imagen al reporte.')
+        const body = await res.json().catch(() => null) as Record<string, unknown> | null
+        const detail = body?.detail ?? body?.prepare_pdf ?? body?.map_snapshot
+        throw new Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.join(' ')
+          : `No se pudo guardar la imagen (HTTP ${res.status}). Revisa el almacenamiento y reintenta.`)
       }
       return (await res.json()) as SessionReport
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report-pdf-state', reportId] })
       queryClient.invalidateQueries({
         queryKey: [...SESSION_REPORT_KEY, sessionType, objectId],
       })
@@ -72,8 +80,8 @@ export function useUploadReportAssets(
  */
 export function useDownloadReportPdf(reportId: string) {
   return useMutation({
-    mutationFn: async (): Promise<void> => {
-      const res = await fetch(`${baseUrl}/field_ops/session-reports/${reportId}/pdf/`, {
+    mutationFn: async (version?: string): Promise<void> => {
+      const res = await fetch(`${baseUrl}/field_ops/session-reports/${reportId}/pdf/${version ? `?version=${encodeURIComponent(version)}` : ''}`, {
         headers: authHeaders(),
       })
       if (!res.ok) {

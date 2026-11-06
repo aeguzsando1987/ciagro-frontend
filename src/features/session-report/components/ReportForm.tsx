@@ -171,12 +171,16 @@ export function ReportForm({
       )}
 
       <div className="space-y-1">
-        <Label htmlFor="rf-resume">Observaciones *</Label>
+        <Label htmlFor="rf-resume">
+          {sessionType === 'aspersion' ? 'Observación general de la sesión *' : 'Observaciones *'}
+        </Label>
         <textarea
           id="rf-resume"
           rows={4}
           className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          placeholder="Resumen, diagnóstico e interpretación de la actividad…"
+          placeholder={sessionType === 'aspersion'
+            ? 'Observación general de la aplicación…'
+            : 'Resumen, diagnóstico e interpretación de la actividad…'}
           {...register('resume_text')}
         />
         {errors.resume_text && (

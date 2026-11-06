@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { SessionReport, StatsVariable } from '../types'
 import { generalSnapshotOf, statsSnapshotOf } from '../types'
 import { SemaforoBadges } from './SemaforoBadges'
+import { AspersionRadarEvaluation } from './AspersionRadarEvaluation'
 
 function num(v: number | string | null | undefined, digits = 2): string {
   if (v === null || v === undefined || v === '') return '—'
@@ -63,7 +64,7 @@ function VariableRow({
   )
 }
 
-export function ReportCard({ report }: { report: SessionReport }) {
+export function ReportCard({ report, ciaName }: { report: SessionReport; ciaName?: string | null }) {
   const g = generalSnapshotOf(report)
   const s = statsSnapshotOf(report)
   const proporcion =
@@ -84,6 +85,8 @@ export function ReportCard({ report }: { report: SessionReport }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+          <Field label="Organización" value={g.organizacion} />
+          <Field label="CIAgro" value={ciaName ?? g.ciagro} />
           <Field label="Agricultor" value={g.productor} />
           <Field label="Granja" value={g.rancho} />
           <Field label="Parcela" value={g.parcela} />
@@ -94,6 +97,7 @@ export function ReportCard({ report }: { report: SessionReport }) {
             label={esSuelo ? 'Fecha de muestreo' : 'Fecha de aplicación'}
             value={g.fecha_aplicacion}
           />
+          {!esSuelo && <Field label="Producto aplicado" value={g.producto ?? 'No disponible en los datos de la sesión'} />}
           {!esSuelo && <Field label="Proporción meta" value={proporcion} />}
         </dl>
 
@@ -121,10 +125,13 @@ export function ReportCard({ report }: { report: SessionReport }) {
             <ul className="space-y-1">
               <VariableRow label="Velocidad" v={s.variables.velocidad} />
               <VariableRow label="Flujo líquido" v={s.variables.flujo_liquido} />
-              <VariableRow label="Presión" v={s.variables.presion} altUnit={{ label: 'PSI', factor: 14.538 }} />
+              <VariableRow label="Presión" v={s.variables.presion} altUnit={{ label: 'PSI', factor: 14.5037738 }} />
+              <VariableRow label="Productividad" v={s.variables.productividad} />
             </ul>
           </div>
         )}
+
+        {report.session_type === 'aspersion' && <AspersionRadarEvaluation stats={s} />}
 
         {/* En suelo no hay una clasificacion unica: son 49 capas, cada una con la
             suya. La nota de escala (P2) sustituye al semaforo hasta que RS-13 monte

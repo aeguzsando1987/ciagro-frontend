@@ -1,12 +1,16 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'node:path'
 
 // Configuración Vite + Vitest. Alias @/ apunta a src/ (regla Paso 13).
 // El servidor dev expone 5173 por defecto y consume el backend Django en
 // VITE_API_BASE_URL (http://localhost:8500/api/v1/ en desarrollo).
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), 'VITE_')
+  const backendOrigin = process.env['VITE_BACKEND_ORIGIN'] ?? env['VITE_BACKEND_ORIGIN']
+    ?? (env['VITE_API_BASE_URL'] ? new URL(env['VITE_API_BASE_URL']).origin : 'http://localhost:8500')
+  return {
   plugins: [react()],
   resolve: {
     alias: {
@@ -28,7 +32,7 @@ export default defineConfig({
       // mostraría "NOT FOUND". Réplica del `location /r/` que nginx tiene en producción,
       // para que la liga copiada desde la app funcione igual en ambos entornos.
       '/r': {
-        target: process.env['VITE_BACKEND_ORIGIN'] ?? 'http://localhost:8500',
+        target: backendOrigin,
         changeOrigin: true,
       },
       // Archivos subidos (snapshot del mapa y firma del reporte). La página pública
@@ -36,7 +40,7 @@ export default defineConfig({
       // contra el origen de la página; sin este proxy caerían en Vite y saldrían como
       // imagen rota. nginx ya tiene el equivalente en producción.
       '/media': {
-        target: process.env['VITE_BACKEND_ORIGIN'] ?? 'http://localhost:8500',
+        target: backendOrigin,
         changeOrigin: true,
       },
     },
@@ -51,4 +55,5 @@ export default defineConfig({
       exclude: ['node_modules/', 'src/test/', 'e2e/'],
     },
   },
+  }
 })

@@ -6,7 +6,7 @@
  * que exigen para publicar, y R2, que hasta RS-15 dejaba que el 409 del backend
  * saliera como error suelto tras esperar la descarga.
  */
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mutations = {
@@ -16,6 +16,11 @@ const mutations = {
   kmz: vi.fn(),
   csv: vi.fn(),
 }
+
+const freshnessMock = vi.hoisted(() => ({ data: { current_source_version: 'source-v1', history: [] as {version: string; prepared_at: string}[], stale: false, message: '' } }))
+vi.mock('../hooks/useReportPdfState', () => ({
+  useReportPdfState: () => ({ data: freshnessMock.data, refetch: vi.fn(), refreshPoints: vi.fn() }),
+}))
 
 vi.mock('../hooks/useSessionReport', () => ({
   useUpdateSessionReport: () => ({ mutate: mutations.update, isPending: false }),
@@ -27,7 +32,10 @@ vi.mock('../hooks/useReportAssets', () => ({
   useDownloadReportCsv: () => ({ mutate: mutations.csv, isPending: false }),
 }))
 vi.mock('./ReportMapCapture', () => ({
-  ReportMapCapture: () => <div data-testid="captura-aspersion" />,
+  ReportMapCapture: ({ onCaptured, onError }: { onCaptured: (blob: Blob) => void; onError: (message: string) => void }) => <div data-testid="captura-aspersion">
+    <button onClick={() => onCaptured(new Blob(['test'], { type: 'image/png' }))}>Simular captura</button>
+    <button onClick={() => onError('Falló la captura')}>Simular error</button>
+  </div>,
 }))
 vi.mock('./SoilPublishFlow', () => ({
   SoilPublishFlow: () => <div data-testid="flujo-suelo" />,
@@ -58,9 +66,73 @@ function renderDeliverables(report: SessionReport, sessionType: 'aspersion' | 's
 
 const btn = (name: RegExp | string) => screen.getByRole('button', { name })
 
-beforeEach(() => Object.values(mutations).forEach((m) => m.mockReset()))
+beforeEach(() => {
+  Object.values(mutations).forEach((m) => m.mockReset())
+  freshnessMock.data = { current_source_version: 'source-v1', history: [], stale: false, message: '' }
+})
 
 describe('ReportDeliverables — aspersión', () => {
+  it('distingue cambios pendientes y permite descargar una versión anterior', () => {
+    freshnessMock.data = { current_source_version: 'source-v2', stale: true,
+      message: 'El reporte tiene cambios pendientes. Vuelve a preparar el PDF.',
+      history: [{ version: 'old-version', prepared_at: '2026-11-04' }] }
+    renderDeliverables(reporte({ map_snapshot: 'local.png' }), 'aspersion')
+    expect(screen.getByRole('status')).toHaveTextContent('cambios pendientes')
+    expect(screen.getByText(/no los cambios pendientes/)).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Versión para descargar'), { target: { value: 'old-version' } })
+    fireEvent.click(btn('Descargar PDF'))
+    expect(mutations.pdf.mock.calls[0]?.[0]).toBe('old-version')
+    expect(mutations.update).not.toHaveBeenCalled()
+  })
+
+  it('prepara sin publicar y habilita PDF con la respuesta guardada', () => {
+    const { rerender } = renderDeliverables(reporte(), 'aspersion')
+    fireEvent.click(btn('Preparar PDF'))
+    expect(btn('Preparando PDF…')).toBeDisabled()
+    fireEvent.click(btn('Simular captura'))
+    const [assets, callbacks] = mutations.upload.mock.calls[0]!
+    expect(assets.prepare_pdf).toBe(true)
+    expect(assets.map_snapshot).toBeInstanceOf(Blob)
+    act(() => callbacks.onSuccess())
+    expect(mutations.update).not.toHaveBeenCalled()
+    expect(screen.queryByText('Copiar liga pública')).toBeNull()
+    rerender(<ReportDeliverables report={reporte({ map_snapshot: 'local.png' })} sessionType="aspersion" objectId="h1" plotId="p1" canWrite />)
+    expect(btn('Descargar PDF')).toBeEnabled()
+  })
+
+  it('permite reintentar captura fallida sin publicar', () => {
+    renderDeliverables(reporte(), 'aspersion')
+    fireEvent.click(btn('Preparar PDF'))
+    fireEvent.click(btn('Simular error'))
+    expect(screen.getByRole('alert')).toHaveTextContent('Falló la captura')
+    expect(btn('Preparar PDF')).toBeEnabled()
+    expect(mutations.update).not.toHaveBeenCalled()
+  })
+
+  it('muestra errores de almacenamiento y no habilita PDF', () => {
+    renderDeliverables(reporte(), 'aspersion')
+    fireEvent.click(btn('Preparar PDF'))
+    fireEvent.click(btn('Simular captura'))
+    act(() => mutations.upload.mock.calls[0]![1].onError(new Error('Almacenamiento no disponible')))
+    expect(screen.getByRole('alert')).toHaveTextContent('Almacenamiento no disponible')
+    expect(btn('Descargar PDF')).toBeDisabled()
+    expect(mutations.update).not.toHaveBeenCalled()
+  })
+
+  it('la publicación sigue siendo una acción independiente', () => {
+    renderDeliverables(reporte(), 'aspersion')
+    fireEvent.click(btn('Publicar reporte'))
+    fireEvent.click(btn('Simular captura'))
+    act(() => mutations.upload.mock.calls[0]![1].onSuccess())
+    expect(mutations.update).toHaveBeenCalledWith({ status: 'publicado' }, expect.anything())
+  })
+
+  it('no prepara publicados ni permite preparar sin permiso', () => {
+    const { rerender } = renderDeliverables(reporte({ status: 'publicado' }), 'aspersion')
+    expect(screen.queryByText('Preparar PDF')).toBeNull()
+    rerender(<ReportDeliverables report={reporte()} sessionType="aspersion" objectId="h1" plotId="p1" canWrite={false} />)
+    expect(btn('Preparar PDF')).toBeDisabled()
+  })
   it('publicar captura el mapa antes de marcar publicado', () => {
     renderDeliverables(reporte(), 'aspersion')
     fireEvent.click(btn('Publicar reporte'))

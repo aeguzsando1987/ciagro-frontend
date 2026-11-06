@@ -388,6 +388,8 @@ interface AspersionMapProps {
    * capturar, nunca en el visor general. Default `false`.
    */
   preserveDrawingBuffer?: boolean
+  /** Snapshot reports always show dose categories, independent of viewer preferences. */
+  reportCapture?: boolean
   /** Se dispara cuando el mapa termina de renderizar. `e.target` es el mapa nativo. */
   onIdle?: (event: { target: MapLibreMap }) => void
   onReadyChange?: OnSessionMapReady
@@ -417,15 +419,17 @@ export function AspersionMap({
   className,
   locked = false,
   preserveDrawingBuffer = false,
+  reportCapture = false,
   onIdle,
   onReadyChange,
   tightFrame = false,
   mapSync,
   showMapModeSelector = false,
 }: AspersionMapProps) {
-  const [activeLayerIdx, setActiveLayerIdx] = usePersistentMapLayer<number>(
+  const [preferredLayerIdx, setActiveLayerIdx] = usePersistentMapLayer<number>(
     'aspersion-layer', tenantId, plotId, 0, ASPERSION_LAYERS.map((_, i) => i)
   )
+  const activeLayerIdx = reportCapture ? 0 : preferredLayerIdx
   // null = sin inicializar (tratar como "todos activos"); Set vacío = usuario desmarcó todo
   const [checkedBuckets, setCheckedBuckets] = useState<Set<string> | null>(null)
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null)
@@ -436,7 +440,9 @@ export function AspersionMap({
   const {
     data: points,
     isLoading: loadingPoints,
+    isFetching: fetchingPoints,
     error: pointsError,
+    refetch: refetchPoints,
   } = useAspersionPoints(sessionId, enabled)
 
   const { data: plot } = usePlotGeometry(plotId)
@@ -461,6 +467,15 @@ export function AspersionMap({
     const layer=ASPERSION_LAYERS[activeLayerIdx]!
     return buildLayerData(baseFC, layer, appearance?.layers[layer.key])
   }, [baseFC, activeLayerIdx, appearance])
+
+  // A basemap can emit its only idle while the invalidated points query is
+  // still fetching. Request one more frame when capture data becomes ready so
+  // the source-loaded idle check below gets another opportunity to run.
+  useEffect(() => {
+    if (reportCapture && onIdle && layerData && points?.length && !loadingPoints && !fetchingPoints && !pointsError && !appearanceQuery.isLoading) {
+      mapRef.current?.getMap()?.triggerRepaint()
+    }
+  }, [reportCapture, onIdle, layerData, points, loadingPoints, fetchingPoints, pointsError, appearanceQuery.isLoading])
 
   const markSessionReady = useSessionMapReady(
     mapRef, sessionId, !!plot && !!points && !!layerData && !loadingPoints && !pointsError && !appearanceQuery.isLoading,
@@ -591,6 +606,9 @@ export function AspersionMap({
             />
           </MapOverlay>
         )}
+        {pointsError && <MapOverlay><div role="alert" className="rounded border bg-background p-3 text-sm">
+          <p>{pointsError.message}</p><button type="button" className="mt-2 underline" onClick={() => void refetchPoints()}>Reintentar carga de puntos</button>
+        </div></MapOverlay>}
         {!loadingPoints && points?.length === 0 && (
           <MapOverlay>Sin puntos de aspersión cargados.</MapOverlay>
         )}
@@ -616,7 +634,12 @@ export function AspersionMap({
             maxZoom={20}
             mapStyle={ESRI_STYLE}
             preserveDrawingBuffer={preserveDrawingBuffer}
-            onIdle={(event) => { onIdle?.(event); markSessionReady() }}
+            onIdle={(event) => {
+              // Basemap idle may occur BEFORE telemetry/geometry is loaded.
+              if (!loadingPoints && !fetchingPoints && !pointsError && points?.length && layerData && !appearanceQuery.isLoading
+                && event.target.getSource('rects') && event.target.isSourceLoaded('rects')) onIdle?.(event)
+              markSessionReady()
+            }}
             cooperativeGestures={!locked}
             interactive={!locked}
             dragRotate={!locked}

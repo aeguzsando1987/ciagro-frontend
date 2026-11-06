@@ -16,6 +16,7 @@ import { useAspersionSessionDetail } from '@/features/task-manager/hooks/useAspe
 import { useSoilMapSessionDetail } from '@/features/task-manager/hooks/useSoilMapSessionDetail'
 import type { SessionType } from '../types'
 import { SessionReportPanel } from './SessionReportPanel'
+import { AspersionRadarPanel } from './AspersionRadarPanel'
 
 interface SessionReportToggleProps {
   /** UUID del header de sesión (object_id). */
@@ -35,6 +36,7 @@ export function SessionReportToggle({
   className,
 }: SessionReportToggleProps) {
   const [open, setOpen] = useState(false)
+  const [radarOpen, setRadarOpen] = useState(false)
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
   const esSuelo = sessionType === 'soilmap'
   const { data: aspersion } = useAspersionSessionDetail(esSuelo ? null : objectId)
@@ -44,13 +46,17 @@ export function SessionReportToggle({
   const hasData =
     detail?.import_status === 'done' && parseInt(detail?.points_count ?? '0', 10) > 0
   const canReport = roleLevel >= ROLE_LEVELS.TECHNICIAN && hasData
-  if (!canReport) return null
+  if (roleLevel < ROLE_LEVELS.TECHNICIAN) return null
 
   return (
     <>
-      <Button size="sm" variant="outline" className={className} onClick={() => setOpen(true)}>
+      {!esSuelo && <>
+        <Button size="sm" variant="outline" className={className} onClick={() => setRadarOpen(true)}>Gráfica radar</Button>
+        {radarOpen && <AspersionRadarPanel key={objectId} open={radarOpen} onClose={() => setRadarOpen(false)} objectId={objectId} datacentralId={datacentralId} />}
+      </>}
+      {canReport && <Button size="sm" variant="outline" className={className} onClick={() => setOpen(true)}>
         📋 Reportes
-      </Button>
+      </Button>}
       <SessionReportPanel
         open={open}
         onClose={() => setOpen(false)}

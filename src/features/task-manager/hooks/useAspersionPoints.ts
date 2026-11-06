@@ -25,7 +25,7 @@ interface PaginatedPointsResponse {
 
 const PAGE_SIZE = 2000 // Máximo permitido por GeoPointsPagination
 
-async function fetchAllPoints(sessionId: string): Promise<AspersionPoint[]> {
+export async function fetchAllPoints(sessionId: string): Promise<AspersionPoint[]> {
   const baseUrl = import.meta.env.VITE_API_BASE_URL as string
   const allPoints: AspersionPoint[] = []
   let page = 1
@@ -39,6 +39,10 @@ async function fetchAllPoints(sessionId: string): Promise<AspersionPoint[]> {
       throw new Error(`Error al cargar puntos de aspersión (página ${page}): ${res.status}`)
     }
     const data = (await res.json()) as PaginatedPointsResponse
+    if (!data || !Array.isArray(data.results) || data.results.some(point => !point || typeof point !== 'object')) {
+      throw new Error(`Respuesta incorrecta de puntos de aspersión (página ${page}).`)
+    }
+    if (data.next && data.results.length === 0) throw new Error('La paginación de puntos no avanza. Reintenta la consulta.')
     allPoints.push(...data.results)
 
     if (!data.next) break

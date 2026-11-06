@@ -26,7 +26,7 @@ interface SessionIssuesTableProps {
 }
 
 export function SessionIssuesTable({ reportId, canWrite, datacentralId }: SessionIssuesTableProps) {
-  const { data: issues = [], isLoading } = useSessionIssues(reportId)
+  const { data: issues = [], isLoading, isError, refetch } = useSessionIssues(reportId)
   const deleteMut = useDeleteSessionIssue(reportId)
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -73,7 +73,8 @@ export function SessionIssuesTable({ reportId, canWrite, datacentralId }: Sessio
         <LoadingState compact label="Cargando temas…" className="justify-start p-0 text-xs" />
       )}
 
-      {!isLoading && issues.length === 0 && !creating && (
+      {isError && <div role="alert">No se pudieron consultar las incidencias. <button type="button" onClick={() => void refetch()}>Reintentar</button></div>}
+      {!isError && !isLoading && issues.length === 0 && !creating && (
         <p className="text-sm text-muted-foreground">Aún no hay temas de atención registrados.</p>
       )}
 

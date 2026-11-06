@@ -33,6 +33,7 @@ export function sessionReportQueryOptions(
         params: { query: { session_type: sessionType, object_id: objectId! } },
       })
       if (error) throw new Error('No se pudo cargar el reporte de la sesión')
+      if (!data || !Array.isArray(data.results)) throw new Error('Respuesta incorrecta al consultar el reporte de la sesión')
       return data?.results?.[0] ?? null
     },
     enabled: !!objectId,

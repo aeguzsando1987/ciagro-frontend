@@ -71,6 +71,12 @@ function renderMap() {
 }
 
 describe('AspersionMap', () => {
+  it('la captura del reporte ignora la capa persistida del visor', async () => {
+    sessionStorage.setItem('ciagro:visor:layer:v1:sin-organizacion:sin-parcela:aspersion-layer', '5')
+    render(<QueryClientProvider client={createTestQueryClient()}><AspersionMap sessionId="sess-1" plotId={null} reportCapture /></QueryClientProvider>)
+    await waitFor(() => expect(screen.getByText(/Deficiente/)).toBeTruthy())
+    expect(screen.queryByText(/Q1/)).toBeNull()
+  })
   beforeEach(() => {
     vi.clearAllMocks()
     sessionStorage.removeItem('ciagro:visor:layer:v1:sin-organizacion:sin-parcela:aspersion-layer')

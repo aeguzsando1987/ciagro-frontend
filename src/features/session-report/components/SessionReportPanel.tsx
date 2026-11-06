@@ -48,6 +48,9 @@ export function SessionReportPanel({
   sessionType = 'aspersion',
 }: SessionReportPanelProps) {
   const roleLevel = useAuthStore((s) => s.user?.role_level ?? ROLE_LEVELS.GUEST)
+  const ciaName = useAuthStore((s) =>
+    s.user?.datacentrals?.find((dc) => dc.id === datacentralId)?.name ?? null
+  )
   const canWrite = roleLevel >= ROLE_LEVELS.TECHNICIAN
   const [creating, setCreating] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
@@ -121,7 +124,7 @@ export function SessionReportPanel({
 
           {!isLoading && !isError && report && (
             <div className="space-y-4">
-              <ReportCard report={report} />
+              <ReportCard report={report} ciaName={ciaName} />
               {/* La unidad de analisis de suelo es la capa, y hay 49: sustituye al
                   semaforo de aspersion en vez de sumarse. */}
               {sessionType === 'soilmap' && (
@@ -140,11 +143,14 @@ export function SessionReportPanel({
                 report={report}
                 canWrite={canWrite}
               />
-              <SessionIssuesTable
+              {sessionType === 'aspersion' ? <details className="rounded border p-3">
+                <summary className="cursor-pointer text-sm">Incidencias históricas (solo consulta)</summary>
+                <SessionIssuesTable reportId={report.id} canWrite={false} datacentralId={datacentralId} />
+              </details> : <SessionIssuesTable
                 reportId={report.id}
                 canWrite={canWrite}
                 datacentralId={datacentralId}
-              />
+              />}
               <ReportDeliverables
                 report={report}
                 sessionType={sessionType}

@@ -16,6 +16,7 @@
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/client'
 import type { AdvancedSearchResult } from '../types'
+import { searchResultSchema } from '../lib/searchContract'
 import { criteriaToQuery, isSearchActive, type AdvancedSearchCriteria } from '../lib/advancedSearch'
 
 export const ADVANCED_SEARCH_KEY = ['visor', 'advanced-search'] as const
@@ -33,6 +34,7 @@ export function advancedSessionSearchQueryOptions(criteria: AdvancedSearchCriter
         params: { query },
       })
       if (error) throw new Error('No se pudo ejecutar la búsqueda avanzada')
+      if (!searchResultSchema.safeParse(data).success) throw new Error('La búsqueda devolvió una estructura incorrecta. Reintenta la consulta.')
       return data as unknown as AdvancedSearchResult
     },
     staleTime: 30_000,

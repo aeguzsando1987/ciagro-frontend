@@ -26,6 +26,7 @@ export function sessionIssuesQueryOptions(reportId: string | null) {
         params: { query: { report: reportId! } },
       })
       if (error) throw new Error('No se pudieron cargar los temas de atención')
+      if (!data || !Array.isArray(data.results)) throw new Error('Respuesta incorrecta al consultar las incidencias históricas')
       return data?.results ?? []
     },
     enabled: !!reportId,

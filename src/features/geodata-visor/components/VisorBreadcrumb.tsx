@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -34,7 +35,7 @@ export function VisorBreadcrumb({
         {pasos.map((paso, i) => {
           const ultimo = i === pasos.length - 1
           return (
-            <BreadcrumbItem key={`${paso.level}-${paso.id}`}>
+            <Fragment key={`${paso.level}-${paso.id}`}><BreadcrumbItem>
               {ultimo ? (
                 <BreadcrumbPage className="font-semibold">{paso.name}</BreadcrumbPage>
               ) : (
@@ -47,10 +48,9 @@ export function VisorBreadcrumb({
                   >
                     {paso.name}
                   </button>
-                  <BreadcrumbSeparator />
                 </>
               )}
-            </BreadcrumbItem>
+            </BreadcrumbItem>{!ultimo && <BreadcrumbSeparator />}</Fragment>
           )
         })}
       </BreadcrumbList>

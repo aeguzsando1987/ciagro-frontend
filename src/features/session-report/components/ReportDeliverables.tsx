@@ -27,6 +27,7 @@ import {
 import { ReportMapCapture } from './ReportMapCapture'
 import { SoilPublishFlow } from './SoilPublishFlow'
 import { statsSnapshotOf, type SessionReport, type SessionType } from '../types'
+import { useReportPdfState } from '../hooks/useReportPdfState'
 
 interface ReportDeliverablesProps {
   report: SessionReport
@@ -44,6 +45,12 @@ export function ReportDeliverables({
   canWrite,
 }: ReportDeliverablesProps) {
   const [capturing, setCapturing] = useState(false)
+  const [captureIntent, setCaptureIntent] = useState<'prepare' | 'publish'>('prepare')
+  const [preparationError, setPreparationError] = useState<string | null>(null)
+  const operationRef = useRef(false)
+  const sourceVersionRef = useRef<string | undefined>()
+  const [historicalVersion, setHistoricalVersion] = useState('')
+  const freshness = useReportPdfState(report.id, report.updated_at, sessionType === 'aspersion')
   const signatureInputRef = useRef<HTMLInputElement>(null)
 
   const uploadMut = useUploadReportAssets(report.id, sessionType, objectId)
@@ -80,6 +87,7 @@ export function ReportDeliverables({
   }
 
   function handlePublish() {
+    if (operationRef.current || busy || isPublished || isCancelled || !canWrite) return
     // En suelo las imagenes ya las congelo SoilPublishFlow capa por capa, asi que
     // no hay una captura unica que hacer aqui: se publica directo.
     if (esSuelo) {
@@ -87,6 +95,22 @@ export function ReportDeliverables({
       return
     }
     // Siempre se re-captura: republicar es el mecanismo para refrescar el mapa.
+    beginCapture('publish')
+  }
+
+  function beginCapture(intent: 'prepare' | 'publish') {
+    if (operationRef.current || busy || isPublished || isCancelled || !canWrite) return
+    operationRef.current = true
+    if (report.status === 'en_proceso' && !freshness.data?.current_source_version) {
+      operationRef.current = false
+      setPreparationError('No se pudo verificar la versión de los datos. Reintenta la consulta de vigencia antes de capturar.')
+      void freshness.refetch()
+      return
+    }
+    sourceVersionRef.current = freshness.data?.current_source_version ?? undefined
+    void freshness.refreshPoints(objectId)
+    setPreparationError(null)
+    setCaptureIntent(intent)
     setCapturing(true)
   }
 
@@ -101,15 +125,27 @@ export function ReportDeliverables({
   function handleCaptured(blob: Blob) {
     setCapturing(false)
     uploadMut.mutate(
-      { map_snapshot: blob },
+      { map_snapshot: blob, prepare_pdf: report.status === 'en_proceso', expected_source_version: sourceVersionRef.current },
       {
-        onSuccess: () => markPublished(),
-        onError: () => toast.error('No se pudo guardar la captura del mapa.'),
+        onSuccess: () => {
+          operationRef.current = false
+          if (captureIntent === 'publish') markPublished()
+          else toast.success('PDF preparado. El reporte sigue en proceso, sin liga pública.')
+        },
+        onError: (error) => {
+          operationRef.current = false
+          const message = error instanceof Error ? error.message : 'No se pudo guardar la captura del mapa. Puedes reintentar.'
+          setPreparationError(message)
+          void freshness.refetch()
+          toast.error(message)
+        },
       }
     )
   }
 
   function handleCaptureError(message: string) {
+    operationRef.current = false
+    setPreparationError(message)
     setCapturing(false)
     toast.error(message)
   }
@@ -132,7 +168,7 @@ export function ReportDeliverables({
   function descargarPdf() {
     // Sin abrir pestaña: generar el PDF tarda unos segundos y una pestaña vacia
     // mientras tanto parece un error. La espera se muestra aqui, en el boton.
-    pdfMut.mutate(undefined, {
+    pdfMut.mutate(historicalVersion || undefined, {
       onSuccess: () => toast.success('PDF descargado.'),
       onError: (e) =>
         toast.error(
@@ -169,7 +205,31 @@ export function ReportDeliverables({
         </p>
       </div>
 
+      {!esSuelo && <div className="space-y-2 rounded border bg-muted/30 p-3 text-xs">
+        {freshness.isLoading && <p role="status">Verificando vigencia del PDF…</p>}
+        {freshness.isError && <p role="alert">No se pudo verificar la vigencia. La descarga anterior sigue disponible si existe.</p>}
+        {freshness.data && <>
+          <p role={freshness.data.stale ? 'status' : undefined} className="font-medium">{freshness.data.message}</p>
+          {freshness.data.version && <p>Versión preparada: {freshness.data.version.slice(0, 8)} · {freshness.data.prepared_at ? new Date(freshness.data.prepared_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }) : 'fecha no disponible'}</p>}
+          {freshness.data.stale && hasMap && <p>Descargar PDF entrega la última versión preparada, no los cambios pendientes.</p>}
+          {freshness.data.history.length > 0 && <label className="block">Versión para descargar
+            <select value={historicalVersion} onChange={e => setHistoricalVersion(e.target.value)} className="ml-2 rounded border bg-background p-1">
+              <option value="">Última versión preparada</option>
+              {freshness.data.history.map(v => <option key={v.version} value={v.version}>{v.version.slice(0, 8)} · {new Date(v.prepared_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}</option>)}
+            </select>
+          </label>}
+        </>}
+        <Button size="sm" variant="outline" disabled={freshness.isFetching || busy} onClick={() => void freshness.refetch()}>Verificar vigencia</Button>
+      </div>}
+
       <div className="flex flex-wrap gap-2">
+        {!esSuelo && !isPublished && (
+          <Button size="sm" variant="outline" onClick={() => beginCapture('prepare')}
+            disabled={!canWrite || busy || report.status !== 'en_proceso' || pdfMut.isPending}
+            title={report.status !== 'en_proceso' ? 'Cambia el reporte a En proceso para prepararlo' : undefined}>
+            {busy && captureIntent === 'prepare' ? 'Preparando PDF…' : 'Preparar PDF'}
+          </Button>
+        )}
         {/* Firma del analista */}
         <input
           ref={signatureInputRef}
@@ -202,9 +262,9 @@ export function ReportDeliverables({
               esSuelo && !hasMap ? 'Prepara al menos una capa antes de publicar' : undefined
             }
           >
-            {capturing
+            {capturing && captureIntent === 'publish'
               ? 'Capturando mapa…'
-              : busy
+              : busy && captureIntent === 'publish'
                 ? 'Publicando…'
                 : 'Publicar reporte'}
           </Button>
@@ -223,7 +283,7 @@ export function ReportDeliverables({
           size="sm"
           variant="outline"
           onClick={descargarPdf}
-          disabled={pdfMut.isPending || !hasMap || isCancelled}
+          disabled={pdfMut.isPending || busy || !hasMap || isCancelled}
           title={
             isCancelled
               ? 'Un reporte cancelado no se exporta'
@@ -231,7 +291,7 @@ export function ReportDeliverables({
                 ? undefined
                 : esSuelo
                   ? 'Prepara al menos una capa para generar el PDF'
-                  : 'Publica el reporte para capturar el mapa'
+                  : 'Pulsa Preparar PDF para capturar el mapa sin publicar'
           }
         >
           {pdfMut.isPending ? 'Generando PDF…' : 'Descargar PDF'}
@@ -271,6 +331,10 @@ export function ReportDeliverables({
           </Button>
         )}
       </div>
+      {busy && !esSuelo && <p role="status" className="text-xs text-muted-foreground">
+        {capturing ? 'Capturando el mapa de la sesión…' : 'Guardando captura y actualizando los datos del reporte…'}
+      </p>}
+      {preparationError && <p role="alert" className="text-sm text-destructive">{preparationError} Vuelve a pulsar Preparar PDF para reintentar.</p>}
 
       {/* R4: en suelo hay que elegir capas antes de publicar. Va arriba de la liga
           porque es el paso previo, no un extra. */}
@@ -314,8 +378,8 @@ export function ReportDeliverables({
       {!isPublished && !esSuelo && (
         <p className="text-xs text-muted-foreground">
           {hasMap
-            ? 'Al publicar se vuelve a capturar el mapa de la sesión, reemplazando la captura anterior.'
-            : 'Al publicar se captura el mapa de la sesión y queda congelado en el reporte.'}
+            ? 'PDF disponible sin publicar. Si cambian la sesión o los rangos, pulsa Preparar PDF para actualizar mapa y evaluación. Al publicar se vuelve a capturar el mapa.'
+            : 'Pulsa Preparar PDF para capturar el mapa y actualizar la evaluación sin publicar. Después podrás descargarlo; no se creará una liga pública.'}
         </p>
       )}
 
