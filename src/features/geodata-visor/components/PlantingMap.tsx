@@ -1,3 +1,6 @@
+import { MapModeSelector } from './MapModeSelector'
+import { useMapMode } from '../lib/mapModes'
+import { usePersistentMapLayer } from '../lib/usePersistentMapLayer'
 import { useLayerAppearance, appearancePalette } from '@/features/analysis-colors/useLayerAppearance'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
@@ -17,6 +20,7 @@ import {
 } from '@/features/planting-map/lib/plantingMapLayers'
 import type { PlantingLayerKey } from '@/features/planting-map/types'
 import { LoadingState } from '@/components/ui/loading-state'
+import { useSessionMapReady, type OnSessionMapReady } from '../hooks/useSessionMapReady'
 import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import type { MapCameraSyncBinding } from '../lib/mapCameraSync'
 import { useMapCameraSync } from '../lib/mapCameraSync'
@@ -29,7 +33,9 @@ interface Props {
   toolbarStart?: React.ReactNode
   className?: string
   mapSync?: MapCameraSyncBinding
+  showMapModeSelector?: boolean
   comparisonMode?: boolean
+  onReadyChange?: OnSessionMapReady
 }
 
 function collectPositions(value: unknown, output: [number, number][]) {
@@ -216,7 +222,8 @@ function rectangularCell(
 
 export function PlantingMap({
   tenantId,
-  sessionId, plotId, toolbarStart, className, mapSync, comparisonMode = false,
+  sessionId, plotId, toolbarStart, className, mapSync, comparisonMode = false, showMapModeSelector = false,
+  onReadyChange,
 }: Props) {
   const instanceId = useId().replace(/:/g, '')
   const plotSourceId = `planting-plot-${instanceId}`
@@ -238,18 +245,21 @@ export function PlantingMap({
     return PLANTING_MAP_LAYERS.map((layer) => layer.key).filter((key) => allowed.has(key))
   }, [detail?.available_layers, stats?.available_layers])
 
-  const [activeKey, setActiveKey] = useState<PlantingLayerKey>('density')
+  const [preferredKey, setActiveKey] = usePersistentMapLayer<PlantingLayerKey>(
+    'planting-layer', tenantId, plotId, 'density', PLANTING_MAP_LAYERS.map((layer) => layer.key)
+  )
   const [menuOpen, setMenuOpen] = useState(false)
   const [visibleBuckets, setVisibleBuckets] = useState<Set<string>>(new Set())
   const [popup, setPopup] = useState<{ lng: number; lat: number; value: number | string } | null>(null)
 
-  useEffect(() => {
-    if (availableLayers.length > 0 && !availableLayers.includes(activeKey)) {
-      setActiveKey(availableLayers[0]!)
-    }
-  }, [activeKey, availableLayers])
+  // Mostrar la primera variable disponible sólo en esta sesión;
+  // nunca sobrescribir la elección hecha en otra sesión.
+  const activeKey = availableLayers.length > 0 && !availableLayers.includes(preferredKey)
+    ? availableLayers[0]!
+    : preferredKey
 
-  const {data: appearance} = useLayerAppearance('planting_map',tenantId)
+  const appearanceQuery = useLayerAppearance('planting_map',tenantId)
+  const appearance = appearanceQuery.data
   const layerAppearance = appearance?.layers[activeKey]
   const baseLayer = PLANTING_LAYER_BY_KEY[activeKey]
   const activeLayer = useMemo(() => ({...baseLayer,palette:appearancePalette(baseLayer.palette,layerAppearance)}),[baseLayer,layerAppearance])
@@ -349,6 +359,7 @@ export function PlantingMap({
   }, [classes.length, visibleBuckets])
 
   const mapRef = useRef<MapRef>(null)
+  const { mapMode, setMapMode } = useMapMode(mapRef)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
   const plotGeometry = plotQuery.data?.geometry as unknown
   const plotFeature = useMemo(() => asFeature(plotGeometry), [plotGeometry])
@@ -382,12 +393,19 @@ export function PlantingMap({
   }
 
   const isLoading = detailQuery.isLoading || plotQuery.isLoading || statsQuery.isLoading || valuesQuery.isLoading
+  const markSessionReady = useSessionMapReady(
+    mapRef, sessionId, !!detailQuery.data && !!plotQuery.data && !!statsQuery.data &&
+      (availableLayers.length === 0 || !!valuesQuery.data) &&
+      !detailQuery.isError && !plotQuery.isError && !statsQuery.isError && !valuesQuery.isError &&
+      !isLoading && !appearanceQuery.isLoading, onReadyChange,
+  )
   const numericStats = stats?.numeric?.[activeKey]
 
   return (
     <div className={`relative h-full min-h-[430px] w-full overflow-hidden bg-muted ${className ?? ''}`}>
       <MapGL
         ref={mapRef}
+        onIdle={markSessionReady}
         mapStyle={ESRI_STYLE}
         initialViewState={{ longitude: -101, latitude: 20.7, zoom: 6 }}
         maxZoom={21}
@@ -442,8 +460,9 @@ export function PlantingMap({
           </Popup>
         )}
       </MapGL>
+      {showMapModeSelector && <MapModeSelector position="center" active={mapMode} onChange={setMapMode} />}
 
-      <div className="absolute left-3 top-3 z-20 flex items-start gap-2">
+      <div className="absolute left-3 top-3 z-40 flex items-start gap-2">
         {toolbarStart}
         <div className="relative w-64 rounded-xl border border-white/30 bg-white/95 shadow-lg backdrop-blur-sm dark:bg-slate-950/95">
           <button type="button" onClick={() => setMenuOpen((open) => !open)}
@@ -458,7 +477,7 @@ export function PlantingMap({
             <ChevronDown className={`h-4 w-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
           </button>
           {menuOpen && (
-            <div className="max-h-[60vh] overflow-y-auto border-t p-1.5">
+            <div className="max-h-[min(55vh,300px)] overflow-y-auto border-t p-1.5">
               {availableLayers.map((key) => {
                 const layer = PLANTING_LAYER_BY_KEY[key]
                 return (
@@ -477,7 +496,7 @@ export function PlantingMap({
         </div>
       </div>
 
-      <div className={`absolute bottom-3 left-3 z-20 rounded-xl border border-white/30 bg-white/95 shadow-lg backdrop-blur-sm dark:bg-slate-950/95 ${
+      <div className={`absolute bottom-3 left-3 z-20 ${menuOpen ? "hidden" : ""} rounded-xl border border-white/30 bg-white/95 shadow-lg backdrop-blur-sm dark:bg-slate-950/95 ${
         comparisonMode ? 'w-48 p-2' : 'w-64 p-3'
       }`}>
         <div className="mb-2">

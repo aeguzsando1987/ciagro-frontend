@@ -1,3 +1,6 @@
+import { MapModeSelector } from './MapModeSelector'
+import { useMapMode } from '../lib/mapModes'
+import { usePersistentMapLayer } from '../lib/usePersistentMapLayer'
 import { useLayerAppearance, appearancePalette } from '@/features/analysis-colors/useLayerAppearance'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
@@ -43,6 +46,7 @@ import { SoilMapStatsCard } from './SoilMapStatsCard'
 import { SoilMapVariableStatsCard } from './SoilMapVariableStatsCard'
 import { SoilElevationSummary } from './SoilElevationSummary'
 import { LoadingState } from '@/components/ui/loading-state'
+import { useSessionMapReady, type OnSessionMapReady } from '../hooks/useSessionMapReady'
 
 interface SoilMapProps {
   /** Organización que consulta la sesión; el Task Manager puede usar resolución automática. */
@@ -58,6 +62,7 @@ interface SoilMapProps {
   showStatsCards?: boolean
   className?: string
   mapSync?: MapCameraSyncBinding
+  showMapModeSelector?: boolean
 
   // ── Modo captura (FASE RS, RS-15) ──
   // Cuatro interruptores APAGADOS por defecto: sin ellos el visor se comporta
@@ -71,6 +76,7 @@ interface SoilMapProps {
   preserveDrawingBuffer?: boolean
   /** Se dispara cuando el mapa termina de renderizar. `e.target` es el mapa nativo. */
   onIdle?: (event: { target: MapLibreMap }) => void
+  onReadyChange?: OnSessionMapReady
   /** Encuadre cerrado: el terreno vecino solo resta tamaño a lo que interesa. */
   tightFrame?: boolean
   /**
@@ -164,14 +170,21 @@ export function SoilMap({
   showStatsCards = false,
   className,
   mapSync,
+  showMapModeSelector = false,
   locked = false,
   preserveDrawingBuffer = false,
   onIdle,
+  onReadyChange,
   tightFrame = false,
   activeLayerKey,
   onLayerComputed,
 }: SoilMapProps) {
-  const [internalLayerIndex, setInternalLayerIndex] = useState(0)
+  const [preferredLayerIndex, setPreferredLayerIndex] = usePersistentMapLayer<number>(
+    'soil-layer', tenantId ?? dcId, plotId, 0, SOIL_MAP_LAYERS.map((_, i) => i)
+  )
+  const [internalLayerIndex, setInternalLayerIndex] = useState(preferredLayerIndex)
+  // Una capa sin datos puede mostrar temporalmente otra, sin borrar la preferencia.
+  useEffect(() => { setInternalLayerIndex(preferredLayerIndex) }, [sessionId, preferredLayerIndex])
   // Capa CONTROLADA: si viene `activeLayerKey`, manda quien monta el mapa. Se
   // resuelve aqui y no en el estado para que el prop siempre gane, incluso si el
   // selector interno hubiera guardado otra cosa antes.
@@ -183,11 +196,13 @@ export function SoilMap({
   const [checkedBuckets, setCheckedBuckets] = useState<Set<string> | null>(null)
   const [hoveredSample, setHoveredSample] = useState<PopupInfo | null>(null)
   const mapRef = useRef<MapRef>(null)
+  const { mapMode, setMapMode } = useMapMode(mapRef)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
   const { data: points, isLoading, error } = useSoilMapPoints(sessionId, enabled)
   const { data: plot } = usePlotGeometry(plotId)
-  const {data: appearance} = useLayerAppearance('soil_map',tenantId,dcId)
+  const appearanceQuery = useLayerAppearance('soil_map',tenantId,dcId)
+  const appearance = appearanceQuery.data
   const baseLayer = SOIL_MAP_LAYERS[activeLayerIndex]!
   const layerAppearance = appearance?.layers[baseLayer.key]
   const activeLayer = useMemo<SoilMapLayerDef>(() => {
@@ -282,6 +297,14 @@ export function SoilMap({
     cacheKey: surfaceCacheKey,
     enabled: activeLayer.kind === 'numeric',
   })
+
+  const markSessionReady = useSessionMapReady(
+    mapRef, sessionId,
+    !!plot && !!points && !!layerValues && !!variableStats &&
+      !isLoading && !isLoadingValues && !isLoadingStats && !isComputingSurface && !appearanceQuery.isLoading &&
+      !error && !valuesError,
+    onReadyChange,
+  )
 
   const numericScale = useMemo(() => {
     if (activeLayer.kind !== 'numeric') return null
@@ -455,7 +478,10 @@ export function SoilMap({
           disabled={!hasLayerCounts}
           onChange={(event) => {
             const nextIndex = SOIL_MAP_LAYERS.findIndex((layer) => layer.key === event.target.value)
-            if (nextIndex >= 0) setActiveLayerIndex(nextIndex)
+            if (nextIndex >= 0) {
+              setPreferredLayerIndex(nextIndex)
+              setActiveLayerIndex(nextIndex)
+            }
           }}
         >
           {/*
@@ -583,7 +609,7 @@ export function SoilMap({
           cooperativeGestures={!locked}
           attributionControl={false}
           preserveDrawingBuffer={preserveDrawingBuffer}
-          onIdle={onIdle}
+          onIdle={(event) => { onIdle?.(event); markSessionReady() }}
           // En captura el mapa es una foto: sin paneo, zoom ni rotacion, y sin
           // popups, que saldrian dibujados en la imagen.
           interactive={!locked}
@@ -656,6 +682,7 @@ export function SoilMap({
             </Popup>
           )}
         </MapGL>
+        {showMapModeSelector && <MapModeSelector position="center" active={mapMode} onChange={setMapMode} />}
       </div>
 
       <div className="shrink-0 space-y-1 border-t bg-background px-4 py-2 text-xs">

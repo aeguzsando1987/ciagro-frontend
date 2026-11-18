@@ -141,6 +141,7 @@ export function useNdviSessionVariableConfig(
     // Sin permiso/alcance -> el visor cae al gradiente; no reintentar.
     retry: false,
     staleTime: 60_000,
+    refetchOnWindowFocus: false,
   })
 }
 
@@ -169,6 +170,7 @@ export function useUpdateNdviVariableConfig(tenant?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: NDVI_VAR_CONFIG_KEY })
+      queryClient.invalidateQueries({ queryKey: ['ndvi-session-variable-config'] })
     },
   })
 }

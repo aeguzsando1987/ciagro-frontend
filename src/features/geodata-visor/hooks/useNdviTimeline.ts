@@ -230,5 +230,6 @@ export function useNdviTimeline(
 
     staleTime:
       30_000,
+    refetchOnWindowFocus: false,
   })
 }

@@ -12,6 +12,8 @@ import {
   FolderTree,
   LayoutDashboard,
   Map,
+  Maximize2,
+  Minimize2,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
@@ -89,6 +91,7 @@ interface GeodataVisorShellProps {
 
 export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShellProps = {}) {
   const roleLevel = useAuthStore((state) => state.user?.role_level)
+  const visorUserId = useAuthStore((state) => state.user?.id)
   const codeOnlyViewer = roleLevel === ROLE_LEVELS.GUEST
   const [selection, setSelection] = useState<VisorSelection | null>(initialSelection)
   const [comparisonSelection, setComparisonSelection] = useState<VisorSelection | null>(null)
@@ -96,6 +99,40 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
   const [activePane, setActivePane] = useState<ComparisonPaneId>('primary')
   const [explorerWidth, setExplorerWidth] = useState(300)
   const [explorerHidden, setExplorerHidden] = useState(false)
+  // CIAGRO_SESSION_FOCUSED_LAYOUT_20261020: sólo sesión, nunca parcela.
+  const [sessionFocused, setSessionFocused] = useState(false)
+  const explorerBeforeFocus = useRef(false)
+  const canFocusSession = selection?.level === 'session' && !comparisonEnabled
+  const toggleSessionFocus = useCallback(() => {
+    if (sessionFocused) {
+      setSessionFocused(false)
+      setExplorerHidden(explorerBeforeFocus.current)
+      return
+    }
+    explorerBeforeFocus.current = explorerHidden
+    setExplorerHidden(true)
+    setSessionFocused(true)
+  }, [explorerHidden, sessionFocused])
+  useEffect(() => {
+    if (!sessionFocused) return
+    if (selection?.level !== 'session' || comparisonEnabled) {
+      setSessionFocused(false)
+      setExplorerHidden(explorerBeforeFocus.current)
+    }
+  }, [sessionFocused, selection?.level, comparisonEnabled])
+  useEffect(() => {
+    if (!sessionFocused) return
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setSessionFocused(false)
+      setExplorerHidden(explorerBeforeFocus.current)
+    }
+    window.addEventListener('keydown', onEscape)
+    return () => window.removeEventListener('keydown', onEscape)
+  }, [sessionFocused])
+  // CIAGRO_LINEAPRO_ONLY_UI_STATE_20261020
+  // El estado del árbol y de la sesión permanece en memoria mientras el visor está abierto.
+  // No guardar automáticamente en localStorage organización, rancho, parcela ni sesión.
   const [searchOpen, setSearchOpen] = useState(false)
   const [headerPortalTarget, setHeaderPortalTarget] = useState<HTMLElement | null>(null)
   const cameraSyncGroup = useMemo(() => createMapCameraSyncGroup(), [])
@@ -168,6 +205,25 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
     setHeaderPortalTarget(document.getElementById('product-header-workspace-tools'))
   }, [])
 
+  // Limpia únicamente las rutas y los ciclos persistidos POR LA VERSIÓN ANTERIOR
+  // de este ajuste. Mantiene intactas preferencias de abrir/cerrar paneles,
+  // otros datos de la aplicación y los datos del backend.
+  useEffect(() => {
+    if (!visorUserId) return
+    const stalePrefixes = [
+      `ciagro.visor.last-selection.v1.${visorUserId}.`,
+      `ciagro.timeline.session.cycle.v1.${visorUserId}.`,
+    ]
+    try {
+      const staleKeys: string[] = []
+      for (let i = 0; i < window.localStorage.length; i += 1) {
+        const key = window.localStorage.key(i)
+        if (key && stalePrefixes.some((prefix) => key.startsWith(prefix))) staleKeys.push(key)
+      }
+      staleKeys.forEach((key) => window.localStorage.removeItem(key))
+    } catch { /* Almacenamiento deshabilitado: funciona igual sin caché */ }
+  }, [visorUserId])
+
   // La CIAgro se resuelve por HTTP, asi que `initialSelection` llega DESPUES del
   // primer render. Se aplica solo mientras el usuario no haya elegido nada, para no
   // pisarle la navegacion si ya se movio por el arbol.
@@ -235,6 +291,19 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
                   Mapas sincronizados
                 </span>
               )}
+              {canFocusSession && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={sessionFocused ? 'secondary' : 'ghost'}
+                  onClick={toggleSessionFocus}
+                  aria-pressed={sessionFocused}
+                  title={sessionFocused ? 'Regresar a la vista normal (Esc)' : 'Ampliar mapa y línea de tiempo de la sesión'}
+                >
+                  {sessionFocused ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  <span className="hidden sm:inline">{sessionFocused ? 'Salir de vista enfocada' : 'Vista enfocada'}</span>
+                </Button>
+              )}
               <Button
                 type="button"
                 variant={comparisonEnabled ? 'secondary' : 'ghost'}
@@ -272,7 +341,7 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
       })()}
 
       <main className="flex min-h-0 flex-1 overflow-hidden">
-        {explorerHidden ? (
+        {!sessionFocused && explorerHidden && (
           <button
             type="button"
             aria-label="Mostrar explorador"
@@ -281,11 +350,11 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
           >
             <PanelLeftOpen className="h-4 w-4" />
           </button>
-        ) : (
+        )}
           <>
             <aside
               style={{ width: `min(${explorerWidth}px, 82vw)` }}
-              className="flex shrink-0 flex-col overflow-hidden border-r border-default bg-surface"
+              className={`shrink-0 flex-col overflow-hidden border-r border-default bg-surface ${sessionFocused || explorerHidden ? 'hidden' : 'flex'}`}
             >
               <div className="border-b border-default px-3 py-3">
                 <div className="flex items-center justify-between gap-2">
@@ -356,14 +425,13 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
               role="separator"
               aria-orientation="vertical"
               onPointerDown={startResize}
-              className="w-1 shrink-0 cursor-col-resize bg-border-light transition-colors duration-150 hover:bg-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+              className={`w-1 shrink-0 cursor-col-resize bg-border-light transition-colors duration-150 hover:bg-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${sessionFocused || explorerHidden ? 'hidden' : ''}`}
             />
           </>
-        )}
 
         <section
           aria-label="Contenido del visor agrícola"
-          className={`min-w-0 flex-1 overflow-auto ${comparisonEnabled ? 'p-2' : 'p-4 sm:p-6'}`}
+          className={`min-w-0 flex-1 overflow-auto ${sessionFocused ? 'p-1 sm:p-2' : comparisonEnabled ? 'p-2' : 'p-4 sm:p-6'}`}
         >
           {comparisonEnabled ? (
             <div className="grid h-full min-h-[640px] grid-cols-1 grid-rows-2 gap-2 md:min-h-0 md:grid-cols-2 md:grid-rows-1">
@@ -453,6 +521,7 @@ export function GeodataVisorShell({ initialSelection = null }: GeodataVisorShell
               selection={selection}
               onSelect={selectAndFocusDashboard}
               searchResult={searchActive ? (results.data ?? null) : null}
+              focusedSession={sessionFocused}
             />
           ) : (
             <EmptyState

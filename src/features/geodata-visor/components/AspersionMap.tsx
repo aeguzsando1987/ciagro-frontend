@@ -1,3 +1,6 @@
+import { MapModeSelector } from './MapModeSelector'
+import { useMapMode } from '../lib/mapModes'
+import { usePersistentMapLayer } from '../lib/usePersistentMapLayer'
 import { useLayerAppearance, appearancePalette, appearanceCategoryColor, type LayerAppearance } from '@/features/analysis-colors/useLayerAppearance'
 /**
  * Mapa de calor de los datos de aspersión de una sesión — componente presentacional
@@ -25,6 +28,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { LoadingState } from '@/components/ui/loading-state'
+import { useSessionMapReady, type OnSessionMapReady } from '../hooks/useSessionMapReady'
 import { useAspersionPoints } from '@/features/task-manager/hooks/useAspersionPoints'
 import { usePlotGeometry } from '@/features/task-manager/hooks/usePlotGeometry'
 import { useAspersionVariableStats } from '@/features/task-manager/hooks/useAspersionVariableStats'
@@ -386,6 +390,7 @@ interface AspersionMapProps {
   preserveDrawingBuffer?: boolean
   /** Se dispara cuando el mapa termina de renderizar. `e.target` es el mapa nativo. */
   onIdle?: (event: { target: MapLibreMap }) => void
+  onReadyChange?: OnSessionMapReady
   /**
    * Encuadre cerrado: menos margen y más zoom, para que la parcela llene el cuadro.
    * Se usa en la captura del reporte, donde el terreno vecino solo resta tamaño a lo
@@ -394,6 +399,7 @@ interface AspersionMapProps {
   tightFrame?: boolean
   /** Sincronizacion opcional de camara entre los paneles A/B del visor. */
   mapSync?: MapCameraSyncBinding
+  showMapModeSelector?: boolean
 }
 
 // ─── Componente principal ────────────────────────────────────────────────────
@@ -412,14 +418,19 @@ export function AspersionMap({
   locked = false,
   preserveDrawingBuffer = false,
   onIdle,
+  onReadyChange,
   tightFrame = false,
   mapSync,
+  showMapModeSelector = false,
 }: AspersionMapProps) {
-  const [activeLayerIdx, setActiveLayerIdx] = useState(0)
+  const [activeLayerIdx, setActiveLayerIdx] = usePersistentMapLayer<number>(
+    'aspersion-layer', tenantId, plotId, 0, ASPERSION_LAYERS.map((_, i) => i)
+  )
   // null = sin inicializar (tratar como "todos activos"); Set vacío = usuario desmarcó todo
   const [checkedBuckets, setCheckedBuckets] = useState<Set<string> | null>(null)
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null)
   const mapRef = useRef<MapRef>(null)
+  const { mapMode, setMapMode } = useMapMode(mapRef)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
   const {
@@ -441,7 +452,8 @@ export function AspersionMap({
 
   // FeatureCollection base de rectángulos (calculada una vez cuando llegan los puntos)
   const baseFC = useMemo(() => (points ? pointsToRectangleCollection(points) : null), [points])
-  const {data: appearance} = useLayerAppearance('aspersion',tenantId,dcId)
+  const appearanceQuery = useLayerAppearance('aspersion',tenantId,dcId)
+  const appearance = appearanceQuery.data
 
   // Datos clasificados + leyenda + expresión de color, recalculados al cambiar capa
   const layerData = useMemo(() => {
@@ -449,6 +461,11 @@ export function AspersionMap({
     const layer=ASPERSION_LAYERS[activeLayerIdx]!
     return buildLayerData(baseFC, layer, appearance?.layers[layer.key])
   }, [baseFC, activeLayerIdx, appearance])
+
+  const markSessionReady = useSessionMapReady(
+    mapRef, sessionId, !!plot && !!points && !!layerData && !loadingPoints && !pointsError && !appearanceQuery.isLoading,
+    onReadyChange,
+  )
 
   // Reiniciar checkboxes a "todos activos" al cambiar de capa.
   useEffect(() => {
@@ -599,7 +616,7 @@ export function AspersionMap({
             maxZoom={20}
             mapStyle={ESRI_STYLE}
             preserveDrawingBuffer={preserveDrawingBuffer}
-            onIdle={onIdle}
+            onIdle={(event) => { onIdle?.(event); markSessionReady() }}
             cooperativeGestures={!locked}
             interactive={!locked}
             dragRotate={!locked}
@@ -686,6 +703,7 @@ export function AspersionMap({
             )}
           </Map>
         )}
+        {showMapModeSelector && layerData && <MapModeSelector position="center" active={mapMode} onChange={setMapMode} />}
       </div>
 
       {/* ─ Tarjeta de leyenda ──────────────────────────────────────── */}

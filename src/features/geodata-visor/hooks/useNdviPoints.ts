@@ -64,5 +64,6 @@ export function useNdviPoints(sessionId: string | null) {
     enabled: !!sessionId,
     queryFn: () => fetchAllNdviPoints(sessionId as string),
     staleTime: 60_000,
+    refetchOnWindowFocus: false,
   })
 }

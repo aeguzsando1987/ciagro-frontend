@@ -18,6 +18,9 @@ if (!Element.prototype.releasePointerCapture) {
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {}
 }
+if (!HTMLElement.prototype.scrollTo) {
+  HTMLElement.prototype.scrollTo = () => {}
+}
 
 // jsdom tampoco implementa createObjectURL. maplibre-gl la llama al importarse, para
 // armar su worker, así que cualquier test que arrastre el mapa (aunque lo mockee en el

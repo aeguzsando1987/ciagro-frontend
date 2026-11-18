@@ -1,3 +1,6 @@
+import { MapModeSelector } from './MapModeSelector'
+import { useMapMode } from '../lib/mapModes'
+import { usePersistentMapLayer } from '../lib/usePersistentMapLayer'
 import { useLayerAppearance, appearancePalette } from '@/features/analysis-colors/useLayerAppearance'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import MapGL, { Layer, Popup, Source } from 'react-map-gl/maplibre'
@@ -16,6 +19,7 @@ import {
 import { yieldPointsToPointFeatures, yieldPointsToRectangles } from '@/features/yield-map/lib/yieldMapGeometry'
 import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import { LoadingState } from '@/components/ui/loading-state'
+import { useSessionMapReady, type OnSessionMapReady } from '../hooks/useSessionMapReady'
 import type { MapCameraSyncBinding } from '../lib/mapCameraSync'
 import { useMapCameraSync } from '../lib/mapCameraSync'
 
@@ -28,8 +32,10 @@ interface YieldMapProps {
   toolbarEnd?: React.ReactNode
   className?: string
   mapSync?: MapCameraSyncBinding
+  showMapModeSelector?: boolean
   /** En comparación A/B el resumen inicia contraído para no tapar el mapa. */
   comparisonMode?: boolean
+  onReadyChange?: OnSessionMapReady
 }
 
 const LAYER_ICONS: Record<YieldLayerKey, React.ReactNode> = {
@@ -91,7 +97,9 @@ export function YieldMap({
   toolbarEnd,
   className,
   mapSync,
+  showMapModeSelector = false,
   comparisonMode = false,
+  onReadyChange,
 }: YieldMapProps) {
   const instanceId = useId().replace(/:/g, '')
   const plotSourceId = `yield-plot-${instanceId}`
@@ -101,19 +109,23 @@ export function YieldMap({
   const pointsSourceId = `yield-points-${instanceId}`
   const pointsLayerId = `yield-points-fallback-${instanceId}`
 
-  const [activeKey, setActiveKey] = useState<YieldLayerKey>('yield_t_ha')
+  const [activeKey, setActiveKey] = usePersistentMapLayer<YieldLayerKey>(
+    'yield-layer', tenantId, plotId, 'yield_t_ha', YIELD_LAYERS.map((layer) => layer.key)
+  )
   const [layerMenuOpen, setLayerMenuOpen] = useState(false)
   const [visibleBuckets, setVisibleBuckets] = useState<Set<string>>(new Set())
   const [popup, setPopup] = useState<{ lng: number; lat: number; point: YieldMapPoint } | null>(null)
   const [summaryCollapsed, setSummaryCollapsed] = useState(comparisonMode)
   const mapRef = useRef<MapRef>(null)
+  const { mapMode, setMapMode } = useMapMode(mapRef)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
   const pointsQuery = useYieldMapPoints(sessionId)
   const statsQuery = useYieldMapStats(sessionId)
   const plotQuery = usePlotGeometry(plotId)
   const points = pointsQuery.data ?? []
-  const {data: appearance} = useLayerAppearance('yield_map',tenantId)
+  const appearanceQuery = useLayerAppearance('yield_map',tenantId)
+  const appearance = appearanceQuery.data
   const baseLayer = YIELD_LAYERS.find((layer) => layer.key === activeKey) ?? YIELD_LAYERS[0]!
   const layerAppearance = appearance?.layers[activeKey]
   const activeLayer = useMemo(() => ({...baseLayer,palette:appearancePalette(baseLayer.palette,layerAppearance)}),[baseLayer,layerAppearance])
@@ -183,11 +195,16 @@ export function YieldMap({
   const activeValueCount = values.filter((value) => typeof value === 'number' && Number.isFinite(value)).length
   const activeLayerHasData = activeValueCount > 0
   const isLoading = pointsQuery.isLoading || plotQuery.isLoading
+  const markSessionReady = useSessionMapReady(
+    mapRef, sessionId, !!pointsQuery.data && !!plotQuery.data &&
+      !pointsQuery.isError && !plotQuery.isError && !isLoading && !appearanceQuery.isLoading, onReadyChange,
+  )
 
   return (
     <div className={`relative h-full min-h-[430px] w-full overflow-hidden bg-muted ${className ?? ''}`}>
       <MapGL
         ref={mapRef}
+        onIdle={markSessionReady}
         mapStyle={ESRI_STYLE}
         initialViewState={{ longitude: -101, latitude: 20.7, zoom: 6 }}
         maxZoom={20}
@@ -261,9 +278,10 @@ export function YieldMap({
           </Popup>
         )}
       </MapGL>
+      {showMapModeSelector && <MapModeSelector position="center" active={mapMode} onChange={setMapMode} />}
 
       {/* Índice de vistas rápidas DENTRO del mapa. */}
-      <div className="absolute left-3 top-3 z-20 flex items-start gap-2">
+      <div className="absolute left-3 top-3 z-40 flex items-start gap-2">
         {toolbarStart}
         <div className="relative w-64 rounded-xl border border-white/30 bg-white/95 shadow-lg backdrop-blur-sm dark:bg-slate-950/95">
           <button
@@ -280,7 +298,7 @@ export function YieldMap({
             <ChevronDown className={`h-4 w-4 transition-transform ${layerMenuOpen ? 'rotate-180' : ''}`} />
           </button>
           {layerMenuOpen && (
-            <div className="border-t p-1.5">
+            <div className="max-h-[min(55vh,300px)] overflow-y-auto border-t p-1.5">
               {YIELD_LAYERS.map((layer, index) => (
                 <button
                   key={layer.key}
@@ -301,7 +319,7 @@ export function YieldMap({
       </div>
 
       <div
-        className={`absolute bottom-3 left-3 z-20 rounded-xl border border-white/30 bg-white/95 shadow-lg backdrop-blur-sm dark:bg-slate-950/95 ${
+        className={`absolute bottom-3 left-3 z-20 ${layerMenuOpen ? "hidden" : ""} rounded-xl border border-white/30 bg-white/95 shadow-lg backdrop-blur-sm dark:bg-slate-950/95 ${
           comparisonMode ? 'w-48 p-2' : 'w-64 p-3'
         }`}
       >

@@ -1,3 +1,6 @@
+import { MapModeSelector } from './MapModeSelector'
+import { useMapMode } from '../lib/mapModes'
+import { usePersistentMapLayer } from '../lib/usePersistentMapLayer'
 /**
  * Mapa de una sesión NDVI — superficie interpolada (gradiente continuo).
  *
@@ -21,13 +24,14 @@ import { ESRI_STYLE } from '../lib/aspersionMap.helpers'
 import { useMapCameraSync, type MapCameraSyncBinding } from '../lib/mapCameraSync'
 import { useNdviPoints, type NdviPoint } from '../hooks/useNdviPoints'
 import {
-  buildInterpolatedImage,
   quantileBreaks,
   ABSOLUTE_BANDS_SMOOTHING_FACTOR,
   DEFAULT_SMOOTHING_FACTOR,
   type InterpPoint,
   type ColorBand,
 } from '../lib/ndviInterpolation'
+import { useNdviInterpolatedSurface } from '../hooks/useNdviInterpolatedSurface'
+import { useSessionMapReady } from '../hooks/useSessionMapReady'
 import {
   useNdviSessionVariableConfig,
   readVariableConfig,
@@ -39,7 +43,7 @@ import { buildNdviClassAreas, type ClassBand } from '../lib/ndviClassArea'
 import { copernicusAttribution } from '../lib/ndviAttribution'
 import { NdviClassAreaCard } from './NdviClassAreaCard'
 import { GpaLoader } from '@/components/ui/gpa-loader'
-import { CloudOff } from 'lucide-react'
+import { ChevronDown, ChevronUp, CloudOff } from 'lucide-react'
 
 /**
  * Indices que se ofrecen en el visor, agrupados por lo que interpreta el agronomo.
@@ -106,8 +110,9 @@ interface NdviMapProps {
    */
   dcId?: string
   mapSync?: MapCameraSyncBinding
+  showMapModeSelector?: boolean
   /** Informa al reproductor cuando los datos de la sesión actual ya terminaron de cargar. */
-  onReadyChange?: (ready: boolean) => void
+  onReadyChange?: (ready: boolean, sessionId: string) => void
 }
 
 /** Propiedades que viajan en cada feature de punto (obj_id + índices). */
@@ -121,8 +126,9 @@ interface PointSelection {
 
 const POINTS_LAYER_ID = 'ndvi-points'
 
-export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyChange }: NdviMapProps) {
+export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyChange, showMapModeSelector = false }: NdviMapProps) {
   const mapRef = useRef<MapRef>(null)
+  const { mapMode, setMapMode } = useMapMode(mapRef)
   const containerRef = useRef<HTMLDivElement>(null)
   const handleCameraMove = useMapCameraSync(mapRef, mapSync)
 
@@ -142,98 +148,27 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
   // Mismo endpoint que la tabla de resumen de la sesion en el task-manager.
   const { data: varStats, isLoading: isStatsLoading } = useNdviVariableStats(sessionId)
 
-  const [indexKey, setIndexKey] = useState<keyof NdviPoint>('ndvi')
+  const [indexKey, setIndexKey] = usePersistentMapLayer<keyof NdviPoint>(
+    'ndvi-index', tenantId ?? dcId, plotId, 'ndvi', INDICES.map((index) => index.key)
+  )
   // El tooltip se abre al hacer clic en un punto (no al pasar el cursor): con la
   // superficie de color debajo, un tooltip que sigue al mouse estorba la lectura.
   const [selected, setSelected] = useState<PointSelection | null>(null)
+  useEffect(() => setSelected(null), [sessionId])
   // Solo para el cursor "pointer" sobre un punto clicable.
   const [hoveringPoint, setHoveringPoint] = useState(false)
   const [areaCardOpen, setAreaCardOpen] = useState(false)
-
-  /* =====================================================
-     SINCRONIZACIÓN ESTRICTA CON PLAY
-
-     No marcamos el mapa como listo solamente porque terminó
-     el fetch. El reproductor debe esperar a que:
-
-     1. geometría, puntos, configuración y estadísticas hayan
-        terminado de cargar;
-     2. MapLibre haya renderizado las fuentes/capas de la sesión;
-     3. el mapa emita `idle`, que significa que ya no tiene
-        trabajo de renderizado pendiente para ese cuadro.
-
-     Así evitamos brincar al siguiente NDVI mientras todavía se
-     está dibujando el mapa actual.
-     ===================================================== */
-
-  const readySessionRef = useRef<string | null>(null)
-
-  const mapDataReady =
-    !isPlotLoading &&
-    !isPointsLoading &&
-    !isConfigLoading &&
-    !isStatsLoading &&
-    plot !== undefined &&
-    points !== undefined
-
-  useEffect(() => {
-    readySessionRef.current = null
-    onReadyChange?.(false)
-  }, [sessionId, onReadyChange])
-
-  const handleMapIdle = () => {
-    if (!mapDataReady) return
-
-    if (readySessionRef.current === sessionId) {
-      return
-    }
-
-    readySessionRef.current = sessionId
-    onReadyChange?.(true)
-  }
-
-  /*
-   * Caso importante para Play:
-   * puede ocurrir que MapLibre haya emitido `idle` ANTES de que la última
-   * consulta de React Query termine. En ese caso no necesariamente habrá otro
-   * evento `idle` y el reproductor se quedaría esperando para siempre.
-   *
-   * Cuando todos los datos pasan a ready, comprobamos el estado actual del
-   * mapa. Si ya está cargado lo marcamos listo en el siguiente frame; si aún
-   * está procesando, esperamos explícitamente al próximo `idle`.
-   */
-  useEffect(() => {
-    if (!mapDataReady || readySessionRef.current === sessionId) return
-
-    const map = mapRef.current?.getMap()
-    if (!map) return
-
-    let cancelled = false
-    let frame: number | null = null
-
-    const markReady = () => {
-      if (cancelled || readySessionRef.current === sessionId) return
-      readySessionRef.current = sessionId
-      onReadyChange?.(true)
-    }
-
-    frame = window.requestAnimationFrame(() => {
-      if (cancelled) return
-
-      if (map.loaded() && !map.isMoving()) {
-        markReady()
-        return
-      }
-
-      map.once('idle', markReady)
-    })
-
-    return () => {
-      cancelled = true
-      if (frame !== null) window.cancelAnimationFrame(frame)
-      map.off('idle', markReady)
-    }
-  }, [mapDataReady, onReadyChange, sessionId])
+  // CIAGRO_LINEA_PRO_REFINEMENT_20261020: leyenda NDVI del mapa contraíble.
+  const [legendOpen, setLegendOpen] = useState(() => {
+    try { return window.localStorage.getItem('ciagro.ndvi.map.legend-open') !== '0' }
+    catch { return true }
+  })
+  const toggleLegend = () => setLegendOpen((previous) => {
+    const next = !previous
+    try { window.localStorage.setItem('ciagro.ndvi.map.legend-open', next ? '1' : '0') }
+    catch { /* leyenda sigue funcionando */ }
+    return next
+  })
 
   const activeStat = useMemo(
     () => varStats?.variables.find((v) => v.key === (indexKey as string)) ?? null,
@@ -295,24 +230,62 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
     const r = plot?.geometry?.coordinates?.[0]
     return r && r.length >= 3 ? (r as number[][]) : null
   }, [plot])
-  // Superficie interpolada del indice activo, recortada al casco de los puntos Y a la parcela.
-  // Superficie interpolada del índice activo, recortada a la parcela.
-  const surface = useMemo(() => {
-    if (!ring || !points || points.length === 0) return null
-    const interp: InterpPoint[] = []
-    for (const p of points) {
-      const v = p[indexKey]
-      if (typeof v === 'number' && p.geom) {
-        interp.push({ lon: p.geom.coordinates[0]!, lat: p.geom.coordinates[1]!, value: v })
-      }
-    }
-    if (interp.length < 3) return null
-    // Con bandas manuales los cortes son ABSOLUTOS: suavizar desplazaria el valor de cada
-    // celda y la pintaria de otra clase. En cuartiles los cortes se recalculan desde la
-    // propia superficie, asi que ahi el suavizado no falsea nada y se conserva.
-    const smoothing = manualBands ? ABSOLUTE_BANDS_SMOOTHING_FACTOR : DEFAULT_SMOOTHING_FACTOR
-    return buildInterpolatedImage(interp, 'kriging', manualBands, quartileColors, 260, smoothing, ring)
-  }, [ring, points, indexKey, manualBands, quartileColors])
+  // El cálculo pesado de kriging corre en un Worker y se conserva en RAM por
+  // sesión/índice. Al cambiar de sesión NO se reutiliza una imagen anterior.
+  const interpPoints = useMemo<InterpPoint[]>(() => {
+    if (!points) return []
+    return points.flatMap((p) => {
+      const value = p[indexKey]
+      return typeof value === 'number' && p.geom
+        ? [{ lon: p.geom.coordinates[0]!, lat: p.geom.coordinates[1]!, value }]
+        : []
+    })
+  }, [points, indexKey])
+  const surfaceQuery = useNdviInterpolatedSurface({
+    sessionId,
+    scope: tenantId ?? dcId ?? '',
+    plotId,
+    indexKey: indexKey as string,
+    points: interpPoints,
+    ring,
+    manualBands,
+    quartileColors,
+    smoothing: manualBands ? ABSOLUTE_BANDS_SMOOTHING_FACTOR : DEFAULT_SMOOTHING_FACTOR,
+  })
+  // Sin puntos suficientes no hay superficie que esperar. Errores se muestran
+  // en el mapa; el reproductor no se queda bloqueado para siempre.
+  const shouldInterpolate = Boolean(ring && interpPoints.length >= 3)
+  const surface = shouldInterpolate ? surfaceQuery.data ?? null : null
+
+  /* =====================================================
+     SINCRONIZACIÓN ESTRICTA CON PLAY
+
+     No marcamos el mapa como listo solamente porque terminó
+     el fetch. El reproductor debe esperar a que:
+
+     1. geometría, puntos, configuración y estadísticas hayan
+        terminado de cargar;
+     2. MapLibre haya renderizado las fuentes/capas de la sesión;
+     3. el mapa emita `idle`, que significa que ya no tiene
+        trabajo de renderizado pendiente para ese cuadro.
+
+     Así evitamos brincar al siguiente NDVI mientras todavía se
+     está dibujando el mapa actual.
+     ===================================================== */
+
+  const mapDataReady =
+    !isPlotLoading &&
+    !isPointsLoading &&
+    !isConfigLoading &&
+    !isStatsLoading &&
+    (!shouldInterpolate || (!surfaceQuery.isPending && !surfaceQuery.isError && !surfaceQuery.isPlaceholderData)) &&
+    plot !== undefined &&
+    points !== undefined
+
+  const handleMapIdle = useSessionMapReady(
+    mapRef, sessionId, mapDataReady, onReadyChange,
+    `${indexKey}:${surfaceQuery.contentKey}`,
+  )
 
   // Bandas con las que se mide la superficie: las manuales del tenant, o los tramos por
   // cuantiles ya calculados para la leyenda. El modulo de area no distingue estrategias.
@@ -380,14 +353,16 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
     return null
   }, [ring, points])
 
+  const framedPlotRef = useRef<string | null>(null)
+  const cameraScope = plotId ?? sessionId
   useEffect(() => {
-    if (!mapRef.current || !mapBounds) return
+    if (!mapRef.current || !mapBounds || framedPlotRef.current === cameraScope) return
     mapRef.current.fitBounds(mapBounds, { padding: 40, duration: 600, maxZoom: 18 })
-  }, [mapBounds])
+    framedPlotRef.current = cameraScope
+  }, [mapBounds, cameraScope])
 
   // El mapa cambia de ancho cuando se oculta/muestra la evaluación del programa.
-  // ResizeObserver obliga a MapLibre a recalcular su canvas y vuelve a encuadrar
-  // la parcela para aprovechar todo el espacio disponible.
+  // Reajustar el canvas conserva la cámara elegida por el usuario.
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -402,10 +377,6 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
         if (!map) return
 
         map.resize()
-
-        if (mapBounds) {
-          map.fitBounds(mapBounds, { padding: 40, duration: 0, maxZoom: 18 })
-        }
       })
     })
 
@@ -415,7 +386,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
       observer.disconnect()
       if (frame !== null) cancelAnimationFrame(frame)
     }
-  }, [mapBounds])
+  }, [])
 
   return (
     <div ref={containerRef} className="relative h-full w-full">
@@ -551,6 +522,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
           </Popup>
         )}
       </Map>
+      {showMapModeSelector && <MapModeSelector position="center" attributionBelow={Boolean(copernicusNote)} active={mapMode} onChange={setMapMode} />}
 
       {/* Mensaje explícito para una fecha sin información. El mapa permanece visible
           y centrado en la parcela, pero no inventa una superficie con valor cero. */}
@@ -579,15 +551,15 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
         </div>
       )}
 
-      {/* Marca de agua de atribucion. Abajo al centro: las cuatro esquinas estan ocupadas
-          por el selector, el modo, la leyenda y la tarjeta de superficie. */}
+      {/* Atribucion compacta debajo de Satelite / Mapa, sin cubrir la parcela. */}
       {copernicusNote && (
-        <p
-          className="pointer-events-none absolute bottom-2 left-1/2 z-10 max-w-[80%] -translate-x-1/2 rounded-md bg-white/90 px-2.5 py-1 text-center text-[11px] leading-tight text-gray-700 shadow"
+        <span
           data-testid="ndvi-copernicus-note"
+          title={copernicusNote}
+          className="pointer-events-auto absolute bottom-1 right-2 z-20 rounded bg-white/85 px-1 py-0.5 text-[9px] leading-none text-gray-700 shadow-sm"
         >
-          {copernicusNote}
-        </p>
+          © Copernicus
+        </span>
       )}
 
       <div className="absolute left-3 top-3 z-10 rounded-md bg-white/90 p-2 shadow">
@@ -612,17 +584,36 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
         <p className="mt-1 text-[10px] italic text-gray-400">Deslice para ver datos puntual</p>
       </div>
 
-      <div className="absolute bottom-3 left-3 z-10 w-56 rounded-md bg-white/90 p-3 shadow">
-        {isPointsLoading ? (
+      <div className={`absolute bottom-3 left-3 z-10 rounded-md bg-white/90 shadow ${legendOpen ? 'w-56 p-3' : 'w-auto max-w-[220px] px-2 py-1.5'}`}>
+        <button
+          type="button"
+          onClick={toggleLegend}
+          aria-expanded={legendOpen}
+          aria-label={legendOpen ? 'Contraer leyenda NDVI' : 'Mostrar leyenda NDVI'}
+          className={`flex w-full items-center justify-between gap-2 text-left text-xs font-semibold text-gray-700 ${legendOpen ? 'mb-2' : ''}`}
+        >
+          <span className="truncate">{INDICES.find((i) => i.key === indexKey)?.label} · {points?.length ?? 0} puntos</span>
+          {legendOpen ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronUp className="h-4 w-4 shrink-0" />}
+        </button>
+        {legendOpen && (isPointsLoading ? (
           <div role="status" className="flex items-center gap-2 text-sm font-medium text-secondary">
             <GpaLoader size="sm" />
             <span>Cargando puntos NDVI…</span>
           </div>
+        ) : shouldInterpolate && surfaceQuery.isFetching ? (
+          <div role="status" className="flex items-center gap-2 text-xs font-medium text-secondary">
+            <GpaLoader size="sm" />
+            <span>Preparando mapa NDVI…</span>
+          </div>
+        ) : shouldInterpolate && surfaceQuery.isError ? (
+          <div role="alert" className="space-y-2 text-xs text-red-700">
+            <p>No se pudo preparar la superficie NDVI.</p>
+            <button type="button" className="rounded border px-2 py-1" onClick={() => void surfaceQuery.refetch()}>
+              Reintentar
+            </button>
+          </div>
         ) : !surface ? (
           <div>
-            <p className="mb-2 text-xs font-semibold text-gray-700">
-              {INDICES.find((i) => i.key === indexKey)?.label}
-            </p>
             <dl className="mb-2 grid grid-cols-3 gap-x-2 gap-y-0.5 rounded bg-gray-100/70 px-2 py-1 text-[10px] text-gray-600">
               <div className="flex justify-between gap-1"><dt>Media</dt><dd>—</dd></div>
               <div className="flex justify-between gap-1"><dt>Mín</dt><dd>—</dd></div>
@@ -640,9 +631,6 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
           </div>
         ) : (
           <div>
-            <p className="mb-2 text-xs font-semibold text-gray-700">
-              {INDICES.find((i) => i.key === indexKey)?.label} · {points?.length ?? 0} puntos
-            </p>
 
             {/* Estadisticas del indice activo, del mismo endpoint que alimenta la tabla
                 de la sesion: asi el visor y el task-manager nunca muestran numeros
@@ -688,13 +676,16 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
                     Pasa facil: las clases manuales nacen en 0..1 y varios indices se
                     salen de ahi (VARI y suelo desnudo dan negativos, MSAVI2 pasa de 1). */}
                 {surface.outsideBands > 0.01 && (
-                  <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] leading-snug text-amber-800">
-                    {(surface.outsideBands * 100).toFixed(0)}% del área queda sin pintar: esos
-                    valores no caen en ninguna clase configurada. El índice va de{' '}
-                    <span className="tabular-nums">{surface.min.toFixed(3)}</span> a{' '}
-                    <span className="tabular-nums">{surface.max.toFixed(3)}</span>; ajusta los
-                    umbrales en Configuración de variables de análisis.
-                  </p>
+                  <div
+                    role="status"
+                    title={`El ${(surface.outsideBands * 100).toFixed(0)}% del área queda sin clasificar porque los valores no coinciden con las clases. Rango del índice: ${surface.min.toFixed(3)} a ${surface.max.toFixed(3)}. Revisa los umbrales en Variables de análisis.`}
+                    className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md border border-amber-200 bg-amber-50/70 px-2 py-1 text-[10px] leading-4 text-amber-900"
+                  >
+                    <span className="font-semibold tabular-nums">
+                      {(surface.outsideBands * 100).toFixed(0)}% sin clasificar
+                    </span>
+                    <span className="text-amber-800">Revisar rangos</span>
+                  </div>
                 )}
               </>
             ) : quartileLegend ? (
@@ -759,7 +750,7 @@ export function NdviMap({ sessionId, plotId, tenantId, dcId, mapSync, onReadyCha
               <span>Sin datos</span>
             </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   )
