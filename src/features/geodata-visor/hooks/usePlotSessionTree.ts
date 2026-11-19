@@ -30,6 +30,8 @@ export function usePlotSessionTree(plotId: string) {
         id: s.id,
         kind: 'aspersion' as const,
         date: s.aspersion_date ?? null,
+        aspersion_start_at: s.aspersion_start_at ?? null,
+        aspersion_finish_at: s.aspersion_finish_at ?? null,
         points_count: Number(s.points_count ?? 0),
         cycle: s.program_cycle,
       })),

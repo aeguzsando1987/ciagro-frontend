@@ -12,7 +12,11 @@ const EN_SESION: VisorSelection = {
   producer: { id: 'ag-1', name: 'Agrounidad Uno' },
   ranch: { id: 'r-1', name: 'Rancho Norte' },
   plot: { id: 'p-1', name: 'P-001' },
-  session: { id: 's-1', kind: 'aspersion', date: '2026-03-10' },
+  session: {
+    id: 's-1', kind: 'aspersion', date: '2026-03-10',
+    aspersion_start_at: '2026-03-10T21:18:26-06:00',
+    aspersion_finish_at: '2026-03-10T22:45:12-06:00',
+  },
 }
 
 describe('VisorBreadcrumb', () => {
@@ -47,8 +51,14 @@ describe('VisorBreadcrumb', () => {
     const onSelect = vi.fn()
     render(<VisorBreadcrumb selection={EN_SESION} onSelect={onSelect} />)
 
-    await user.click(screen.getByText('2026-03-10'))
+    await user.click(screen.getByText(/Inicio: 10\/03\/2026 09:18:26 p\.m\./))
 
     expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('muestra en la ruta la fecha y hora local de la aspersión seleccionada', () => {
+    render(<VisorBreadcrumb selection={EN_SESION} onSelect={vi.fn()} />)
+    expect(screen.getByText('Inicio: 10/03/2026 09:18:26 p.m.')).toBeInTheDocument()
+    expect(screen.getByText('Fin: 10/03/2026 10:45:12 p.m.')).toBeInTheDocument()
   })
 })

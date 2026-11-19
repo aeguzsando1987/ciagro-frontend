@@ -12,6 +12,9 @@ export interface TreeSession {
   /** Fecha canonica del tipo (ISO yyyy-mm-dd) o null. */
   date: string | null
   points_count: number
+  /** Instantes reales (solo aspersion); null cuando el CSV no informó horas. */
+  aspersion_start_at?: string | null
+  aspersion_finish_at?: string | null
   /** `Programa.cycle`; null o vacio = sin temporada. */
   cycle: string | null
 }

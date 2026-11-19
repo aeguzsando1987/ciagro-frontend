@@ -231,16 +231,23 @@ function SessionLeaf({ depth, session, plot, base, selection, onSelect }: Sessio
   session: TreeSession
 }) {
   const activeId = activeIdFor(selection)
+  const label = `${session.date ?? 'Sin fecha'}${session.points_count ? ` · ${session.points_count} pts` : ''}`
   return (
     <TreeRow
       depth={depth}
       icon={SESSION_ICONS[session.kind]}
-      label={`${session.date ?? 'Sin fecha'}${session.points_count ? ` · ${session.points_count} pts` : ''}`}
+      label={label}
       selected={selection?.level === 'session' && selection.session?.kind === session.kind && activeId === session.id}
       onSelect={() => onSelect({
         ...base,
         plot,
-        session: { id: session.id, date: session.date, kind: session.kind },
+        session: {
+          id: session.id,
+          date: session.date,
+          kind: session.kind,
+          aspersion_start_at: session.aspersion_start_at,
+          aspersion_finish_at: session.aspersion_finish_at,
+        },
         level: 'session',
       })}
     />

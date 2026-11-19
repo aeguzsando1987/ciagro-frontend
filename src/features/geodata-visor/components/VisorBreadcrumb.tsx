@@ -6,6 +6,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { breadcrumbTrail, selectionAtStep } from '../lib/breadcrumbTrail'
+import { sessionDateTime } from '../lib/aspersionSessionTime'
 import type { VisorSelection } from '../types'
 
 /**
@@ -36,7 +37,16 @@ export function VisorBreadcrumb({
           return (
             <BreadcrumbItem key={`${paso.level}-${paso.id}`}>
               {ultimo ? (
-                <BreadcrumbPage className="font-semibold">{paso.name}</BreadcrumbPage>
+                <BreadcrumbPage className="font-semibold">
+                  {selection.session?.kind === 'aspersion' && selection.session.aspersion_start_at ? (
+                    <span className="inline-flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <span>Inicio: {sessionDateTime(selection.session.aspersion_start_at)}</span>
+                      {selection.session.aspersion_finish_at && (
+                        <span>Fin: {sessionDateTime(selection.session.aspersion_finish_at)}</span>
+                      )}
+                    </span>
+                  ) : paso.name}
+                </BreadcrumbPage>
               ) : (
                 <>
                   <button

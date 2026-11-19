@@ -13,7 +13,10 @@ import { apiClient } from '@/lib/api/client'
 import { conTotal, fetchAllPagesWithTotal, type ListadoCompleto } from '@/lib/api/paginated'
 import type { components } from '@/types/api'
 
-export type AspersionSessionHeader = components['schemas']['AspersionSessionHeader']
+export type AspersionSessionHeader = components['schemas']['AspersionSessionHeader'] & {
+  aspersion_start_at?: string | null
+  aspersion_finish_at?: string | null
+}
 
 export const ASPERSION_HEADERS_KEY = ['aspersion', 'headers'] as const
 

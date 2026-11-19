@@ -1,4 +1,5 @@
 import type { VisorSelection, VisorLevel } from '../types'
+import { sessionDateTime } from './aspersionSessionTime'
 
 /**
  * Ruta de ancestros de la selección, para las migas de pan del Visor.
@@ -44,7 +45,9 @@ export function breadcrumbTrail(selection: VisorSelection): TrailStep[] {
       level: 'session',
       id: selection.session.id,
       // Una sesión se identifica por su fecha; el tipo ya lo dice el nivel.
-      name: selection.session.date ?? 'Sesión',
+      name: selection.session.kind === 'aspersion' && selection.session.aspersion_start_at
+        ? sessionDateTime(selection.session.aspersion_start_at)
+        : selection.session.date ?? 'Sesión',
     })
   }
   return pasos
