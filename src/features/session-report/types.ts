@@ -85,6 +85,7 @@ export interface StatsSnapshot {
   volumen_total_l?: number | string | null
   fecha_inicio?: string | null
   fecha_fin?: string | null
+  periodos_aplicacion?: Array<{ inicio: string; fin: string }>
   variables?: Partial<Record<'velocidad' | 'flujo_liquido' | 'presion', StatsVariable>>
   proporcion_meta?: Array<number | string>
   semaforo?: Partial<Record<SemaforoBucketKey, SemaforoBucket>>
