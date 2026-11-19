@@ -30,37 +30,6 @@ function toNum(v: number | string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-function formatSessionDateTime(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('es-MX', {
-    timeZone: 'America/Mexico_City',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23',
-  }).format(date)
-}
-
-function formatPeriodDuration(start: string, finish: string): string {
-  const startMs = new Date(start).getTime()
-  const finishMs = new Date(finish).getTime()
-  if (!Number.isFinite(startMs) || !Number.isFinite(finishMs) || finishMs <= startMs) return '—'
-  let seconds = Math.floor((finishMs - startMs) / 1000)
-  const hours = Math.floor(seconds / 3600)
-  seconds %= 3600
-  const minutes = Math.floor(seconds / 60)
-  seconds %= 60
-  return [
-    hours ? `${hours} h` : '',
-    minutes ? `${minutes} min` : '',
-    seconds ? `${seconds} s` : '',
-  ].filter(Boolean).join(' ') || '—'
-}
-
 function VariableRow({
   label,
   v,
@@ -143,24 +112,6 @@ export function ReportCard({ report }: { report: SessionReport }) {
               <Field label="Volumen total (L)" value={num(s.volumen_total_l)} />
               <Field label="Fecha inicio" value={sessionDateTime(s.fecha_inicio)} />
               <Field label="Fecha fin" value={sessionDateTime(s.fecha_fin)} />
-              {(s.periodos_aplicacion?.length ?? 0) > 1 && (
-                <div className="col-span-2 min-w-0">
-                  <dt className="text-xs text-muted-foreground">
-                    Periodos de aspersión: {s.periodos_aplicacion?.length}
-                  </dt>
-                  <dd className="mt-1 space-y-2 text-sm font-medium">
-                    {s.periodos_aplicacion?.map((periodo, index) => (
-                      <div key={`${periodo.inicio}-${index}`} className="break-words">
-                        <span className="text-muted-foreground">Periodo {index + 1}: </span>
-                        {formatSessionDateTime(periodo.inicio)} – {formatSessionDateTime(periodo.fin)}
-                        <span className="block text-xs text-muted-foreground">
-                          Duración: {formatPeriodDuration(periodo.inicio, periodo.fin)}
-                        </span>
-                      </div>
-                    ))}
-                  </dd>
-                </div>
-              )}
             </>
           )}
         </dl>
