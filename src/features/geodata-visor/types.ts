@@ -77,6 +77,8 @@ export interface VisorSession {
   id: string
   date: string | null
   kind: SessionKind
+  aspersion_start_at?: string | null
+  aspersion_finish_at?: string | null
 }
 
 export interface VisorSelection {

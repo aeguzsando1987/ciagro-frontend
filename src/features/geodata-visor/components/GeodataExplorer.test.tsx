@@ -44,7 +44,12 @@ vi.mock('@/features/admin/hooks/usePlots', () => ({
 // en un solo ciclo. Rendimiento cuelga de un subprograma sin temporada.
 vi.mock('../hooks/useAspersionSessionHeaders', () => ({
   useAspersionSessionHeaders: () => ({
-    data: [{ id: 'sess-1', aspersion_date: '2026-03-23', points_count: 42, program_cycle: 'Primavera-Verano-2026' }],
+    data: [{
+      id: 'sess-1', aspersion_date: '2026-03-23', points_count: 42,
+      aspersion_start_at: '2026-03-23T14:08:42-06:00',
+      aspersion_finish_at: '2026-03-23T18:22:00-06:00',
+      program_cycle: 'Primavera-Verano-2026',
+    }],
     isLoading: false,
   }),
 }))
@@ -180,6 +185,15 @@ describe('GeodataExplorer', () => {
     for (const vacio of ['Fitosanitario', 'Siembra', 'Rendimiento']) {
       expect(screen.queryByText(vacio)).toBeNull()
     }
+  })
+
+  it('muestra solo fecha y puntos de aspersión dentro del ciclo', async () => {
+    render(<GeodataExplorer selection={null} onSelect={vi.fn()} />)
+    await abrirParcela()
+    fireEvent.click(screen.getByText('Ciclo productivo Primavera-Verano 2026'))
+    fireEvent.click(screen.getByText('Aplicaciones'))
+
+    expect(screen.getByText('2026-03-23 · 42 pts')).toBeInTheDocument()
   })
 
   it('el mapeo va a Generales por año y conserva la ruta completa al seleccionarlo', async () => {

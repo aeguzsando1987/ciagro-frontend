@@ -19,6 +19,7 @@ import {
 import { GpaLoader } from '@/components/ui/gpa-loader'
 import { useNdviTimeline, type NdviTimelineItem } from '../hooks/useNdviTimeline'
 import { usePlotSessionTree } from '../hooks/usePlotSessionTree'
+import { sessionDateAndClock, sessionDateTime } from '../lib/aspersionSessionTime'
 import {
   classifyNdviPerformance,
   expectedNdviAtDate,
@@ -1167,7 +1168,15 @@ export function PlotUnifiedTimeline({
               {KIND_META[selectedTreeSession.kind].icon}
               {KIND_META[selectedTreeSession.kind].label}
             </span>
-            <span>Fecha: <strong>{longDate(selectedTreeSession.date)}</strong></span>
+            <span>Fecha: <strong>{selectedTreeSession.kind === 'aspersion' && selectedTreeSession.aspersion_start_at
+              ? sessionDateTime(selectedTreeSession.aspersion_start_at)
+              : longDate(selectedTreeSession.date)}</strong></span>
+            {selectedTreeSession.kind === 'aspersion' && selectedTreeSession.aspersion_start_at && (
+              <span>Inicio: <strong>{sessionDateAndClock(selectedTreeSession.aspersion_start_at, selectedTreeSession.date)}</strong></span>
+            )}
+            {selectedTreeSession.kind === 'aspersion' && selectedTreeSession.aspersion_finish_at && (
+              <span>Fin: <strong>{sessionDateAndClock(selectedTreeSession.aspersion_finish_at, selectedTreeSession.date)}</strong></span>
+            )}
             <span>Puntos: <strong>{selectedTreeSession.points_count}</strong></span>
           </>
         ) : selectedNdvi ? (

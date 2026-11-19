@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { SessionReport, StatsVariable } from '../types'
 import { generalSnapshotOf, statsSnapshotOf } from '../types'
 import { SemaforoBadges } from './SemaforoBadges'
+import { sessionDateTime } from '@/features/geodata-visor/lib/aspersionSessionTime'
 
 function num(v: number | string | null | undefined, digits = 2): string {
   if (v === null || v === undefined || v === '') return '—'
@@ -68,7 +69,7 @@ export function ReportCard({ report }: { report: SessionReport }) {
   const s = statsSnapshotOf(report)
   const proporcion =
     s.proporcion_meta && s.proporcion_meta.length > 0
-      ? s.proporcion_meta.map((p) => num(p)).join(' · ')
+      ? s.proporcion_meta.map((p) => `${num(p)} L/ha`).join(' · ')
       : '—'
   // Dosis, volumen y semaforo son de aspersion: en suelo saldrian todos en "—".
   // El tipo viene en el propio reporte, asi que no hace falta un prop nuevo.
@@ -109,8 +110,8 @@ export function ReportCard({ report }: { report: SessionReport }) {
               <Field label="Área de cobertura (ha)" value={num(s.area_cobertura_ha)} />
               <Field label="Dosis promedio (L/ha)" value={num(s.dosis_promedio_l)} />
               <Field label="Volumen total (L)" value={num(s.volumen_total_l)} />
-              <Field label="Fecha inicio" value={s.fecha_inicio} />
-              <Field label="Fecha fin" value={s.fecha_fin} />
+              <Field label="Fecha inicio" value={sessionDateTime(s.fecha_inicio)} />
+              <Field label="Fecha fin" value={sessionDateTime(s.fecha_fin)} />
             </>
           )}
         </dl>
