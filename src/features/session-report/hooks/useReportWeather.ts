@@ -26,6 +26,34 @@ export interface ReportWeather {
   max: number | null
 }
 
+export interface ReportSessionWeather {
+  available: boolean
+  detail: string | null
+  source: string
+  time_zone: string
+  session_start: string
+  session_finish: string
+  cloud_cover_mean_pct: number | null
+  cloud_cover_source?: string | null
+  visual_crossing_attribution_url?: string | null
+  precipitation_total_mm: number | null
+  precipitation_category?: string | null
+  precipitation_category_label?: string | null
+  rain_status?: 'significant' | 'minimal' | 'none' | 'unavailable'
+  rained: boolean | null
+  rain_hours: string[]
+  rain_periods?: Array<{ start: string; end: string; category?: string }>
+  rain_hours_count: number | null
+  wind_mean_kmh: number | null
+  wind_max_kmh: number | null
+  hours_sampled: number
+}
+
+export interface AspersionClimatePreview {
+  day_weather: ReportWeather
+  session_weather: ReportSessionWeather
+}
+
 export function useReportWeather(reportId: string) {
   return useMutation({
     mutationFn: async (): Promise<ReportWeather> => {
@@ -44,6 +72,26 @@ export function useReportWeather(reportId: string) {
         throw new Error(detail ?? 'No se pudo consultar el clima.')
       }
       return (await res.json()) as ReportWeather
+    },
+  })
+}
+
+export function useAspersionClimatePreview(sessionId: string) {
+  return useMutation({
+    mutationFn: async (): Promise<AspersionClimatePreview> => {
+      const access = tokens.getAccess()
+      const res = await fetch(
+        `${baseUrl}/field_ops/session-reports/aspersion/${sessionId}/weather-preview/`,
+        { headers: access ? { Authorization: `Bearer ${access}` } : {} }
+      )
+      if (!res.ok) {
+        const detail = await res
+          .json()
+          .then((body: { detail?: string }) => body.detail)
+          .catch(() => undefined)
+        throw new Error(detail ?? 'No se pudo consultar el clima de la sesión.')
+      }
+      return (await res.json()) as AspersionClimatePreview
     },
   })
 }

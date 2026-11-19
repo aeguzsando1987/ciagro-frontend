@@ -9,7 +9,31 @@ import type { components } from '@/types/api'
  * del adapter de aspersión (Fase AC). Ver `.context/usecases/use-case-report-session.md`.
  */
 
-export type SessionReport = components['schemas']['SessionReport']
+export interface SessionWeatherSnapshot {
+  available: boolean
+  source: string
+  time_zone: string
+  session_start: string
+  session_finish: string
+  cloud_cover_mean_pct: number | null
+  cloud_cover_source?: string | null
+  visual_crossing_attribution_url?: string | null
+  precipitation_total_mm: number | null
+  precipitation_category?: string | null
+  precipitation_category_label?: string | null
+  rain_status?: 'significant' | 'minimal' | 'none' | 'unavailable'
+  rained: boolean | null
+  rain_hours: string[]
+  rain_periods?: Array<{ start: string; end: string; category?: string }>
+  rain_hours_count: number | null
+  wind_mean_kmh: number | null
+  wind_max_kmh: number | null
+  hours_sampled: number
+}
+
+export type SessionReport = components['schemas']['SessionReport'] & {
+  weather_during_session?: SessionWeatherSnapshot | null
+}
 export type SessionIssue = components['schemas']['SessionIssue']
 
 export type SessionReportStatus = components['schemas']['SessionReportStatusEnum']

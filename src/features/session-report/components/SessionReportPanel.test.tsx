@@ -42,6 +42,7 @@ vi.mock('./SoilLayerSection', () => ({
 // pediría un QueryClient que este test no monta.
 vi.mock('../hooks/useReportWeather', () => ({
   useReportWeather: () => ({ mutate: vi.fn(), isPending: false }),
+  useAspersionClimatePreview: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 vi.mock('../hooks/useSessionIssues', () => ({
   useSessionIssues: () => ({ data: [], isLoading: false }),
@@ -73,6 +74,11 @@ const REPORT: SessionReport = {
   general_snapshot: { productor: 'Productor X', rancho: 'Rancho Y' },
   stats_snapshot: { points_count: 10, semaforo: { excelente: { color: 'verde', area_ha: 1, pct_area_total: 100 } } },
   day_temperature: null, lead: '', ranch_manager: '', status: 'en_proceso',
+  weather_during_session: {
+    available: true, source: 'NASA POWER', cloud_cover_mean_pct: 55,
+    precipitation_total_mm: 0.2, rain_status: 'significant', rained: true,
+    wind_mean_kmh: 6, wind_max_kmh: 8,
+  },
   status_display: 'En proceso', issues: [],
   created_at: '2026-06-30T00:00:00Z', updated_at: '2026-06-30T00:00:00Z',
 } as unknown as SessionReport
@@ -135,6 +141,8 @@ describe('SessionReportPanel', () => {
     expect(screen.getByText('Productor X')).toBeTruthy()
     expect(screen.getByText('Excelente')).toBeTruthy()
     expect(screen.getByText('Temas de atención y observaciones')).toBeTruthy()
+    expect(screen.getAllByText('Nubosidad promedio (%)')).toHaveLength(1)
+    expect(screen.getByText('55%')).toBeTruthy()
   })
 
   // RS-12: el panel se escribio para aspersion. Con un reporte de suelo mostraba

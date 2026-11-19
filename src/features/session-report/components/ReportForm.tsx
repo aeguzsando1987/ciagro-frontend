@@ -5,10 +5,11 @@
  * Reglas (validadas también en backend): `resume_text` obligatorio; `report_date` no futura
  * (default hoy). Editar texto **NO** recalcula stats (eso es exclusivo de "Sincronizar").
  */
+import { useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { CloudSun } from 'lucide-react'
+import { CloudSun, Wind } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,8 +34,10 @@ import {
   useCreateSessionReport,
   useUpdateSessionReport,
 } from '../hooks/useSessionReport'
-import { useReportWeather } from '../hooks/useReportWeather'
+import { useAspersionClimatePreview, useReportWeather } from '../hooks/useReportWeather'
 import type { SessionReport, SessionType } from '../types'
+import { rainStatusLabel } from '../weatherRainPeriods'
+import { WeatherApiAttribution } from './WeatherApiAttribution'
 
 interface ReportFormProps {
   mode: 'create' | 'edit'
@@ -63,6 +66,12 @@ function defaultsFromReport(report: SessionReport): SessionReportFormValues {
   }
 }
 
+function weatherNum(value: number | null | undefined, suffix = '', digits = 1): string {
+  return value === null || value === undefined || !Number.isFinite(value)
+    ? '—'
+    : `${value.toLocaleString('es-MX', { maximumFractionDigits: digits })}${suffix}`
+}
+
 export function ReportForm({
   mode,
   sessionType,
@@ -76,6 +85,10 @@ export function ReportForm({
   const updateMut = useUpdateSessionReport(report?.id ?? '', sessionType, objectId)
 
   const weatherMut = useReportWeather(report?.id ?? '')
+  const climatePreviewMut = useAspersionClimatePreview(objectId)
+  const [weatherDuringSession, setWeatherDuringSession] = useState(
+    report?.weather_during_session?.available ? report.weather_during_session : null
+  )
 
   const {
     register,
@@ -97,6 +110,39 @@ export function ReportForm({
   }
 
   function fetchWeather() {
+    if (sessionType === 'aspersion') {
+      climatePreviewMut.mutate(undefined, {
+        onSuccess: ({ day_weather, session_weather }) => {
+          if (day_weather.available) {
+            const set = (field: 'day_temperature' | 'day_temperature_min' | 'day_temperature_max',
+                         value: number | null) => {
+              if (value !== null) setValue(field, toWholeDegrees(value), { shouldDirty: true })
+            }
+            set('day_temperature', day_weather.mean)
+            set('day_temperature_min', day_weather.min)
+            set('day_temperature_max', day_weather.max)
+          }
+          setWeatherDuringSession(session_weather)
+
+          const loaded: string[] = []
+          if (day_weather.available) loaded.push('temperaturas del día')
+          if (session_weather.available) loaded.push('lluvia y viento de la sesión')
+          if (loaded.length) {
+            toast.success(`Clima consultado: ${loaded.join(' y ')}. Guarda el reporte para conservarlo.`)
+          }
+          if (!day_weather.available) {
+            toast.info(day_weather.detail ?? 'NASA POWER no tiene temperaturas válidas para esa fecha.')
+          }
+          if (!session_weather.available) {
+            toast.info(session_weather.detail ?? 'No hay observaciones horarias válidas para esta sesión.')
+          }
+        },
+        onError: (e) =>
+          toast.error(e instanceof Error ? e.message : 'No se pudo consultar el clima.'),
+      })
+      return
+    }
+
     weatherMut.mutate(undefined, {
       onSuccess: (data) => {
         if (!data.available) {
@@ -135,6 +181,7 @@ export function ReportForm({
       day_temperature: num(values.day_temperature),
       day_temperature_min: num(values.day_temperature_min),
       day_temperature_max: num(values.day_temperature_max),
+      ...(weatherDuringSession ? { weather_during_session: weatherDuringSession } : {}),
       lead: values.lead?.trim() ?? '',
       ranch_manager: values.ranch_manager?.trim() ?? '',
       figure_description: values.figure_description?.trim() ?? '',
@@ -161,9 +208,12 @@ export function ReportForm({
   }
 
   const pending = isSubmitting || createMut.isPending || updateMut.isPending
+  const showWeatherButton =
+    (sessionType === 'aspersion' && (mode === 'create' || Boolean(report))) ||
+    (mode === 'edit' && Boolean(report) && sessionType !== 'aspersion')
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="min-w-0 w-full space-y-4">
       {errors.root && (
         <p className="rounded bg-destructive/10 p-2 text-sm text-destructive">
           {errors.root.message}
@@ -184,85 +234,116 @@ export function ReportForm({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label htmlFor="rf-date">Fecha de reporte *</Label>
-          <Input id="rf-date" type="date" {...register('report_date')} />
-          {errors.report_date && (
-            <p className="text-xs text-destructive">{errors.report_date.message}</p>
-          )}
+      <section className="space-y-3 rounded-lg border p-3" aria-label="Clima del reporte">
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="min-w-0 space-y-1">
+            <Label htmlFor="rf-date">Fecha de reporte *</Label>
+            <Input id="rf-date" type="date" {...register('report_date')} />
+            {errors.report_date && (
+              <p className="text-xs text-destructive">{errors.report_date.message}</p>
+            )}
+          </div>
+          <div className="min-w-0 space-y-1">
+            <Label htmlFor="rf-temp">Temperatura media (°C)</Label>
+            <Input id="rf-temp" type="number" step="any" placeholder="—" {...register('day_temperature')} />
+            {errors.day_temperature && (
+              <p className="text-xs text-destructive">{errors.day_temperature.message}</p>
+            )}
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="rf-temp">Temperatura media (°C)</Label>
-          <Input id="rf-temp" type="number" step="any" placeholder="—" {...register('day_temperature')} />
-          {errors.day_temperature && (
-            <p className="text-xs text-destructive">{errors.day_temperature.message}</p>
-          )}
-        </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label htmlFor="rf-temp-min">Temperatura mínima (°C)</Label>
-          <Input
-            id="rf-temp-min"
-            type="number"
-            step="any"
-            placeholder="—"
-            {...register('day_temperature_min')}
-          />
-          {errors.day_temperature_min && (
-            <p className="text-xs text-destructive">{errors.day_temperature_min.message}</p>
-          )}
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="min-w-0 space-y-1">
+            <Label htmlFor="rf-temp-min">Temperatura baja (°C)</Label>
+            <Input
+              id="rf-temp-min"
+              type="number"
+              step="any"
+              placeholder="—"
+              {...register('day_temperature_min')}
+            />
+            {errors.day_temperature_min && (
+              <p className="text-xs text-destructive">{errors.day_temperature_min.message}</p>
+            )}
+          </div>
+          <div className="min-w-0 space-y-1">
+            <Label htmlFor="rf-temp-max">Temperatura alta (°C)</Label>
+            <Input
+              id="rf-temp-max"
+              type="number"
+              step="any"
+              placeholder="—"
+              {...register('day_temperature_max')}
+            />
+            {errors.day_temperature_max && (
+              <p className="text-xs text-destructive">{errors.day_temperature_max.message}</p>
+            )}
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="rf-temp-max">Temperatura máxima (°C)</Label>
-          <Input
-            id="rf-temp-max"
-            type="number"
-            step="any"
-            placeholder="—"
-            {...register('day_temperature_max')}
-          />
-          {errors.day_temperature_max && (
-            <p className="text-xs text-destructive">{errors.day_temperature_max.message}</p>
-          )}
-        </div>
-      </div>
 
-      {/* Traer el clima RELLENA el formulario, no guarda: el analista revisa el
-          valor y lo persiste con el submit normal, o lo corrige antes. */}
-      {mode === 'edit' && report && (
-        <div className="space-y-1">
+      {sessionType === 'aspersion' && (mode === 'create' || report) && (
+        <>
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-2 border-t pt-3 sm:grid-cols-3">
+            <div>
+              <dt className="text-xs text-muted-foreground">Nubosidad promedio (%)</dt>
+              <dd className="text-sm font-medium">
+                {weatherDuringSession?.cloud_cover_mean_pct == null
+                  ? 'Sin datos disponibles'
+                  : weatherNum(weatherDuringSession.cloud_cover_mean_pct, '%')}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Lluvia acumulada (mm)</dt>
+              <dd className="text-sm font-medium">
+                {weatherDuringSession?.precipitation_total_mm == null
+                  ? 'Sin datos disponibles'
+                  : weatherNum(weatherDuringSession.precipitation_total_mm, '', 3)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">¿Llovió durante la aplicación?</dt>
+              <dd className="text-sm font-medium">
+                {rainStatusLabel(weatherDuringSession?.rain_status, weatherDuringSession?.rained ?? null)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Velocidad media del viento (km/h)</dt>
+              <dd className="flex items-center gap-1 text-sm font-medium">
+                <Wind className="h-3.5 w-3.5" />{weatherNum(weatherDuringSession?.wind_mean_kmh)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Máximo horario del viento (km/h)</dt>
+              <dd className="text-sm font-medium">{weatherNum(weatherDuringSession?.wind_max_kmh)}</dd>
+            </div>
+          </dl>
+          <WeatherApiAttribution />
+        </>
+      )}
+
+      {showWeatherButton && (
+        <div>
           <Button
             type="button"
             size="sm"
             variant="outline"
             onClick={fetchWeather}
-            disabled={!canWrite || weatherMut.isPending}
-            // Cielo y sol: degradado del token `info` (azul) al `warning` (ámbar)
-            // para que el botón se lea como "clima" de un vistazo. Se usan los
-            // tokens del sistema y no colores crudos de Tailwind: así el botón
-            // sigue la paleta si alguien la cambia, y el tema oscuro sale solo
-            // sin escribir variantes `dark:` a mano.
+            disabled={!canWrite || weatherMut.isPending || climatePreviewMut.isPending}
             className="border-2 border-info bg-gradient-to-r from-info-soft to-warning-soft text-info-foreground hover:opacity-90"
           >
             <CloudSun className="text-warning" />
-            {weatherMut.isPending ? 'Consultando clima…' : 'Traer clima del día de aplicación'}
+            {weatherMut.isPending || climatePreviewMut.isPending ? 'Consultando clima…' : 'Traer clima del día de aplicación'}
           </Button>
-          <p className="text-xs text-muted-foreground">
-            Llena automáticamente las temperaturas del día en que se aplicó, según la
-            ubicación de la parcela. Revisa los valores y guarda el reporte para conservarlos.
-          </p>
         </div>
       )}
+      </section>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
+      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="min-w-0 space-y-1">
           <Label htmlFor="rf-lead">Responsable de aplicaciones</Label>
           <Input id="rf-lead" {...register('lead')} />
         </div>
-        <div className="space-y-1">
+        <div className="min-w-0 space-y-1">
           <Label htmlFor="rf-manager">Encargado del rancho</Label>
           <Input id="rf-manager" {...register('ranch_manager')} />
         </div>
