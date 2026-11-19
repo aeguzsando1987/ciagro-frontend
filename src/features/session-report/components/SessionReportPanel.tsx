@@ -70,8 +70,10 @@ export function SessionReportPanel({
         side="right"
         // Suelo va mas ancho: sin el drawer de mapa nada compite por el espacio, y
         // el panel lleva mapa, leyenda de 8 clases e histograma por capa.
-        className={`flex w-full flex-col gap-0 p-0 ${
-          sessionType === 'soilmap' ? 'sm:max-w-3xl lg:max-w-5xl' : 'sm:max-w-xl lg:max-w-2xl'
+        className={`flex flex-col gap-0 p-0 ${
+          sessionType === 'soilmap'
+            ? '!w-[min(90vw,64rem)] !max-w-[64rem]'
+            : '!w-[min(90vw,48rem)] !max-w-[48rem]'
         }`}
       >
         {/* Cabecera fija: título + Sincronizar (no scrollea con el contenido). */}
@@ -92,7 +94,7 @@ export function SessionReportPanel({
         </div>
 
         {/* Cuerpo scrollable. */}
-        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+        <div className="min-w-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
           {isLoading && <LoadingState label="Cargando reporte…" />}
 
           {isError && !isLoading && (
@@ -120,7 +122,7 @@ export function SessionReportPanel({
           )}
 
           {!isLoading && !isError && report && (
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4">
               <ReportCard report={report} />
               {/* La unidad de analisis de suelo es la capa, y hay 49: sustituye al
                   semaforo de aspersion en vez de sumarse. */}
@@ -168,7 +170,7 @@ export function SessionReportPanel({
             <button
               type="button"
               onClick={() => setMapOpen((v) => !v)}
-              className="fixed right-[36rem] top-1/2 z-[60] hidden h-24 w-8 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-l-md border border-r-0 bg-background shadow-md hover:bg-accent sm:flex lg:right-[42rem]"
+              className="fixed right-[min(90vw,48rem)] top-1/2 z-[60] hidden h-24 w-8 -translate-y-1/2 flex-col items-center justify-center gap-1 rounded-l-md border border-r-0 bg-background shadow-md hover:bg-accent sm:flex"
               title={mapOpen ? 'Ocultar mapa' : 'Ver mapa de la parcela'}
               aria-label={mapOpen ? 'Ocultar mapa' : 'Ver mapa de la parcela'}
             >
@@ -179,7 +181,7 @@ export function SessionReportPanel({
             </button>
 
             {mapOpen && (
-              <div className="fixed bottom-2 left-2 right-[36rem] top-2 z-50 hidden overflow-hidden rounded-md border bg-background shadow-xl sm:block lg:right-[42rem]">
+              <div className="fixed bottom-2 left-2 right-[min(90vw,48rem)] top-2 z-50 hidden overflow-hidden rounded-md border bg-background shadow-xl sm:block">
                 <AspersionMap
                   dcId={datacentralId ?? undefined}
                   sessionId={objectId}

@@ -54,6 +54,7 @@ export interface CreateReportInput {
   ranch_manager?: string
   figure_description?: string
   status?: SessionReport['status']
+  weather_during_session?: SessionReport['weather_during_session']
 }
 
 export function useCreateSessionReport(sessionType: SessionType, objectId: string) {
@@ -82,6 +83,7 @@ export type UpdateReportPatch = Partial<{
   lead: string
   ranch_manager: string
   status: SessionReport['status']
+  weather_during_session: SessionReport['weather_during_session']
 }>
 
 /** PATCH del reporte. **No** recalcula stats (eso es exclusivo de `sync`). */

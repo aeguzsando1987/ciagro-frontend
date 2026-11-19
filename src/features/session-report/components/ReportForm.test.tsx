@@ -1,22 +1,19 @@
-/**
- * Tests del botón "Traer clima" (FASE KM).
- *
- * Lo que se fija aquí es la decisión de diseño: el botón RELLENA el formulario,
- * no guarda. Por eso se comprueba el valor de los inputs y no una mutación de
- * actualización.
- */
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { SessionReport } from '../types'
-import type { ReportWeather } from '../hooks/useReportWeather'
+import type { AspersionClimatePreview } from '../hooks/useReportWeather'
 
 const mockWeather = vi.fn()
+const mockClimatePreview = vi.fn()
+const mockCreate = vi.fn()
+const mockUpdate = vi.fn()
 vi.mock('../hooks/useReportWeather', () => ({
   useReportWeather: () => ({ mutate: mockWeather, isPending: false }),
+  useAspersionClimatePreview: () => ({ mutate: mockClimatePreview, isPending: false }),
 }))
 vi.mock('../hooks/useSessionReport', () => ({
-  useCreateSessionReport: () => ({ mutate: vi.fn(), isPending: false }),
-  useUpdateSessionReport: () => ({ mutate: vi.fn(), isPending: false }),
+  useCreateSessionReport: () => ({ mutate: mockCreate, isPending: false }),
+  useUpdateSessionReport: () => ({ mutate: mockUpdate, isPending: false }),
 }))
 
 const toastInfo = vi.fn()
@@ -39,9 +36,21 @@ const REPORT = {
   general_snapshot: {}, stats_snapshot: {}, issues: [],
 } as unknown as SessionReport
 
-/** Deja que el hook responda con `data` al pulsar el botón. */
-function respondWith(data: ReportWeather) {
-  mockWeather.mockImplementation((_vars: unknown, opts: { onSuccess: (d: ReportWeather) => void }) =>
+const SESSION_WEATHER = {
+  available: true, detail: null, source: 'NASA POWER + Visual Crossing Weather', time_zone: 'America/Mexico_City',
+  session_start: '2026-03-10T09:00:00-06:00', session_finish: '2026-03-10T11:00:00-06:00',
+  cloud_cover_mean_pct: 42, cloud_cover_source: 'Visual Crossing Weather',
+  visual_crossing_attribution_url: 'https://www.visualcrossing.com/',
+  precipitation_total_mm: 0.04, precipitation_category: 'minimal',
+  precipitation_category_label: 'Precipitación mínima estimada',
+  rain_status: 'minimal' as const, rained: false,
+  rain_hours: ['2026-03-10T10:00:00-06:00'],
+  rain_periods: [{ start: '2026-03-10T10:00:00-06:00', end: '2026-03-10T11:00:00-06:00', category: 'minimal' }],
+  rain_hours_count: 1, wind_mean_kmh: 11, wind_max_kmh: 23, hours_sampled: 3,
+}
+
+function respondWithClimate(data: AspersionClimatePreview) {
+  mockClimatePreview.mockImplementation((_vars: unknown, opts: { onSuccess: (d: AspersionClimatePreview) => void }) =>
     opts.onSuccess(data)
   )
 }
@@ -56,45 +65,86 @@ const temp = (label: RegExp) => screen.getByLabelText(label) as HTMLInputElement
 
 beforeEach(() => {
   mockWeather.mockReset()
+  mockClimatePreview.mockReset()
+  mockCreate.mockReset()
+  mockUpdate.mockReset()
   toastInfo.mockReset()
   toastSuccess.mockReset()
 })
 
-describe('ReportForm — botón de clima', () => {
-  it('rellena las tres temperaturas cuando NASA POWER tiene el dato', async () => {
-    respondWith({
-      available: true, detail: null, date: '2026-03-10', source: 'NASA POWER',
-      mean: 21.0, min: 12.04, max: 30.84,
+describe('ReportForm — consulta combinada de clima', () => {
+  it('el único botón trae temperaturas, nubosidad, lluvia y viento', async () => {
+    respondWithClimate({
+      day_weather: {
+        available: true, detail: null, date: '2026-03-10', source: 'NASA POWER',
+        mean: 21, min: 12.04, max: 30.84,
+      },
+      session_weather: SESSION_WEATHER,
     })
     renderForm()
-    fireEvent.click(screen.getByRole('button', { name: /Traer clima/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Traer clima del día de aplicación/i }))
 
-    // Se redondean a grados enteros: POWER devuelve 12.04 / 30.84, pero el
-    // campo es entero (y con decimales el navegador disparaba su propio
-    // "Introduce un valor válido" por stepMismatch).
     await waitFor(() => expect(temp(/Temperatura media/i).value).toBe('21'))
-    expect(temp(/Temperatura mínima/i).value).toBe('12')
-    expect(temp(/Temperatura máxima/i).value).toBe('31')
+    expect(temp(/Temperatura baja/i).value).toBe('12')
+    expect(temp(/Temperatura alta/i).value).toBe('31')
+    const section = screen.getByLabelText('Clima del reporte')
+    expect(within(section).getByText('Nubosidad promedio (%)')).toBeInTheDocument()
+    expect(within(section).getByText('42%')).toBeInTheDocument()
+    expect(within(section).getByText('0.04')).toBeInTheDocument()
+    expect(within(section).getByText('Precipitación mínima')).toBeInTheDocument()
+    expect(within(section).queryByRole('link', { name: 'Visual Crossing Weather' })).toBeNull()
+    expect(within(section).getByText(/Fuente: NASA POWER/)).toBeInTheDocument()
+    expect(within(section).getByText(/Llena automáticamente las temperaturas del día en que se aplicó/)).toBeInTheDocument()
+    expect(within(section).getByText('Velocidad media del viento (km/h)')).toBeInTheDocument()
+    expect(within(section).getByText('Máximo horario del viento (km/h)')).toBeInTheDocument()
+    expect(within(section).queryByText(/Clasificación de precipitación/i)).toBeNull()
+    expect(within(section).queryByText(/Rangos probables con lluvia/i)).toBeNull()
+    const climateButtons = within(section).getAllByRole('button', { name: /Traer clima del día de aplicación/i })
+    expect(climateButtons).toHaveLength(1)
+    const attribution = within(section).getByText(/Llena automáticamente las temperaturas del día en que se aplicó/)
+    const climateButton = within(section).getByRole('button', { name: /Traer clima del día de aplicación/i })
+    expect(attribution.compareDocumentPosition(climateButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Traer clima durante la aspersión/i })).toBeNull()
     expect(toastSuccess).toHaveBeenCalled()
   })
 
-  it('avisa sin ensuciar los campos cuando POWER aún no publica esa fecha', async () => {
-    // El archivo de POWER va 4-5 días atrás: no tener dato NO es un error.
-    respondWith({
-      available: false, detail: 'NASA POWER todavía no publica el clima de esa fecha.',
-      date: '2026-08-17', source: 'NASA POWER', mean: null, min: null, max: null,
-    })
-    renderForm()
-    fireEvent.click(screen.getByRole('button', { name: /Traer clima/i }))
+  it('permite consultar el clima antes de crear un reporte', async () => {
+    respondWithClimate({ day_weather: {
+      available: true, detail: null, date: '2026-03-10', source: 'NASA POWER',
+      mean: 21, min: 12, max: 30,
+    }, session_weather: SESSION_WEATHER })
+    render(<ReportForm mode="create" sessionType="aspersion" objectId="h1" canWrite />)
 
-    await waitFor(() => expect(toastInfo).toHaveBeenCalled())
-    expect(temp(/Temperatura media/i).value).toBe('')
-    expect(temp(/Temperatura mínima/i).value).toBe('')
-    expect(toastSuccess).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: /Traer clima del día de aplicación/i }))
+    await waitFor(() => expect(temp(/Temperatura media/i).value).toBe('21'))
+    expect(screen.getByText('42%')).toBeInTheDocument()
   })
 
-  it('no ofrece el botón al crear el reporte (aún no hay reporte que consultar)', () => {
+  it('muestra el faltante de nubosidad sin inventar un valor y distingue la lluvia', async () => {
+    respondWithClimate({
+      day_weather: {
+        available: false, detail: 'NASA POWER aún no publica el dato.',
+        date: '2026-08-17', source: 'NASA POWER', mean: null, min: null, max: null,
+      },
+      session_weather: { ...SESSION_WEATHER, cloud_cover_mean_pct: null },
+    })
+    renderForm()
+    fireEvent.click(screen.getByRole('button', { name: /Traer clima del día de aplicación/i }))
+
+    await waitFor(() => expect(screen.getByText('Sin datos disponibles')).toBeInTheDocument())
+    expect(screen.getByText('Nubosidad promedio (%)')).toBeInTheDocument()
+    expect(screen.getByText('Precipitación mínima')).toBeInTheDocument()
+    expect(temp(/Temperatura media/i).value).toBe('')
+  })
+
+  it('no envía null en weather_during_session al crear sin consultar clima', async () => {
     render(<ReportForm mode="create" sessionType="aspersion" objectId="h1" canWrite />)
-    expect(screen.queryByRole('button', { name: /Traer clima/i })).toBeNull()
+    fireEvent.change(screen.getByLabelText(/Observaciones/i), {
+      target: { value: 'Aplicación revisada.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Generar reporte de actividad/i }))
+
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledTimes(1))
+    expect(mockCreate.mock.calls[0]?.[0]).not.toHaveProperty('weather_during_session')
   })
 })
