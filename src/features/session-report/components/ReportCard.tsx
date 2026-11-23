@@ -67,6 +67,10 @@ function VariableRow({
 export function ReportCard({ report }: { report: SessionReport }) {
   const g = generalSnapshotOf(report)
   const s = statsSnapshotOf(report)
+  // Los CSV que solo incluyen fecha no tienen timestamps de inicio/fin.
+  // Mostrar esa fecha en ambos extremos sin fabricar una hora.
+  const sessionStart = s.fecha_inicio || g.fecha_aplicacion
+  const sessionFinish = s.fecha_fin || g.fecha_aplicacion
   const proporcion =
     s.proporcion_meta && s.proporcion_meta.length > 0
       ? s.proporcion_meta.map((p) => `${num(p)} L/ha`).join(' · ')
@@ -110,8 +114,8 @@ export function ReportCard({ report }: { report: SessionReport }) {
               <Field label="Área de cobertura (ha)" value={num(s.area_cobertura_ha)} />
               <Field label="Dosis promedio (L/ha)" value={num(s.dosis_promedio_l)} />
               <Field label="Volumen total (L)" value={num(s.volumen_total_l)} />
-              <Field label="Fecha inicio" value={sessionDateTime(s.fecha_inicio)} />
-              <Field label="Fecha fin" value={sessionDateTime(s.fecha_fin)} />
+              <Field label="Fecha inicio" value={sessionDateTime(sessionStart)} />
+              <Field label="Fecha fin" value={sessionDateTime(sessionFinish)} />
             </>
           )}
         </dl>

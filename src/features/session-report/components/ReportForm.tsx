@@ -125,8 +125,12 @@ export function ReportForm({
           setWeatherDuringSession(session_weather)
 
           const loaded: string[] = []
-          if (day_weather.available) loaded.push('temperaturas del día')
-          if (session_weather.available) loaded.push('lluvia y viento de la sesión')
+          if (session_weather.time_basis === 'day') {
+            if (day_weather.available || session_weather.available) loaded.push('clima general del día')
+          } else {
+            if (day_weather.available) loaded.push('temperaturas del día')
+            if (session_weather.available) loaded.push('condiciones de la sesión')
+          }
           if (loaded.length) {
             toast.success(`Clima consultado: ${loaded.join(' y ')}. Guarda el reporte para conservarlo.`)
           }
@@ -134,7 +138,9 @@ export function ReportForm({
             toast.info(day_weather.detail ?? 'NASA POWER no tiene temperaturas válidas para esa fecha.')
           }
           if (!session_weather.available) {
-            toast.info(session_weather.detail ?? 'No hay observaciones horarias válidas para esta sesión.')
+            toast.info(session_weather.detail ?? (session_weather.time_basis === 'day'
+              ? 'No hay condiciones meteorológicas válidas para ese día.'
+              : 'No hay observaciones horarias válidas para esta sesión.'))
           }
         },
         onError: (e) =>
@@ -283,6 +289,11 @@ export function ReportForm({
 
       {sessionType === 'aspersion' && (mode === 'create' || report) && (
         <>
+          {weatherDuringSession?.time_basis === 'day' && (
+            <p className="text-xs text-muted-foreground">
+              El CSV solo contiene fecha; estos datos corresponden al día completo, no exclusivamente a la hora de aspersión.
+            </p>
+          )}
           <dl className="grid grid-cols-2 gap-x-3 gap-y-2 border-t pt-3 sm:grid-cols-3">
             <div>
               <dt className="text-xs text-muted-foreground">Nubosidad promedio (%)</dt>
@@ -292,28 +303,40 @@ export function ReportForm({
                   : weatherNum(weatherDuringSession.cloud_cover_mean_pct, '%')}
               </dd>
             </div>
+            {weatherDuringSession?.time_basis !== 'day' && (
+              <>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Lluvia acumulada (mm)</dt>
+                  <dd className="text-sm font-medium">
+                    {weatherDuringSession?.precipitation_total_mm == null
+                      ? 'Sin datos disponibles'
+                      : weatherNum(weatherDuringSession.precipitation_total_mm, '', 3)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">¿Llovió durante la aplicación?</dt>
+                  <dd className="text-sm font-medium">
+                    {rainStatusLabel(weatherDuringSession?.rain_status, weatherDuringSession?.rained ?? null)}
+                  </dd>
+                </div>
+              </>
+            )}
             <div>
-              <dt className="text-xs text-muted-foreground">Lluvia acumulada (mm)</dt>
-              <dd className="text-sm font-medium">
-                {weatherDuringSession?.precipitation_total_mm == null
-                  ? 'Sin datos disponibles'
-                  : weatherNum(weatherDuringSession.precipitation_total_mm, '', 3)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">¿Llovió durante la aplicación?</dt>
-              <dd className="text-sm font-medium">
-                {rainStatusLabel(weatherDuringSession?.rain_status, weatherDuringSession?.rained ?? null)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Velocidad media del viento (km/h)</dt>
+              <dt className="text-xs text-muted-foreground">
+                {weatherDuringSession?.time_basis === 'day'
+                  ? 'Velocidad media diaria del viento (km/h)'
+                  : 'Velocidad media del viento (km/h)'}
+              </dt>
               <dd className="flex items-center gap-1 text-sm font-medium">
                 <Wind className="h-3.5 w-3.5" />{weatherNum(weatherDuringSession?.wind_mean_kmh)}
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Máximo horario del viento (km/h)</dt>
+              <dt className="text-xs text-muted-foreground">
+                {weatherDuringSession?.time_basis === 'day'
+                  ? 'Máximo horario del viento durante el día (km/h)'
+                  : 'Máximo horario del viento (km/h)'}
+              </dt>
               <dd className="text-sm font-medium">{weatherNum(weatherDuringSession?.wind_max_kmh)}</dd>
             </div>
           </dl>

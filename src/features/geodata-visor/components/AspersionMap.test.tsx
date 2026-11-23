@@ -56,6 +56,26 @@ vi.mock('@/features/task-manager/hooks/useAspersionSessionStats', () => ({
   useAspersionSessionStats: () => ({ data: null }),
 }))
 
+vi.mock('@/features/analysis-colors/useLayerAppearance', () => {
+  const data = {
+    layers: {
+      speed: {
+        breaks: [1, 2, 3],
+        colors: ['#111111', '#222222', '#333333', '#444444'],
+        range_min: 0,
+        range_max: 30,
+      },
+    },
+  }
+  return {
+    useLayerAppearance: () => ({ data }),
+    appearanceCategoryColor: (
+      original: string,
+      key: string,
+      appearance?: { category_colors?: Record<string, string> },
+    ) => appearance?.category_colors?.[key] ?? original,
+  }
+})
 import { AspersionMap } from './AspersionMap'
 import { sumAreaByBucket, areaShareByBucket } from '../lib/aspersionMap.helpers'
 
@@ -71,6 +91,7 @@ function renderMap() {
 describe('AspersionMap', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.sessionStorage.clear()
   })
 
   it('renderiza los botones de capa embebido (sin chrome de modal)', async () => {
@@ -111,6 +132,16 @@ describe('AspersionMap', () => {
     })
   })
 
+  it('mantiene Q1–Q4 calculados con los datos aunque haya cortes visuales guardados', async () => {
+    renderMap()
+    await waitFor(() => screen.getByText('Velocidad'))
+    fireEvent.click(screen.getByText('Velocidad'))
+    await waitFor(() => expect(screen.getByText(/Q1 < 3\.60 km\/h/)).toBeTruthy())
+    expect(screen.getByText(/Q2 3\.60–4\.20 km\/h/)).toBeTruthy()
+    expect(screen.getByText(/Q3 4\.20–4\.80 km\/h/)).toBeTruthy()
+    expect(screen.getByText(/Q4 ≥ 4\.80 km\/h/)).toBeTruthy()
+    expect(screen.queryByText(/Clase[1-4]/)).toBeNull()
+  })
   it('el toggle de checkbox cambia el estado visual (tachado)', async () => {
     renderMap()
     await waitFor(() => screen.getByText(/Deficiente/))

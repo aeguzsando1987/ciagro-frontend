@@ -108,6 +108,37 @@ describe('ReportForm — consulta combinada de clima', () => {
     expect(toastSuccess).toHaveBeenCalled()
   })
 
+  it('aclara que el clima es del día cuando el CSV no tiene horas reales', async () => {
+    respondWithClimate({
+      day_weather: {
+        available: true, detail: null, date: '2026-03-10', source: 'NASA POWER',
+        mean: 18, min: 12, max: 24,
+      },
+      session_weather: {
+        ...SESSION_WEATHER,
+        time_basis: 'day',
+        session_start: '2026-03-10',
+        session_finish: '2026-03-10',
+        precipitation_total_mm: 0.4,
+        rain_status: 'significant',
+        rained: true,
+        wind_mean_kmh: 7,
+        wind_max_kmh: 14,
+      },
+    })
+    renderForm()
+    fireEvent.click(screen.getByRole('button', { name: /Traer clima del día de aplicación/i }))
+
+    await waitFor(() => expect(temp(/Temperatura media/i).value).toBe('18'))
+    const section = screen.getByLabelText('Clima del reporte')
+    expect(within(section).getByText(/El CSV solo contiene fecha/)).toBeInTheDocument()
+    expect(within(section).queryByText('Lluvia total del día (mm)')).toBeNull()
+    expect(within(section).queryByText('¿Hubo lluvia ese día?')).toBeNull()
+    expect(within(section).getByText('Velocidad media diaria del viento (km/h)')).toBeInTheDocument()
+    expect(within(section).getByText('Máximo horario del viento durante el día (km/h)')).toBeInTheDocument()
+    expect(within(section).queryByText('0.4')).toBeNull()
+  })
+
   it('permite consultar el clima antes de crear un reporte', async () => {
     respondWithClimate({ day_weather: {
       available: true, detail: null, date: '2026-03-10', source: 'NASA POWER',

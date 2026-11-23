@@ -180,6 +180,32 @@ describe('SessionReportPanel', () => {
     expect(screen.queryByTestId('soil-layer-block')).toBeNull()
   })
 
+  it('muestra fechas date-only sin hora y deja periodos solo para el PDF', () => {
+    setRole(3)
+    mockReport.mockReturnValue({
+      data: {
+        ...REPORT,
+        general_snapshot: {
+          productor: 'Productor X',
+          rancho: 'Rancho Y',
+          fecha_aplicacion: '2026-11-14',
+        },
+        stats_snapshot: {
+          fecha_inicio: null,
+          fecha_fin: null,
+          periodos_aplicacion: [{ inicio: '2026-11-14', fin: '2026-11-14' }],
+        },
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+    renderPanel()
+
+    expect(screen.getAllByText('14/11/2026')).toHaveLength(2)
+    expect(screen.queryByText(/Periodos de aspersión/)).toBeNull()
+  })
+
   it('reporte NO publicado: ofrece Publicar y no muestra la liga pública', () => {
     setRole(3)
     mockReport.mockReturnValue({ data: REPORT, isLoading: false, isError: false, refetch: vi.fn() })

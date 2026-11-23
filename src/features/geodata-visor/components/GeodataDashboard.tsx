@@ -359,15 +359,6 @@ function RanchView({
           datacentralId={selection.datacentral?.id}
         />
       )}
-      {isPlotLevel && !comparisonMode && (
-        <PlotUnifiedTimeline
-          mode={selection.level === 'plot' ? 'parcel' : 'cycle'}
-          plotId={selection.plot!.id}
-          selectedSession={selection.session ?? null}
-          onSelectSession={(session) => onSelect(selectSession(selection, session))}
-          defaultCollapsed={isSessionLevel}
-        />
-      )}
       <div
         className={`relative min-h-[320px] flex-1 rounded-lg border ${
           isNdviSession && !comparisonMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'
@@ -375,7 +366,7 @@ function RanchView({
       >
         {isSessionLevel ? (
           isNdviSession ? (
-            /* La línea de tiempo unificada vive arriba. Aquí se muestra únicamente el mapa
+            /* La línea de tiempo unificada va debajo del mapa. Aquí se muestra únicamente el mapa
                de la sesión NDVI seleccionada para no duplicar controles ni gráficas. */
             <NdviMap
               showMapModeSelector={!comparisonMode}
@@ -473,6 +464,15 @@ function RanchView({
           />
         )}
       </div>
+      {isPlotLevel && !comparisonMode && (
+        <PlotUnifiedTimeline
+          mode={selection.level === 'plot' ? 'parcel' : 'cycle'}
+          plotId={selection.plot!.id}
+          selectedSession={selection.session ?? null}
+          onSelectSession={(session) => onSelect(selectSession(selection, session))}
+          defaultCollapsed={isSessionLevel}
+        />
+      )}
     </div>
   )
 }

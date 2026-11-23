@@ -11,6 +11,7 @@ import type { components } from '@/types/api'
 
 export interface SessionWeatherSnapshot {
   available: boolean
+  time_basis?: 'session' | 'day'
   source: string
   time_zone: string
   session_start: string

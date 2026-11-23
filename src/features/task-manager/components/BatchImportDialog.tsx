@@ -121,7 +121,8 @@ export function BatchImportDialog({
           <DialogTitle>Cargar lote de sesiones</DialogTitle>
           <DialogDescription>
             Se crea una sesion por archivo, con sus puntos ya importados. Las fechas y el
-            nombre de cada sesion salen del propio archivo.
+            nombre de cada sesion salen del propio archivo. Se aceptan marcas de tiempo o
+            fechas por fila; si solo hay fecha, no se inventa una hora.
             {plotCode && <> Parcela: <strong>{plotCode}</strong>.</>}
           </DialogDescription>
         </DialogHeader>

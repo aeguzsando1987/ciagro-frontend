@@ -8,8 +8,17 @@
  * `showStats()`. Ese contrato lo fija `arranca con las estadísticas ocultas`.
  */
 import { fireEvent, render, screen } from '@testing-library/react'
+
+Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
+  configurable: true,
+  value: vi.fn(),
+})
 import { describe, it, expect, vi } from 'vitest'
 
+vi.mock('@/features/analysis-colors/useLayerAppearance', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/analysis-colors/useLayerAppearance')>()),
+  useLayerAppearance: () => ({ data: undefined, isLoading: false, isError: false }),
+}))
 vi.mock('react-map-gl/maplibre', () => ({
   default: ({ children }: { children?: React.ReactNode }) => (
     <div data-testid="mock-map">{children}</div>

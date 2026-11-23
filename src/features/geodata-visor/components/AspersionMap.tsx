@@ -1,7 +1,7 @@
 import { MapModeSelector } from './MapModeSelector'
 import { useMapMode } from '../lib/mapModes'
 import { usePersistentMapLayer } from '../lib/usePersistentMapLayer'
-import { useLayerAppearance, appearancePalette, appearanceCategoryColor, type LayerAppearance } from '@/features/analysis-colors/useLayerAppearance'
+import { useLayerAppearance, appearanceCategoryColor, type LayerAppearance } from '@/features/analysis-colors/useLayerAppearance'
 /**
  * Mapa de calor de los datos de aspersión de una sesión — componente presentacional
  * auto-contenido, embebible tanto en un modal (task-manager) como en el dashboard del
@@ -50,6 +50,8 @@ import {
   classifyApplication,
   classifyRateQuality,
   computeQuartiles,
+  quartileOf,
+  buildQuartileDefs,
   buildTargetDefs,
   targetBucketOf,
   applicationPercent,
@@ -141,36 +143,19 @@ function buildLayerData(
     return buildCategorical((f) => targetBucketOf(f.properties.target_rate_l), defs.map((d,i)=>({...d,color:appearance?.category_colors?.[d.key] ?? (appearance?.colors?.[i % appearance.colors.length] ?? d.color)})))
   }
 
-  // Numeric layer: original quartiles by default, optionally arbitrary colors/count or manual cuts.
+  // Numeric layers use the data-derived quartiles from master. Appearance
+  // preferences may recolor Q1–Q4, but cannot redefine their thresholds.
   const fieldKey = layerDef.field as keyof RectangleProps
   const values = baseFC.features.map(f => f.properties[fieldKey] as number | null)
     .filter((v): v is number => v != null && Number.isFinite(v))
   const cuts = computeQuartiles(values)
   const original = QUARTILE_PALETTES[layerDef.key as QuartileLayerKey]
-  const palette = appearancePalette(original, appearance)
-  const thresholds = appearance?.breaks?.length === palette.length-1
-    ? appearance.breaks : (()=> {
-        const sorted=[...values].sort((a,b)=>a-b)
-        return Array.from({length:palette.length-1},(_,i)=>{
-          const index=(sorted.length-1)*(i+1)/palette.length
-          const lo=Math.floor(index),hi=Math.ceil(index)
-          return sorted.length ? sorted[lo]!+(sorted[hi]!-sorted[lo]!)*(index-lo) : 0
-        })
-      })()
-  const keys = palette.map((_,i)=>`q${i+1}`)
-  const bucketOf=(value: number | null) => {
-    if(value==null || !Number.isFinite(value)) return 'sin_dato'
-    const index=thresholds.findIndex(c=>value<c)
-    return keys[index===-1?keys.length-1:index]!
-  }
+  const palette = original.map((color, index) => appearance?.colors?.[index] ?? color) as [string, string, string, string]
+  const bucketOf = (value: number | null) => cuts ? (quartileOf(value, cuts) ?? 'q1') : 'q1'
   const annotated = {...baseFC, features:baseFC.features.map(f=>({...f,properties:{...f.properties,bucket:bucketOf(f.properties[fieldKey] as number|null)}}))} as LayerData['annotated']
-  const fixed = appearance?.range_min != null && appearance?.range_max != null && !!appearance.breaks
-  const legendDefs: LegendEntry[] = values.length ? palette.map((color,i)=>({
-    key:keys[i]!,color,
-    label:`${appearance?.breaks ? 'Clase' : 'Q'}${i+1} ${fixed
-      ? `${(i===0 ? appearance!.range_min! : thresholds[i-1]!).toFixed(2)}–${(i===palette.length-1 ? appearance!.range_max! : thresholds[i]!).toFixed(2)}`
-      : i===0 ? '< ' + thresholds[0]!.toFixed(2) : i===palette.length-1 ? '≥ ' + thresholds[i-1]!.toFixed(2) : thresholds[i-1]!.toFixed(2)+'–'+thresholds[i]!.toFixed(2)} ${layerDef.unit}`,
-  })) : []
+  const legendDefs: LegendEntry[] = cuts
+    ? buildQuartileDefs(palette, cuts, layerDef.unit)
+    : []
   return {
     annotated,legendDefs,
     colorExpr:buildCategoryColorExpr(legendDefs),

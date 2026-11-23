@@ -116,6 +116,10 @@ const setPoints = vi.hoisted(() => (points: Array<Record<string, unknown>>) => {
   derived.stats = null
 })
 
+vi.mock('@/features/analysis-colors/useLayerAppearance', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/analysis-colors/useLayerAppearance')>()),
+  useLayerAppearance: () => ({ data: undefined }),
+}))
 vi.mock('react-map-gl/maplibre', async () => {
   const { forwardRef } = await import('react')
   return {
@@ -284,6 +288,7 @@ async function renderMap(ui: React.ReactElement) {
 
 describe('SoilMap', () => {
   beforeEach(() => {
+    window.sessionStorage.clear()
     setPoints([soilPoint('point-1', 0), soilPoint('point-2', 1), soilPoint('point-3', 2)])
     mocks.plot = {
       geometry: {

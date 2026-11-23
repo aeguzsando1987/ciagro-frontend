@@ -29,6 +29,7 @@ export interface ReportWeather {
 export interface ReportSessionWeather {
   available: boolean
   detail: string | null
+  time_basis?: 'session' | 'day'
   source: string
   time_zone: string
   session_start: string
