@@ -35,6 +35,7 @@ import {
   useAspersionSessionStats,
   type AspersionSessionStats,
 } from '@/features/task-manager/hooks/useAspersionSessionStats'
+import { sessionClock } from '../lib/aspersionSessionTime'
 import {
   pointsToRectangleCollection,
   type RectangleProps,
@@ -179,6 +180,7 @@ function HoverTooltip({ info, layer }: { info: HoverInfo; layer: LayerDef }) {
   const { lon, lat, props } = info
   const pApl = applicationPercent(props.applied_rate_l, props.target_rate_l)
   const numValue = props[layer.field as keyof RectangleProps] as number | null
+  const recordedClock = sessionClock(props.timestamp)
 
   return (
     <Popup
@@ -194,6 +196,11 @@ function HoverTooltip({ info, layer }: { info: HoverInfo; layer: LayerDef }) {
         <p className="text-muted-foreground">
           {lat.toFixed(6)}, {lon.toFixed(6)}
         </p>
+        {recordedClock && (
+          <p>
+            Hora registrada: <span className="font-medium">{recordedClock}</span>
+          </p>
+        )}
         {layer.kind === 'category' && (
           <>
             <p>

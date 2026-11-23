@@ -10,9 +10,32 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { createTestQueryClient } from '@/test/test-utils'
 
+const hoverTimestampState = vi.hoisted(() => ({ value: '2026-10-28T10:15:24-06:00' }))
+
 vi.mock('react-map-gl/maplibre', () => ({
-  default: ({ children }: { children?: React.ReactNode }) => (
-    <div data-testid="mock-map">{children}</div>
+  default: ({
+    children,
+    onMouseMove,
+  }: {
+    children?: React.ReactNode
+    onMouseMove?: (event: unknown) => void
+  }) => (
+    <div
+      data-testid="mock-map"
+      onMouseMove={() => onMouseMove?.({
+        features: [{
+          properties: {
+            timestamp: hoverTimestampState.value,
+            applied_rate_l: 380,
+            target_rate_l: 400,
+            bucket: 'excelente',
+          },
+        }],
+        lngLat: { lng: -101.088, lat: 20.534 },
+      })}
+    >
+      {children}
+    </div>
   ),
   Source: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   Layer: () => null,
@@ -91,7 +114,21 @@ function renderMap() {
 describe('AspersionMap', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    hoverTimestampState.value = '2026-10-28T10:15:24-06:00'
     window.sessionStorage.clear()
+  })
+
+  it('muestra la hora GPS en el popup cuando el punto tiene hora real', async () => {
+    renderMap()
+    fireEvent.mouseMove(await screen.findByTestId('mock-map'))
+    expect(await screen.findByText(/Hora registrada:/)).toHaveTextContent('10:15:24')
+  })
+
+  it('no muestra una hora inventada para datos con solo fecha', async () => {
+    hoverTimestampState.value = '2026-10-28'
+    renderMap()
+    fireEvent.mouseMove(await screen.findByTestId('mock-map'))
+    await waitFor(() => expect(screen.queryByText(/Hora registrada:/)).toBeNull())
   })
 
   it('renderiza los botones de capa embebido (sin chrome de modal)', async () => {

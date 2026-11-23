@@ -37,6 +37,8 @@ export interface RectangleProps {
   course_deg: number
   boom_width_m: number
   distance_m: number
+  /** Hora GPS original del punto; puede faltar en CSV que solo traen fecha. */
+  timestamp: string | null
   applied_rate_l: number | null
   target_rate_l: number | null
   liquid_flow_ls: number | null
@@ -128,6 +130,7 @@ export function pointsToRectangleCollection(
         course_deg: headingDeg,
         boom_width_m: widthM,
         distance_m: heightM,
+        timestamp: point.timestamp ?? null,
         applied_rate_l: parseDecimal(point.applied_rate_l),
         target_rate_l: parseDecimal(point.target_rate_l),
         liquid_flow_ls: parseDecimal(point.liquid_flow_ls),

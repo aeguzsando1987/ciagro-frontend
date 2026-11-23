@@ -14,6 +14,7 @@ describe('horarios reales de aspersión', () => {
 
   it('no inventa fechas ni horarios ausentes', () => {
     expect(sessionClock(null)).toBeNull()
+    expect(sessionClock('2026-10-28T00:00:00-06:00')).toBeNull()
     expect(sessionDateTime('2026-11-10')).toBe('10/11/2026')
     expect(sessionDateAndClock('', '2026-11-07')).toBeNull()
     expect(sessionDateAndClock('no-fecha', '2026-11-07')).toBeNull()

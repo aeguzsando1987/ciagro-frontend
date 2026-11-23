@@ -82,6 +82,14 @@ describe('pointsToRectangleCollection', () => {
     expect(f.properties.lon).toBeCloseTo(LON)
   })
 
+  it('conserva la hora original del punto y deja null cuando no existe', () => {
+    const timestamp = '2026-10-28T10:15:24-06:00'
+    const withTimestamp = pointsToRectangleCollection([makePoint({ timestamp })])
+    const withoutTimestamp = pointsToRectangleCollection([makePoint({ timestamp: null })])
+    expect(withTimestamp.features[0]!.properties.timestamp).toBe(timestamp)
+    expect(withoutTimestamp.features[0]!.properties.timestamp).toBeNull()
+  })
+
   it('parsea area_ha a null cuando falta', () => {
     const fc = pointsToRectangleCollection([makePoint({ area_ha: null })])
     expect(fc.features[0]!.properties.area_ha).toBeNull()

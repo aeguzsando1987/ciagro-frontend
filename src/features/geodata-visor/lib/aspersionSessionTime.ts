@@ -7,6 +7,16 @@ export function sessionClock(value: string | null | undefined): string | null {
   if (!/[T ]\d{2}:\d{2}/.test(value)) return null
   const date = new Date(value)
   if (!Number.isFinite(date.getTime())) return null
+  // The importer can normalize date-only CSV values to midnight. Match the
+  // backend rule so that this placeholder is not presented as a recorded hour.
+  const localClock = new Intl.DateTimeFormat('en-GB', {
+    timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  }).formatToParts(date)
+  const clockValue = localClock
+    .filter((part) => ['hour', 'minute', 'second'].includes(part.type))
+    .map((part) => part.value)
+    .join(':')
+  if (clockValue === '00:00:00') return null
   return new Intl.DateTimeFormat('es-MX', {
     timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
   }).format(date)
