@@ -44,6 +44,8 @@ const LAYER_ICONS: Record<YieldLayerKey, React.ReactNode> = {
   elevation_m: <Mountain className="h-4 w-4" />,
 }
 
+const EMPTY_YIELD_POINTS: YieldMapPoint[] = []
+
 function colorExpression(classes: YieldClass[]): unknown[] {
   const expression: unknown[] = ['match', ['get', 'bucket']]
   for (const entry of classes) expression.push(entry.key, entry.color)
@@ -120,7 +122,7 @@ export function YieldMap({
   const pointsQuery = useYieldMapPoints(sessionId)
   const statsQuery = useYieldMapStats(sessionId)
   const plotQuery = usePlotGeometry(plotId)
-  const points = pointsQuery.data ?? []
+  const points = pointsQuery.data ?? EMPTY_YIELD_POINTS
   const {data: appearance} = useLayerAppearance('yield_map',tenantId)
   const baseLayer = YIELD_LAYERS.find((layer) => layer.key === activeKey) ?? YIELD_LAYERS[0]!
   const layerAppearance = appearance?.layers[activeKey]

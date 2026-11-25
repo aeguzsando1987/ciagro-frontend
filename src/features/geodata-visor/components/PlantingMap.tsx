@@ -289,7 +289,7 @@ export function PlantingMap({
 
   const classes = useMemo(
     () => buildPlantingClasses(samples.map((sample) => sample.value), activeLayer, layerAppearance),
-    [activeLayer, samples],
+    [activeLayer, layerAppearance, samples],
   )
 
   useEffect(() => {

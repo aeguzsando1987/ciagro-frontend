@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useIsFetching } from '@tanstack/react-query'
 import {
   Bug,
@@ -457,11 +457,11 @@ export function PlotUnifiedTimeline({
     }
   }, [cycleBySessionId, ndviItems, selectedCycle, selectedSession])
 
-  const isInsideSelectedCycle = (date: string | null | undefined) => {
+  const isInsideSelectedCycle = useCallback((date: string | null | undefined) => {
     if (!selectedCycleWindow) return false
     const ms = dateMs(date)
     return ms !== null && ms >= selectedCycleWindow.start && ms <= selectedCycleWindow.end
-  }
+  }, [selectedCycleWindow])
 
   const cycles = useMemo(() => {
     const latest = new Map<string, string>()
@@ -516,7 +516,7 @@ export function PlotUnifiedTimeline({
       // dentro del eje del ciclo seleccionado; nunca debe estirar el rango a otro aÁ±o.
       return false
     }),
-    [selectedCycle, selectedCycleWindow, sessions]
+    [isInsideSelectedCycle, selectedCycle, sessions]
   )
 
   const ndviForCycle = useMemo(
@@ -525,7 +525,7 @@ export function PlotUnifiedTimeline({
       if (cycleBySessionId.get(item.id) === selectedCycle) return true
       return isInsideSelectedCycle(item.session_date)
     }),
-    [cycleBySessionId, ndviItems, selectedCycle, selectedCycleWindow]
+    [cycleBySessionId, isInsideSelectedCycle, ndviItems, selectedCycle]
   )
 
   // Importante: aquí NO hay agrupación semanal. Cada sesión NDVI del endpoint

@@ -81,7 +81,7 @@ export function NdviVariablesSection({ tenantId: externalTenantId, onTenantChang
   // SuperAdmin), el usuario debe elegir explícitamente.
   useEffect(() => {
     if (!tenantId && configurableOrgs.length === 1) setTenantId(configurableOrgs[0]!.id)
-  }, [configurableOrgs, tenantId])
+  }, [configurableOrgs, setTenantId, tenantId])
 
   const needsTenantChoice = configurableOrgs.length !== 1
   const tenantReady = !needsTenantChoice || !!tenantId

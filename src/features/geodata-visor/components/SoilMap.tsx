@@ -266,7 +266,7 @@ export function SoilMap({
     if (!hasLayerCounts || layerCounts[activeLayerIndex]! > 0) return
     const firstAvailable = layerCounts.findIndex((count) => count > 0)
     if (firstAvailable >= 0) setActiveLayerIndex(firstAvailable)
-  }, [activeLayerIndex, controlledIndex, hasLayerCounts, layerCounts])
+  }, [activeLayerIndex, controlledIndex, hasLayerCounts, layerCounts, setActiveLayerIndex])
 
   useEffect(() => {
     setCheckedBuckets(null)
@@ -420,7 +420,7 @@ export function SoilMap({
       duration: tightFrame ? 0 : 600,
       maxZoom: 18,
     })
-  }, [mapBounds])
+  }, [mapBounds, tightFrame])
 
   function toggleBucket(key: string) {
     setCheckedBuckets((previous) => {
